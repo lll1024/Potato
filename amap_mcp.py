@@ -7,6 +7,7 @@ from anthropic.types import ToolParam
 from mcp import Client
 
 PLACE_TOOLS = {"maps_text_search", "maps_search_detail"}
+DINING_TOOLS = {"maps_around_search"}
 ROUTE_TOOLS = {
     "maps_geo", "maps_regeocode", "maps_distance",
     "maps_direction_walking", "maps_direction_bicycling",
@@ -42,7 +43,7 @@ class AmapTools:
                     "description": tool.description or "",
                     "input_schema": tool.input_schema,
                 }, ensure_ascii=False))))
-                for tool in page.tools if tool.name in PLACE_TOOLS | ROUTE_TOOLS
+                for tool in page.tools if tool.name in PLACE_TOOLS | ROUTE_TOOLS | DINING_TOOLS
             )
             if page.next_cursor is None:
                 break
@@ -52,7 +53,7 @@ class AmapTools:
 
     async def call(self, name: str, arguments: dict[str, Any]) -> ToolResult:
         if name not in {tool["name"] for tool in self.declarations}:
-            return {"content": "工具未开放，仅可调用已发现的地点与交通查询工具。", "is_error": True}
+            return {"content": "工具未开放，仅可调用已发现的地点、餐饮与交通查询工具。", "is_error": True}
         try:
             result = await asyncio.wait_for(
                 self.client.call_tool(name, arguments), timeout=self.tool_timeout
