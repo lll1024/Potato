@@ -29,6 +29,10 @@ def tool_call(call_id, name, arguments):
 
 
 class DiningMapService:
+    @property
+    def session(self):
+        return self
+
     def __init__(self, data, *, text_only=False):
         self.data = data
         self.text_only = text_only

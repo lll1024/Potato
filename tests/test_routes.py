@@ -25,6 +25,10 @@ def tool_call(call_id, name, arguments):
 
 
 class RouteMapService:
+    @property
+    def session(self):
+        return self
+
     def __init__(self, *, failed_route=None, ambiguous=False):
         self.calls = []
         self.failed_route = failed_route

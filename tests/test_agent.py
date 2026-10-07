@@ -40,6 +40,10 @@ class ModelService:
 
 
 class MapService:
+    @property
+    def session(self):
+        return self
+
     async def list_tools(self, *, cursor=None):
         return SimpleNamespace(
             tools=[
