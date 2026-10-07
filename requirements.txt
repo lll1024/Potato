@@ -1,0 +1,4 @@
+anthropic==1.11.0
+mcp==2.3.0
+python-dotenv==1.2.4
+httpx2[socks]==2.13.1
