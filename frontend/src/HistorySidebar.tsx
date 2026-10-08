@@ -9,7 +9,7 @@ type Page = { sessions: Session[]; next_cursor: string | null };
 async function historyApi<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(path, options);
   const body = await response.json();
-  if (!response.ok) throw new Error(typeof body.detail === 'string' ? body.detail : '历史操作未成功，请重试。');
+  if (!response.ok) throw new Error(typeof body.detail === 'string' ? body.detail : body.detail?.message ?? '历史操作未成功，请重试。');
   if (body.schema_version !== 1) throw new Error('数据版本不兼容，请更新页面和服务。');
   return body;
 }
@@ -20,6 +20,10 @@ export function useConversationDraft(sessionId: string | null) {
   return {
     draft: drafts[key] ?? '',
     setDraft: (text: string) => setDrafts(current => ({...current, [key]: text})),
+    clearSubmittedDraft: (id: string | null, input: string) => setDrafts(current => {
+      const origin = id ?? 'blank';
+      return current[origin] === input ? {...current, [origin]: ''} : current;
+    }),
     removeDraft: (id: string) => setDrafts(current => {
       const remaining = {...current}; delete remaining[id]; return remaining;
     }),

@@ -24,6 +24,7 @@ export function useServiceEvents() {
   useEffect(() => {
     let cancelled = false;
     let stream: EventSource | undefined;
+    let reconnectTimer: number | undefined;
     function unavailable() {
       if (cancelled) return;
       setConnectionError('通知连接中断，正在重新连接；已接受的查询继续在后台执行。');
@@ -47,10 +48,11 @@ export function useServiceEvents() {
         stream.onerror = unavailable;
       } catch {
         unavailable();
+        if (!cancelled) reconnectTimer = window.setTimeout(connect, 2000);
       }
     }
     void connect();
-    return () => {cancelled = true; stream?.close();};
+    return () => {cancelled = true; stream?.close(); window.clearTimeout(reconnectTimer);};
   }, [refresh]);
 
   return {state,setState,revision,connectionError,refresh};

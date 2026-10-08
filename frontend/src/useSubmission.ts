@@ -27,6 +27,8 @@ export function useSubmission(onAccepted: (accepted: AcceptedSubmission, submitt
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const inFlight = useRef(false);
+  const acceptedCallback = useRef(onAccepted);
+  acceptedCallback.current = onAccepted;
 
   async function perform(submitted: PendingSubmission, query: boolean) {
     if (inFlight.current) return;
@@ -38,7 +40,7 @@ export function useSubmission(onAccepted: (accepted: AcceptedSubmission, submitt
         method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(submitted),
       });
       setPending(null);
-      onAccepted(accepted, submitted);
+      acceptedCallback.current(accepted, submitted);
     } catch (cause) {
       if (cause instanceof SubmissionError) {
         if (query && cause.code === 'SUBMISSION_NOT_FOUND') {

@@ -46,3 +46,9 @@ input:focus-visible { outline: 3px solid #257968; outline-offset: 3px; }
 .rename-form { border: 0; padding: 12px 0; }
 .round-status { color: #53635b; font-size: 12px; }
 .load-earlier { margin-bottom: 18px; }
+
+.global-status { max-width: 420px; font-size: 13px; }
+.global-status p { margin: 4px 0; }
+.global-status button { padding: 6px 12px; }
+.submission-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+@media (max-width: 760px) { header { flex-wrap: wrap; } .global-status { order: 3; flex-basis: 100%; } }
