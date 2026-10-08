@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 
 type Session = {
   session_id: string; title: string; updated_at: string; status: string;
@@ -44,6 +44,25 @@ export function HistorySidebar({sessionId, activeTurnId, onSelect, onDelete}: {
   const [error, setError] = useState('');
   const [working, setWorking] = useState(false);
   const [revision, setRevision] = useState(0);
+  const [pendingDelete, setPendingDelete] = useState<Session | null>(null);
+  const [deleteError, setDeleteError] = useState('');
+  const deleteDialog = useRef<HTMLDialogElement>(null);
+  const deleteTrigger = useRef<HTMLButtonElement | null>(null);
+  const historyHeading = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (pendingDelete && !deleteDialog.current?.open) deleteDialog.current?.showModal();
+  }, [pendingDelete]);
+
+  function closedDeleteDialog() {
+    setPendingDelete(null);
+    setDeleteError('');
+    window.requestAnimationFrame(() => {
+      const trigger = deleteTrigger.current;
+      if (trigger?.isConnected && !trigger.disabled) trigger.focus();
+      else historyHeading.current?.focus();
+    });
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -72,19 +91,22 @@ export function HistorySidebar({sessionId, activeTurnId, onSelect, onDelete}: {
     finally { setWorking(false); }
   }
 
-  async function remove(session: Session) {
-    if (!window.confirm(`删除“${session.title}”？此会话的对话、上下文和执行轨迹将一并删除。`)) return;
-    setWorking(true); setError('');
+  async function remove() {
+    if (!pendingDelete) return;
+    const session = pendingDelete;
+    setWorking(true); setDeleteError('');
     try {
       await historyApi(`/api/sessions/${session.session_id}`, {method: 'DELETE'});
       if (editing === session.session_id) setEditing(null);
       onDelete(session.session_id); setRevision(current => current + 1);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : '删除失败。'); }
+      deleteTrigger.current = null;
+      deleteDialog.current?.close();
+    } catch (cause) { setDeleteError(cause instanceof Error ? cause.message : '删除失败。'); }
     finally { setWorking(false); }
   }
 
   return <aside className="history" aria-labelledby="history-title">
-    <h2 id="history-title">历史会话</h2>
+    <h2 id="history-title" ref={historyHeading} tabIndex={-1}>历史会话</h2>
     <p className="hint">按最近对话活动排序。回看不会发起查询。</p>
     <ul className="history-list">{sessions.map(session => <li key={session.session_id}>
       <button className="history-select" aria-current={sessionId === session.session_id ? 'true' : undefined} onClick={() => onSelect(session.session_id)}>
@@ -94,7 +116,7 @@ export function HistorySidebar({sessionId, activeTurnId, onSelect, onDelete}: {
       </button>
       <div className="history-actions">
         <button disabled={working} aria-label={`重命名“${session.title}”`} onClick={() => {setEditing(session.session_id); setTitle(session.title);}}>重命名</button>
-        <button disabled={working || ['running', 'stopping'].includes(session.status)} aria-label={`删除“${session.title}”`} onClick={() => void remove(session)}>删除</button>
+        <button disabled={working || ['running', 'stopping'].includes(session.status)} aria-label={`删除“${session.title}”`} onClick={event => {deleteTrigger.current = event.currentTarget; setDeleteError(''); setPendingDelete(session);}}>删除</button>
       </div>
       {editing === session.session_id && <form className="rename-form" onSubmit={rename}>
         <label htmlFor="session-title">会话标题</label>
@@ -105,5 +127,14 @@ export function HistorySidebar({sessionId, activeTurnId, onSelect, onDelete}: {
     {!sessions.length && <p className="hint">尚无已发送的会话。</p>}
     {nextCursor !== null && <button disabled={working} onClick={() => void more()}>加载更多会话</button>}
     <p className="error" role="alert">{error}</p>
+    <dialog ref={deleteDialog} className="delete-dialog" aria-labelledby="delete-dialog-title" aria-describedby="delete-dialog-description" onClose={closedDeleteDialog} onCancel={event => {if (working) event.preventDefault();}}>
+      <h2 id="delete-dialog-title">删除会话？</h2>
+      <p id="delete-dialog-description">删除“{pendingDelete?.title}”后，此会话的对话、上下文和执行轨迹将一并删除。</p>
+      <p className="error" role="alert">{deleteError}</p>
+      <div className="dialog-actions">
+        <button type="button" autoFocus disabled={working} onClick={() => deleteDialog.current?.close()}>取消</button>
+        <button type="button" disabled={working} onClick={() => void remove()}>{working ? '正在删除…' : '确认删除'}</button>
+      </div>
+    </dialog>
   </aside>;
 }
