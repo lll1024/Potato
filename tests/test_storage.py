@@ -260,7 +260,7 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
         original='https://example.test/?key='+secret
         first=response([{'type':'tool_use','id':'one','name':'maps_text_search',
                          'input':{'keywords':'西湖','city':'杭州','Authorization':'args-secret','url':original}}],'tool_use')
-        final=response([{'type':'text','text':'建议 token=answer-secret '+quote(secret)+' '+quote_plus(secret)}])
+        final=response([{'type':'text','text':'建议 token=answer-secret set-cookie="text-cookie-secret" '+quote(secret)+' '+quote_plus(secret)}])
         final.service_meta={'Authorization':'response-secret','url':original}
         class SafeMaps(MapService):
             async def call_tool(self,name,arguments):
@@ -286,7 +286,7 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
                             event=json.loads(line[5:]);notices.append(event)
                             if event['kind']=='service.state': break
                 visible=json.dumps([state,saved,payloads,notices],ensure_ascii=False)+output.getvalue()
-                for value in (secret,'input-secret','args-secret','service-secret','cookie-secret','answer-secret','response-secret','storage-secret'):
+                for value in (secret,'input-secret','args-secret','service-secret','cookie-secret','answer-secret','response-secret','text-cookie-secret','storage-secret'):
                     self.assertNotIn(value,visible)
                     self.assertNotIn(quote(value,safe=''),visible)
                     self.assertNotIn(quote_plus(value),visible)
@@ -294,7 +294,7 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn('西湖',visible)
                 self.assertEqual(len(model.requests),2)
             persisted=(Path(directory)/'travel.sqlite3').read_bytes()
-            for value in (secret,'input-secret','args-secret','service-secret','cookie-secret','answer-secret','response-secret'):
+            for value in (secret,'input-secret','args-secret','service-secret','cookie-secret','answer-secret','response-secret','text-cookie-secret'):
                 self.assertFalse(value.encode() in persisted, '产品记录含未脱敏凭据')
 
     async def test_real_sdk_process_restart_preserves_only_committed_tool_facts_and_complete_context(self):
