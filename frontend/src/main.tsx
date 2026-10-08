@@ -19,7 +19,7 @@ async function api<T>(path: string, options?: RequestInit): Promise<T> {
 
 const reasonLabels: Record<string, string> = {
   model_error: '模型请求失败', execution_error: '服务执行失败', budget: '查询达到上限',
-  output_limit: '输出达到上限', map_paused: '地图查询已暂停', service_shutdown: '服务退出',
+  output_limit: '输出达到上限', user_stop: '用户停止', map_paused: '地图查询已暂停', service_shutdown: '服务退出',
 };
 function statusText(turn: Turn): string {
   if (turn.status === 'running') return '正在执行';
@@ -41,6 +41,7 @@ function App() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const {state, revision: serviceRevision, connectionError, refresh: refreshService} = useServiceEvents();
   const [error, setError] = useState('');
+  const [stoppingId, setStoppingId] = useState<string | null>(null);
 
   const submission = useSubmission((accepted, submitted) => {
     clearSubmittedDraft(submitted.session_id, submitted.input);
@@ -70,6 +71,15 @@ function App() {
     if (state.active_turn_id || !state.accepting) return;
     setError('');
     await submission.send(draft, sessionId);
+  }
+
+  async function stopTurn(turnId: string) {
+    setStoppingId(turnId); setError('');
+    try {
+      await api(`/api/turns/${encodeURIComponent(turnId)}/stop`, {method: 'POST'});
+      await refreshService();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : '停止请求未能核对，可重试同一轮次。'); }
+    finally { setStoppingId(null); }
   }
 
   function selectConversation(id: string | null) {
@@ -103,6 +113,10 @@ function App() {
       <div><p className="eyebrow">本机调试</p><h1>旅行助手</h1></div>
       <div className="global-status">
         <p role="status">{state.active_turn_id ? `${state.stopping ? '正在停止，仍占用执行名额' : '全局忙，正在执行'} · ${state.active_session_id === sessionId ? '当前会话' : '其他会话'}` : state.accepting ? '全局准备就绪' : '本机服务暂不可用'}</p>
+        {state.active_turn_id && <div>
+          <button type="button" disabled={state.stopping || stoppingId === state.active_turn_id} onClick={() => void stopTurn(state.active_turn_id!)}>{state.stopping ? '正在停止…' : stoppingId === state.active_turn_id ? '正在请求停止…' : '停止执行中的轮次'}</button>
+          <p className="hint">停止会阻止后续查询；已发起的调用会等待真实返回，期间仍占用执行名额。</p>
+        </div>}
         {state.active_session_id && state.active_session_id !== sessionId && <button onClick={() => selectConversation(state.active_session_id)}>查看执行中的会话</button>}
         {state.map_paused && <p>地图查询已暂停：{mapPauseLabels[state.map_pause_reason ?? ''] ?? '请修复配置、网络或服务后重启。'}</p>}
       </div>
