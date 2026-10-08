@@ -209,6 +209,10 @@ class Store:
         return result
 
 
+    def turn(self, turn_id):
+        row = self.db.execute("SELECT turn_id,status FROM turns WHERE turn_id=?", (turn_id,)).fetchone()
+        return dict(row) if row else None
+
     def finish(self, session_id, turn_id, answer, messages, outcome, duration_ms):
         now = timestamp()
         with self.db:
