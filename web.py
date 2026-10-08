@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import fcntl
+import hashlib
 import json
 import logging
 import os
@@ -17,7 +18,10 @@ from anthropic import AsyncAnthropic
 from anthropic.types import MessageParam
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import StreamingResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse, StreamingResponse
+
+
 from fastapi.staticfiles import StaticFiles
 from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
@@ -66,18 +70,21 @@ class TraceStorageError(RuntimeError):
 class Submission(BaseModel):
     input: str = Field(min_length=1)
     session_id: str | None = None
+    submission_id: str | None = Field(default=None, min_length=1, max_length=128)
+
 
 
 class RenameSession(BaseModel):
     title: str = Field(min_length=1, max_length=120)
-
 
 def create_app(data_dir: str | Path, *, resources=configured_resources, static_dir: str | Path | None=None) -> FastAPI:
     directory = Path(data_dir)
     task: asyncio.Task | None = None
     active: dict[str, str] | None = None
     accepting = False
+    acceptance_lock = asyncio.Lock()
     storage_error: str | None = None
+
     stop_requested = asyncio.Event()
     changed = asyncio.Event()
     store: Store
@@ -109,6 +116,11 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                 fcntl.flock(lock,fcntl.LOCK_UN)
 
     app = FastAPI(lifespan=lifespan)
+
+    @app.exception_handler(RequestValidationError)
+    async def invalid_submission(_request, _error):
+        # 校验错误中的原输入可能含凭据，不能直接交给浏览器或日志。
+        return JSONResponse(status_code=422,content={"detail":{"code":"INVALID_INPUT","message":"输入或提交身份格式不正确，请检查后重试。"}})
 
     async def execute(identity, text):
         nonlocal active,accepting,storage_error
@@ -151,28 +163,57 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
 
     @app.post("/api/turns",status_code=202)
     async def submit(body: Submission):
-        nonlocal task,active
-        if not accepting:
-            raise HTTPException(503,"服务无法保存或正在退出，请检查后重启。")
-        if active:
-            raise HTTPException(409,"已有一轮正在执行，请等待结束。")
-        if not body.input.strip():
-            raise HTTPException(422,"请输入旅行需求。")
-        text = runtime.tools.redact(body.input)
-        try:
-            identity = store.accept(text, body.session_id)
-        except KeyError:
-            raise HTTPException(404,"会话不存在。") from None
-        except Exception:
-            raise HTTPException(503,"输入未保存，查询未启动。") from None
-        changed.set()
-        active = identity
-        task = asyncio.create_task(execute(identity,text))
-        return identity
+        nonlocal task,active,accepting,storage_error
+        async with acceptance_lock:
+            fingerprint = hashlib.sha256(json.dumps([body.input, body.session_id],ensure_ascii=False).encode()).hexdigest()
+            if body.submission_id is not None:
+                saved = store.submission(body.submission_id)
+                if saved:
+                    if saved["fingerprint"] != fingerprint:
+                        raise HTTPException(409, {"code":"SUBMISSION_CONFLICT","message":"提交标识已用于其他输入或会话，请作为新提问发送。"})
+                    if saved["session_id"] is None:
+                        raise HTTPException(410, {"code":"SUBMISSION_DELETED","message":"这次提交的会话已删除，不会再次执行。"})
+                    return {"schema_version":SCHEMA_VERSION,"submission_id":body.submission_id,"session_id":saved["session_id"],"turn_id":saved["turn_id"]}
+            if not accepting:
+                raise HTTPException(503,{"code":"SERVICE_UNAVAILABLE","message":"服务无法保存或正在退出，请检查后重启。"})
+            if active:
+                raise HTTPException(409,{"code":"BUSY","message":"已有一轮正在执行，请等待结束。"})
+            if not body.input.strip():
+                raise HTTPException(422,{"code":"INVALID_INPUT","message":"请输入旅行需求。"})
+            text = runtime.tools.redact(body.input)
+            try:
+                identity = store.accept(text,body.session_id,submission_id=body.submission_id,fingerprint=fingerprint)
+            except KeyError:
+                raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"}) from None
+            except Exception:
+                accepting = False
+                storage_error = "输入未保存，查询未启动，请检查存储后重启。"
+                changed.set()
+                raise HTTPException(503,{"code":"STORAGE_FAILURE","message":"输入未保存，查询未启动。"}) from None
+            active = identity
+            changed.set()
+            task = asyncio.create_task(execute(identity,text))
+            return identity
+
+    @app.get("/api/submissions/{submission_id}")
+    async def submission_result(submission_id: str):
+        saved = store.submission(submission_id)
+        if saved is None:
+            raise HTTPException(404, {"code":"SUBMISSION_NOT_FOUND","message":"服务没有接受这次提交，可安全重试同一提交。"})
+        if saved["session_id"] is None:
+            raise HTTPException(410, {"code":"SUBMISSION_DELETED","message":"这次提交的会话已删除，不会再次执行。"})
+        return {"schema_version":SCHEMA_VERSION,"submission_id":submission_id,"session_id":saved["session_id"],"turn_id":saved["turn_id"]}
+
 
     @app.get("/api/state")
     async def state():
-        return {"schema_version":SCHEMA_VERSION,"active_turn_id":active["turn_id"] if active else None,"accepting":accepting,"storage_error":storage_error}
+        return {"schema_version":SCHEMA_VERSION,"active_turn_id":active["turn_id"] if active else None,
+                "active_session_id":active["session_id"] if active else None,"accepting":accepting,
+                "stopping":bool(active and stop_requested.is_set()),
+                "map_paused":runtime.tools.failure is not None,
+                "map_pause_reason":runtime.tools.failure,
+                "service_status":"available" if accepting else "unavailable","storage_error":storage_error}
+
 
     @app.get("/api/sessions")
     async def sessions(limit: int = Query(50,ge=1,le=100), cursor: str | None = None):
@@ -185,7 +226,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
     async def snapshot(session_id: str, limit: int = Query(50,ge=1,le=100), before: int | None = Query(None,ge=1)):
         result = store.snapshot(session_id,limit,before)
         if result is None:
-            raise HTTPException(404,"会话不存在。")
+            raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"})
         return result
 
     @app.get("/api/snapshot")
@@ -210,15 +251,23 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             raise HTTPException(409,"事件游标无法续接，请重新读取快照。")
         async def stream():
             nonlocal cursor
+            last_state = None
             while True:
                 changed.clear()
                 batch = store.events_after(cursor)
                 for event in batch:
                     cursor = event["cursor"]
                     yield f"id: {cursor}\nevent: trace\ndata: {json.dumps({'schema_version':SCHEMA_VERSION,**event},ensure_ascii=False)}\n\n"
+                current_state = await state()
+                if current_state != last_state:
+                    last_state = current_state
+                    notice = {"schema_version":SCHEMA_VERSION,"kind":"service.state","transient":True,"state":current_state}
+                    # 实时运行状态不冒充已提交轨迹，不能推进持久化 cursor。
+                    yield f"event: service.state\ndata: {json.dumps(notice,ensure_ascii=False)}\n\n"
                 # yield 期间可能又有提交；先重新补齐，避免另一个订阅清空唤醒后漏等。
                 if batch:
                     continue
+
                 try:
                     await asyncio.wait_for(changed.wait(),15)
                 except asyncio.TimeoutError:
@@ -232,9 +281,9 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
         try:
             changed = store.rename(session_id,title)
         except Exception:
-            raise HTTPException(503,"标题未保存，请重试。") from None
+            raise HTTPException(503,{"code":"STORAGE_FAILURE","message":"标题未保存，请重试。"}) from None
         if not changed:
-            raise HTTPException(404,"会话不存在。")
+            raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"})
         return {"schema_version":SCHEMA_VERSION,"session_id":session_id,"title":title}
 
     @app.delete("/api/sessions/{session_id}")
@@ -242,11 +291,11 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
         try:
             deleted = store.delete(session_id)
         except ValueError:
-            raise HTTPException(409,"会话正在执行或停止，请等待结束后删除。") from None
+            raise HTTPException(409,{"code":"BUSY","message":"会话正在执行或停止，请等待结束后删除。"}) from None
         except Exception:
-            raise HTTPException(503,"会话未删除，请重试。") from None
+            raise HTTPException(503,{"code":"STORAGE_FAILURE","message":"会话未删除，请重试。"}) from None
         if not deleted:
-            raise HTTPException(404,"会话不存在。")
+            raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"})
         return {"schema_version":SCHEMA_VERSION,"deleted_session_id":session_id}
 
     dist = Path(static_dir) if static_dir else Path(__file__).parent / "frontend" / "dist"
