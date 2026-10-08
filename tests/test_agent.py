@@ -115,7 +115,7 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
                     SimpleNamespace(
                         name=name, description="不属于地点查询", input_schema={"type": "object"}
                     )
-                    for name in ["bash", "maps_weather"]
+                    for name in ["bash", "maps_schema_take_taxi"]
                 )
                 return listed
 

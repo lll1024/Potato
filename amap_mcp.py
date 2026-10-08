@@ -10,11 +10,12 @@ from mcp import Client
 from mcp.shared.exceptions import MCPError
 from mcp.types import CONNECTION_CLOSED, INVALID_PARAMS, REQUEST_TIMEOUT
 
-from limits import TOOL_TIMEOUT
+from limits import MAP_CALL_INTERVAL, TOOL_TIMEOUT
 from amap_http import AmapHTTPClient
 
 PLACE_TOOLS = {"maps_text_search", "maps_search_detail"}
 DINING_TOOLS = {"maps_around_search"}
+WEATHER_TOOLS = {"maps_weather"}
 ROUTE_TOOLS = {
     "maps_geo", "maps_regeocode", "maps_distance",
     "maps_direction_walking", "maps_direction_bicycling",
@@ -110,6 +111,7 @@ class AmapTools:
         self.tool_timeout = tool_timeout
         self.declarations: list[ToolParam] = []
         self.failure: str | None = None
+        self._next_call_at = 0.0
 
     async def discover(self) -> None:
         self.declarations = []
@@ -124,7 +126,8 @@ class AmapTools:
                     "description": tool.description or "",
                     "input_schema": tool.input_schema,
                 }, ensure_ascii=False))))
-                for tool in page.tools if tool.name in PLACE_TOOLS | ROUTE_TOOLS | DINING_TOOLS
+                for tool in page.tools
+                if tool.name in PLACE_TOOLS | ROUTE_TOOLS | DINING_TOOLS | WEATHER_TOOLS
             )
             if page.next_cursor is None:
                 break
@@ -134,11 +137,15 @@ class AmapTools:
 
     async def call(self, name: str, arguments: dict[str, Any]) -> ToolResult:
         if name not in {tool["name"] for tool in self.declarations}:
-            return {"content": "工具未开放，仅可调用已发现的地点、餐饮与交通查询工具。", "is_error": True}
+            return {"content": "工具未开放，仅可调用已发现的地点、餐饮、交通与天气查询工具。", "is_error": True}
         if self.failure:
             return self._stop(self.failure)
         if self.http_client and self.http_client.connection_failed:
             return self._stop("connection")
+        loop = asyncio.get_running_loop()
+        if delay := max(0.0, self._next_call_at - loop.time()):
+            await asyncio.sleep(delay)
+        self._next_call_at = loop.time() + MAP_CALL_INTERVAL
         try:
             result = await asyncio.wait_for(
                 # Client.call_tool 会自动重试或多轮交互；一次预算只发送一次工具请求。
@@ -173,7 +180,7 @@ class AmapTools:
             if code in {"10016", "10017"}:
                 return self._stop("service")
         if result.is_error or errors:
-            error_text = json.dumps([text, errors, result.structured_content]).upper()
+            error_text = json.dumps([text, errors, result.structured_content], ensure_ascii=False).upper()
             tokens = set(re.findall(r"[A-Z_]+", error_text))
             if tokens & AUTH_ERRORS:
                 return self._stop("auth")

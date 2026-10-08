@@ -1,0 +1,18 @@
+[
+  {
+    "name": "maps_weather",
+    "description": "根据城市名称或者标准adcode查询指定城市的天气",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "city": {
+          "type": "string",
+          "description": "城市名称或者adcode"
+        }
+      },
+      "required": [
+        "city"
+      ]
+    }
+  }
+]

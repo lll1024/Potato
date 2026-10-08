@@ -81,6 +81,7 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
             (ExceptionGroup("transport failed", [httpx2.ConnectError("断连", request=request)]), "连接"),
             (map_result(text="INVALID_USER_KEY", is_error=True), "Key"),
             (map_result(text="DAILY_QUERY_OVER_LIMIT", is_error=True), "额度"),
+            (map_result(text="API 调用失败：CUQPS_HAS_EXCEEDED_THE_LIMIT", is_error=True), "额度"),
         ]
         for fault, explanation in faults:
             with self.subTest(explanation=explanation, fault=type(fault).__name__):
