@@ -239,3 +239,65 @@ class SubmissionTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(reply.json()["detail"]["code"],"INVALID_INPUT")
                         self.assertNotIn("secret",str(reply.json()))
             self.assertEqual(model.requests,[])
+
+    async def test_unified_stream_updates_both_pages_without_changing_running_ownership(self):
+        import json
+        from test_trace import serving, wait_finished
+        entered, release = asyncio.Event(), asyncio.Event()
+        class WaitingModel(ModelService):
+            async def create(self, **kwargs):
+                if len(self.requests) == 1:
+                    entered.set()
+                    await release.wait()
+                return await super().create(**kwargs)
+        model = WaitingModel([
+            response([{"type":"text","text":"会话B初始历史。"}]),
+            response([{"type":"text","text":"会话A结果。"}]),
+            response([{"type":"text","text":"会话B继续回答。"}]),
+        ])
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory,model) as page:
+                b = (await page.post("/api/turns",json={"submission_id":"page-b-initial","input":"会话B"})).json()
+                await asyncio.wait_for(wait_finished(page,b["session_id"]),2)
+                baseline = (await page.get("/api/snapshot")).json()
+                ready, started = asyncio.Queue(), asyncio.Queue()
+                async def observe_page():
+                    async with page.stream("GET",f'/api/events?after={baseline["cursor"]}&stream_id={baseline["stream_id"]}') as stream:
+                        await ready.put(True)
+                        async for line in stream.aiter_lines():
+                            if not line.startswith("data:"):
+                                continue
+                            event = json.loads(line[5:])
+                            if event["kind"] == "turn.accepted":
+                                await started.put((event, (await page.get("/api/snapshot")).json()))
+                            elif event["kind"] == "turn.finished":
+                                return (await page.get("/api/snapshot")).json()
+                observers = [asyncio.create_task(observe_page()) for _ in range(2)]
+                try:
+                    for _ in observers:
+                        await asyncio.wait_for(ready.get(),2)
+                    a = (await page.post("/api/turns",json={"submission_id":"page-a-running","input":"会话A"})).json()
+                    await asyncio.wait_for(entered.wait(),2)
+                    viewed_b = (await page.get("/api/sessions/"+b["session_id"])).json()
+                    self.assertEqual(viewed_b["session"]["session_id"],b["session_id"])
+                    for _ in observers:
+                        event,state = await asyncio.wait_for(started.get(),2)
+                        self.assertEqual(event["session_id"],a["session_id"])
+                        self.assertEqual(state["active_turn_id"],a["turn_id"])
+                        self.assertEqual(state["active_session_id"],a["session_id"])
+                        self.assertFalse(state["stopping"])
+                        self.assertFalse(state["map_paused"])
+                    release.set()
+                    for state in await asyncio.wait_for(asyncio.gather(*observers),2):
+                        self.assertIsNone(state["active_turn_id"])
+                        self.assertIsNone(state["active_session_id"])
+                        self.assertTrue(state["accepting"])
+                    followup = await page.post("/api/turns",json={"submission_id":"page-b-after-a","input":"继续B","session_id":b["session_id"]})
+                    self.assertEqual(followup.status_code,202)
+                    self.assertEqual(followup.json()["session_id"],b["session_id"])
+                    await asyncio.wait_for(wait_finished(page,b["session_id"],followup.json()["turn_id"]),2)
+                finally:
+                    release.set()
+                    for observer in observers:
+                        observer.cancel()
+                    await asyncio.gather(*observers,return_exceptions=True)

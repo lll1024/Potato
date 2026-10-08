@@ -5,7 +5,7 @@ export type ServiceState = {
   stopping: boolean; map_paused: boolean; map_pause_reason: string | null;
   service_status: 'available' | 'unavailable'; storage_error?: string | null;
 };
-type ServiceSnapshot = { schema_version: number; state: ServiceState; cursor: number; stream_id: string };
+type ServiceSnapshot = ServiceState & { schema_version: number; state?: ServiceState; cursor: number; stream_id: string };
 
 export function useServiceEvents() {
   const [state, setState] = useState<ServiceState>({active_turn_id:null,active_session_id:null,
@@ -17,7 +17,7 @@ export function useServiceEvents() {
     if (!response.ok) throw new Error('服务状态暂时无法核对。');
     const result: ServiceSnapshot = await response.json();
     if (result.schema_version !== 1) throw new Error('数据版本不兼容，请更新页面和服务。');
-    setState(result.state);
+    setState(result.state ?? result);
     return result;
   }, []);
 

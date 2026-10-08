@@ -17,9 +17,10 @@ import uvicorn
 from anthropic import AsyncAnthropic
 from anthropic.types import MessageParam
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
+
 
 from fastapi.staticfiles import StaticFiles
 from mcp import Client
@@ -62,6 +63,10 @@ async def configured_resources():
         raise RuntimeError(SERVICE_MESSAGE) from None
 
 
+class TraceStorageError(RuntimeError):
+    """观察事实未提交；不改写成模型／地图失败或已保存终局。"""
+
+
 class Submission(BaseModel):
     input: str = Field(min_length=1)
     session_id: str | None = None
@@ -78,7 +83,10 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
     active: dict[str, str] | None = None
     accepting = False
     acceptance_lock = asyncio.Lock()
+    storage_error: str | None = None
+
     stop_requested = asyncio.Event()
+    changed = asyncio.Event()
     store: Store
     runtime: Runtime
 
@@ -115,15 +123,28 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
         return JSONResponse(status_code=422,content={"detail":{"code":"INVALID_INPUT","message":"输入或提交身份格式不正确，请检查后重试。"}})
 
     async def execute(identity, text):
-        nonlocal active
+        nonlocal active,accepting,storage_error
         messages: list[MessageParam] = store.context(identity["session_id"]) + [{"role":"user","content":text}]
         outcome: dict[str, Any] = {}
         started = asyncio.get_running_loop().time()
         async def observe(kind, data):
             if kind == "turn.finished":
                 outcome.update(data)
+            elif kind.startswith("request."):
+                safe = json.loads(runtime.tools.redact(json.dumps(data,ensure_ascii=False)))
+                try:
+                    store.observe_request(identity["session_id"],identity["turn_id"],kind,safe)
+                except Exception:
+                    raise TraceStorageError("请求事实未保存，已停止后续查询；请检查存储后重启。") from None
+                changed.set()
         try:
             answer = await agent_loop(messages,runtime.client,runtime.tools,runtime.model,observer=observe,stop_requested=stop_requested,stop_reason="service_shutdown")
+        except TraceStorageError as error:
+            accepting = False
+            storage_error = str(error)
+            active = None
+            changed.set()
+            return
         except Exception:
             answer = SERVICE_MESSAGE
             outcome.update(status="failed",reason="execution_error",answer_source="application",tool_error_count=0)
@@ -134,14 +155,15 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                          max(0,(asyncio.get_running_loop().time()-started)*1000))
         except Exception:
             # 保存失败时停止接受输入，保留最后提交事实，不能伪报终局已保存。
-            nonlocal accepting
             accepting = False
+            storage_error = "轮次结果未保存，请检查存储后重启。"
         finally:
             active = None
+            changed.set()
 
     @app.post("/api/turns",status_code=202)
     async def submit(body: Submission):
-        nonlocal task,active,accepting
+        nonlocal task,active,accepting,storage_error
         async with acceptance_lock:
             fingerprint = hashlib.sha256(json.dumps([body.input, body.session_id],ensure_ascii=False).encode()).hexdigest()
             if body.submission_id is not None:
@@ -165,8 +187,11 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                 raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"}) from None
             except Exception:
                 accepting = False
+                storage_error = "输入未保存，查询未启动，请检查存储后重启。"
+                changed.set()
                 raise HTTPException(503,{"code":"STORAGE_FAILURE","message":"输入未保存，查询未启动。"}) from None
             active = identity
+            changed.set()
             task = asyncio.create_task(execute(identity,text))
             return identity
 
@@ -187,7 +212,8 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                 "stopping":bool(active and stop_requested.is_set()),
                 "map_paused":runtime.tools.failure is not None,
                 "map_pause_reason":runtime.tools.failure,
-                "service_status":"available" if accepting else "unavailable"}
+                "service_status":"available" if accepting else "unavailable","storage_error":storage_error}
+
 
     @app.get("/api/sessions")
     async def sessions(limit: int = Query(50,ge=1,le=100), cursor: str | None = None):
@@ -203,6 +229,38 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"})
         return result
 
+    @app.get("/api/snapshot")
+    async def global_snapshot():
+        with store.db:
+            return {**await state(),"cursor":store.cursor(),"stream_id":store.stream_id}
+
+    @app.get("/api/payloads/{payload_id}")
+    async def payload(payload_id: str):
+        result = store.payload(payload_id)
+        if result is None:
+            raise HTTPException(404,"详情不存在。")
+        return result
+
+    @app.get("/api/events")
+    async def events(request: Request, after: int | None=None, stream_id: str | None=None):
+        try:
+            cursor = after if after is not None else int(request.headers.get("Last-Event-ID", "0"))
+        except ValueError:
+            raise HTTPException(409,"事件游标无法续接，请重新读取快照。") from None
+        if cursor < 0 or cursor > store.cursor() or (stream_id is not None and stream_id != store.stream_id):
+            raise HTTPException(409,"事件游标无法续接，请重新读取快照。")
+        async def stream():
+            nonlocal cursor
+            while True:
+                changed.clear()
+                for event in store.events_after(cursor):
+                    cursor = event["cursor"]
+                    yield f"id: {cursor}\nevent: trace\ndata: {json.dumps({'schema_version':SCHEMA_VERSION,**event},ensure_ascii=False)}\n\n"
+                try:
+                    await asyncio.wait_for(changed.wait(),15)
+                except asyncio.TimeoutError:
+                    yield ": heartbeat\n\n"
+        return StreamingResponse(stream(),media_type="text/event-stream",headers={"Cache-Control":"no-cache"})
     @app.patch("/api/sessions/{session_id}")
     async def rename(session_id: str, body: RenameSession):
         title = runtime.tools.redact(body.title).strip()

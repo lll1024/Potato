@@ -1,4 +1,7 @@
 import argparse
+import copy
+from datetime import datetime, timezone
+from uuid import uuid4
 import asyncio
 import json
 import logging
@@ -8,8 +11,8 @@ import sys
 from typing import Any, Awaitable, Callable, cast
 from urllib.parse import urlencode
 
-from anthropic import AnthropicError, AsyncAnthropic
-from anthropic.types import Message, MessageParam, ToolResultBlockParam
+from anthropic import AsyncAnthropic
+from anthropic.types import MessageParam, ToolResultBlockParam
 from dotenv import load_dotenv
 from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
@@ -164,21 +167,59 @@ async def agent_loop(
             })
         return answer
 
-    for _ in range(max_rounds):
+    for ordinal in range(1, max_rounds + 1):
         if stop_requested and stop_requested.is_set():
             stopped = "已停止本轮查询，尚未完成的信息待核实。"
             reason = stop_reason
             break
+        request_id = uuid4().hex
+        parameters = dict(model=model, system=SYSTEM, messages=messages,
+                          tools=tools.declarations, max_tokens=8000)
+        if observer:
+            await observer("request.started", {
+                "request_id": request_id, "ordinal": ordinal,
+                "started_at": datetime.now(timezone.utc).isoformat(),
+                "input": copy.deepcopy(parameters),
+            })
+        started = asyncio.get_running_loop().time()
+        stage = "model_call"
+        failure = None
         try:
-            response = await client.messages.create(
-                model=model, system=SYSTEM, messages=messages, tools=tools.declarations,
-                max_tokens=8000,
-            )
-        except AnthropicError:
+            response = await client.messages.create(**parameters)
+            duration_ms = max(0,(asyncio.get_running_loop().time()-started)*1000)
+            stage = "response_processing"
+            parsed = response.model_dump(mode="json", exclude_unset=True)
+            service_request_id = getattr(response, "_request_id", None)
+            if service_request_id is not None:
+                parsed["_request_id"] = service_request_id
+            # 采集先于转换，保留 SDK 字段存在性；协议上下文仅使用脱敏内容块。
+            response = response.model_copy(update={"content": [
+                type(block).model_validate_json(tools.redact(block.model_dump_json()))
+                for block in response.content
+            ]})
+        except Exception as error:
+            duration_ms = max(0,(asyncio.get_running_loop().time()-started)*1000)
+            failure = {"stage":stage,"category":type(error).__name__,"message":str(error)}
+            for field in ("status_code","request_id","body"):
+                value = getattr(error,field,None)
+                if value is not None:
+                    failure[field] = value
+        if failure is not None:
+            if observer:
+                await observer("request.failed", {
+                    "request_id":request_id,"finished_at":datetime.now(timezone.utc).isoformat(),
+                    "duration_ms":duration_ms,"error":failure,"usage":None,"usage_state":"not_returned",
+                })
             status, reason = "failed", "model_error"
             stopped = "模型服务请求失败，已停止本次查询。请检查 MODEL_ID、模型凭据、服务地址、网络和额度，恢复后继续。"
             break
-        response = Message.model_validate_json(tools.redact(response.model_dump_json()))
+        if observer:
+            await observer("request.completed", {
+                "request_id": request_id, "finished_at": datetime.now(timezone.utc).isoformat(),
+                "duration_ms": duration_ms, "response": parsed,
+                "usage": parsed.get("usage"),
+                "usage_state": "returned" if "usage" in parsed and parsed["usage"] is not None else "not_returned",
+            })
         messages.append(cast(MessageParam, {
             "role": "assistant",
             "content": [block.model_dump(mode="json") for block in response.content],

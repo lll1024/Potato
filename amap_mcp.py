@@ -202,7 +202,8 @@ class AmapTools:
         variants = {value for secret in self._secrets if secret
                     for value in (secret, quote(secret, safe=""), quote_plus(secret, safe=""))}
         fields = {"key", "api_key", "apikey", "access_token", "token", "auth",
-                  "authorization", "password", "secret", "auth_token"}
+                  "authorization", "password", "secret", "auth_token", "cookie", "set_cookie",
+                  "client_secret", "refresh_token", "x_api_key", "anthropic_api_key", "anthropic_auth_token"}
 
         def redact_text(value: str) -> str:
             for secret in sorted(variants, key=len, reverse=True):
@@ -216,7 +217,7 @@ class AmapTools:
             )
             # 普通文字中的 JSON 凭据字段也须隐藏，例如用户粘贴配置片段。
             return re.sub(
-                r'("(?:key|api[_-]?key|access_token|token|auth|authorization|password|secret|auth_token)"\s*:\s*)"(?:[^"\\]|\\.)*"',
+                r'("(?:key|api[_-]?key|access_token|token|auth|authorization|password|secret|auth_token|cookie|set[_-]cookie|client_secret|refresh_token|x[_-]api[_-]key|anthropic_api_key|anthropic_auth_token)"\s*:\s*)"(?:[^"\\]|\\.)*"',
                 lambda match: match[1] + '"[REDACTED]"', value, flags=re.IGNORECASE,
             )
 
