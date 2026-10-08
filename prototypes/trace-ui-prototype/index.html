@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>旅行助手 · 交互原型</title><link rel="stylesheet" href="style.css"></head><body>
+<div class="prototype-note">弃用式交互原型 · 全部为模拟数据 · 不调用模型或地图服务 · 刷新恢复样例</div>
+<div class="app"><aside class="history"><div class="brand"><span class="logo">↗</span><div><strong>旅行助手</strong><small>本地调试工作台</small></div></div><button class="primary new" data-action="new">＋ 新建助手会话</button><div class="eyebrow">历史会话 <span>仅模拟保存</span></div><nav id="sessions" aria-label="历史会话"></nav><div class="history-foot">模拟场景覆盖追问、多个工具、失败、预算终止、运行和中断。</div></aside>
+<main><header><div><div class="eyebrow">旅行计划 / 调试</div><h1 id="title"></h1></div><div class="actions"><button data-action="rename">重命名</button><button data-action="delete" id="delete">删除会话</button></div></header>
+<div id="global-status" role="status"></div><div class="tabs"><button id="chat-tab" class="active" data-tab="chat">对话</button><button id="trace-tab" data-tab="trace">执行轨迹 <span id="count"></span></button><div class="tab-note" id="tab-note"></div></div>
+<section id="chat" class="chat"><div id="messages" class="messages"></div><form id="composer"><label for="draft">继续规划旅行</label><textarea id="draft" placeholder="例如：把第 2 天的首站换成灵隐寺，其他条件不变" rows="2"></textarea><div class="compose-foot"><small id="send-help">Enter 发送 · Shift + Enter 换行 · 回答为模拟文本</small><button id="send" class="primary">发送 ↗</button></div></form></section>
+<section id="trace" hidden><div class="trace-tools"><label class="search">搜索当前会话 <input id="search" placeholder="名称、输入、输出或错误"></label><label>范围 <select id="scope"><option value="all">完整载荷</option><option value="summary">仅事件摘要</option></select></label><button data-action="expand">展开全部层级</button><button data-action="collapse">收起全部层级</button><label class="follow"><input type="checkbox" id="follow" checked> 跟随最新事件</label></div><div id="search-results" hidden></div><div id="trace-body"></div></section>
+</main></div>
+<div class="switcher" aria-label="原型布局切换"><button data-action="prev" aria-label="上一个布局">←</button><span id="variant-name"></span><button data-action="next" aria-label="下一个布局">→</button><small>布局候选，尚未选定</small></div>
+<dialog id="manage"><form method="dialog"><h2 id="dialog-title"></h2><p id="dialog-description"></p><label id="rename-label">会话标题<input id="rename-input"></label><div class="actions"><button value="cancel">取消</button><button value="confirm" class="primary">确认</button></div></form></dialog>
+<script src="app.js"></script></body></html>
