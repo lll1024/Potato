@@ -3,6 +3,8 @@ import asyncio
 import json
 import tempfile
 import unittest
+import sqlite3
+from pathlib import Path
 
 from test_agent import ModelService, response
 from test_trace import serving, wait_finished
@@ -122,3 +124,27 @@ class ReconnectTests(unittest.IsolatedAsyncioTestCase):
                 for field, full in [("input",user_input),("answer",answer)]:
                     payload = (await client.get('/api/payloads/' + turn[field + '_payload_id'])).json()
                     self.assertEqual(payload["content"], full)
+
+    async def test_existing_v1_cursor_upgrade_preserves_history_identity_and_deleted_gaps(self):
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory, ModelService([response([{"type":"text","text":"原有历史"}])])) as client:
+                accepted = (await client.post("/api/turns",json={"input":"升级前的查询"})).json()
+                original = await asyncio.wait_for(wait_finished(client,accepted["session_id"]),2)
+                identity = (await client.get('/api/snapshot')).json()["stream_id"]
+            # 准备升级前 schema v1 的真实数据库，并保留已删除记录产生的最高游标间隙。
+            with sqlite3.connect(Path(directory)/'travel.sqlite3') as fixture:
+                fixture.execute('ALTER TABLE event_cursors RENAME TO newer_cursors')
+                fixture.execute('CREATE TABLE event_cursors (cursor INTEGER PRIMARY KEY AUTOINCREMENT,event_id TEXT NOT NULL UNIQUE REFERENCES events ON DELETE CASCADE)')
+                fixture.execute('INSERT INTO event_cursors SELECT cursor,event_id FROM newer_cursors WHERE event_id IS NOT NULL')
+                fixture.execute("UPDATE sqlite_sequence SET seq=99 WHERE name='event_cursors'")
+                fixture.execute('DROP TABLE newer_cursors')
+            async with serving(directory,ModelService([response([{"type":"text","text":"升级后查询"}])])) as client:
+                restored = (await client.get('/api/sessions/'+accepted["session_id"])).json()
+                self.assertEqual(restored["events"],original["events"])
+                self.assertEqual(restored["requests"],original["requests"])
+                self.assertEqual(restored["turns"],original["turns"])
+                self.assertEqual(restored["stream_id"],identity)
+                self.assertEqual(restored["cursor"],99)
+                next_round = (await client.post('/api/turns',json={"input":"新增查询"})).json()
+                finished = await asyncio.wait_for(wait_finished(client,next_round["session_id"]),2)
+                self.assertEqual(finished["events"][0]["cursor"],100)
