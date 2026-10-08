@@ -1,6 +1,6 @@
 ### Issue tracker
 
-任务和规格以本地 Markdown 文件保存在 `.scratch/<feature>/`。读取或发布任务前，阅读 `docs/agents/issue-tracker.md`。
+新任务和规格使用 `lll1024/Potato` 的 GitHub Issues。读取、发布或更新任务前，阅读 `docs/agents/issue-tracker.md`。
 
 ### Triage labels
 
