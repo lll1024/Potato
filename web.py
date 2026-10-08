@@ -159,7 +159,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
         return JSONResponse(status_code=503,content={"detail":{"code":"STORAGE_FAILURE","message":"存储故障，数据暂时无法核对，请检查后重启。"}})
 
     async def execute(identity, text):
-        nonlocal active,accepting,storage_error
+        nonlocal active,accepting
         messages: list[MessageParam] = []
         outcome: dict[str, Any] = {}
         started = asyncio.get_running_loop().time()
@@ -214,7 +214,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
 
     @app.post("/api/turns",status_code=202)
     async def submit(body: Submission):
-        nonlocal task,active,accepting,storage_error,stop_reason
+        nonlocal task,active,stop_reason
         async with acceptance_lock:
             fingerprint = hashlib.sha256(json.dumps([body.input, body.session_id],ensure_ascii=False).encode()).hexdigest()
             if body.submission_id is not None:

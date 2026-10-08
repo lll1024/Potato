@@ -15,11 +15,21 @@ def fail_event(directory, kind):
         database.execute("CREATE TRIGGER fail_event BEFORE INSERT ON events WHEN NEW.kind='" + kind + "' BEGIN SELECT RAISE(ABORT,'password=storage-secret'); END")
 
 
+async def wait_state(client, predicate):
+    async def poll():
+        while True:
+            state=(await client.get('/api/state')).json()
+            if predicate(state): return state
+    return await asyncio.wait_for(poll(),3)
+
+
 class StorageTests(unittest.IsolatedAsyncioTestCase):
     async def test_failure_while_model_entered_keeps_slot_and_waits_for_real_return(self):
         entered, release = asyncio.Event(), asyncio.Event()
         class WaitingModel(ModelService):
+            calls=0
             async def create(self, **kwargs):
+                self.calls+=1
                 entered.set()
                 await release.wait()
                 return await super().create(**kwargs)
@@ -39,7 +49,7 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIn("存储故障",state["storage_error"])
                     self.assertNotIn("storage-secret",str(state)+failed.text)
                     self.assertEqual((await client.post("/api/turns",json={"input":"别的查询"})).status_code,503)
-                    self.assertEqual(model.requests,[])
+                    self.assertEqual(model.calls,1)
                 finally:
                     release.set()
                 saved = await asyncio.wait_for(wait_finished(client,accepted["session_id"]),2)
@@ -56,9 +66,7 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
             async with serving(directory, model) as client:
                 fail_event(directory, 'request.started')
                 accepted = (await client.post('/api/turns',json={'input':'查询杭州'})).json()
-                while True:
-                    state = (await client.get('/api/state')).json()
-                    if not state['accepting']: break
+                state=await wait_state(client,lambda state: not state['accepting'])
                 self.assertEqual(model.requests, [])
                 self.assertEqual(state['unsaved_fact']['kind'],'request.started')
                 saved = (await client.get('/api/sessions/'+accepted['session_id'])).json()
@@ -96,9 +104,7 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
                     await asyncio.wait_for(entered.wait(),2)
                     fail_event(directory,'request.failed' if fails else 'request.completed')
                     release.set()
-                    while True:
-                        state=(await client.get('/api/state')).json()
-                        if state['active_turn_id'] is None: break
+                    state=await wait_state(client,lambda state: state['active_turn_id'] is None)
                     self.assertIn('未保存',state['unsaved_fact']['message'])
                     saved=(await client.get('/api/sessions/'+accepted['session_id'])).json()
                     request=saved['requests'][0]
@@ -142,9 +148,7 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
                         await asyncio.wait_for(entered.wait(),2)
                         if kind != 'tool.waiting': fail_event(directory,kind)
                     release.set()
-                    while True:
-                        state=(await client.get('/api/state')).json()
-                        if state['active_turn_id'] is None: break
+                    state=await wait_state(client,lambda state: state['active_turn_id'] is None)
                     self.assertFalse(state['accepting'])
                     self.assertEqual(state['unsaved_fact']['kind'],kind)
                     saved=(await client.get('/api/sessions/'+accepted['session_id'])).json()
@@ -167,7 +171,7 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
                             self.assertEqual(saved['tool_calls'][1]['status'],'pending')
                     self.assertNotIn('storage-secret',str(state)+str(saved))
                 with closing(sqlite3.connect(Path(directory)/'travel.sqlite3')) as database, database: database.execute('DROP TRIGGER fail_event')
-                database.close()
+
                 async with serving_tools(directory,ModelService([]),maps) as client:
                     restored=(await client.get('/api/sessions/'+accepted['session_id'])).json()
                     self.assertTrue(restored['turns'][0]['context_excluded'])
@@ -180,9 +184,7 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
             async with serving(directory,model) as client:
                 fail_event(directory,'turn.finished')
                 accepted=(await client.post('/api/turns',json={'input':'查询杭州'})).json()
-                while True:
-                    state=(await client.get('/api/state')).json()
-                    if state['active_turn_id'] is None: break
+                state=await wait_state(client,lambda state: state['active_turn_id'] is None)
                 saved=(await client.get('/api/sessions/'+accepted['session_id'])).json()
                 self.assertEqual(saved['turns'][0]['status'],'running')
                 self.assertIsNone(saved['turns'][0]['answer'])
@@ -192,7 +194,7 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
                 self.assertNotIn('turn.finished',[event['kind'] for event in saved['events']])
                 self.assertEqual(state['unsaved_fact']['kind'],'turn.finished')
             with closing(sqlite3.connect(Path(directory)/'travel.sqlite3')) as database, database: database.execute('DROP TRIGGER fail_event')
-            database.close()
+
             async with serving(directory,ModelService([])) as client:
                 restored=(await client.get('/api/sessions/'+accepted['session_id'])).json()
                 self.assertTrue(restored['turns'][0]['context_excluded'])
@@ -205,7 +207,7 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
             async with serving(directory,ModelService([])) as client:
                 with closing(sqlite3.connect(Path(directory)/'travel.sqlite3')) as database, database:
                     database.execute('ALTER TABLE events RENAME TO unavailable_events')
-                database.close()
+
                 try:
                     async with client.stream('GET','/api/events?after=0') as stream:
                         async for line in stream.aiter_lines():
@@ -219,7 +221,7 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
                 finally:
                     with closing(sqlite3.connect(Path(directory)/'travel.sqlite3')) as database, database:
                         database.execute('ALTER TABLE unavailable_events RENAME TO events')
-                    database.close()
+
 
     async def test_acceptance_failure_is_atomic_and_submission_read_failure_stops_service(self):
         for kind in ('turn.accepted','submission.read'):
@@ -269,9 +271,7 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
             async with serving_tools(directory,model,SafeMaps()) as client:
                 fail_event(directory,'turn.finished')
                 accepted=(await client.post('/api/turns',json={'input':'查询 token=input-secret '+original})).json()
-                while True:
-                    state=(await client.get('/api/state')).json()
-                    if state['active_turn_id'] is None: break
+                state=await wait_state(client,lambda state: state['active_turn_id'] is None)
                 saved=(await client.get('/api/sessions/'+accepted['session_id'])).json()
                 references=set()
                 for item in saved['requests']+saved['tool_calls']:
@@ -296,3 +296,73 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
             persisted=(Path(directory)/'travel.sqlite3').read_bytes()
             for value in (secret,'input-secret','args-secret','service-secret','cookie-secret','answer-secret','response-secret'):
                 self.assertFalse(value.encode() in persisted, '产品记录含未脱敏凭据')
+
+    async def test_real_sdk_process_restart_preserves_only_committed_tool_facts_and_complete_context(self):
+        import signal
+        from test_recovery import ExternalServices,process
+        external=ExternalServices()
+        with tempfile.TemporaryDirectory() as directory:
+            async with external.serving() as url:
+                async with process(directory,url) as (child,client,_):
+                    complete=(await client.post('/api/turns',json={'input':'此前完整提问'})).json()
+                    await asyncio.wait_for(wait_finished(client,complete['session_id']),4)
+                    external.block='tool'
+                    accepted=(await client.post('/api/turns',json={'input':'地图未保存提问','session_id':complete['session_id']})).json()
+                    await asyncio.wait_for(external.entered.wait(),4)
+                    fail_event(directory,'tool.completed')
+                    state=(await client.get('/api/state')).json()
+                    self.assertTrue(state['accepting'])
+                    self.assertEqual(state['active_turn_id'],accepted['turn_id'])
+                    self.assertEqual(len(external.map_calls),1)
+                    external.release.set()
+                    state=await wait_state(client,lambda state: state['active_turn_id'] is None)
+                    self.assertFalse(state['accepting'])
+                    saved=(await client.get('/api/sessions/'+accepted['session_id'])).json()
+                    self.assertEqual([item['status'] for item in saved['tool_calls']],['running','pending'])
+                    self.assertEqual(saved['requests'][-1]['status'],'completed')
+                    self.assertEqual(len(external.model_calls),2)
+                    self.assertEqual(len(external.map_calls),1)
+                    child.send_signal(signal.SIGTERM)
+                    await asyncio.wait_for(child.wait(),8)
+                    self.assertNotIn('storage-secret',(await child.stdout.read()).decode())
+                with closing(sqlite3.connect(Path(directory)/'travel.sqlite3')) as database,database:
+                    database.execute('DROP TRIGGER fail_event')
+                external.block=None
+                async with process(directory,url) as (_,client,_):
+                    restored=(await client.get('/api/sessions/'+accepted['session_id'])).json()
+                    self.assertTrue(restored['turns'][-1]['context_excluded'])
+                    self.assertTrue(all(item['interrupted'] for item in restored['tool_calls']))
+                    self.assertEqual(restored['requests'],saved['requests'])
+                    self.assertEqual(len(external.model_calls),2)
+                    self.assertEqual(len(external.map_calls),1)
+                    later=(await client.post('/api/turns',json={'input':'新提问','session_id':accepted['session_id']})).json()
+                    await asyncio.wait_for(wait_finished(client,accepted['session_id'],later['turn_id']),4)
+                    messages=external.model_calls[-1]['messages']
+                    self.assertEqual([item['content'] for item in messages if item['role']=='user'],['此前完整提问','新提问'])
+                    self.assertEqual(len(external.map_calls),1)
+
+    async def test_unexecuted_backfill_failure_keeps_pending_fact_and_no_followup_query(self):
+        from test_agent import MapService
+        from test_tool_trace import serving_tools,tool_reply
+        entered,release=asyncio.Event(),asyncio.Event()
+        class WaitingMaps(MapService):
+            calls=0
+            async def call_tool(self,name,arguments):
+                self.calls+=1;entered.set();await release.wait()
+                return await super().call_tool(name,arguments)
+        with tempfile.TemporaryDirectory() as directory:
+            maps=WaitingMaps();model=ModelService([tool_reply(2)])
+            async with serving_tools(directory,model,maps) as client:
+                accepted=(await client.post('/api/turns',json={'input':'地图查询'})).json()
+                await asyncio.wait_for(entered.wait(),2)
+                fail_event(directory,'tool.not_executed')
+                self.assertEqual((await client.post('/api/turns/'+accepted['turn_id']+'/stop')).status_code,200)
+                release.set()
+                state=await wait_state(client,lambda state: state['active_turn_id'] is None)
+                self.assertFalse(state['accepting'])
+                saved=(await client.get('/api/sessions/'+accepted['session_id'])).json()
+                self.assertEqual([item['status'] for item in saved['tool_calls']],['completed','pending'])
+                self.assertNotIn('result_payload_id',saved['tool_calls'][1])
+                self.assertNotIn('tool.not_executed',[item['kind'] for item in saved['events']])
+                self.assertEqual(maps.calls,1)
+                self.assertEqual(len(model.requests),1)
