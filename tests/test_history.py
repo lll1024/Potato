@@ -170,3 +170,33 @@ class HistoryTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual([item["session_id"] for item in remaining["sessions"]], [first["session_id"]])
                 self.assertIsNone(remaining["next_cursor"])
                 self.assertEqual((await client.get("/api/sessions?cursor=invalid")).status_code, 422)
+
+    async def test_conversation_page_omits_protocol_messages_but_keeps_full_text_and_context(self):
+        user_input = '杭州旅行条件' * 100 + '输入完整尾部'
+        answer = '已核实旅行建议' * 300 + '回答完整尾部'
+        model = ModelService([
+            response([{'type':'tool_use','id':'light-lake','name':'maps_text_search','input':{'keywords':'西湖','city':'杭州'}}],'tool_use'),
+            response([{'type':'text','text':answer}]),
+            response([{'type':'text','text':'继续完整历史'}])])
+        with tempfile.TemporaryDirectory() as directory:
+            async with self.service(directory,model) as client:
+                first,saved = await self.finish(client,user_input)
+                complete_context = saved['turns'][0]['messages']
+                reduced = (await client.get('/api/sessions/'+first['session_id'],params={'include_messages':'false'})).json()
+                default = (await client.get('/api/sessions/'+first['session_id'])).json()
+            self.assertNotIn('messages',reduced['turns'][0])
+            self.assertEqual(reduced['turns'][0]['input'],user_input)
+            self.assertEqual(reduced['turns'][0]['answer'],answer)
+            self.assertEqual(default['turns'][0]['messages'],complete_context)
+            self.assertEqual(len(model.requests),2)
+            async with self.service(directory,model) as client:
+                second,_ = await self.finish(client,'继续追问',first['session_id'])
+                self.assertEqual(model.requests[-1]['messages'],complete_context+[{'role':'user','content':'继续追问'}])
+                latest = (await client.get('/api/sessions/'+first['session_id'],params={'include_messages':'false','limit':1})).json()
+                self.assertEqual(latest['turns'][0]['turn_id'],second['turn_id'])
+                self.assertNotIn('messages',latest['turns'][0])
+                earlier = (await client.get('/api/sessions/'+first['session_id'],params={'include_messages':'false','limit':1,'before':latest['next_before']})).json()
+                self.assertEqual(earlier['turns'][0]['input'],user_input)
+                self.assertEqual(earlier['turns'][0]['answer'],answer)
+                self.assertNotIn('messages',earlier['turns'][0])
+                self.assertEqual(len(model.requests),3)

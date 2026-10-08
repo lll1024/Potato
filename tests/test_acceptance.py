@@ -75,3 +75,45 @@ class FinalAcceptanceTests(unittest.IsolatedAsyncioTestCase):
             for secret in secrets:
                 self.assertNotIn(secret,json.dumps(observed,ensure_ascii=False))
                 self.assertNotIn(secret.encode(),persisted)
+
+    async def test_plain_colon_and_authorization_schemes_are_redacted_before_any_record(self):
+        input_text = ('配置片段：\npassword: INPUT-COLON-ONLY\nAuthorization: Bearer INPUT-BEARER-ONLY\n'
+                      'Authorization: Digest username="DIGEST-USER-ONLY", nonce="DIGEST-NONCE-ONLY", response="DIGEST-RESPONSE-ONLY"\n'
+                      'Cookie: session=COOKIE-SESSION-ONLY; csrf=COOKIE-CSRF-ONLY\n'
+                      'Set-Cookie: sid=SET-COOKIE-ONLY; Path=/; HttpOnly\n杭州西湖旅行条件保持完整。')
+        answer = '核对配置\nsecret: MODEL-COLON-ONLY\nAuthorization: Basic MODEL-BASIC-ONLY'
+        secrets = ['INPUT-COLON-ONLY','INPUT-BEARER-ONLY','MODEL-COLON-ONLY','MODEL-BASIC-ONLY','MAP-BEARER-ONLY','TITLE-COLON-ONLY',
+                   'DIGEST-USER-ONLY','DIGEST-NONCE-ONLY','DIGEST-RESPONSE-ONLY','COOKIE-SESSION-ONLY','COOKIE-CSRF-ONLY','SET-COOKIE-ONLY']
+        class Maps(MapService):
+            async def call_tool(self, name, arguments):
+                return CallToolResult(content=[TextContent(type='text',text='西湖\nAuthorization: Bearer MAP-BEARER-ONLY')],is_error=False)
+        model = ModelService([
+            response([{'type':'tool_use','id':'colon-lake','name':'maps_text_search','input':{'keywords':'西湖','city':'杭州'}}],'tool_use'),
+            response([{'type':'text','text':answer}])])
+        records = []
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving_tools(directory,model,Maps()) as client:
+                accepted = (await client.post('/api/turns',json={'input':input_text})).json()
+                saved = await asyncio.wait_for(wait_finished(client,accepted['session_id']),3)
+                records.append(saved)
+                self.assertNotIn('INPUT-COLON-ONLY',saved['turns'][0]['input'])
+                self.assertNotIn('INPUT-BEARER-ONLY',saved['turns'][0]['input'])
+                self.assertIn('配置片段',saved['turns'][0]['input'])
+                self.assertIn('杭州西湖旅行条件保持完整。',saved['turns'][0]['input'])
+                records.append((await client.patch('/api/sessions/'+accepted['session_id'],json={'title':'杭州 password: TITLE-COLON-ONLY'})).json())
+                records.append(await asyncio.wait_for(notices(client,'/api/events?after=0'),2))
+                for item in saved['turns']+saved['requests']+saved['tool_calls']:
+                    for key,value in item.items():
+                        if key.endswith('_payload_id') and value:
+                            records.append((await client.get('/api/payloads/'+value)).json())
+                for secret in secrets:
+                    result = (await client.get('/api/sessions/'+accepted['session_id']+'/search',params={'q':secret})).json()
+                    self.assertEqual(result['matches'],[])
+                records.append((await client.get('/api/sessions/'+accepted['session_id']+'/search',params={'q':input_text})).json())
+                self.assertEqual(len(model.requests),2)
+                records.extend(model.requests)
+                for secret in secrets:
+                    self.assertNotIn(secret,json.dumps(records,ensure_ascii=False))
+            persisted = b''.join(path.read_bytes() for path in Path(directory).glob('travel.sqlite3*'))
+            for secret in secrets:
+                self.assertNotIn(secret.encode(),persisted)

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { requestJson } from './api';
 
 type Session = {
   session_id: string; title: string; updated_at: string; status: string;
@@ -6,12 +7,8 @@ type Session = {
 };
 type Page = { sessions: Session[]; next_cursor: string | null };
 
-async function historyApi<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(path, options);
-  const body = await response.json();
-  if (!response.ok) throw new Error(typeof body.detail === 'string' ? body.detail : body.detail?.message ?? '历史操作未成功，请重试。');
-  if (body.schema_version !== 1) throw new Error('数据版本不兼容，请更新页面和服务。');
-  return body;
+function historyApi<T>(path: string, options?: RequestInit): Promise<T> {
+  return requestJson<T>(path, '历史操作未成功，请重试。', options);
 }
 
 export function useConversationDraft(sessionId: string | null) {
