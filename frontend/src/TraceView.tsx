@@ -120,7 +120,11 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
         events:[...current.events.filter(item => item.turn_id!==target.turn_id),...page.events].sort((a,b) => a.sequence-b.sequence)} : page);
       const requestId=page.tool_calls.find(item => item.tool_call_id===target.object_id)?.request_id ?? target.object_id;
       setExpanded(current => ({...current,session:true,[target.turn_id]:true,[requestId]:true}));
-      requestAnimationFrame(() => document.getElementById(`trace-object-${target.object_id}`)?.scrollIntoView({block:'nearest'}));
+      requestAnimationFrame(() => {
+        const object=document.getElementById(`trace-object-${target.object_id}`);
+        object?.scrollIntoView({block:'nearest'});
+        object?.querySelector<HTMLElement>('summary,button')?.focus({preventScroll:true});
+      });
     } catch (cause) {setError(cause instanceof Error ? cause.message : '搜索定位失败。');}
   }
   useEffect(() => {if (externalLocation) void locate(externalLocation);},[externalLocation]);

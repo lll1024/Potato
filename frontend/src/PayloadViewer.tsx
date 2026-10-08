@@ -31,31 +31,43 @@ export function Payload({id,title,location,onInteraction}: {id: string | null; t
   const preview = useRef<HTMLPreElement>(null);
   const content = useRef({text:'',total:null as number | null,next:0 as number | null});
   const generation = useRef(0);
-  const loading = useRef(false);
+  const loading = useRef<Promise<string | null> | null>(null);
   const targeted = location?.payload_id === id && !!id;
   useEffect(() => {
-    generation.current += 1; loading.current=false; content.current = {text:'',total:null,next:0};
+    generation.current += 1; loading.current=null; content.current = {text:'',total:null,next:0};
     setText(''); setTotal(null); setNext(0); setError(''); setNotice(''); setBusy(false); setFormat(false);
     return () => {generation.current += 1;};
   },[id]);
-  async function load(all = false, until = 0) {
-    if (!id || loading.current) return content.current.text;
-    loading.current=true;
+  async function load(all = false, until = 0): Promise<string | null> {
+    if (!id) return null;
     const token = generation.current;
+    if (loading.current) {
+      await loading.current;
+      if (token !== generation.current) return null;
+      return load(all,until);
+    }
     setBusy(true); setError('');
-    try {
-      let current = content.current;
-      do {
-        if (current.next === null) break;
-        const part = await segment(id,current.next);
-        if (token !== generation.current) return null;
-        if (current.total !== null && current.total !== part.total) throw new Error('载荷总量发生变化，请重新读取。');
-        current = {text:current.text+part.text,total:part.total,next:part.next_offset};
-        content.current=current; setText(current.text); setTotal(current.total); setNext(current.next);
-      } while (all || (current.next !== null && current.next <= until));
-      return current.text;
-    } catch (cause) {setError(cause instanceof Error ? cause.message : '载荷读取失败。'); return null;}
-    finally {if (token === generation.current) {loading.current=false; setBusy(false);}}
+    const operation = (async () => {
+      try {
+        let current = content.current;
+        do {
+          if (current.next === null) break;
+          const part = await segment(id,current.next);
+          if (token !== generation.current) return null;
+          if (current.total !== null && current.total !== part.total) throw new Error('载荷总量发生变化，请重新读取。');
+          current = {text:current.text+part.text,total:part.total,next:part.next_offset};
+          content.current=current; setText(current.text); setTotal(current.total); setNext(current.next);
+        } while (all || (current.next !== null && current.next <= until));
+        return current.text;
+      } catch (cause) {
+        if (token === generation.current) setError(cause instanceof Error ? cause.message : '载荷读取失败。');
+        return null;
+      }
+    })();
+    loading.current=operation;
+    const result=await operation;
+    if (loading.current===operation) {loading.current=null; setBusy(false);}
+    return result;
   }
   useEffect(() => {
     if (!targeted) return;
