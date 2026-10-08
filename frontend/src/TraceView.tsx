@@ -20,7 +20,7 @@ type TraceTurn = {turn_id: string; ordinal: number; input: string; status: strin
 type TraceSnapshot = {session: {title: string}; turns: TraceTurn[]; requests: TraceRequest[]; tool_calls: TraceTool[]; usage_summary: UsageSummary; cursor: number; stream_id: string};
 type Props = {sessionId: string | null; refreshKey?: number};
 const toolStatuses: Record<string,string> = {pending:'已提出',waiting:'限速等待',running:'执行中',completed:'成功',failed:'失败',not_executed:'未执行'};
-const reasonLabels: Record<string,string> = {budget:'查询达到上限',model_error:'模型请求失败',output_limit:'输出达到上限',map_paused:'地图查询已暂停',user_stop:'用户停止',service_shutdown:'服务退出',service_interrupted:'服务中断'};
+const reasonLabels: Record<string,string> = {budget:'查询达到上限',model_error:'模型请求失败',output_limit:'输出达到上限',map_paused:'地图查询已暂停',user_stop:'用户停止',service_shutdown:'服务退出',service_interrupted:'服务中断',storage_failure:'存储故障'};
 const failureLabels: Record<string,string> = {auth:'鉴权失败',quota:'额度或限流',connection:'连接不可恢复',service:'地图服务暂停',arguments:'参数错误',timeout:'查询超时',business:'地图业务失败',sdk_error:'SDK 错误标志',error:'普通工具失败'};
 function turnStatus(turn: TraceTurn) { return turn.status === 'completed' ? (turn.tool_error_count ? `完成，含工具错误（${turn.tool_error_count}）` : '已完成') : turn.status === 'running' ? '正在执行' : `${turn.status === 'failed' ? '失败' : '终止'}：${reasonLabels[turn.reason ?? ''] ?? turn.reason ?? '原因未知'}`; }
 const statuses: Record<string,string> = {running:'正在请求',completed:'已收到响应',failed:'请求失败'};
