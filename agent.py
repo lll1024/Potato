@@ -150,7 +150,7 @@ async def agent_loop(
     messages: list[MessageParam], client: AsyncAnthropic, tools: AmapTools, model: str,
     *, max_rounds: int = MAX_ROUNDS, max_tool_calls: int = MAX_TOOL_CALLS,
     observer: Callable[[str, dict[str, Any]], Awaitable[None]] | None = None,
-    stop_requested: asyncio.Event | None = None, stop_reason: str = "user_stop",
+    stop_requested: asyncio.Event | None = None, stop_reason: str | Callable[[], str] = "user_stop",
 ) -> str:
     messages[:] = json.loads(tools.redact(json.dumps(messages, ensure_ascii=False)))
     calls = 0
@@ -171,7 +171,7 @@ async def agent_loop(
     for ordinal in range(1, max_rounds + 1):
         if stop_requested and stop_requested.is_set():
             stopped = "已停止本轮查询，尚未完成的信息待核实。"
-            reason = stop_reason
+            reason = stop_reason() if callable(stop_reason) else stop_reason
             break
         request_id = uuid4().hex
         parameters: dict[str, Any] = dict(model=model, system=SYSTEM, messages=messages,
@@ -253,7 +253,7 @@ async def agent_loop(
         for block, tool_id in zip(tool_calls,tool_ids):
             async def tool_observer(kind: str, data: dict[str, Any]) -> None:
                 if kind == "tool.not_executed" and stop_requested and stop_requested.is_set():
-                    data["reason"] = stop_reason
+                    data["reason"] = stop_reason() if callable(stop_reason) else stop_reason
                 if "result" in data:
                     output_result = data["result"]
                     data["result"] = {"type":"tool_result","tool_use_id":block.id,
@@ -265,7 +265,7 @@ async def agent_loop(
             attempted = False
             if stop_requested and stop_requested.is_set() and not stopped:
                 stopped = "已停止本轮查询，尚未完成的信息待核实。"
-                reason = stop_reason
+                reason = stop_reason() if callable(stop_reason) else stop_reason
             if stopped:
                 output = {"content": "未执行：" + stopped, "is_error": True}
             elif calls >= max_tool_calls:
@@ -278,7 +278,7 @@ async def agent_loop(
                                           stop_requested=stop_requested)
                 stopped = output.get("stop_reason")
                 if stopped:
-                    reason = stop_reason if stop_requested and stop_requested.is_set() else "map_paused"
+                    reason = (stop_reason() if callable(stop_reason) else stop_reason) if stop_requested and stop_requested.is_set() else "map_paused"
                 if output["is_error"] and not output.get("not_executed") :
                     tool_errors += 1
             if not attempted:
@@ -293,6 +293,9 @@ async def agent_loop(
                 "content": output["content"], "is_error": output["is_error"],
             })
         messages.append({"role": "user", "content": results})
+        if stop_requested and stop_requested.is_set():
+            stopped = "已停止本轮查询，尚未完成的信息待核实。"
+            reason = stop_reason() if callable(stop_reason) else stop_reason
         if stopped or calls >= max_tool_calls:
             break
 
