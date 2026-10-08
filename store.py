@@ -1,5 +1,6 @@
 """SQLite 保存已接受输入、完整协议关系和可回看的执行事实。"""
 
+import base64
 import json
 import sqlite3
 from datetime import datetime, timezone
@@ -124,11 +125,22 @@ class Store:
                 summary = {"status":status,f"{field}_payload_id":payload_id,"duration_ms":data["duration_ms"],"usage":data["usage"],"usage_state":data["usage_state"]}
             return self.event(session_id,turn_id,kind,summary,request_id=data["request_id"])
 
-    def accept(self, text):
-        session_id, turn_id, now = identity(), identity(), timestamp()
+    def context(self, session_id):
+        row = self.db.execute("SELECT messages FROM turns WHERE session_id=? AND status != 'running' AND reason IS NOT 'service_interrupted' ORDER BY ordinal DESC LIMIT 1", (session_id,)).fetchone()
+        return json.loads(row["messages"]) if row else []
+
+    def accept(self, text, session_id=None):
+        turn_id, now = identity(), timestamp()
         with self.db:
-            self.db.execute("INSERT INTO sessions VALUES (?,?,?,?)", (session_id,text[:40],now,now))
-            self.db.execute("INSERT INTO turns (turn_id,session_id,ordinal,input,status,created_at,messages) VALUES (?,?,1,?,'running',?,?)", (turn_id,session_id,text,now,json.dumps([{"role":"user","content":text}],ensure_ascii=False)))
+            if session_id is None:
+                session_id = identity()
+                self.db.execute("INSERT INTO sessions VALUES (?,?,?,?)", (session_id,text[:40],now,now))
+            elif not self.db.execute("SELECT 1 FROM sessions WHERE session_id=?", (session_id,)).fetchone():
+                raise KeyError(session_id)
+            ordinal = self.db.execute("SELECT COALESCE(MAX(ordinal),0)+1 FROM turns WHERE session_id=?", (session_id,)).fetchone()[0]
+            messages = self.context(session_id) + [{"role":"user","content":text}]
+            self.db.execute("INSERT INTO turns (turn_id,session_id,ordinal,input,status,created_at,messages) VALUES (?,?,?,?,'running',?,?)", (turn_id,session_id,ordinal,text,now,json.dumps(messages,ensure_ascii=False)))
+            self.db.execute("UPDATE sessions SET updated_at=? WHERE session_id=?", (now,session_id))
             self.event(session_id,turn_id,"turn.accepted",{"input_summary":text[:120]})
         return {"schema_version":SCHEMA_VERSION,"session_id":session_id,"turn_id":turn_id}
 
@@ -139,28 +151,58 @@ class Store:
             self.db.execute("UPDATE sessions SET updated_at=? WHERE session_id=?",(now,session_id))
             self.event(session_id,turn_id,"turn.finished",{**outcome,"answer_summary":answer[:120]})
 
-    def sessions(self):
-        return [dict(row) for row in self.db.execute("SELECT * FROM sessions ORDER BY updated_at DESC,session_id")]
+    def rename(self, session_id, title):
+        with self.db:
+            return self.db.execute("UPDATE sessions SET title=? WHERE session_id=?", (title,session_id)).rowcount > 0
 
-    def snapshot(self, session_id):
+    def delete(self, session_id):
+        with self.db:
+            if self.db.execute("SELECT 1 FROM turns WHERE session_id=? AND status IN ('running','stopping')", (session_id,)).fetchone():
+                raise ValueError("运行中会话不可删除")
+            # 所有会话所属实体必须使用 ON DELETE CASCADE；提交去重身份可使用 SET NULL。
+            return self.db.execute("DELETE FROM sessions WHERE session_id=?", (session_id,)).rowcount > 0
+
+    def sessions(self, limit=50, cursor=None):
+        condition, values = "", []
+        if cursor:
+            updated_at, session_id = json.loads(base64.urlsafe_b64decode(cursor.encode()))
+            if not isinstance(updated_at,str) or not isinstance(session_id,str):
+                raise ValueError("无效游标")
+            condition = "WHERE sessions.updated_at < ? OR (sessions.updated_at = ? AND sessions.session_id > ?)"
+            values = [updated_at,updated_at,session_id]
+        rows = self.db.execute(f"""SELECT sessions.*, turns.status, turns.reason, turns.tool_error_count,
+            turns.ordinal AS latest_ordinal FROM sessions JOIN turns ON turns.turn_id=(
+                SELECT turn_id FROM turns WHERE session_id=sessions.session_id ORDER BY ordinal DESC LIMIT 1)
+            {condition} ORDER BY sessions.updated_at DESC,sessions.session_id LIMIT ?""", (*values,limit+1)).fetchall()
+        next_cursor = None
+        if len(rows)>limit:
+            last = rows[limit-1]
+            next_cursor = base64.urlsafe_b64encode(json.dumps([last["updated_at"],last["session_id"]]).encode()).decode()
+        return {"schema_version":SCHEMA_VERSION,"sessions":[dict(row) for row in rows[:limit]],"next_cursor":next_cursor}
+
+    def snapshot(self, session_id, limit=50, before=None):
         session = self.db.execute("SELECT * FROM sessions WHERE session_id=?", (session_id,)).fetchone()
         if session is None:
             return None
         turns = []
-        for row in self.db.execute("SELECT * FROM turns WHERE session_id=? ORDER BY ordinal",(session_id,)):
+        rows = self.db.execute("SELECT * FROM turns WHERE session_id=? AND (? IS NULL OR ordinal < ?) ORDER BY ordinal DESC LIMIT ?",(session_id,before,before,limit+1)).fetchall()
+        for row in reversed(rows[:limit]):
             turn = dict(row)
             turn["messages"] = json.loads(turn["messages"])
             turns.append(turn)
         events = []
-        for row in self.db.execute("SELECT e.*,c.cursor FROM events e JOIN event_cursors c USING(event_id) WHERE session_id=? ORDER BY sequence", (session_id,)):
+        first_ordinal = turns[0]["ordinal"] if turns else 0
+        last_ordinal = turns[-1]["ordinal"] if turns else 0
+        for row in self.db.execute("SELECT events.*,c.cursor FROM events JOIN turns USING(turn_id) JOIN event_cursors c USING(event_id) WHERE events.session_id=? AND turns.ordinal>=? AND turns.ordinal<=? ORDER BY sequence", (session_id,first_ordinal,last_ordinal)):
             event = dict(row)
             event["data"] = json.loads(event["data"])
             events.append(event)
         requests = []
-        for row in self.db.execute("SELECT * FROM requests WHERE session_id=? ORDER BY turn_id,ordinal", (session_id,)):
+        for row in self.db.execute("SELECT requests.* FROM requests JOIN turns USING(turn_id) WHERE requests.session_id=? AND turns.ordinal>=? AND turns.ordinal<=? ORDER BY turns.ordinal,requests.ordinal", (session_id,first_ordinal,last_ordinal)):
             request = dict(row)
             request["usage"] = json.loads(request["usage"]) if request["usage"] else None
             requests.append(request)
         for turn in turns:
             turn["usage_summary"] = usage_summary([request for request in requests if request["turn_id"] == turn["turn_id"]])
-        return {"usage_summary":usage_summary(requests),"schema_version":SCHEMA_VERSION,"session":dict(session),"turns":turns,"events":events,"requests":requests,"cursor":self.cursor(),"stream_id":self.stream_id}
+        all_usage = [{"usage":json.loads(row["usage"]) if row["usage"] else None} for row in self.db.execute("SELECT usage FROM requests WHERE session_id=?", (session_id,))]
+        return {"usage_summary":usage_summary(all_usage),"requests":requests,"cursor":self.cursor(),"stream_id":self.stream_id,"schema_version":SCHEMA_VERSION,"session":dict(session),"turns":turns,"events":events,"total_turns":self.db.execute("SELECT COUNT(*) FROM turns WHERE session_id=?", (session_id,)).fetchone()[0],"next_before":first_ordinal if len(rows)>limit else None}
