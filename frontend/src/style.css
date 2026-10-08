@@ -33,3 +33,16 @@ textarea { width: 100%; resize: vertical; padding: 12px; font-size: 16px; line-h
 .error { color: #a32920; font-size: 14px; margin: 8px 0 0; overflow-wrap: anywhere; }
 aside { padding: 12px 0; font-size: 14px; }
 @media (max-width: 760px) { .app { padding: 20px 16px; } main { grid-template-columns: minmax(0, 1fr); gap: 20px; } aside { padding: 0 8px; } .messages, form, .conversation-heading { padding: 18px; } .form-bottom { align-items: flex-start; } .form-bottom button { flex-shrink: 0; margin-top: 12px; } }
+input { font: inherit; width: 100%; min-height: 40px; padding: 9px; border: 1px solid #788a7d; border-radius: 7px; }
+input:focus-visible { outline: 3px solid #257968; outline-offset: 3px; }
+.history-list { list-style: none; margin: 0; padding: 0; }
+.history-list li { margin-bottom: 16px; }
+.history-select { width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 7px; text-align: left; padding: 12px; background: white; color: #202c2a; border-color: #d2dad3; }
+.history-select[aria-current="true"] { border: 2px solid #1e5148; background: #eff4ef; }
+.history-select strong { overflow-wrap: anywhere; }
+.history-select time, .history-select span { color: #53635b; font-size: 12px; }
+.history-actions { display: flex; gap: 8px; margin-top: 8px; }
+.history-actions button { background: white; color: #1e5148; padding: 6px 12px; }
+.rename-form { border: 0; padding: 12px 0; }
+.round-status { color: #53635b; font-size: 12px; }
+.load-earlier { margin-bottom: 18px; }
