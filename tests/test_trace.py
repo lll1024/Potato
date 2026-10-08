@@ -47,7 +47,7 @@ async def wait_finished(client, session_id, turn_id=None):
         async for line in stream.aiter_lines():
             if line.startswith("data:"):
                 event = json.loads(line[5:])
-                if event["session_id"] == session_id and event["kind"] == "turn.finished" and (turn_id is None or event["turn_id"] == turn_id):
+                if event.get("session_id") == session_id and event["kind"] == "turn.finished" and (turn_id is None or event["turn_id"] == turn_id):
                     return (await client.get("/api/sessions/" + session_id)).json()
     raise AssertionError("没有收到轮次结束事件")
 

@@ -154,6 +154,7 @@ async def agent_loop(
 ) -> str:
     messages[:] = json.loads(tools.redact(json.dumps(messages, ensure_ascii=False)))
     calls = 0
+    tool_errors = 0
     outcomes: list[tuple[str, ToolResult]] = []
     stopped: str | None = None
     status = "terminated"
@@ -163,7 +164,7 @@ async def agent_loop(
         if observer:
             await observer("turn.finished", {
                 "status": status, "reason": reason, "answer_source": source,
-                "tool_error_count": sum(result["is_error"] for _, result in outcomes),
+                "tool_error_count": tool_errors,
             })
         return answer
 
@@ -251,6 +252,8 @@ async def agent_loop(
                     "call_duration_ms":None,"wait_duration_ms":None,"total_duration_ms":None})
         for block, tool_id in zip(tool_calls,tool_ids):
             async def tool_observer(kind: str, data: dict[str, Any]) -> None:
+                if kind == "tool.not_executed" and stop_requested and stop_requested.is_set():
+                    data["reason"] = stop_reason
                 if "result" in data:
                     output_result = data["result"]
                     data["result"] = {"type":"tool_result","tool_use_id":block.id,
@@ -259,6 +262,7 @@ async def agent_loop(
                     await observer(kind,{**data,"tool_call_id":tool_id,"request_id":request_id})
 
             output: ToolResult
+            attempted = False
             if stop_requested and stop_requested.is_set() and not stopped:
                 stopped = "已停止本轮查询，尚未完成的信息待核实。"
                 reason = stop_reason
@@ -268,13 +272,16 @@ async def agent_loop(
                 output = {"content": BUDGET_MESSAGE, "is_error": True}
             else:
                 calls += 1
+                attempted = True
                 output = await tools.call(block.name, cast(dict[str, Any], block.input),
                                           observer=tool_observer if observer else None,
                                           stop_requested=stop_requested)
                 stopped = output.get("stop_reason")
                 if stopped:
-                    reason = "map_paused"
-            if stopped or calls >= max_tool_calls:
+                    reason = stop_reason if stop_requested and stop_requested.is_set() else "map_paused"
+                if output["is_error"] and not output.get("not_executed") :
+                    tool_errors += 1
+            if not attempted:
                 # 仅对本次已提出且尚未进入适配器的调用补应用回填。
                 if (stopped and output["content"].startswith("未执行：")) or output["content"] == BUDGET_MESSAGE:
                     await tool_observer("tool.not_executed",{"status":"not_executed",

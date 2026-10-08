@@ -28,6 +28,7 @@ class ToolResult(TypedDict):
     content: str
     is_error: bool
     stop_reason: NotRequired[str]
+    not_executed: NotRequired[bool]
 
 
 FAILURE_MESSAGES = {
@@ -141,15 +142,18 @@ class AmapTools:
                    stop_requested: asyncio.Event | None = None) -> ToolResult:
         loop = asyncio.get_running_loop()
         started = loop.time()
-        facts: dict[str, Any] = {"call_started":False,"wait_duration_ms":0.0,
+        facts: dict[str, Any] = {"started_at":datetime.now(timezone.utc).isoformat(),"call_started":False,"wait_duration_ms":0.0,
                                  "call_duration_ms":None,"service":None,"error":None}
 
         async def finish(output: ToolResult, category: str | None = None) -> ToolResult:
+            skipped = not facts["call_started"] and category in FAILURE_MESSAGES
+            if skipped:
+                output["not_executed"] = True
             if observer:
-                await observer("tool.failed" if output["is_error"] else "tool.completed", {
+                await observer("tool.not_executed" if skipped else "tool.failed" if output["is_error"] else "tool.completed", {
                     **facts,"finished_at":datetime.now(timezone.utc).isoformat(),
                     "total_duration_ms":max(0,(loop.time()-started)*1000),
-                    "failure_category":category,"result":output,
+                    "failure_category":category,"reason":"map_paused" if skipped else None,"result":output,
                 })
             return output
 
@@ -162,7 +166,7 @@ class AmapTools:
         if delay := max(0.0, self._next_call_at - loop.time()):
             waiting = loop.time()
             if observer:
-                await observer("tool.waiting",{"status":"waiting","waiting_at":datetime.now(timezone.utc).isoformat()})
+                await observer("tool.waiting",{"status":"waiting","waiting_at":datetime.now(timezone.utc).isoformat(),"started_at":facts["started_at"]})
             if stop_requested:
                 try:
                     await asyncio.wait_for(stop_requested.wait(),delay)
@@ -176,10 +180,10 @@ class AmapTools:
                 await observer("tool.not_executed",{**facts,"finished_at":datetime.now(timezone.utc).isoformat(),
                     "total_duration_ms":max(0,(loop.time()-started)*1000),"reason":"user_stop",
                     "result":{"content":"未执行：已停止本轮查询。","is_error":True}})
-            return {"content":"未执行：已停止本轮查询。","is_error":True,"stop_reason":"已停止本轮查询。"}
+            return {"content":"未执行：已停止本轮查询。","is_error":True,"stop_reason":"已停止本轮查询。","not_executed":True}
         if observer:
             await observer("tool.running",{"status":"running","call_started":True,
-                "call_started_at":datetime.now(timezone.utc).isoformat(),"wait_duration_ms":facts["wait_duration_ms"]})
+                "call_started_at":datetime.now(timezone.utc).isoformat(),"started_at":facts["started_at"],"wait_duration_ms":facts["wait_duration_ms"]})
         facts["call_started"] = True
         call_start = loop.time()
         self._next_call_at = loop.time() + MAP_CALL_INTERVAL
@@ -190,6 +194,7 @@ class AmapTools:
             )
         except Exception as error:
             facts["call_duration_ms"] = max(0,(loop.time()-call_start)*1000)
+            facts["call_finished_at"] = datetime.now(timezone.utc).isoformat()
             facts["error"] = {"category":type(error).__name__,"message":str(error)}
             for field in ("code","data","status_code"):
                 if (value := getattr(error,field,None)) is not None:
@@ -205,6 +210,7 @@ class AmapTools:
                 return await finish({"content": "地图查询参数错误，请按工具声明修正，结果待核实。", "is_error": True},"arguments")
             return await finish({"content": "地图查询失败，请检查参数或服务状态，结果待核实。", "is_error": True},"error")
         facts["call_duration_ms"] = max(0,(loop.time()-call_start)*1000)
+        facts["call_finished_at"] = datetime.now(timezone.utc).isoformat()
         facts["service"] = result.model_dump(mode="json",exclude_unset=True) if hasattr(result,"model_dump") else json.loads(json.dumps(result,default=vars,ensure_ascii=False))
         facts["sdk_is_error"] = result.is_error
         if self.http_client and self.http_client.connection_failed:
