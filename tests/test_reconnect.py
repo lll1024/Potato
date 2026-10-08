@@ -138,6 +138,7 @@ class ReconnectTests(unittest.IsolatedAsyncioTestCase):
                 fixture.execute('INSERT INTO event_cursors SELECT cursor,event_id FROM newer_cursors WHERE event_id IS NOT NULL')
                 fixture.execute("UPDATE sqlite_sequence SET seq=99 WHERE name='event_cursors'")
                 fixture.execute('DROP TABLE newer_cursors')
+            fixture.close()
             async with serving(directory,ModelService([response([{"type":"text","text":"升级后查询"}])])) as client:
                 restored = (await client.get('/api/sessions/'+accepted["session_id"])).json()
                 self.assertEqual(restored["events"],original["events"])
