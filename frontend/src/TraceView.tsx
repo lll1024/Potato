@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import './trace.css';
 import { Payload, Highlight, type TraceLocation } from './PayloadViewer';
 import { TraceSearch } from './TraceSearch';
+import { TraceTimeline } from './TraceTimeline';
+import { useReadingFollow } from './useReadingFollow';
 export type { TraceLocation } from './PayloadViewer';
 
 type Usage = Record<string, unknown>;
@@ -14,13 +16,14 @@ type TraceRequest = {
 };
 type TraceTool = {
   tool_call_id: string; request_id: string; turn_id: string; ordinal: number; tool_use_id: string; name: string;
-  interrupted?: boolean; status: string; proposed_at: string; started_at?: string; call_started_at?: string; call_finished_at?: string; finished_at?: string;
+  interrupted?: boolean; status: string; proposed_at: string; waiting_at?: string; started_at?: string; call_started_at?: string; call_finished_at?: string; finished_at?: string;
   call_started: boolean; wait_duration_ms: number | null; call_duration_ms: number | null; total_duration_ms: number | null;
   sdk_is_error?: boolean; failure_category?: string | null; reason?: string | null;
   arguments_payload_id: string; service_payload_id?: string; result_payload_id?: string; error_payload_id?: string;
 };
-type TraceTurn = {turn_id: string; ordinal: number; input: string; input_payload_id?: string; answer_payload_id?: string; status: string; reason?: string | null; tool_error_count: number; usage_summary?: UsageSummary};
-type TraceSnapshot = {session: {title: string}; turns: TraceTurn[]; requests: TraceRequest[]; tool_calls: TraceTool[]; usage_summary: UsageSummary; cursor: number; stream_id: string};
+type TraceTurn = {turn_id: string; ordinal: number; input: string; input_payload_id?: string; answer_payload_id?: string; answer_source?: string | null; status: string; reason?: string | null; tool_error_count: number; usage_summary?: UsageSummary};
+type TraceEvent = {event_id: string; sequence: number; kind: string; request_id?: string | null; tool_call_id?: string | null; turn_id: string};
+type TraceSnapshot = {events: TraceEvent[]; session: {title: string}; turns: TraceTurn[]; requests: TraceRequest[]; tool_calls: TraceTool[]; usage_summary: UsageSummary; cursor: number; stream_id: string};
 type Props = {sessionId: string | null; refreshKey?: number; location?: TraceLocation | null; onInteraction?: () => void};
 const toolStatuses: Record<string,string> = {pending:'已提出',waiting:'限速等待',running:'执行中',completed:'成功',failed:'失败',not_executed:'未执行'};
 const reasonLabels: Record<string,string> = {budget:'查询达到上限',model_error:'模型请求失败',output_limit:'输出达到上限',map_paused:'地图查询已暂停',user_stop:'用户停止',service_shutdown:'服务退出',service_interrupted:'服务中断'};
@@ -45,7 +48,7 @@ function UsageTotals({summary}: {summary?: UsageSummary}) {
   </span>)}</div>;
 }
 
-export function TraceView({sessionId,refreshKey,location:externalLocation,onInteraction}: Props) {
+export function TraceView({sessionId,refreshKey,location:externalLocation,onInteraction:onRead}: Props) {
   const sessionRef=useRef(sessionId);
   sessionRef.current=sessionId;
   const [snapshot,setSnapshot] = useState<TraceSnapshot | null>(null);
@@ -53,6 +56,9 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
   const [expanded,setExpanded] = useState<Record<string,boolean>>({});
   const [error,setError] = useState('');
   const [location,setLocation] = useState<TraceLocation | null>(null);
+  const follow = useReadingFollow(sessionId, snapshot?.events.at(-1)?.event_id ?? '');
+  const latestRef = useRef<string | undefined>(undefined);
+  function onInteraction() {follow.pause(); onRead?.();}
   const [narrow,setNarrow] = useState(() => window.matchMedia('(max-width: 1000px)').matches);
   useEffect(() => {
     const media=window.matchMedia('(max-width: 1000px)');
@@ -60,10 +66,10 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
     media.addEventListener('change',change); return () => media.removeEventListener('change',change);
   },[]);
   useEffect(() => {
-    setSnapshot(null); setSelected(null); setExpanded({}); setLocation(null); setError('');
+    setSnapshot(null); setSelected(null); setExpanded({}); setLocation(null); setError(''); latestRef.current=undefined;
   }, [sessionId]);
   useEffect(() => {
-    if (!sessionId) return;
+  if (!sessionId) return;
     let cancelled = false;
     let source: EventSource | null = null;
     async function refresh() {
@@ -73,10 +79,16 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
         setSnapshot(current => current ? {...result,
           turns:[...current.turns.filter(item => !result.turns.some(incoming => incoming.turn_id===item.turn_id)),...result.turns].sort((a,b) => a.ordinal-b.ordinal),
           requests:[...current.requests.filter(item => !result.turns.some(turn => turn.turn_id===item.turn_id)),...result.requests],
-          tool_calls:[...current.tool_calls.filter(item => !result.turns.some(turn => turn.turn_id===item.turn_id)),...result.tool_calls]} : result);
+          tool_calls:[...current.tool_calls.filter(item => !result.turns.some(turn => turn.turn_id===item.turn_id)),...result.tool_calls],
+          events:[...current.events.filter(item => !result.turns.some(turn => turn.turn_id===item.turn_id)),...result.events].sort((a,b) => a.sequence-b.sequence)} : result);
         setExpanded(current => {
           const next = {...current};
           const latest = result.turns.at(-1)?.turn_id;
+          if (!follow.paused && latestRef.current && latestRef.current !== latest) {
+            next[latestRef.current]=false;
+            for (const request of result.requests) if (request.turn_id===latestRef.current) next[request.request_id]=false;
+          }
+          latestRef.current=latest;
           for (const turn of result.turns) if (!(turn.turn_id in next)) next[turn.turn_id] = turn.turn_id === latest;
           for (const request of result.requests) if (!(request.request_id in next)) next[request.request_id] = request.turn_id === latest;
           return next;
@@ -104,7 +116,8 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
       setSnapshot(current => current ? {...current,
         turns:[...current.turns.filter(item => item.turn_id!==target.turn_id),...page.turns].sort((a,b) => a.ordinal-b.ordinal),
         requests:[...current.requests.filter(item => item.turn_id!==target.turn_id),...page.requests],
-        tool_calls:[...current.tool_calls.filter(item => item.turn_id!==target.turn_id),...page.tool_calls]} : page);
+        tool_calls:[...current.tool_calls.filter(item => item.turn_id!==target.turn_id),...page.tool_calls],
+        events:[...current.events.filter(item => item.turn_id!==target.turn_id),...page.events].sort((a,b) => a.sequence-b.sequence)} : page);
       const requestId=page.tool_calls.find(item => item.tool_call_id===target.object_id)?.request_id ?? target.object_id;
       setExpanded(current => ({...current,session:true,[target.turn_id]:true,[requestId]:true}));
       requestAnimationFrame(() => {
@@ -118,8 +131,9 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
   function select(id: string) {onInteraction?.(); setSelected(id); setLocation(null);}
   const detailProps={location,onInteraction};
   const selectedTurn=snapshot?.turns.find(turn => turn.turn_id===selected);
-  const turnDetail=location?.object_type==='turn' ? <div onFocus={onInteraction} onWheel={onInteraction}>
+  const turnDetail=location?.object_type==='turn' ? <div key={location.turn_id} onFocus={onInteraction} onWheel={onInteraction}>
     <h3>第 {location.turn_ordinal} 轮 · 对话内容</h3>
+    {selectedTurn && <p>{turnStatus(selectedTurn)} · {selectedTurn.answer_source === 'model' ? '模型回答' : selectedTurn.answer_source === 'application' ? '应用说明' : '尚无回答'}</p>}
     {!location.payload_id && <p><Highlight text={location.excerpt ?? ''} query={location.query} /></p>}
     <Payload id={selectedTurn?.input_payload_id ?? (location.field==='turn_input' ? location.payload_id : null)} title="完整用户输入" {...detailProps} />
     <Payload id={selectedTurn?.answer_payload_id ?? (location.field==='turn_answer' ? location.payload_id : null)} title="完整对话回答" {...detailProps} />
@@ -127,10 +141,24 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
   const request = snapshot?.requests.find(item => item.request_id === selected);
   const tool = snapshot?.tool_calls.find(item => item.tool_call_id === selected);
   function expandAll(open: boolean) {
+    onInteraction();
     const next: Record<string,boolean> = {session: open};
     for (const turn of snapshot?.turns ?? []) next[turn.turn_id] = open;
     for (const item of snapshot?.requests ?? []) next[item.request_id] = open;
     setExpanded(next);
+  }
+  function backToLatest() {
+    setSelected(null); setLocation(null);
+    const latest=snapshot?.turns.at(-1)?.turn_id;
+    const next: Record<string,boolean>={session:true};
+    for (const turn of snapshot?.turns ?? []) next[turn.turn_id]=turn.turn_id===latest;
+    for (const request of snapshot?.requests ?? []) next[request.request_id]=request.turn_id===latest;
+    setExpanded(next);
+    follow.resume();
+  }
+  function timelineLocate(objectType: 'request' | 'tool', objectId: string, turnId: string) {
+    const turn=snapshot?.turns.find(item => item.turn_id===turnId);
+    if (turn) void locate({turn_id:turnId,turn_ordinal:turn.ordinal,object_type:objectType,object_id:objectId,payload_id:null,field:'',query:''});
   }
   if (!sessionId) return <div className="trace-empty"><p>发送旅行需求后，这里显示每次模型请求的真实开始与结束。</p></div>;
   return <div className="trace-view">
@@ -139,11 +167,14 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
     <p role="alert" className="error">{error}</p>
     <TraceSearch sessionId={sessionId} onLocate={target => void locate(target)} onInteraction={onInteraction} />
     <UsageTotals summary={snapshot?.usage_summary} />
+    <div className="reading-follow"><p role="status">{follow.hasNew ? '有新事件' : follow.paused ? '已暂停跟随，正在阅读' : '正在跟随最新事件'}</p>{follow.paused && <button type="button" onClick={backToLatest}>回到最新</button>}</div>
+    <div className="trace-scroll" ref={follow.ref} onScroll={follow.onScroll} onClickCapture={event => {if ((event.target as HTMLElement).closest('summary')) onInteraction();}}>
+    {snapshot && <TraceTimeline turns={snapshot.turns} requests={snapshot.requests} tools={snapshot.tool_calls} events={snapshot.events} selected={selected} onLocate={timelineLocate} />}
     <div className="trace-layout">
       <div className="trace-tree">
         <details open={expanded.session ?? true} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,session:open}));}}>
           <summary>助手会话：{snapshot?.session.title ?? '正在读取'}</summary>
-          {snapshot?.turns.map(turn => <details className="trace-turn" id={`trace-object-${turn.turn_id}`} key={turn.turn_id} open={expanded[turn.turn_id] ?? false} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,[turn.turn_id]:open}));}}>
+          {snapshot?.turns.map(turn => <details className={`trace-turn ${selected === turn.turn_id ? 'selected' : ''}`} id={`trace-object-${turn.turn_id}`} key={turn.turn_id} open={expanded[turn.turn_id] ?? false} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,[turn.turn_id]:open}));}}>
             <summary>第 {turn.ordinal} 轮 · {turnStatus(turn)} · {turn.input}</summary>
             {turn.reason === 'service_interrupted' && <p className="hint">本轮已排除后续上下文；保留最后保存事实，没有自动重试或重放。</p>}
             <UsageTotals summary={turn.usage_summary} />
@@ -161,6 +192,7 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
         </details>
       </div>
       <section className="trace-detail" aria-label="选中执行详情">{!narrow && (turnDetail ?? (tool ? <ToolDetail key={tool.tool_call_id} tool={tool} {...detailProps} /> : request ? <RequestDetail key={request.request_id} request={request} {...detailProps} /> : <p className="hint">选择模型请求或工具调用，查看真实时间与完整来源。</p>))}</section>
+    </div>
     </div>
   </div>;
 }

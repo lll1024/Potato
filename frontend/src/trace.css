@@ -47,3 +47,14 @@
 .payload-controls button { font-size: 12px; padding: 6px 10px; }
 .trace-payload pre { max-width: 100%; box-sizing: border-box; }
 @media (max-width: 760px) { .trace-search form { align-items: stretch; } .trace-search label { width: 100%; } }
+
+.trace-scroll { max-height: 70vh; min-height: 240px; overflow: auto; overflow-anchor: none; }
+.trace-timeline { border-bottom: 1px solid #d2dad3; padding-bottom: 16px; }
+.trace-timeline h4 { margin-bottom: 4px; }
+.trace-timeline ol { list-style: none; margin: 0; padding: 0; border-left: 2px solid #d2dad3; }
+.trace-timeline li { padding-left: 10px; margin: 6px 0; }
+.trace-timeline button { width: 100%; display: flex; gap: 10px; text-align: left; color: #202c2a; background: white; border-color: #d2dad3; font-size: 12px; padding: 7px; }
+.trace-timeline button[aria-pressed="true"], .trace-turn.selected { border: 2px solid #257968; background: #f4f8f5; }
+.trace-timeline time { flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.trace-timeline span { overflow-wrap: anywhere; }
+@media (max-width: 760px) { .trace-timeline button { flex-direction: column; gap: 4px; } }
