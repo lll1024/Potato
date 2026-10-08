@@ -58,3 +58,11 @@ input:focus-visible { outline: 3px solid #257968; outline-offset: 3px; }
 .dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin-top: 24px; }
 .dialog-actions button:first-child { color: #1e5148; background: white; }
 
+
+.reading-follow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; font-size: 13px; }
+.reading-follow p { margin: 0; }
+.reading-follow button, .round-heading button { font-size: 12px; padding: 6px 10px; background: white; color: #1e5148; }
+.conversation-follow { padding: 12px 24px; border-bottom: 1px solid #e1e5e0; }
+.messages { max-height: 65vh; overflow: auto; overflow-anchor: none; }
+.round-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+@media (max-width: 760px) { .conversation-follow { padding: 12px 18px; } }
