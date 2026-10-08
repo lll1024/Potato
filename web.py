@@ -17,9 +17,10 @@ import uvicorn
 from anthropic import AsyncAnthropic
 from anthropic.types import MessageParam
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+
 from fastapi.staticfiles import StaticFiles
 from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
@@ -67,6 +68,10 @@ class Submission(BaseModel):
     submission_id: str | None = Field(default=None, min_length=1, max_length=128)
 
 
+
+class RenameSession(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+
 def create_app(data_dir: str | Path, *, resources=configured_resources, static_dir: str | Path | None=None) -> FastAPI:
     directory = Path(data_dir)
     task: asyncio.Task | None = None
@@ -111,7 +116,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
 
     async def execute(identity, text):
         nonlocal active
-        messages: list[MessageParam] = [{"role":"user","content":text}]
+        messages: list[MessageParam] = store.context(identity["session_id"]) + [{"role":"user","content":text}]
         outcome: dict[str, Any] = {}
         started = asyncio.get_running_loop().time()
         async def observe(kind, data):
@@ -155,7 +160,9 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                 raise HTTPException(422,{"code":"INVALID_INPUT","message":"请输入旅行需求。"})
             text = runtime.tools.redact(body.input)
             try:
-                identity = store.accept(text,submission_id=body.submission_id,fingerprint=fingerprint)
+                identity = store.accept(text,body.session_id,submission_id=body.submission_id,fingerprint=fingerprint)
+            except KeyError:
+                raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"}) from None
             except Exception:
                 accepting = False
                 raise HTTPException(503,{"code":"STORAGE_FAILURE","message":"输入未保存，查询未启动。"}) from None
@@ -172,6 +179,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             raise HTTPException(410, {"code":"SUBMISSION_DELETED","message":"这次提交的会话已删除，不会再次执行。"})
         return {"schema_version":SCHEMA_VERSION,"submission_id":submission_id,"session_id":saved["session_id"],"turn_id":saved["turn_id"]}
 
+
     @app.get("/api/state")
     async def state():
         return {"schema_version":SCHEMA_VERSION,"active_turn_id":active["turn_id"] if active else None,
@@ -182,15 +190,43 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                 "service_status":"available" if accepting else "unavailable"}
 
     @app.get("/api/sessions")
-    async def sessions():
-        return {"schema_version":SCHEMA_VERSION,"sessions":store.sessions()}
+    async def sessions(limit: int = Query(50,ge=1,le=100), cursor: str | None = None):
+        try:
+            return store.sessions(limit,cursor)
+        except (ValueError,TypeError):
+            raise HTTPException(422,"历史分页游标无效，请重新加载。") from None
 
     @app.get("/api/sessions/{session_id}")
-    async def snapshot(session_id: str):
-        result = store.snapshot(session_id)
+    async def snapshot(session_id: str, limit: int = Query(50,ge=1,le=100), before: int | None = Query(None,ge=1)):
+        result = store.snapshot(session_id,limit,before)
         if result is None:
-            raise HTTPException(404,"会话不存在。")
+            raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"})
         return result
+
+    @app.patch("/api/sessions/{session_id}")
+    async def rename(session_id: str, body: RenameSession):
+        title = runtime.tools.redact(body.title).strip()
+        if not title:
+            raise HTTPException(422,"请输入会话标题。")
+        try:
+            changed = store.rename(session_id,title)
+        except Exception:
+            raise HTTPException(503,{"code":"STORAGE_FAILURE","message":"标题未保存，请重试。"}) from None
+        if not changed:
+            raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"})
+        return {"schema_version":SCHEMA_VERSION,"session_id":session_id,"title":title}
+
+    @app.delete("/api/sessions/{session_id}")
+    async def delete(session_id: str):
+        try:
+            deleted = store.delete(session_id)
+        except ValueError:
+            raise HTTPException(409,{"code":"BUSY","message":"会话正在执行或停止，请等待结束后删除。"}) from None
+        except Exception:
+            raise HTTPException(503,{"code":"STORAGE_FAILURE","message":"会话未删除，请重试。"}) from None
+        if not deleted:
+            raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"})
+        return {"schema_version":SCHEMA_VERSION,"deleted_session_id":session_id}
 
     dist = Path(static_dir) if static_dir else Path(__file__).parent / "frontend" / "dist"
     if dist.is_dir():
