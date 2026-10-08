@@ -331,16 +331,24 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             last_state = None
             while True:
                 changed.clear()
+                read_failed = False
                 try:
                     batch = store.events_after(cursor)
                 except sqlite3.Error:
                     storage_failed("执行通知暂时无法读取；仅保留最后成功提交的事实。")
+                    read_failed = True
                     batch = []
                 for event in batch:
-                    cursor = event["cursor"]
                     # 等待网络发送时其他页面可能删除；不发送已级联删除的预读摘要。
-                    if not store.event_exists(cursor):
-                        continue
+                    try:
+                        if not store.event_exists(event["cursor"]):
+                            cursor = event["cursor"]
+                            continue
+                    except sqlite3.Error:
+                        storage_failed("执行通知暂时无法读取；仅保留最后成功提交的事实。")
+                        read_failed = True
+                        break
+                    cursor = event["cursor"]
                     yield f"id: {cursor}\nevent: trace\ndata: {json.dumps({'schema_version':SCHEMA_VERSION,**event},ensure_ascii=False)}\n\n"
                 current_state = await state()
                 if current_state != last_state:
@@ -349,7 +357,16 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                     # 实时运行状态不冒充已提交轨迹，不能推进持久化 cursor。
                     yield f"event: service.state\ndata: {json.dumps(notice,ensure_ascii=False)}\n\n"
                 # yield 期间可能又有提交；先重新补齐，避免另一个订阅清空唤醒后漏等。
-                if batch or store.cursor()>cursor or changed.is_set() or await state()!=last_state:
+                if read_failed:
+                    await asyncio.sleep(1)
+                    continue
+                try:
+                    pending = store.cursor()>cursor
+                except sqlite3.Error:
+                    storage_failed("执行通知暂时无法读取；仅保留最后成功提交的事实。")
+                    await asyncio.sleep(1)
+                    continue
+                if batch or pending or changed.is_set() or await state()!=last_state:
                     continue
 
                 try:

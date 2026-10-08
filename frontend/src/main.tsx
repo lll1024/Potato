@@ -163,9 +163,8 @@ function App() {
           </div>}
           <p className="error" role="alert">{submission.error || error}</p>
           <p className="hint" role="status">{connectionError}</p>
-          <p className="hint" role="status">{connectionError}</p>
           {recoveryNotice && <p className="hint" role="status">{recoveryNotice}</p>}
-          {!state.accepting && <p className="error">{state.storage_error ?? (connectionError ? '请等待连接恢复后再发送。' : '本机服务暂不可用，请检查后重启。')}</p>}
+          {!state.accepting && <p className="error" role="alert">{state.storage_error ?? (connectionError ? '请等待连接恢复后再发送。' : '本机服务暂不可用，请检查后重启。')}</p>}
         </form>
       </section>
       <HistorySidebar sessionId={sessionId} activeTurnId={state.active_turn_id} refreshKey={serviceRevision} onSelect={selectConversation} onDelete={deletedConversation} />

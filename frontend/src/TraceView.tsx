@@ -77,6 +77,7 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
         const result = await read<TraceSnapshot>(`/api/sessions/${sessionId}?summary=true`);
         if (cancelled) return;
         setSnapshot(current => current ? {...result,
+          next_before:current.next_before,
           turns:[...current.turns.filter(item => !result.turns.some(incoming => incoming.turn_id===item.turn_id)),...result.turns].sort((a,b) => a.ordinal-b.ordinal),
           requests:[...current.requests.filter(item => !result.turns.some(turn => turn.turn_id===item.turn_id)),...result.requests],
           tool_calls:[...current.tool_calls.filter(item => !result.turns.some(turn => turn.turn_id===item.turn_id)),...result.tool_calls],
@@ -102,14 +103,15 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
     return () => {cancelled = true;};
   }, [sessionId,refreshKey]);
   async function loadEarlier() {
-    if (!sessionId || !snapshot || snapshot.turns[0]?.ordinal <= 1) return;
+    if (!sessionId || !snapshot?.next_before) return;
     onInteraction(); setLoadingEarlier(true);
     const id=sessionId;
     try {
-      const page=await read<TraceSnapshot>(`/api/sessions/${id}?summary=true&before=${snapshot.turns[0].ordinal}`);
+      const page=await read<TraceSnapshot>(`/api/sessions/${id}?summary=true&before=${snapshot.next_before}`);
       if (sessionRef.current!==id) return;
       follow.preservePosition();
       setSnapshot(current => current ? {...current,
+        next_before:page.next_before,
         turns:[...page.turns.filter(item => !current.turns.some(old => old.turn_id===item.turn_id)),...current.turns].sort((a,b) => a.ordinal-b.ordinal),
         requests:[...page.requests.filter(item => !current.requests.some(old => old.request_id===item.request_id)),...current.requests],
         tool_calls:[...page.tool_calls.filter(item => !current.tool_calls.some(old => old.tool_call_id===item.tool_call_id)),...current.tool_calls],
@@ -179,7 +181,7 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
     <UsageTotals summary={snapshot?.usage_summary} />
     <div className="reading-follow"><p role="status">{follow.hasNew ? '有新事件' : follow.paused ? '已暂停跟随，正在阅读' : '正在跟随最新事件'}</p>{follow.paused && <button type="button" onClick={backToLatest}>回到最新</button>}</div>
     <div className="trace-scroll" ref={follow.ref} onScroll={follow.onScroll} onClickCapture={event => {if ((event.target as HTMLElement).closest('summary')) onInteraction();}}>
-    {snapshot && snapshot.turns[0]?.ordinal > 1 && <button type="button" disabled={loadingEarlier} onClick={() => void loadEarlier()}>加载更早轨迹</button>}
+    {snapshot?.next_before && <button type="button" disabled={loadingEarlier} onClick={() => void loadEarlier()}>加载更早轨迹</button>}
     {snapshot && <TraceTimeline turns={snapshot.turns} requests={snapshot.requests} tools={snapshot.tool_calls} events={snapshot.events} selected={selected} onLocate={timelineLocate} />}
     <div className="trace-layout">
       <div className="trace-tree">
