@@ -41,12 +41,12 @@ async def serving(directory, model):
         sock.close()
 
 
-async def wait_finished(client, session_id):
+async def wait_finished(client, session_id, turn_id=None):
     async with client.stream("GET", "/api/events?after=0") as stream:
         async for line in stream.aiter_lines():
             if line.startswith("data:"):
                 event = json.loads(line[5:])
-                if event["session_id"] == session_id and event["kind"] == "turn.finished":
+                if event["session_id"] == session_id and event["kind"] == "turn.finished" and (turn_id is None or event["turn_id"] == turn_id):
                     return (await client.get("/api/sessions/" + session_id)).json()
     raise AssertionError("没有收到轮次结束事件")
 
@@ -253,3 +253,27 @@ class ModelTraceTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(len({event["event_id"] for event in one}),4)
                 self.assertEqual((await client.get("/api/events?after=999999")).status_code,409)
                 self.assertEqual((await client.get("/api/events?after=0&stream_id=other-directory")).status_code,409)
+
+    async def test_paged_requests_match_visible_rounds_and_deleted_cursors_are_not_reused(self):
+        model=ModelService([response([{"type":"text","text":"首轮"}]),response([{"type":"text","text":"续聊"}]),response([{"type":"text","text":"新会话"}])])
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory,model) as client:
+                first=(await client.post("/api/turns",json={"input":"查询杭州"})).json()
+                original=await asyncio.wait_for(wait_finished(client,first["session_id"]),2)
+                followup=(await client.post("/api/turns",json={"input":"继续查询","session_id":first["session_id"]})).json()
+                await asyncio.wait_for(wait_finished(client,followup["session_id"],followup["turn_id"]),2)
+                latest=(await client.get(f'/api/sessions/{first["session_id"]}?limit=1')).json()
+                earlier=(await client.get(f'/api/sessions/{first["session_id"]}?limit=1&before={latest["next_before"]}')).json()
+                self.assertEqual([item["turn_id"] for item in latest["requests"]],[followup["turn_id"]])
+                self.assertEqual([item["turn_id"] for item in earlier["requests"]],[first["turn_id"]])
+                self.assertEqual(latest["usage_summary"]["input_tokens"]["request_count"],2)
+                self.assertEqual(earlier["requests"][0],original["requests"][0])
+                old_cursor=latest["cursor"]
+                old_payload=original["requests"][0]["input_payload_id"]
+                self.assertEqual((await client.delete("/api/sessions/"+first["session_id"])).status_code,200)
+                self.assertEqual((await client.get("/api/payloads/"+old_payload)).status_code,404)
+                final=(await client.post("/api/turns",json={"input":"新查询"})).json()
+                snapshot=await asyncio.wait_for(wait_finished(client,final["session_id"]),2)
+                self.assertTrue(all(event["cursor"]>old_cursor for event in snapshot["events"]))
+                self.assertEqual([event["sequence"] for event in snapshot["events"]],[1,2,3,4])
+                self.assertNotEqual(snapshot["requests"][0]["request_id"],original["requests"][0]["request_id"])

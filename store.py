@@ -73,7 +73,7 @@ class Store:
 
         with self.db:
             self.db.execute("INSERT OR IGNORE INTO metadata VALUES ('stream_id',?)", (identity(),))
-            self.db.execute("INSERT OR IGNORE INTO event_cursors(event_id) SELECT event_id FROM events ORDER BY timestamp,session_id,sequence")
+            self.db.execute("INSERT INTO event_cursors(event_id) SELECT e.event_id FROM events e WHERE NOT EXISTS (SELECT 1 FROM event_cursors c WHERE c.event_id=e.event_id) ORDER BY e.timestamp,e.session_id,e.sequence")
         self.stream_id = self.db.execute("SELECT value FROM metadata WHERE name='stream_id'").fetchone()[0]
 
     def close(self):
@@ -91,7 +91,8 @@ class Store:
         return event
 
     def cursor(self):
-        return self.db.execute("SELECT COALESCE(seq,0) FROM sqlite_sequence WHERE name='event_cursors'").fetchone()[0] if self.db.execute("SELECT 1 FROM sqlite_sequence WHERE name='event_cursors'").fetchone() else 0
+        row = self.db.execute("SELECT seq FROM sqlite_sequence WHERE name='event_cursors'").fetchone()
+        return row[0] if row else 0
 
     def events_after(self, cursor):
         result = []
