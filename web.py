@@ -31,7 +31,7 @@ from agent import SERVICE_MESSAGE, agent_loop
 from amap_http import AmapHTTPClient
 from amap_mcp import AmapTools
 from limits import TOOL_TIMEOUT
-from store import SCHEMA_VERSION, Store
+from store import SCHEMA_VERSION, StartupError, Store
 
 
 @dataclass
@@ -86,21 +86,23 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
     storage_error: str | None = None
 
     stop_requested = asyncio.Event()
+    stop_reason = "user_stop"
     changed = asyncio.Event()
     store: Store
     runtime: Runtime
 
     @asynccontextmanager
     async def lifespan(app):
-        nonlocal store,runtime,accepting
+        nonlocal store,runtime,accepting,stop_reason
         directory.mkdir(parents=True,exist_ok=True)
         with (directory / "travel.service.lock").open("a") as lock:
             try:
                 fcntl.flock(lock,fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
-                raise RuntimeError("同一数据目录已有旅行服务运行。") from None
+                raise StartupError("同一数据目录已有旅行服务运行。") from None
             store = Store(directory)
             try:
+                store.recover()
                 async with resources() as runtime:
                     stop_requested.clear()
                     accepting = True
@@ -108,14 +110,26 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                         yield
                     finally:
                         accepting = False
+                        if not stop_requested.is_set():
+                            stop_reason = "service_shutdown"
                         stop_requested.set()
+                        changed.set()
                         if task:
                             await task
             finally:
                 store.close()
                 fcntl.flock(lock,fcntl.LOCK_UN)
 
-    app = FastAPI(lifespan=lifespan)
+    @asynccontextmanager
+    async def safe_lifespan(app):
+        try:
+            async with lifespan(app):
+                yield
+        except Exception as error:
+            app.state.startup_error = str(error) if isinstance(error,StartupError) else "服务无法启动，请检查配置或存储后重启。"
+            raise RuntimeError(app.state.startup_error) from None
+
+    app = FastAPI(lifespan=safe_lifespan)
 
     @app.exception_handler(RequestValidationError)
     async def invalid_submission(_request, _error):
@@ -141,7 +155,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                     raise TraceStorageError("请求事实未保存，已停止后续查询；请检查存储后重启。") from None
                 changed.set()
         try:
-            answer = await agent_loop(messages,runtime.client,runtime.tools,runtime.model,observer=observe,stop_requested=stop_requested,stop_reason="service_shutdown")
+            answer = await agent_loop(messages,runtime.client,runtime.tools,runtime.model,observer=observe,stop_requested=stop_requested,stop_reason=lambda: stop_reason)
         except TraceStorageError as error:
             accepting = False
             storage_error = str(error)
@@ -172,7 +186,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
 
     @app.post("/api/turns",status_code=202)
     async def submit(body: Submission):
-        nonlocal task,active,accepting,storage_error
+        nonlocal task,active,accepting,storage_error,stop_reason
         async with acceptance_lock:
             fingerprint = hashlib.sha256(json.dumps([body.input, body.session_id],ensure_ascii=False).encode()).hexdigest()
             if body.submission_id is not None:
@@ -199,10 +213,24 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                 storage_error = "输入未保存，查询未启动，请检查存储后重启。"
                 changed.set()
                 raise HTTPException(503,{"code":"STORAGE_FAILURE","message":"输入未保存，查询未启动。"}) from None
+            stop_requested.clear()
+            stop_reason = "user_stop"
             active = identity
             changed.set()
             task = asyncio.create_task(execute(identity,text))
             return identity
+
+    @app.post("/api/turns/{turn_id}/stop")
+    async def stop(turn_id: str):
+        # 请求目标始终是调用方保存的轮次身份，不随页面选中会话迁移。
+        saved = store.turn(turn_id)
+        if saved is None:
+            raise HTTPException(404, {"code":"TURN_NOT_FOUND","message":"轮次不存在。"})
+        if active and active["turn_id"] == turn_id:
+            stop_requested.set()
+            changed.set()
+        return {"schema_version":SCHEMA_VERSION,"turn_id":turn_id,"status":saved["status"],
+                "stopping":bool(active and active["turn_id"] == turn_id and stop_requested.is_set())}
 
     @app.get("/api/submissions/{submission_id}")
     async def submission_result(submission_id: str):
@@ -339,9 +367,17 @@ def main() -> int:
             nonlocal connection_failed
             connection_failed = True
             server.should_exit = True
-        server = uvicorn.Server(uvicorn.Config(create_app(args.data_dir,request_shutdown=request_shutdown),
-            host="127.0.0.1",port=args.port,workers=1,access_log=False,timeout_graceful_shutdown=1))
-        server.run()
+        app = create_app(args.data_dir,request_shutdown=request_shutdown)
+        server = uvicorn.Server(uvicorn.Config(app,
+            host="127.0.0.1",port=args.port,workers=1,access_log=False,log_level="critical",timeout_graceful_shutdown=1))
+        try:
+            server.run()
+        except SystemExit:
+            print(getattr(app.state,"startup_error","服务无法启动，请检查配置或存储后重启。"))
+            return 1
+        if not server.started:
+            print(getattr(app.state,"startup_error","服务无法启动，请检查配置或存储后重启。"))
+            return 1
         if connection_failed:
             return 1
     except Exception:

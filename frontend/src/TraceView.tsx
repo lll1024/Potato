@@ -7,14 +7,14 @@ export type { TraceLocation } from './PayloadViewer';
 type Usage = Record<string, unknown>;
 type UsageSummary = Record<string, {value: number | null; known_count: number; request_count: number}>;
 type TraceRequest = {
-  request_id: string; turn_id: string; ordinal: number; status: string;
+  request_id: string; turn_id: string; ordinal: number; status: string; interrupted?: boolean;
   started_at: string; finished_at: string | null; duration_ms: number | null;
   input_payload_id: string; response_payload_id: string | null; error_payload_id: string | null;
   usage: Usage | null; usage_state: string;
 };
 type TraceTool = {
   tool_call_id: string; request_id: string; turn_id: string; ordinal: number; tool_use_id: string; name: string;
-  status: string; proposed_at: string; started_at?: string; call_started_at?: string; call_finished_at?: string; finished_at?: string;
+  interrupted?: boolean; status: string; proposed_at: string; started_at?: string; call_started_at?: string; call_finished_at?: string; finished_at?: string;
   call_started: boolean; wait_duration_ms: number | null; call_duration_ms: number | null; total_duration_ms: number | null;
   sdk_is_error?: boolean; failure_category?: string | null; reason?: string | null;
   arguments_payload_id: string; service_payload_id?: string; result_payload_id?: string; error_payload_id?: string;
@@ -23,7 +23,7 @@ type TraceTurn = {turn_id: string; ordinal: number; input: string; input_payload
 type TraceSnapshot = {session: {title: string}; turns: TraceTurn[]; requests: TraceRequest[]; tool_calls: TraceTool[]; usage_summary: UsageSummary; cursor: number; stream_id: string};
 type Props = {sessionId: string | null; refreshKey?: number; location?: TraceLocation | null; onInteraction?: () => void};
 const toolStatuses: Record<string,string> = {pending:'已提出',waiting:'限速等待',running:'执行中',completed:'成功',failed:'失败',not_executed:'未执行'};
-const reasonLabels: Record<string,string> = {budget:'查询达到上限',model_error:'模型请求失败',output_limit:'输出达到上限',map_paused:'地图查询已暂停',user_stop:'用户停止',service_shutdown:'服务退出'};
+const reasonLabels: Record<string,string> = {budget:'查询达到上限',model_error:'模型请求失败',output_limit:'输出达到上限',map_paused:'地图查询已暂停',user_stop:'用户停止',service_shutdown:'服务退出',service_interrupted:'服务中断'};
 const failureLabels: Record<string,string> = {auth:'鉴权失败',quota:'额度或限流',connection:'连接不可恢复',service:'地图服务暂停',arguments:'参数错误',timeout:'查询超时',business:'地图业务失败',sdk_error:'SDK 错误标志',error:'普通工具失败'};
 function turnStatus(turn: TraceTurn) { return turn.status === 'completed' ? (turn.tool_error_count ? `完成，含工具错误（${turn.tool_error_count}）` : '已完成') : turn.status === 'running' ? '正在执行' : `${turn.status === 'failed' ? '失败' : '终止'}：${reasonLabels[turn.reason ?? ''] ?? turn.reason ?? '原因未知'}`; }
 const statuses: Record<string,string> = {running:'正在请求',completed:'已收到响应',failed:'请求失败'};
@@ -141,13 +141,14 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
           <summary>助手会话：{snapshot?.session.title ?? '正在读取'}</summary>
           {snapshot?.turns.map(turn => <details className="trace-turn" id={`trace-object-${turn.turn_id}`} key={turn.turn_id} open={expanded[turn.turn_id] ?? false} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,[turn.turn_id]:open}));}}>
             <summary>第 {turn.ordinal} 轮 · {turnStatus(turn)} · {turn.input}</summary>
+            {turn.reason === 'service_interrupted' && <p className="hint">本轮已排除后续上下文；保留最后保存事实，没有自动重试或重放。</p>}
             <UsageTotals summary={turn.usage_summary} />
             {narrow && selected===turn.turn_id && <div className="trace-mobile-detail">{turnDetail}</div>}
             {snapshot.requests.filter(item => item.turn_id === turn.turn_id).map(item => <details key={item.request_id} id={`trace-object-${item.request_id}`} className={`trace-request ${selected === item.request_id ? 'selected' : ''}`} open={expanded[item.request_id] ?? false} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,[item.request_id]:open}));}}>
-              <summary>模型请求 {item.ordinal} · {statuses[item.status] ?? item.status}</summary>
-              <div className="trace-request-row"><time dateTime={item.started_at}>{new Date(item.started_at).toLocaleTimeString('zh-CN')}</time><span>{item.duration_ms === null ? '—（尚未结束）' : `${item.duration_ms.toFixed(1)} ms`}</span><button aria-pressed={selected === item.request_id} onClick={() => select(item.request_id)}>查看详情</button></div>
+              <summary>模型请求 {item.ordinal} · {item.interrupted ? '中断，结果未知' : statuses[item.status] ?? item.status}</summary>
+              <div className="trace-request-row"><time dateTime={item.started_at}>{new Date(item.started_at).toLocaleTimeString('zh-CN')}</time><span>{item.duration_ms === null ? (item.interrupted ? '—（中断，结束未知）' : '—（尚未结束）') : `${item.duration_ms.toFixed(1)} ms`}</span><button aria-pressed={selected === item.request_id} onClick={() => select(item.request_id)}>查看详情</button></div>
               {snapshot.tool_calls.filter(call => call.request_id === item.request_id).map(call => <div key={call.tool_call_id} id={`trace-object-${call.tool_call_id}`} className={`trace-tool ${selected === call.tool_call_id ? 'selected' : ''}`}>
-                <div className="trace-request-row"><span>工具 {call.ordinal} · {call.name} · {toolStatuses[call.status] ?? call.status}</span><button aria-pressed={selected === call.tool_call_id} onClick={() => select(call.tool_call_id)}>查看工具详情</button></div>
+                <div className="trace-request-row"><span>工具 {call.ordinal} · {call.name} · {call.interrupted ? '中断，结果未知' : toolStatuses[call.status] ?? call.status}</span><button aria-pressed={selected === call.tool_call_id} onClick={() => select(call.tool_call_id)}>查看工具详情</button></div>
                 {narrow && selected === call.tool_call_id && <div className="trace-mobile-detail"><ToolDetail tool={call} {...detailProps} /></div>}
               </div>)}
               {narrow && selected === item.request_id && <div className="trace-mobile-detail"><RequestDetail request={item} {...detailProps} /></div>}
@@ -164,11 +165,12 @@ function RequestDetail({request,location,onInteraction}: {request: TraceRequest;
   function usageValue(field: string): unknown {
     return field.split('.').reduce<unknown>((value,key) => value !== null && typeof value === 'object' ? (value as Usage)[key] : undefined, request.usage);
   }
-  const missing = request.usage_state === 'not_completed' ? '未采集／尚未完成' : '未返回';
+  const missing = request.interrupted ? '未采集／结果未知' : request.usage_state === 'not_completed' ? '未采集／尚未完成' : '未返回';
   return <div onFocus={onInteraction} onWheel={onInteraction}>
     {location && !location.payload_id && <p><Highlight text={location.excerpt ?? ''} query={location.query} /></p>}
-    <h3>模型请求 {request.ordinal} · {statuses[request.status] ?? request.status}</h3>
-    <dl className="request-facts"><dt>应用请求身份</dt><dd>{request.request_id}</dd><dt>开始时间</dt><dd>{new Date(request.started_at).toLocaleString('zh-CN')}</dd><dt>结束时间</dt><dd>{request.finished_at ? new Date(request.finished_at).toLocaleString('zh-CN') : '—（尚未结束）'}</dd><dt>SDK 调用耗时</dt><dd>{request.duration_ms === null ? '—（尚未完成）' : `${request.duration_ms.toFixed(1)} ms`}</dd></dl>
+    <h3>模型请求 {request.ordinal} · {request.interrupted ? '中断，结果未知' : statuses[request.status] ?? request.status}</h3>
+    {request.interrupted && <p className="hint">保留上次保存的开始事实；结束、耗时与用量未知，没有重试或重放。</p>}
+    <dl className="request-facts"><dt>应用请求身份</dt><dd>{request.request_id}</dd><dt>开始时间</dt><dd>{new Date(request.started_at).toLocaleString('zh-CN')}</dd><dt>结束时间</dt><dd>{request.finished_at ? new Date(request.finished_at).toLocaleString('zh-CN') : request.interrupted ? '—（中断，结束未知）' : '—（尚未结束）'}</dd><dt>SDK 调用耗时</dt><dd>{request.duration_ms === null ? (request.interrupted ? '—（中断，耗时未知）' : '—（尚未完成）') : `${request.duration_ms.toFixed(1)} ms`}</dd></dl>
     <h4>实际 token 用量</h4>
     <dl className="request-facts">{Object.entries(usageLabels).map(([field,label]) => <div key={field}><dt>{label}</dt><dd>{typeof usageValue(field) === 'number' ? String(usageValue(field)) : missing}</dd></div>)}</dl>
     {request.usage && <details><summary>全部实际 usage 字段</summary><pre className="wrap">{JSON.stringify(request.usage,null,2)}</pre></details>}
@@ -180,10 +182,11 @@ function RequestDetail({request,location,onInteraction}: {request: TraceRequest;
 
 function ToolDetail({tool,location,onInteraction}: {tool: TraceTool; location?: TraceLocation | null; onInteraction?: () => void}) {
   const duration = (value: number | null, missing: string) => typeof value === 'number' ? `${value.toFixed(1)} ms` : missing;
-  const time = (value?: string) => value ? new Date(value).toLocaleString('zh-CN') : '—（尚未采集）';
+  const time = (value?: string) => value ? new Date(value).toLocaleString('zh-CN') : tool.interrupted ? '—（中断，未采集）' : '—（尚未采集）';
   return <div onFocus={onInteraction} onWheel={onInteraction}>
     {location && !location.payload_id && <p><Highlight text={location.excerpt ?? ''} query={location.query} /></p>}
-    <h3>工具 {tool.ordinal} · {tool.name} · {toolStatuses[tool.status] ?? tool.status}</h3>
+    <h3>工具 {tool.ordinal} · {tool.name} · {tool.interrupted ? '中断，结果未知' : toolStatuses[tool.status] ?? tool.status}</h3>
+    {tool.interrupted && <p className="hint">中断，结果未知。以下是上次保存的事实，缺失的结束与耗时不会用恢复时间补齐。</p>}
     <dl className="request-facts">
       <dt>应用调用身份</dt><dd>{tool.tool_call_id}</dd><dt>所属请求</dt><dd>{tool.request_id}</dd><dt>原始 tool_use_id</dt><dd>{tool.tool_use_id}</dd>
       <dt>模型提出时间</dt><dd>{time(tool.proposed_at)}</dd><dt>应用处理开始</dt><dd>{time(tool.started_at)}</dd>
