@@ -1,5 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './trace.css';
+import { Payload, Highlight, type TraceLocation } from './PayloadViewer';
+import { TraceSearch } from './TraceSearch';
+export type { TraceLocation } from './PayloadViewer';
 
 type Usage = Record<string, unknown>;
 type UsageSummary = Record<string, {value: number | null; known_count: number; request_count: number}>;
@@ -16,9 +19,9 @@ type TraceTool = {
   sdk_is_error?: boolean; failure_category?: string | null; reason?: string | null;
   arguments_payload_id: string; service_payload_id?: string; result_payload_id?: string; error_payload_id?: string;
 };
-type TraceTurn = {turn_id: string; ordinal: number; input: string; status: string; reason?: string | null; tool_error_count: number; usage_summary?: UsageSummary};
+type TraceTurn = {turn_id: string; ordinal: number; input: string; input_payload_id?: string; answer_payload_id?: string; status: string; reason?: string | null; tool_error_count: number; usage_summary?: UsageSummary};
 type TraceSnapshot = {session: {title: string}; turns: TraceTurn[]; requests: TraceRequest[]; tool_calls: TraceTool[]; usage_summary: UsageSummary; cursor: number; stream_id: string};
-type Props = {sessionId: string | null; refreshKey?: number};
+type Props = {sessionId: string | null; refreshKey?: number; location?: TraceLocation | null; onInteraction?: () => void};
 const toolStatuses: Record<string,string> = {pending:'已提出',waiting:'限速等待',running:'执行中',completed:'成功',failed:'失败',not_executed:'未执行'};
 const reasonLabels: Record<string,string> = {budget:'查询达到上限',model_error:'模型请求失败',output_limit:'输出达到上限',map_paused:'地图查询已暂停',user_stop:'用户停止',service_shutdown:'服务退出'};
 const failureLabels: Record<string,string> = {auth:'鉴权失败',quota:'额度或限流',connection:'连接不可恢复',service:'地图服务暂停',arguments:'参数错误',timeout:'查询超时',business:'地图业务失败',sdk_error:'SDK 错误标志',error:'普通工具失败'};
@@ -42,34 +45,22 @@ function UsageTotals({summary}: {summary?: UsageSummary}) {
   </span>)}</div>;
 }
 
-function Payload({id,title}: {id: string | null; title: string}) {
-  const [content,setContent] = useState<unknown>(undefined);
-  const [error,setError] = useState('');
-  const [wrap,setWrap] = useState(true);
-  useEffect(() => { setContent(undefined); setError(''); }, [id]);
-  async function load() {
-    if (!id || content !== undefined) return;
-    try { setContent((await read<{content: unknown}>(`/api/payloads/${id}`)).content); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : '详情加载失败。'); }
-  }
-  if (!id) return null;
-  return <details className="trace-payload" onToggle={event => {if (event.currentTarget.open) void load();}}>
-    <summary>{title}</summary>
-    {error && <p role="alert">{error}</p>}
-    {content === undefined ? <p className="hint">正在读取完整载荷…</p> : <>
-      <label className="wrap-toggle"><input type="checkbox" checked={wrap} onChange={event => setWrap(event.target.checked)} />自动换行</label>
-      <pre className={wrap ? 'wrap' : ''}>{JSON.stringify(content,null,2)}</pre>
-    </>}
-  </details>;
-}
-
-export function TraceView({sessionId,refreshKey}: Props) {
+export function TraceView({sessionId,refreshKey,location:externalLocation,onInteraction}: Props) {
+  const sessionRef=useRef(sessionId);
+  sessionRef.current=sessionId;
   const [snapshot,setSnapshot] = useState<TraceSnapshot | null>(null);
   const [selected,setSelected] = useState<string | null>(null);
   const [expanded,setExpanded] = useState<Record<string,boolean>>({});
   const [error,setError] = useState('');
+  const [location,setLocation] = useState<TraceLocation | null>(null);
+  const [narrow,setNarrow] = useState(() => window.matchMedia('(max-width: 1000px)').matches);
   useEffect(() => {
-    setSnapshot(null); setSelected(null); setExpanded({}); setError('');
+    const media=window.matchMedia('(max-width: 1000px)');
+    const change=() => setNarrow(media.matches);
+    media.addEventListener('change',change); return () => media.removeEventListener('change',change);
+  },[]);
+  useEffect(() => {
+    setSnapshot(null); setSelected(null); setExpanded({}); setLocation(null); setError('');
   }, [sessionId]);
   useEffect(() => {
     if (!sessionId) return;
@@ -79,7 +70,10 @@ export function TraceView({sessionId,refreshKey}: Props) {
       try {
         const result = await read<TraceSnapshot>(`/api/sessions/${sessionId}`);
         if (cancelled) return;
-        setSnapshot(result);
+        setSnapshot(current => current ? {...result,
+          turns:[...current.turns.filter(item => !result.turns.some(incoming => incoming.turn_id===item.turn_id)),...result.turns].sort((a,b) => a.ordinal-b.ordinal),
+          requests:[...current.requests.filter(item => !result.turns.some(turn => turn.turn_id===item.turn_id)),...result.requests],
+          tool_calls:[...current.tool_calls.filter(item => !result.turns.some(turn => turn.turn_id===item.turn_id)),...result.tool_calls]} : result);
         setExpanded(current => {
           const next = {...current};
           const latest = result.turns.at(-1)?.turn_id;
@@ -101,6 +95,31 @@ export function TraceView({sessionId,refreshKey}: Props) {
     void refresh();
     return () => {cancelled = true; source?.close();};
   }, [sessionId,refreshKey]);
+  async function locate(target: TraceLocation) {
+    if (!sessionId) return;
+    onInteraction?.(); setLocation(target); setSelected(target.object_id);
+    try {
+      const page = await read<TraceSnapshot>(`/api/sessions/${sessionId}?limit=1&before=${target.turn_ordinal+1}`);
+      if (sessionRef.current !== sessionId) return;
+      setSnapshot(current => current ? {...current,
+        turns:[...current.turns.filter(item => item.turn_id!==target.turn_id),...page.turns].sort((a,b) => a.ordinal-b.ordinal),
+        requests:[...current.requests.filter(item => item.turn_id!==target.turn_id),...page.requests],
+        tool_calls:[...current.tool_calls.filter(item => item.turn_id!==target.turn_id),...page.tool_calls]} : page);
+      const requestId=page.tool_calls.find(item => item.tool_call_id===target.object_id)?.request_id ?? target.object_id;
+      setExpanded(current => ({...current,session:true,[target.turn_id]:true,[requestId]:true}));
+      requestAnimationFrame(() => document.getElementById(`trace-object-${target.object_id}`)?.scrollIntoView({block:'nearest'}));
+    } catch (cause) {setError(cause instanceof Error ? cause.message : '搜索定位失败。');}
+  }
+  useEffect(() => {if (externalLocation) void locate(externalLocation);},[externalLocation]);
+  function select(id: string) {onInteraction?.(); setSelected(id); setLocation(null);}
+  const detailProps={location,onInteraction};
+  const selectedTurn=snapshot?.turns.find(turn => turn.turn_id===selected);
+  const turnDetail=location?.object_type==='turn' ? <div onFocus={onInteraction} onWheel={onInteraction}>
+    <h3>第 {location.turn_ordinal} 轮 · 对话内容</h3>
+    {!location.payload_id && <p><Highlight text={location.excerpt ?? ''} query={location.query} /></p>}
+    <Payload id={selectedTurn?.input_payload_id ?? (location.field==='turn_input' ? location.payload_id : null)} title="完整用户输入" {...detailProps} />
+    <Payload id={selectedTurn?.answer_payload_id ?? (location.field==='turn_answer' ? location.payload_id : null)} title="完整对话回答" {...detailProps} />
+  </div> : null;
   const request = snapshot?.requests.find(item => item.request_id === selected);
   const tool = snapshot?.tool_calls.find(item => item.tool_call_id === selected);
   function expandAll(open: boolean) {
@@ -114,52 +133,56 @@ export function TraceView({sessionId,refreshKey}: Props) {
     <div className="trace-toolbar"><h3>执行轨迹</h3><div><button onClick={() => expandAll(true)}>全部展开</button><button onClick={() => expandAll(false)}>全部收起</button></div></div>
     <p className="hint">请求“已收到响应”仅表示模型返回，本轮仍可能继续查询或终止。</p>
     <p role="alert" className="error">{error}</p>
+    <TraceSearch sessionId={sessionId} onLocate={target => void locate(target)} onInteraction={onInteraction} />
     <UsageTotals summary={snapshot?.usage_summary} />
     <div className="trace-layout">
       <div className="trace-tree">
         <details open={expanded.session ?? true} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,session:open}));}}>
           <summary>助手会话：{snapshot?.session.title ?? '正在读取'}</summary>
-          {snapshot?.turns.map(turn => <details className="trace-turn" key={turn.turn_id} open={expanded[turn.turn_id] ?? false} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,[turn.turn_id]:open}));}}>
+          {snapshot?.turns.map(turn => <details className="trace-turn" id={`trace-object-${turn.turn_id}`} key={turn.turn_id} open={expanded[turn.turn_id] ?? false} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,[turn.turn_id]:open}));}}>
             <summary>第 {turn.ordinal} 轮 · {turnStatus(turn)} · {turn.input}</summary>
             <UsageTotals summary={turn.usage_summary} />
-            {snapshot.requests.filter(item => item.turn_id === turn.turn_id).map(item => <details key={item.request_id} className={`trace-request ${selected === item.request_id ? 'selected' : ''}`} open={expanded[item.request_id] ?? false} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,[item.request_id]:open}));}}>
+            {narrow && selected===turn.turn_id && <div className="trace-mobile-detail">{turnDetail}</div>}
+            {snapshot.requests.filter(item => item.turn_id === turn.turn_id).map(item => <details key={item.request_id} id={`trace-object-${item.request_id}`} className={`trace-request ${selected === item.request_id ? 'selected' : ''}`} open={expanded[item.request_id] ?? false} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,[item.request_id]:open}));}}>
               <summary>模型请求 {item.ordinal} · {statuses[item.status] ?? item.status}</summary>
-              <div className="trace-request-row"><time dateTime={item.started_at}>{new Date(item.started_at).toLocaleTimeString('zh-CN')}</time><span>{item.duration_ms === null ? '—（尚未结束）' : `${item.duration_ms.toFixed(1)} ms`}</span><button aria-pressed={selected === item.request_id} onClick={() => setSelected(item.request_id)}>查看详情</button></div>
-              {snapshot.tool_calls.filter(call => call.request_id === item.request_id).map(call => <div key={call.tool_call_id} className={`trace-tool ${selected === call.tool_call_id ? 'selected' : ''}`}>
-                <div className="trace-request-row"><span>工具 {call.ordinal} · {call.name} · {toolStatuses[call.status] ?? call.status}</span><button aria-pressed={selected === call.tool_call_id} onClick={() => setSelected(call.tool_call_id)}>查看工具详情</button></div>
-                {selected === call.tool_call_id && <div className="trace-mobile-detail"><ToolDetail tool={call} /></div>}
+              <div className="trace-request-row"><time dateTime={item.started_at}>{new Date(item.started_at).toLocaleTimeString('zh-CN')}</time><span>{item.duration_ms === null ? '—（尚未结束）' : `${item.duration_ms.toFixed(1)} ms`}</span><button aria-pressed={selected === item.request_id} onClick={() => select(item.request_id)}>查看详情</button></div>
+              {snapshot.tool_calls.filter(call => call.request_id === item.request_id).map(call => <div key={call.tool_call_id} id={`trace-object-${call.tool_call_id}`} className={`trace-tool ${selected === call.tool_call_id ? 'selected' : ''}`}>
+                <div className="trace-request-row"><span>工具 {call.ordinal} · {call.name} · {toolStatuses[call.status] ?? call.status}</span><button aria-pressed={selected === call.tool_call_id} onClick={() => select(call.tool_call_id)}>查看工具详情</button></div>
+                {narrow && selected === call.tool_call_id && <div className="trace-mobile-detail"><ToolDetail tool={call} {...detailProps} /></div>}
               </div>)}
-              {selected === item.request_id && <div className="trace-mobile-detail"><RequestDetail request={item} /></div>}
+              {narrow && selected === item.request_id && <div className="trace-mobile-detail"><RequestDetail request={item} {...detailProps} /></div>}
             </details>)}
           </details>)}
         </details>
       </div>
-      <section className="trace-detail" aria-label="选中执行详情">{tool ? <ToolDetail key={tool.tool_call_id} tool={tool} /> : request ? <RequestDetail key={request.request_id} request={request} /> : <p className="hint">选择模型请求或工具调用，查看真实时间与完整来源。</p>}</section>
+      <section className="trace-detail" aria-label="选中执行详情">{!narrow && (turnDetail ?? (tool ? <ToolDetail key={tool.tool_call_id} tool={tool} {...detailProps} /> : request ? <RequestDetail key={request.request_id} request={request} {...detailProps} /> : <p className="hint">选择模型请求或工具调用，查看真实时间与完整来源。</p>))}</section>
     </div>
   </div>;
 }
 
-function RequestDetail({request}: {request: TraceRequest}) {
+function RequestDetail({request,location,onInteraction}: {request: TraceRequest; location?: TraceLocation | null; onInteraction?: () => void}) {
   function usageValue(field: string): unknown {
     return field.split('.').reduce<unknown>((value,key) => value !== null && typeof value === 'object' ? (value as Usage)[key] : undefined, request.usage);
   }
   const missing = request.usage_state === 'not_completed' ? '未采集／尚未完成' : '未返回';
-  return <div>
+  return <div onFocus={onInteraction} onWheel={onInteraction}>
+    {location && !location.payload_id && <p><Highlight text={location.excerpt ?? ''} query={location.query} /></p>}
     <h3>模型请求 {request.ordinal} · {statuses[request.status] ?? request.status}</h3>
     <dl className="request-facts"><dt>应用请求身份</dt><dd>{request.request_id}</dd><dt>开始时间</dt><dd>{new Date(request.started_at).toLocaleString('zh-CN')}</dd><dt>结束时间</dt><dd>{request.finished_at ? new Date(request.finished_at).toLocaleString('zh-CN') : '—（尚未结束）'}</dd><dt>SDK 调用耗时</dt><dd>{request.duration_ms === null ? '—（尚未完成）' : `${request.duration_ms.toFixed(1)} ms`}</dd></dl>
     <h4>实际 token 用量</h4>
     <dl className="request-facts">{Object.entries(usageLabels).map(([field,label]) => <div key={field}><dt>{label}</dt><dd>{typeof usageValue(field) === 'number' ? String(usageValue(field)) : missing}</dd></div>)}</dl>
     {request.usage && <details><summary>全部实际 usage 字段</summary><pre className="wrap">{JSON.stringify(request.usage,null,2)}</pre></details>}
-    <Payload key={request.input_payload_id} id={request.input_payload_id} title="完整逻辑输入" />
-    <Payload key={request.response_payload_id} id={request.response_payload_id} title="完整已解析返回（含实际存在的元数据）" />
-    <Payload key={request.error_payload_id} id={request.error_payload_id} title="完整错误详情" />
+    <Payload location={location} onInteraction={onInteraction} key={request.input_payload_id} id={request.input_payload_id} title="完整逻辑输入" />
+    <Payload location={location} onInteraction={onInteraction} key={request.response_payload_id} id={request.response_payload_id} title="完整已解析返回（含实际存在的元数据）" />
+    <Payload location={location} onInteraction={onInteraction} key={request.error_payload_id} id={request.error_payload_id} title="完整错误详情" />
   </div>;
 }
 
-function ToolDetail({tool}: {tool: TraceTool}) {
+function ToolDetail({tool,location,onInteraction}: {tool: TraceTool; location?: TraceLocation | null; onInteraction?: () => void}) {
   const duration = (value: number | null, missing: string) => typeof value === 'number' ? `${value.toFixed(1)} ms` : missing;
   const time = (value?: string) => value ? new Date(value).toLocaleString('zh-CN') : '—（尚未采集）';
-  return <div>
+  return <div onFocus={onInteraction} onWheel={onInteraction}>
+    {location && !location.payload_id && <p><Highlight text={location.excerpt ?? ''} query={location.query} /></p>}
     <h3>工具 {tool.ordinal} · {tool.name} · {toolStatuses[tool.status] ?? tool.status}</h3>
     <dl className="request-facts">
       <dt>应用调用身份</dt><dd>{tool.tool_call_id}</dd><dt>所属请求</dt><dd>{tool.request_id}</dd><dt>原始 tool_use_id</dt><dd>{tool.tool_use_id}</dd>
@@ -175,9 +198,9 @@ function ToolDetail({tool}: {tool: TraceTool}) {
     </dl>
     <p className="hint">总耗时从应用处理到产生回填，可包含本地检查；SDK 耗时表示底层调用到返回或异常。</p>
     {['auth','quota','connection','service'].includes(tool.failure_category ?? '') && <p>地图暂停属于整个本地服务；换会话不会解除。修复后重启，仍需一次实际成功查询核对恢复。</p>}
-    <Payload key={tool.arguments_payload_id} id={tool.arguments_payload_id} title="模型提出的完整参数" />
-    <Payload key={tool.service_payload_id} id={tool.service_payload_id ?? null} title="完整已解析 SDK 服务结果" />
-    <Payload key={tool.result_payload_id} id={tool.result_payload_id ?? null} title="实际应用回填（tool_result）" />
-    <Payload key={tool.error_payload_id} id={tool.error_payload_id ?? null} title="完整工具错误详情" />
+    <Payload location={location} onInteraction={onInteraction} key={tool.arguments_payload_id} id={tool.arguments_payload_id} title="模型提出的完整参数" />
+    <Payload location={location} onInteraction={onInteraction} key={tool.service_payload_id} id={tool.service_payload_id ?? null} title="完整已解析 SDK 服务结果" />
+    <Payload location={location} onInteraction={onInteraction} key={tool.result_payload_id} id={tool.result_payload_id ?? null} title="实际应用回填（tool_result）" />
+    <Payload location={location} onInteraction={onInteraction} key={tool.error_payload_id} id={tool.error_payload_id ?? null} title="完整工具错误详情" />
   </div>;
 }

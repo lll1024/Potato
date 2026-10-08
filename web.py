@@ -238,14 +238,23 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"})
         return result
 
+    @app.get("/api/sessions/{session_id}/search")
+    async def search(session_id: str, q: str = Query(min_length=1), scope: str = "full"):
+        if scope not in ("full","summary"):
+            raise HTTPException(422,"搜索范围无效。")
+        result = store.search(session_id,runtime.tools.redact(q),scope)
+        if result is None:
+            raise HTTPException(404,"会话不存在。")
+        return result
+
     @app.get("/api/snapshot")
     async def global_snapshot():
         with store.db:
             return {**await state(),"cursor":store.cursor(),"stream_id":store.stream_id}
 
     @app.get("/api/payloads/{payload_id}")
-    async def payload(payload_id: str):
-        result = store.payload(payload_id)
+    async def payload(payload_id: str, offset: int | None = Query(None,ge=0), limit: int = Query(8192,ge=1,le=65536)):
+        result = store.payload(payload_id,offset,limit)
         if result is None:
             raise HTTPException(404,"详情不存在。")
         return result
