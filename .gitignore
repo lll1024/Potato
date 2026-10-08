@@ -7,3 +7,10 @@ __pycache__/
 .DS_Store
 *.swp
 *.swo
+.travel-data/
+*.sqlite3
+*.sqlite3-*
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+travel.service.lock

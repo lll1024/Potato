@@ -5,7 +5,7 @@ import logging
 import os
 from pathlib import Path
 import sys
-from typing import Any, cast
+from typing import Any, Awaitable, Callable, cast
 from urllib.parse import urlencode
 
 from anthropic import AnthropicError, AsyncAnthropic
@@ -146,18 +146,36 @@ def terminated_answer(reason: str, outcomes: list[tuple[str, ToolResult]]) -> st
 async def agent_loop(
     messages: list[MessageParam], client: AsyncAnthropic, tools: AmapTools, model: str,
     *, max_rounds: int = MAX_ROUNDS, max_tool_calls: int = MAX_TOOL_CALLS,
+    observer: Callable[[str, dict[str, Any]], Awaitable[None]] | None = None,
+    stop_requested: asyncio.Event | None = None, stop_reason: str = "user_stop",
 ) -> str:
     messages[:] = json.loads(tools.redact(json.dumps(messages, ensure_ascii=False)))
     calls = 0
     outcomes: list[tuple[str, ToolResult]] = []
     stopped: str | None = None
+    status = "terminated"
+    reason: str | None = "budget"
+
+    async def finished(answer: str, source: str) -> str:
+        if observer:
+            await observer("turn.finished", {
+                "status": status, "reason": reason, "answer_source": source,
+                "tool_error_count": sum(result["is_error"] for _, result in outcomes),
+            })
+        return answer
+
     for _ in range(max_rounds):
+        if stop_requested and stop_requested.is_set():
+            stopped = "已停止本轮查询，尚未完成的信息待核实。"
+            reason = stop_reason
+            break
         try:
             response = await client.messages.create(
                 model=model, system=SYSTEM, messages=messages, tools=tools.declarations,
                 max_tokens=8000,
             )
         except AnthropicError:
+            status, reason = "failed", "model_error"
             stopped = "模型服务请求失败，已停止本次查询。请检查 MODEL_ID、模型凭据、服务地址、网络和额度，恢复后继续。"
             break
         response = Message.model_validate_json(tools.redact(response.model_dump_json()))
@@ -167,11 +185,16 @@ async def agent_loop(
         }))
         tool_calls = [block for block in response.content if block.type == "tool_use"]
         if not tool_calls:
-            return "\n".join(block.text for block in response.content if block.type == "text")
+            status = "terminated" if response.stop_reason == "max_tokens" else "completed"
+            reason = "output_limit" if response.stop_reason == "max_tokens" else None
+            return await finished("\n".join(block.text for block in response.content if block.type == "text"), "model")
 
         results: list[ToolResultBlockParam] = []
         for block in tool_calls:
             output: ToolResult
+            if stop_requested and stop_requested.is_set() and not stopped:
+                stopped = "已停止本轮查询，尚未完成的信息待核实。"
+                reason = stop_reason
             if stopped:
                 output = {"content": "未执行：" + stopped, "is_error": True}
             elif calls >= max_tool_calls:
@@ -180,6 +203,8 @@ async def agent_loop(
                 calls += 1
                 output = await tools.call(block.name, cast(dict[str, Any], block.input))
                 stopped = output.get("stop_reason")
+                if stopped:
+                    reason = "map_paused"
             label = f"{block.name}（{json.dumps(block.input, ensure_ascii=False)}）"
             outcomes.append((label, output))
             results.append({
@@ -192,7 +217,7 @@ async def agent_loop(
 
     answer = terminated_answer(stopped or BUDGET_MESSAGE, outcomes)
     messages.append({"role": "assistant", "content": answer})
-    return answer
+    return await finished(answer, "application")
 
 
 async def run_cli(api_key: str, *, check_amap: bool = False) -> int:
