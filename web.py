@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import fcntl
+import hashlib
 import json
 import logging
 import os
@@ -60,6 +61,8 @@ async def configured_resources():
 
 class Submission(BaseModel):
     input: str = Field(min_length=1)
+    session_id: str | None = None
+    submission_id: str | None = Field(default=None, min_length=1, max_length=128)
 
 
 def create_app(data_dir: str | Path, *, resources=configured_resources, static_dir: str | Path | None=None) -> FastAPI:
@@ -67,6 +70,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
     task: asyncio.Task | None = None
     active: dict[str, str] | None = None
     accepting = False
+    acceptance_lock = asyncio.Lock()
     stop_requested = asyncio.Event()
     store: Store
     runtime: Runtime
@@ -125,25 +129,50 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
 
     @app.post("/api/turns",status_code=202)
     async def submit(body: Submission):
-        nonlocal task,active
-        if not accepting:
-            raise HTTPException(503,"服务无法保存或正在退出，请检查后重启。")
-        if active:
-            raise HTTPException(409,"已有一轮正在执行，请等待结束。")
-        if not body.input.strip():
-            raise HTTPException(422,"请输入旅行需求。")
-        text = runtime.tools.redact(body.input)
-        try:
-            identity = store.accept(text)
-        except Exception:
-            raise HTTPException(503,"输入未保存，查询未启动。") from None
-        active = identity
-        task = asyncio.create_task(execute(identity,text))
-        return identity
+        nonlocal task,active,accepting
+        async with acceptance_lock:
+            fingerprint = hashlib.sha256(json.dumps([body.input, body.session_id],ensure_ascii=False).encode()).hexdigest()
+            if body.submission_id is not None:
+                saved = store.submission(body.submission_id)
+                if saved:
+                    if saved["fingerprint"] != fingerprint:
+                        raise HTTPException(409, {"code":"SUBMISSION_CONFLICT","message":"提交标识已用于其他输入或会话，请作为新提问发送。"})
+                    if saved["session_id"] is None:
+                        raise HTTPException(410, {"code":"SUBMISSION_DELETED","message":"这次提交的会话已删除，不会再次执行。"})
+                    return {"schema_version":SCHEMA_VERSION,"submission_id":body.submission_id,"session_id":saved["session_id"],"turn_id":saved["turn_id"]}
+            if not accepting:
+                raise HTTPException(503,{"code":"SERVICE_UNAVAILABLE","message":"服务无法保存或正在退出，请检查后重启。"})
+            if active:
+                raise HTTPException(409,{"code":"BUSY","message":"已有一轮正在执行，请等待结束。"})
+            if not body.input.strip():
+                raise HTTPException(422,"请输入旅行需求。")
+            text = runtime.tools.redact(body.input)
+            try:
+                identity = store.accept(text,submission_id=body.submission_id,fingerprint=fingerprint)
+            except Exception:
+                accepting = False
+                raise HTTPException(503,{"code":"STORAGE_FAILURE","message":"输入未保存，查询未启动。"}) from None
+            active = identity
+            task = asyncio.create_task(execute(identity,text))
+            return identity
+
+    @app.get("/api/submissions/{submission_id}")
+    async def submission_result(submission_id: str):
+        saved = store.submission(submission_id)
+        if saved is None:
+            raise HTTPException(404, {"code":"SUBMISSION_NOT_FOUND","message":"服务没有接受这次提交，可安全重试同一提交。"})
+        if saved["session_id"] is None:
+            raise HTTPException(410, {"code":"SUBMISSION_DELETED","message":"这次提交的会话已删除，不会再次执行。"})
+        return {"schema_version":SCHEMA_VERSION,"submission_id":submission_id,"session_id":saved["session_id"],"turn_id":saved["turn_id"]}
 
     @app.get("/api/state")
     async def state():
-        return {"schema_version":SCHEMA_VERSION,"active_turn_id":active["turn_id"] if active else None,"accepting":accepting}
+        return {"schema_version":SCHEMA_VERSION,"active_turn_id":active["turn_id"] if active else None,
+                "active_session_id":active["session_id"] if active else None,"accepting":accepting,
+                "stopping":bool(active and stop_requested.is_set()),
+                "map_paused":runtime.tools.failure is not None,
+                "map_pause_reason":runtime.tools.failure,
+                "service_status":"available" if accepting else "unavailable"}
 
     @app.get("/api/sessions")
     async def sessions():

@@ -40,6 +40,11 @@ class Store:
                 turn_id TEXT NOT NULL REFERENCES turns ON DELETE CASCADE, sequence INTEGER NOT NULL,
                 kind TEXT NOT NULL, timestamp TEXT NOT NULL, request_id TEXT, tool_call_id TEXT,
                 data TEXT NOT NULL, UNIQUE(session_id,sequence));
+            CREATE UNIQUE INDEX IF NOT EXISTS single_running_turn ON turns((1)) WHERE status='running';
+            CREATE TABLE IF NOT EXISTS submissions (
+                submission_id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL,
+                session_id TEXT REFERENCES sessions ON DELETE SET NULL,
+                turn_id TEXT REFERENCES turns ON DELETE SET NULL);
             PRAGMA user_version=1;
         """)
 
@@ -56,13 +61,22 @@ class Store:
             request_id,tool_call_id,json.dumps(data,ensure_ascii=False)))
         return event
 
-    def accept(self, text):
+    def submission(self, submission_id):
+        row = self.db.execute("SELECT * FROM submissions WHERE submission_id=?", (submission_id,)).fetchone()
+        return dict(row) if row else None
+
+    def accept(self, text, *, submission_id=None, fingerprint=None):
         session_id, turn_id, now = identity(), identity(), timestamp()
         with self.db:
             self.db.execute("INSERT INTO sessions VALUES (?,?,?,?)", (session_id,text[:40],now,now))
             self.db.execute("INSERT INTO turns (turn_id,session_id,ordinal,input,status,created_at,messages) VALUES (?,?,1,?,'running',?,?)", (turn_id,session_id,text,now,json.dumps([{"role":"user","content":text}],ensure_ascii=False)))
             self.event(session_id,turn_id,"turn.accepted",{"input":text})
-        return {"schema_version":SCHEMA_VERSION,"session_id":session_id,"turn_id":turn_id}
+            if submission_id is not None:
+                self.db.execute("INSERT INTO submissions VALUES (?,?,?,?)", (submission_id,fingerprint,session_id,turn_id))
+        result = {"schema_version":SCHEMA_VERSION,"session_id":session_id,"turn_id":turn_id}
+        if submission_id is not None:
+            result["submission_id"] = submission_id
+        return result
 
     def finish(self, session_id, turn_id, answer, messages, outcome, duration_ms):
         now = timestamp()
