@@ -254,7 +254,8 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             last_state = None
             while True:
                 changed.clear()
-                for event in store.events_after(cursor):
+                batch = store.events_after(cursor)
+                for event in batch:
                     cursor = event["cursor"]
                     yield f"id: {cursor}\nevent: trace\ndata: {json.dumps({'schema_version':SCHEMA_VERSION,**event},ensure_ascii=False)}\n\n"
                 current_state = await state()
@@ -263,6 +264,10 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                     notice = {"schema_version":SCHEMA_VERSION,"kind":"service.state","transient":True,"state":current_state}
                     # 实时运行状态不冒充已提交轨迹，不能推进持久化 cursor。
                     yield f"event: service.state\ndata: {json.dumps(notice,ensure_ascii=False)}\n\n"
+                # yield 期间可能又有提交；先重新补齐，避免另一个订阅清空唤醒后漏等。
+                if batch:
+                    continue
+
                 try:
                     await asyncio.wait_for(changed.wait(),15)
                 except asyncio.TimeoutError:

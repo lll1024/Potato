@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from typing import cast
 
 import httpx
+import httpx2
 import uvicorn
 from anthropic import AsyncAnthropic
 from mcp import Client
@@ -97,7 +98,7 @@ class ModelTraceTests(unittest.IsolatedAsyncioTestCase):
         from anthropic.types import Message, TextBlock
         first = response([{"type":"tool_use","id":"west-lake","name":"maps_text_search",
                            "input":{"keywords":"西湖","city":"杭州"}}],"tool_use")
-        first.usage = first.usage.model_copy(update={"input_tokens":0, "cache_read_input_tokens":0})
+        first.usage = type(first.usage).model_validate({"input_tokens":0,"output_tokens":1,"cache_read_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":2,"ephemeral_1h_input_tokens":0}})
         first.usage.__pydantic_fields_set__.add("cache_read_input_tokens")
         first._request_id = "http-model-first"
         final = Message.model_construct(id="service-final",type="message",role="assistant",model="test-model",
@@ -118,6 +119,8 @@ class ModelTraceTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(two["usage_state"],"not_returned")
                 self.assertIsNone(two["usage"])
                 self.assertEqual(snapshot["usage_summary"]["input_tokens"], {"value":0,"known_count":1,"request_count":2})
+                self.assertEqual(snapshot["usage_summary"]["cache_creation.ephemeral_5m_input_tokens"], {"value":2,"known_count":1,"request_count":2})
+                self.assertEqual(snapshot["usage_summary"]["cache_creation.ephemeral_1h_input_tokens"], {"value":0,"known_count":1,"request_count":2})
                 self.assertEqual(snapshot["usage_summary"]["cache_creation_input_tokens"], {"value":None,"known_count":0,"request_count":2})
                 self.assertGreaterEqual(one["duration_ms"],0)
                 self.assertIsNotNone(two["finished_at"])
@@ -146,8 +149,8 @@ class ModelTraceTests(unittest.IsolatedAsyncioTestCase):
         class FailedModel(ModelService):
             async def create(self, **kwargs):
                 if self.requests:
-                    raise APIStatusError("模型额度不足 known-secret",response=httpx.Response(429,
-                        request=httpx.Request("POST","https://example.test"),headers={"request-id":"http-failure"}),
+                    raise APIStatusError("模型额度不足 known-secret",response=httpx2.Response(429,
+                        request=httpx2.Request("POST","https://example.test"),headers={"request-id":"http-failure"}),
                         body={"error":{"type":"rate_limit_error","message":"拒绝请求","authorization":"unknown-secret"}})
                 return await super().create(**kwargs)
         with tempfile.TemporaryDirectory() as directory:
@@ -246,6 +249,7 @@ class ModelTraceTests(unittest.IsolatedAsyncioTestCase):
                                     return events
                 one=await asyncio.wait_for(replay(),2)
                 two=await asyncio.wait_for(replay(),2)
+                assert one is not None and two is not None
                 self.assertEqual(one,two)
                 self.assertEqual([event["sequence"] for event in one],[1,2,3,4])
                 self.assertEqual([event["cursor"] for event in one],sorted({event["cursor"] for event in one}))
@@ -277,3 +281,25 @@ class ModelTraceTests(unittest.IsolatedAsyncioTestCase):
                 self.assertTrue(all(event["cursor"]>old_cursor for event in snapshot["events"]))
                 self.assertEqual([event["sequence"] for event in snapshot["events"]],[1,2,3,4])
                 self.assertNotEqual(snapshot["requests"][0]["request_id"],original["requests"][0]["request_id"])
+
+    async def test_response_processing_failure_retains_received_response_and_usage(self):
+        from anthropic.types import Message, TextBlock
+        import warnings
+        malformed=Message.model_construct(id="service-malformed",type="message",role="assistant",model="test-model",
+            stop_reason="end_turn",content=[TextBlock.model_construct(type="text",text=123)],
+            usage={"input_tokens":0,"output_tokens":2})
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory,ModelService([malformed])) as client:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore",UserWarning)
+                    accepted=(await client.post("/api/turns",json={"input":"查询杭州"})).json()
+                    snapshot=await asyncio.wait_for(wait_finished(client,accepted["session_id"]),2)
+                request=snapshot["requests"][0]
+                self.assertEqual(request["status"],"failed")
+                self.assertIsNotNone(request["response_payload_id"])
+                self.assertEqual(request["usage"]["input_tokens"],0)
+                error=(await client.get("/api/payloads/"+request["error_payload_id"])).json()["content"]
+                self.assertEqual(error["stage"],"response_processing")
+                parsed=(await client.get("/api/payloads/"+request["response_payload_id"])).json()["content"]
+                self.assertEqual(parsed["content"][0]["text"],123)
+                self.assertEqual(snapshot["turns"][0]["status"],"failed")

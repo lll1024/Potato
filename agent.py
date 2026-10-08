@@ -12,7 +12,7 @@ from typing import Any, Awaitable, Callable, cast
 from urllib.parse import urlencode
 
 from anthropic import AsyncAnthropic
-from anthropic.types import MessageParam, ToolResultBlockParam
+from anthropic.types import Message, MessageParam, ToolResultBlockParam
 from dotenv import load_dotenv
 from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
@@ -173,7 +173,7 @@ async def agent_loop(
             reason = stop_reason
             break
         request_id = uuid4().hex
-        parameters = dict(model=model, system=SYSTEM, messages=messages,
+        parameters: dict[str, Any] = dict(model=model, system=SYSTEM, messages=messages,
                           tools=tools.declarations, max_tokens=8000)
         if observer:
             await observer("request.started", {
@@ -184,21 +184,28 @@ async def agent_loop(
         started = asyncio.get_running_loop().time()
         stage = "model_call"
         failure = None
+        response: Message | None = None
+        parsed: dict[str, Any] | None = None
+        duration_ms: float | None = None
+        finished_at: str | None = None
         try:
-            response = await client.messages.create(**parameters)
+            response = cast(Message, await client.messages.create(**parameters))
             duration_ms = max(0,(asyncio.get_running_loop().time()-started)*1000)
+            finished_at = datetime.now(timezone.utc).isoformat()
             stage = "response_processing"
-            parsed = response.model_dump(mode="json", exclude_unset=True)
+            parsed = response.model_dump(mode="json", exclude_unset=True, warnings=False)
             service_request_id = getattr(response, "_request_id", None)
             if service_request_id is not None:
                 parsed["_request_id"] = service_request_id
             # 采集先于转换，保留 SDK 字段存在性；协议上下文仅使用脱敏内容块。
             response = response.model_copy(update={"content": [
-                type(block).model_validate_json(tools.redact(block.model_dump_json()))
+                type(block).model_validate_json(tools.redact(block.model_dump_json(warnings=False)))
                 for block in response.content
             ]})
         except Exception as error:
-            duration_ms = max(0,(asyncio.get_running_loop().time()-started)*1000)
+            if duration_ms is None:
+                duration_ms = max(0,(asyncio.get_running_loop().time()-started)*1000)
+                finished_at = datetime.now(timezone.utc).isoformat()
             failure = {"stage":stage,"category":type(error).__name__,"message":str(error)}
             for field in ("status_code","request_id","body"):
                 value = getattr(error,field,None)
@@ -207,15 +214,18 @@ async def agent_loop(
         if failure is not None:
             if observer:
                 await observer("request.failed", {
-                    "request_id":request_id,"finished_at":datetime.now(timezone.utc).isoformat(),
-                    "duration_ms":duration_ms,"error":failure,"usage":None,"usage_state":"not_returned",
+                    "request_id":request_id,"finished_at":finished_at,
+                    "duration_ms":duration_ms,"error":failure,"response":parsed,
+                    "usage":parsed.get("usage") if parsed is not None else None,
+                    "usage_state":"returned" if parsed is not None and parsed.get("usage") is not None else "not_returned",
                 })
             status, reason = "failed", "model_error"
             stopped = "模型服务请求失败，已停止本次查询。请检查 MODEL_ID、模型凭据、服务地址、网络和额度，恢复后继续。"
             break
+        assert response is not None and parsed is not None
         if observer:
             await observer("request.completed", {
-                "request_id": request_id, "finished_at": datetime.now(timezone.utc).isoformat(),
+                "request_id": request_id, "finished_at": finished_at,
                 "duration_ms": duration_ms, "response": parsed,
                 "usage": parsed.get("usage"),
                 "usage_state": "returned" if "usage" in parsed and parsed["usage"] is not None else "not_returned",

@@ -13,7 +13,8 @@ type TraceTurn = {turn_id: string; ordinal: number; input: string; status: strin
 type TraceSnapshot = {session: {title: string}; turns: TraceTurn[]; requests: TraceRequest[]; usage_summary: UsageSummary; cursor: number; stream_id: string};
 type Props = {sessionId: string | null; refreshKey?: number};
 const statuses: Record<string,string> = {running:'正在请求',completed:'已收到响应',failed:'请求失败'};
-const usageLabels: Record<string,string> = {input_tokens:'输入',output_tokens:'输出',cache_creation_input_tokens:'缓存写入',cache_read_input_tokens:'缓存读取'};
+const usageLabels: Record<string,string> = {input_tokens:'输入',output_tokens:'输出',cache_creation_input_tokens:'缓存写入',cache_read_input_tokens:'缓存读取',
+  'cache_creation.ephemeral_5m_input_tokens':'缓存写入（5 分钟）', 'cache_creation.ephemeral_1h_input_tokens':'缓存写入（1 小时）'};
 
 async function read<T>(path: string): Promise<T> {
   const response = await fetch(path);
@@ -123,12 +124,15 @@ export function TraceView({sessionId,refreshKey}: Props) {
 }
 
 function RequestDetail({request}: {request: TraceRequest}) {
+  function usageValue(field: string): unknown {
+    return field.split('.').reduce<unknown>((value,key) => value !== null && typeof value === 'object' ? (value as Usage)[key] : undefined, request.usage);
+  }
   const missing = request.usage_state === 'not_completed' ? '未采集／尚未完成' : '未返回';
   return <div>
     <h3>模型请求 {request.ordinal} · {statuses[request.status] ?? request.status}</h3>
     <dl className="request-facts"><dt>应用请求身份</dt><dd>{request.request_id}</dd><dt>开始时间</dt><dd>{new Date(request.started_at).toLocaleString('zh-CN')}</dd><dt>结束时间</dt><dd>{request.finished_at ? new Date(request.finished_at).toLocaleString('zh-CN') : '—（尚未结束）'}</dd><dt>SDK 调用耗时</dt><dd>{request.duration_ms === null ? '—（尚未完成）' : `${request.duration_ms.toFixed(1)} ms`}</dd></dl>
     <h4>实际 token 用量</h4>
-    <dl className="request-facts">{Object.entries(usageLabels).map(([field,label]) => <div key={field}><dt>{label}</dt><dd>{typeof request.usage?.[field] === 'number' ? String(request.usage[field]) : missing}</dd></div>)}</dl>
+    <dl className="request-facts">{Object.entries(usageLabels).map(([field,label]) => <div key={field}><dt>{label}</dt><dd>{typeof usageValue(field) === 'number' ? String(usageValue(field)) : missing}</dd></div>)}</dl>
     {request.usage && <details><summary>全部实际 usage 字段</summary><pre className="wrap">{JSON.stringify(request.usage,null,2)}</pre></details>}
     <Payload key={request.input_payload_id} id={request.input_payload_id} title="完整逻辑输入" />
     <Payload key={request.response_payload_id} id={request.response_payload_id} title="完整已解析返回（含实际存在的元数据）" />
