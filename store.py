@@ -18,15 +18,25 @@ def timestamp() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def usage_numbers(value, prefix=""):
+    result = {}
+    if isinstance(value,dict):
+        for key,item in value.items():
+            field = f"{prefix}.{key}" if prefix else key
+            if isinstance(item,(int,float)) and not isinstance(item,bool):
+                result[field] = item
+            elif isinstance(item,dict):
+                result.update(usage_numbers(item,field))
+    return result
+
+
 def usage_summary(requests):
+    numbers = [usage_numbers(request["usage"]) for request in requests]
     fields = {"input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"}
-    fields.update(key for request in requests for key,value in (request["usage"] or {}).items()
-                  if isinstance(value,(int,float)) and not isinstance(value,bool))
+    fields.update(field for request in numbers for field in request)
     result = {}
     for field in sorted(fields):
-        values = [request["usage"][field] for request in requests
-                  if isinstance((request["usage"] or {}).get(field),(int,float))
-                  and not isinstance(request["usage"][field],bool)]
+        values = [request[field] for request in numbers if field in request]
         result[field] = {"value":sum(values) if values else None,"known_count":len(values),"request_count":len(requests)}
     return result
 

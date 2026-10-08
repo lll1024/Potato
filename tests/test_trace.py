@@ -98,7 +98,7 @@ class ModelTraceTests(unittest.IsolatedAsyncioTestCase):
         from anthropic.types import Message, TextBlock
         first = response([{"type":"tool_use","id":"west-lake","name":"maps_text_search",
                            "input":{"keywords":"西湖","city":"杭州"}}],"tool_use")
-        first.usage = first.usage.model_copy(update={"input_tokens":0, "cache_read_input_tokens":0})
+        first.usage = type(first.usage).model_validate({"input_tokens":0,"output_tokens":1,"cache_read_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":2,"ephemeral_1h_input_tokens":0}})
         first.usage.__pydantic_fields_set__.add("cache_read_input_tokens")
         first._request_id = "http-model-first"
         final = Message.model_construct(id="service-final",type="message",role="assistant",model="test-model",
@@ -119,6 +119,8 @@ class ModelTraceTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(two["usage_state"],"not_returned")
                 self.assertIsNone(two["usage"])
                 self.assertEqual(snapshot["usage_summary"]["input_tokens"], {"value":0,"known_count":1,"request_count":2})
+                self.assertEqual(snapshot["usage_summary"]["cache_creation.ephemeral_5m_input_tokens"], {"value":2,"known_count":1,"request_count":2})
+                self.assertEqual(snapshot["usage_summary"]["cache_creation.ephemeral_1h_input_tokens"], {"value":0,"known_count":1,"request_count":2})
                 self.assertEqual(snapshot["usage_summary"]["cache_creation_input_tokens"], {"value":None,"known_count":0,"request_count":2})
                 self.assertGreaterEqual(one["duration_ms"],0)
                 self.assertIsNotNone(two["finished_at"])
