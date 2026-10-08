@@ -118,10 +118,13 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
         async def observe(kind, data):
             if kind == "turn.finished":
                 outcome.update(data)
-            elif kind.startswith("request."):
+            elif kind.startswith(("request.","tool.")):
                 safe = json.loads(runtime.tools.redact(json.dumps(data,ensure_ascii=False)))
                 try:
-                    store.observe_request(identity["session_id"],identity["turn_id"],kind,safe)
+                    if kind.startswith("request."):
+                        store.observe_request(identity["session_id"],identity["turn_id"],kind,safe)
+                    else:
+                        store.observe_tool(identity["session_id"],identity["turn_id"],kind,safe)
                 except Exception:
                     raise TraceStorageError("请求事实未保存，已停止后续查询；请检查存储后重启。") from None
                 changed.set()

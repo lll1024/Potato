@@ -241,7 +241,23 @@ async def agent_loop(
             return await finished("\n".join(block.text for block in response.content if block.type == "text"), "model")
 
         results: list[ToolResultBlockParam] = []
-        for block in tool_calls:
+        tool_ids = [uuid4().hex for _ in tool_calls]
+        for tool_ordinal, (block, tool_id) in enumerate(zip(tool_calls,tool_ids),1):
+            if observer:
+                await observer("tool.pending",{"tool_call_id":tool_id,"request_id":request_id,
+                    "ordinal":tool_ordinal,"tool_use_id":block.id,"name":block.name,
+                    "arguments":copy.deepcopy(block.input),"status":"pending",
+                    "proposed_at":datetime.now(timezone.utc).isoformat(),"call_started":False,
+                    "call_duration_ms":None,"wait_duration_ms":None,"total_duration_ms":None})
+        for block, tool_id in zip(tool_calls,tool_ids):
+            async def tool_observer(kind: str, data: dict[str, Any]) -> None:
+                if "result" in data:
+                    output_result = data["result"]
+                    data["result"] = {"type":"tool_result","tool_use_id":block.id,
+                        "content":output_result["content"],"is_error":output_result["is_error"]}
+                if observer:
+                    await observer(kind,{**data,"tool_call_id":tool_id,"request_id":request_id})
+
             output: ToolResult
             if stop_requested and stop_requested.is_set() and not stopped:
                 stopped = "已停止本轮查询，尚未完成的信息待核实。"
@@ -252,10 +268,17 @@ async def agent_loop(
                 output = {"content": BUDGET_MESSAGE, "is_error": True}
             else:
                 calls += 1
-                output = await tools.call(block.name, cast(dict[str, Any], block.input))
+                output = await tools.call(block.name, cast(dict[str, Any], block.input),
+                                          observer=tool_observer if observer else None,
+                                          stop_requested=stop_requested)
                 stopped = output.get("stop_reason")
                 if stopped:
                     reason = "map_paused"
+            if stopped or calls >= max_tool_calls:
+                # 仅对本次已提出且尚未进入适配器的调用补应用回填。
+                if (stopped and output["content"].startswith("未执行：")) or output["content"] == BUDGET_MESSAGE:
+                    await tool_observer("tool.not_executed",{"status":"not_executed",
+                        "reason":reason,"result":output,"finished_at":datetime.now(timezone.utc).isoformat()})
             label = f"{block.name}（{json.dumps(block.input, ensure_ascii=False)}）"
             outcomes.append((label, output))
             results.append({

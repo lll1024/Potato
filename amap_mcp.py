@@ -1,7 +1,8 @@
 import asyncio
 import json
 import re
-from typing import Any, NotRequired, TypedDict, cast
+from datetime import datetime, timezone
+from typing import Any, Awaitable, Callable, NotRequired, TypedDict, cast
 from urllib.parse import quote, quote_plus
 
 from anthropic.types import ToolParam
@@ -135,16 +136,52 @@ class AmapTools:
         if not any(tool["name"] in PLACE_TOOLS for tool in self.declarations):
             raise RuntimeError("高德未提供可用的地点查询工具，请检查服务配置。")
 
-    async def call(self, name: str, arguments: dict[str, Any]) -> ToolResult:
-        if name not in {tool["name"] for tool in self.declarations}:
-            return {"content": "工具未开放，仅可调用已发现的地点、餐饮、交通与天气查询工具。", "is_error": True}
-        if self.failure:
-            return self._stop(self.failure)
-        if self.http_client and self.http_client.connection_failed:
-            return self._stop("connection")
+    async def call(self, name: str, arguments: dict[str, Any], *,
+                   observer: Callable[[str, dict[str, Any]], Awaitable[None]] | None = None,
+                   stop_requested: asyncio.Event | None = None) -> ToolResult:
         loop = asyncio.get_running_loop()
+        started = loop.time()
+        facts: dict[str, Any] = {"call_started":False,"wait_duration_ms":0.0,
+                                 "call_duration_ms":None,"service":None,"error":None}
+
+        async def finish(output: ToolResult, category: str | None = None) -> ToolResult:
+            if observer:
+                await observer("tool.failed" if output["is_error"] else "tool.completed", {
+                    **facts,"finished_at":datetime.now(timezone.utc).isoformat(),
+                    "total_duration_ms":max(0,(loop.time()-started)*1000),
+                    "failure_category":category,"result":output,
+                })
+            return output
+
+        if name not in {tool["name"] for tool in self.declarations}:
+            return await finish({"content": "工具未开放，仅可调用已发现的地点、餐饮、交通与天气查询工具。", "is_error": True},"arguments")
+        if self.failure:
+            return await finish(self._stop(self.failure),self.failure)
+        if self.http_client and self.http_client.connection_failed:
+            return await finish(self._stop("connection"),"connection")
         if delay := max(0.0, self._next_call_at - loop.time()):
-            await asyncio.sleep(delay)
+            waiting = loop.time()
+            if observer:
+                await observer("tool.waiting",{"status":"waiting","waiting_at":datetime.now(timezone.utc).isoformat()})
+            if stop_requested:
+                try:
+                    await asyncio.wait_for(stop_requested.wait(),delay)
+                except asyncio.TimeoutError:
+                    pass
+            else:
+                await asyncio.sleep(delay)
+            facts["wait_duration_ms"] = max(0,(loop.time()-waiting)*1000)
+        if stop_requested and stop_requested.is_set():
+            if observer:
+                await observer("tool.not_executed",{**facts,"finished_at":datetime.now(timezone.utc).isoformat(),
+                    "total_duration_ms":max(0,(loop.time()-started)*1000),"reason":"user_stop",
+                    "result":{"content":"未执行：已停止本轮查询。","is_error":True}})
+            return {"content":"未执行：已停止本轮查询。","is_error":True,"stop_reason":"已停止本轮查询。"}
+        if observer:
+            await observer("tool.running",{"status":"running","call_started":True,
+                "call_started_at":datetime.now(timezone.utc).isoformat(),"wait_duration_ms":facts["wait_duration_ms"]})
+        facts["call_started"] = True
+        call_start = loop.time()
         self._next_call_at = loop.time() + MAP_CALL_INTERVAL
         try:
             result = await asyncio.wait_for(
@@ -152,18 +189,26 @@ class AmapTools:
                 self.client.session.call_tool(name, arguments), timeout=self.tool_timeout
             )
         except Exception as error:
+            facts["call_duration_ms"] = max(0,(loop.time()-call_start)*1000)
+            facts["error"] = {"category":type(error).__name__,"message":str(error)}
+            for field in ("code","data","status_code"):
+                if (value := getattr(error,field,None)) is not None:
+                    facts["error"][field] = value
             if self.http_client and self.http_client.connection_failed:
-                return self._stop("connection")
+                return await finish(self._stop("connection"),"connection")
             failure = exception_failure(error)
             if failure in FAILURE_MESSAGES:
-                return self._stop(cast(str, failure))
+                return await finish(self._stop(cast(str, failure)),failure)
             if failure == "timeout":
-                return {"content": "地图查询超时，结果待核实。", "is_error": True}
+                return await finish({"content": "地图查询超时，结果待核实。", "is_error": True},"timeout")
             if failure == "arguments":
-                return {"content": "地图查询参数错误，请按工具声明修正，结果待核实。", "is_error": True}
-            return {"content": "地图查询失败，请检查参数或服务状态，结果待核实。", "is_error": True}
+                return await finish({"content": "地图查询参数错误，请按工具声明修正，结果待核实。", "is_error": True},"arguments")
+            return await finish({"content": "地图查询失败，请检查参数或服务状态，结果待核实。", "is_error": True},"error")
+        facts["call_duration_ms"] = max(0,(loop.time()-call_start)*1000)
+        facts["service"] = result.model_dump(mode="json",exclude_unset=True) if hasattr(result,"model_dump") else json.loads(json.dumps(result,default=vars,ensure_ascii=False))
+        facts["sdk_is_error"] = result.is_error
         if self.http_client and self.http_client.connection_failed:
-            return self._stop("connection")
+            return await finish(self._stop("connection"),"connection")
         text = [block.text for block in result.content if block.type == "text"]
         errors = service_errors(result.structured_content)
         for value in text:
@@ -174,24 +219,25 @@ class AmapTools:
         for error in errors:
             code = str(error.get("infocode"))
             if code in AUTH_CODES:
-                return self._stop("auth")
+                return await finish(self._stop("auth"),"auth")
             if code in QUOTA_CODES:
-                return self._stop("quota")
+                return await finish(self._stop("quota"),"quota")
             if code in {"10016", "10017"}:
-                return self._stop("service")
+                return await finish(self._stop("service"),"service")
         if result.is_error or errors:
             error_text = json.dumps([text, errors, result.structured_content], ensure_ascii=False).upper()
             tokens = set(re.findall(r"[A-Z_]+", error_text))
             if tokens & AUTH_ERRORS:
-                return self._stop("auth")
+                return await finish(self._stop("auth"),"auth")
             if tokens & QUOTA_ERRORS:
-                return self._stop("quota")
+                return await finish(self._stop("quota"),"quota")
             if tokens & {"SERVER_IS_BUSY", "RESOURCE_UNAVAILABLE"}:
-                return self._stop("service")
+                return await finish(self._stop("service"),"service")
         content = json.dumps(
             {"text": text, "data": result.structured_content}, ensure_ascii=False
         )
-        return {"content": self.redact(content), "is_error": result.is_error or bool(errors)}
+        return await finish({"content": self.redact(content), "is_error": result.is_error or bool(errors)},
+                            "business" if errors else "sdk_error" if result.is_error else None)
 
     def _stop(self, failure: str) -> ToolResult:
         self.failure = failure
