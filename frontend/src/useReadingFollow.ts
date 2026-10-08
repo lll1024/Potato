@@ -7,6 +7,7 @@ export function useReadingFollow(identity: string | null, marker: string) {
   const position = useRef(0);
   const lastMarker = useRef('');
   const lastIdentity = useRef(identity);
+  const anchor = useRef<{element: Element; offset: number} | null>(null);
   const [paused, setPaused] = useState(false);
   const [hasNew, setHasNew] = useState(false);
   const pause = useCallback(() => {
@@ -20,6 +21,22 @@ export function useReadingFollow(identity: string | null, marker: string) {
     const element = ref.current;
     if (element) element.scrollTop = element.scrollHeight;
   }, []);
+  const preservePosition = useCallback(() => {
+    const container=ref.current;
+    if (!container) return;
+    const top=container.getBoundingClientRect().top;
+    const element=Array.from(container.querySelectorAll('[data-reading-id]')).find(item => item.getBoundingClientRect().bottom > top);
+    if (element) anchor.current={element,offset:element.getBoundingClientRect().top-top};
+  }, []);
+  useLayoutEffect(() => {
+    const saved=anchor.current;
+    const container=ref.current;
+    if (saved && container && saved.element.isConnected) {
+      container.scrollTop+=saved.element.getBoundingClientRect().top-container.getBoundingClientRect().top-saved.offset;
+      position.current=container.scrollTop;
+    }
+    anchor.current=null;
+  });
   useLayoutEffect(() => {
     if (lastIdentity.current !== identity) {
       lastIdentity.current = identity;
@@ -45,5 +62,5 @@ export function useReadingFollow(identity: string | null, marker: string) {
     if (element) position.current=element.scrollTop;
     if (element && element.scrollHeight - element.scrollTop - element.clientHeight > 24) pause();
   }, [pause]);
-  return {ref: attach, paused, hasNew, pause, resume, onScroll};
+  return {ref: attach, paused, hasNew, pause, resume, onScroll, preservePosition};
 }

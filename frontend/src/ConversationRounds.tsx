@@ -5,7 +5,7 @@ export type Turn = {
 };
 
 export function ConversationRounds({turns, statusText, onTrace}: {turns: Turn[]; statusText: (turn: Turn) => string; onTrace?: (turn: Turn) => void}) {
-  return <>{turns.map(turn => <section key={turn.turn_id} aria-label={`第 ${turn.ordinal} 轮对话`}>
+  return <>{turns.map(turn => <section key={turn.turn_id} data-reading-id={turn.turn_id} aria-label={`第 ${turn.ordinal} 轮对话`}>
     <div className="round-heading"><p className="round-status">第 {turn.ordinal} 轮 · {statusText(turn)}</p>{onTrace && <button type="button" onClick={() => onTrace(turn)}>查看本轮轨迹</button>}</div>
     <article className="message user"><h3>你的输入</h3><p>{turn.input}</p></article>
     {turn.answer !== null && <article className="message answer">

@@ -41,7 +41,7 @@ function App() {
   const [earlierTurns, setEarlierTurns] = useState<Record<string, Turn[]>>({});
   const [loadingEarlier, setLoadingEarlier] = useState(false);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
-  const {state, revision: serviceRevision, connectionError, refresh: refreshService} = useServiceEvents();
+  const {state, revision: serviceRevision, datasetRevision, deletedSession, connectionError, recoveryNotice, refresh: refreshService} = useServiceEvents();
   const [error, setError] = useState('');
   const [stoppingId, setStoppingId] = useState<string | null>(null);
 
@@ -60,6 +60,7 @@ function App() {
         const result = await api<Snapshot>(`/api/sessions/${sessionId}`);
         if (!cancelled) setSnapshot(result);
       } catch (cause) {
+        if (!cancelled && cause instanceof Error && cause.message === '会话不存在。') {deletedConversation(sessionId!); return;}
         if (!cancelled) setError(cause instanceof Error ? cause.message : '无法读取会话。');
       }
     }
@@ -93,6 +94,10 @@ function App() {
     setEarlierTurns(current => { const remaining = {...current}; delete remaining[id]; return remaining; });
     if (sessionId === id) selectConversation(null);
   }
+  useEffect(() => {if (deletedSession) deletedConversation(deletedSession);}, [deletedSession]);
+  useEffect(() => {
+    if (datasetRevision) {setEarlierTurns({}); selectConversation(null);}
+  }, [datasetRevision]);
   async function loadEarlier() {
     conversationFollow.pause();
     if (!sessionId || !snapshot) return;
@@ -102,6 +107,7 @@ function App() {
     setLoadingEarlier(true);
     try {
       const page = await api<Snapshot>(`/api/sessions/${id}?before=${before}`);
+      conversationFollow.preservePosition();
       setEarlierTurns(current => ({...current, [id]: [...page.turns, ...(current[id] ?? [])]}));
     } catch (cause) { setError(cause instanceof Error ? cause.message : '无法读取更早对话。'); }
     finally { setLoadingEarlier(false); }
@@ -110,7 +116,7 @@ function App() {
   const turns = [...(sessionId ? earlierTurns[sessionId] ?? [] : []), ...(snapshot?.turns ?? [])]
     .filter((turn, index, all) => all.findIndex(item => item.turn_id === turn.turn_id) === index);
   const turn = snapshot?.turns.at(-1);
-  const conversationFollow=useReadingFollow(sessionId, JSON.stringify(snapshot?.turns.map(item => [item.turn_id,item.status,item.answer]) ?? []));
+  const conversationFollow=useReadingFollow(sessionId, turn ? JSON.stringify([turn.turn_id,turn.status,turn.answer]) : '');
   function showTurnTrace(turn: Turn) {
     conversationFollow.pause();
     setTraceLocation({turn_id:turn.turn_id,turn_ordinal:turn.ordinal,object_type:'turn',object_id:turn.turn_id,payload_id:null,field:'turn_input',query:''});
@@ -157,10 +163,11 @@ function App() {
           </div>}
           <p className="error" role="alert">{submission.error || error}</p>
           <p className="hint" role="status">{connectionError}</p>
+          {recoveryNotice && <p className="hint" role="status">{recoveryNotice}</p>}
           {!state.accepting && <p className="error">{state.storage_error ?? (connectionError ? '请等待连接恢复后再发送。' : '本机服务暂不可用，请检查后重启。')}</p>}
         </form>
       </section>
-      <HistorySidebar sessionId={sessionId} activeTurnId={state.active_turn_id} onSelect={selectConversation} onDelete={deletedConversation} />
+      <HistorySidebar sessionId={sessionId} activeTurnId={state.active_turn_id} refreshKey={serviceRevision} onSelect={selectConversation} onDelete={deletedConversation} />
     </main>
   </div>;
 }

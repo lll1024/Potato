@@ -21,9 +21,9 @@ type TraceTool = {
   sdk_is_error?: boolean; failure_category?: string | null; reason?: string | null;
   arguments_payload_id: string; service_payload_id?: string; result_payload_id?: string; error_payload_id?: string;
 };
-type TraceTurn = {turn_id: string; ordinal: number; input: string; input_payload_id?: string; answer_payload_id?: string; answer_source?: string | null; status: string; reason?: string | null; tool_error_count: number; usage_summary?: UsageSummary};
+type TraceTurn = {turn_id: string; ordinal: number; input: string; input_is_summary?: boolean; input_payload_id?: string; answer_payload_id?: string; answer_source?: string | null; status: string; reason?: string | null; tool_error_count: number; usage_summary?: UsageSummary};
 type TraceEvent = {event_id: string; sequence: number; kind: string; request_id?: string | null; tool_call_id?: string | null; turn_id: string};
-type TraceSnapshot = {events: TraceEvent[]; session: {title: string}; turns: TraceTurn[]; requests: TraceRequest[]; tool_calls: TraceTool[]; usage_summary: UsageSummary; cursor: number; stream_id: string};
+type TraceSnapshot = {events: TraceEvent[]; session: {title: string}; turns: TraceTurn[]; requests: TraceRequest[]; tool_calls: TraceTool[]; usage_summary: UsageSummary; next_before: number | null; cursor: number; stream_id: string};
 type Props = {sessionId: string | null; refreshKey?: number; location?: TraceLocation | null; onInteraction?: () => void};
 const toolStatuses: Record<string,string> = {pending:'已提出',waiting:'限速等待',running:'执行中',completed:'成功',failed:'失败',not_executed:'未执行'};
 const reasonLabels: Record<string,string> = {budget:'查询达到上限',model_error:'模型请求失败',output_limit:'输出达到上限',map_paused:'地图查询已暂停',user_stop:'用户停止',service_shutdown:'服务退出',service_interrupted:'服务中断'};
@@ -56,6 +56,7 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
   const [expanded,setExpanded] = useState<Record<string,boolean>>({});
   const [error,setError] = useState('');
   const [location,setLocation] = useState<TraceLocation | null>(null);
+  const [loadingEarlier,setLoadingEarlier] = useState(false);
   const follow = useReadingFollow(sessionId, snapshot?.events.at(-1)?.event_id ?? '');
   const latestRef = useRef<string | undefined>(undefined);
   function onInteraction() {follow.pause(); onRead?.();}
@@ -71,10 +72,9 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
   useEffect(() => {
   if (!sessionId) return;
     let cancelled = false;
-    let source: EventSource | null = null;
     async function refresh() {
       try {
-        const result = await read<TraceSnapshot>(`/api/sessions/${sessionId}`);
+        const result = await read<TraceSnapshot>(`/api/sessions/${sessionId}?summary=true`);
         if (cancelled) return;
         setSnapshot(current => current ? {...result,
           turns:[...current.turns.filter(item => !result.turns.some(incoming => incoming.turn_id===item.turn_id)),...result.turns].sort((a,b) => a.ordinal-b.ordinal),
@@ -93,25 +93,35 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
           for (const request of result.requests) if (!(request.request_id in next)) next[request.request_id] = request.turn_id === latest;
           return next;
         });
-        if (!source && refreshKey === undefined) {
-          source = new EventSource(`/api/events?after=${result.cursor}&stream_id=${result.stream_id}`);
-          source.addEventListener('trace', event => {
-            const data = JSON.parse((event as MessageEvent).data);
-            if (data.session_id === sessionId) void refresh();
-          });
-        }
+
       } catch (cause) {
         if (!cancelled) setError(cause instanceof Error ? cause.message : '无法读取执行轨迹。');
       }
     }
     void refresh();
-    return () => {cancelled = true; source?.close();};
+    return () => {cancelled = true;};
   }, [sessionId,refreshKey]);
+  async function loadEarlier() {
+    if (!sessionId || !snapshot || snapshot.turns[0]?.ordinal <= 1) return;
+    onInteraction(); setLoadingEarlier(true);
+    const id=sessionId;
+    try {
+      const page=await read<TraceSnapshot>(`/api/sessions/${id}?summary=true&before=${snapshot.turns[0].ordinal}`);
+      if (sessionRef.current!==id) return;
+      follow.preservePosition();
+      setSnapshot(current => current ? {...current,
+        turns:[...page.turns.filter(item => !current.turns.some(old => old.turn_id===item.turn_id)),...current.turns].sort((a,b) => a.ordinal-b.ordinal),
+        requests:[...page.requests.filter(item => !current.requests.some(old => old.request_id===item.request_id)),...current.requests],
+        tool_calls:[...page.tool_calls.filter(item => !current.tool_calls.some(old => old.tool_call_id===item.tool_call_id)),...current.tool_calls],
+        events:[...page.events.filter(item => !current.events.some(old => old.event_id===item.event_id)),...current.events].sort((a,b) => a.sequence-b.sequence)} : page);
+    } catch (cause) {setError(cause instanceof Error ? cause.message : '无法读取更早轨迹。');}
+    finally {setLoadingEarlier(false);}
+  }
   async function locate(target: TraceLocation) {
     if (!sessionId) return;
     onInteraction?.(); setLocation(target); setSelected(target.object_id);
     try {
-      const page = await read<TraceSnapshot>(`/api/sessions/${sessionId}?limit=1&before=${target.turn_ordinal+1}`);
+      const page = await read<TraceSnapshot>(`/api/sessions/${sessionId}?summary=true&limit=1&before=${target.turn_ordinal+1}`);
       if (sessionRef.current !== sessionId) return;
       setSnapshot(current => current ? {...current,
         turns:[...current.turns.filter(item => item.turn_id!==target.turn_id),...page.turns].sort((a,b) => a.ordinal-b.ordinal),
@@ -169,13 +179,14 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
     <UsageTotals summary={snapshot?.usage_summary} />
     <div className="reading-follow"><p role="status">{follow.hasNew ? '有新事件' : follow.paused ? '已暂停跟随，正在阅读' : '正在跟随最新事件'}</p>{follow.paused && <button type="button" onClick={backToLatest}>回到最新</button>}</div>
     <div className="trace-scroll" ref={follow.ref} onScroll={follow.onScroll} onClickCapture={event => {if ((event.target as HTMLElement).closest('summary')) onInteraction();}}>
+    {snapshot && snapshot.turns[0]?.ordinal > 1 && <button type="button" disabled={loadingEarlier} onClick={() => void loadEarlier()}>加载更早轨迹</button>}
     {snapshot && <TraceTimeline turns={snapshot.turns} requests={snapshot.requests} tools={snapshot.tool_calls} events={snapshot.events} selected={selected} onLocate={timelineLocate} />}
     <div className="trace-layout">
       <div className="trace-tree">
         <details open={expanded.session ?? true} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,session:open}));}}>
           <summary>助手会话：{snapshot?.session.title ?? '正在读取'}</summary>
-          {snapshot?.turns.map(turn => <details className={`trace-turn ${selected === turn.turn_id ? 'selected' : ''}`} id={`trace-object-${turn.turn_id}`} key={turn.turn_id} open={expanded[turn.turn_id] ?? false} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,[turn.turn_id]:open}));}}>
-            <summary>第 {turn.ordinal} 轮 · {turnStatus(turn)} · {turn.input}</summary>
+          {snapshot?.turns.map(turn => <details data-reading-id={turn.turn_id} className={`trace-turn ${selected === turn.turn_id ? 'selected' : ''}`} id={`trace-object-${turn.turn_id}`} key={turn.turn_id} open={expanded[turn.turn_id] ?? false} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,[turn.turn_id]:open}));}}>
+            <summary>第 {turn.ordinal} 轮 · {turnStatus(turn)} · {turn.input_is_summary ? '输入摘要：' : ''}{turn.input}</summary>
             {turn.reason === 'service_interrupted' && <p className="hint">本轮已排除后续上下文；保留最后保存事实，没有自动重试或重放。</p>}
             <UsageTotals summary={turn.usage_summary} />
             {narrow && selected===turn.turn_id && <div className="trace-mobile-detail">{turnDetail}</div>}

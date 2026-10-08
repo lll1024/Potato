@@ -75,7 +75,7 @@ class Store:
                 turn_id TEXT REFERENCES turns ON DELETE SET NULL);
             CREATE TABLE IF NOT EXISTS event_cursors (
                 cursor INTEGER PRIMARY KEY AUTOINCREMENT,
-                event_id TEXT NOT NULL UNIQUE REFERENCES events ON DELETE CASCADE);
+                event_id TEXT UNIQUE REFERENCES events ON DELETE CASCADE, notice TEXT);
             CREATE TABLE IF NOT EXISTS metadata (name TEXT PRIMARY KEY,value TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS payloads (
                 payload_id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions ON DELETE CASCADE,
@@ -97,6 +97,16 @@ class Store:
         """)
 
         with self.db:
+            # 兼容已有 schema v1：删除通知共用全库游标，但不属于已删除会话的级联实体。
+            if "notice" not in {row["name"] for row in self.db.execute("PRAGMA table_info(event_cursors)")}:
+                high = self.cursor()
+                self.db.execute("ALTER TABLE event_cursors RENAME TO old_event_cursors")
+                self.db.execute("CREATE TABLE event_cursors (cursor INTEGER PRIMARY KEY AUTOINCREMENT,event_id TEXT UNIQUE REFERENCES events ON DELETE CASCADE,notice TEXT)")
+                self.db.execute("INSERT INTO event_cursors(cursor,event_id) SELECT cursor,event_id FROM old_event_cursors")
+                self.db.execute("UPDATE sqlite_sequence SET seq=? WHERE name='event_cursors'", (high,))
+                if not self.db.execute("SELECT 1 FROM sqlite_sequence WHERE name='event_cursors'").fetchone():
+                    self.db.execute("INSERT INTO sqlite_sequence VALUES ('event_cursors',?)", (high,))
+                self.db.execute("DROP TABLE old_event_cursors")
             self.db.execute("INSERT OR IGNORE INTO metadata VALUES ('stream_id',?)", (identity(),))
             self.db.execute("INSERT INTO event_cursors(event_id) SELECT e.event_id FROM events e WHERE NOT EXISTS (SELECT 1 FROM event_cursors c WHERE c.event_id=e.event_id) ORDER BY e.timestamp,e.session_id,e.sequence")
             # 已保存的历史轮次也拥有稳定详情身份；只复制已脱敏的既有字段。
@@ -130,11 +140,18 @@ class Store:
 
     def events_after(self, cursor):
         result = []
-        for row in self.db.execute("SELECT e.*,c.cursor FROM events e JOIN event_cursors c USING(event_id) WHERE c.cursor>? ORDER BY c.cursor", (cursor,)):
-            event = dict(row)
-            event["data"] = json.loads(event["data"])
-            result.append(event)
+        for row in self.db.execute("SELECT e.*,c.cursor,c.notice FROM event_cursors c LEFT JOIN events e USING(event_id) WHERE c.cursor>? ORDER BY c.cursor LIMIT 100", (cursor,)):
+            if row["notice"] is not None:
+                result.append({**json.loads(row["notice"]),"cursor":row["cursor"]})
+            else:
+                event = dict(row)
+                del event["notice"]
+                event["data"] = json.loads(event["data"])
+                result.append(event)
         return result
+
+    def event_exists(self, cursor):
+        return self.db.execute("SELECT 1 FROM event_cursors WHERE cursor=?", (cursor,)).fetchone() is not None
 
     def save_payload(self, session_id, turn_id, kind, content):
         payload_id = identity()
@@ -283,7 +300,12 @@ class Store:
             if self.db.execute("SELECT 1 FROM turns WHERE session_id=? AND status IN ('running','stopping')", (session_id,)).fetchone():
                 raise ValueError("运行中会话不可删除")
             # 所有会话所属实体必须使用 ON DELETE CASCADE；提交去重身份可使用 SET NULL。
-            return self.db.execute("DELETE FROM sessions WHERE session_id=?", (session_id,)).rowcount > 0
+            deleted = self.db.execute("DELETE FROM sessions WHERE session_id=?", (session_id,)).rowcount > 0
+            if deleted:
+                notice = {"event_id":identity(),"session_id":session_id,"turn_id":None,"sequence":None,
+                          "kind":"session.deleted","timestamp":timestamp(),"request_id":None,"tool_call_id":None,"data":{}}
+                self.db.execute("INSERT INTO event_cursors(notice) VALUES (?)", (json.dumps(notice),))
+            return deleted
 
     def sessions(self, limit=50, cursor=None):
         condition, values = "", []
@@ -303,7 +325,7 @@ class Store:
             next_cursor = base64.urlsafe_b64encode(json.dumps([last["updated_at"],last["session_id"]]).encode()).decode()
         return {"schema_version":SCHEMA_VERSION,"sessions":[dict(row) for row in rows[:limit]],"next_cursor":next_cursor}
 
-    def snapshot(self, session_id, limit=50, before=None):
+    def snapshot(self, session_id, limit=50, before=None, summary=False):
         session = self.db.execute("SELECT * FROM sessions WHERE session_id=?", (session_id,)).fetchone()
         if session is None:
             return None
@@ -311,7 +333,15 @@ class Store:
         rows = self.db.execute("SELECT * FROM turns WHERE session_id=? AND (? IS NULL OR ordinal < ?) ORDER BY ordinal DESC LIMIT ?",(session_id,before,before,limit+1)).fetchall()
         for row in reversed(rows[:limit]):
             turn = dict(row)
-            turn["messages"] = json.loads(turn["messages"])
+            if summary:
+                del turn["messages"]
+                for field in ("input","answer"):
+                    value=turn[field]
+                    turn[field+"_is_summary"]=value is not None and len(value)>120
+                    if value is not None:
+                        turn[field]=value[:120]
+            else:
+                turn["messages"] = json.loads(turn["messages"])
             for payload in self.db.execute("SELECT payload_id,kind FROM payloads WHERE turn_id=? AND kind IN ('turn_input','turn_answer')",(row["turn_id"],)):
                 turn[payload["kind"].removeprefix("turn_")+"_payload_id"] = payload["payload_id"]
             turns.append(turn)
