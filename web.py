@@ -10,7 +10,7 @@ import os
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import urlencode
 
 import uvicorn
@@ -77,7 +77,7 @@ class Submission(BaseModel):
 class RenameSession(BaseModel):
     title: str = Field(min_length=1, max_length=120)
 
-def create_app(data_dir: str | Path, *, resources=configured_resources, static_dir: str | Path | None=None) -> FastAPI:
+def create_app(data_dir: str | Path, *, resources=configured_resources, static_dir: str | Path | None=None, request_shutdown: Callable[[], None] | None=None) -> FastAPI:
     directory = Path(data_dir)
     task: asyncio.Task | None = None
     active: dict[str, str] | None = None
@@ -130,10 +130,13 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
         async def observe(kind, data):
             if kind == "turn.finished":
                 outcome.update(data)
-            elif kind.startswith("request."):
+            elif kind.startswith(("request.","tool.")):
                 safe = json.loads(runtime.tools.redact(json.dumps(data,ensure_ascii=False)))
                 try:
-                    store.observe_request(identity["session_id"],identity["turn_id"],kind,safe)
+                    if kind.startswith("request."):
+                        store.observe_request(identity["session_id"],identity["turn_id"],kind,safe)
+                    else:
+                        store.observe_tool(identity["session_id"],identity["turn_id"],kind,safe)
                 except Exception:
                     raise TraceStorageError("请求事实未保存，已停止后续查询；请检查存储后重启。") from None
                 changed.set()
@@ -144,6 +147,8 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             storage_error = str(error)
             active = None
             changed.set()
+            if runtime.tools.failure == "connection" and request_shutdown:
+                request_shutdown()
             return
         except Exception:
             answer = SERVICE_MESSAGE
@@ -159,6 +164,10 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             storage_error = "轮次结果未保存，请检查存储后重启。"
         finally:
             active = None
+            if runtime.tools.failure == "connection":
+                accepting = False
+                if request_shutdown:
+                    request_shutdown()
             changed.set()
 
     @app.post("/api/turns",status_code=202)
@@ -316,7 +325,16 @@ def main() -> int:
     for name in ("mcp","client","httpx2","httpcore2","anthropic"):
         logging.getLogger(name).setLevel(logging.CRITICAL+1)
     try:
-        uvicorn.run(create_app(args.data_dir),host="127.0.0.1",port=args.port,workers=1,access_log=False,timeout_graceful_shutdown=1)
+        connection_failed = False
+        def request_shutdown():
+            nonlocal connection_failed
+            connection_failed = True
+            server.should_exit = True
+        server = uvicorn.Server(uvicorn.Config(create_app(args.data_dir,request_shutdown=request_shutdown),
+            host="127.0.0.1",port=args.port,workers=1,access_log=False,timeout_graceful_shutdown=1))
+        server.run()
+        if connection_failed:
+            return 1
     except Exception:
         print(SERVICE_MESSAGE)
         return 1

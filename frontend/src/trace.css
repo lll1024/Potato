@@ -30,3 +30,6 @@
 .trace-empty { padding: 24px; }
 @media (max-width: 1000px) { .trace-layout { grid-template-columns: minmax(0, 1fr); } .trace-detail { display: none; } .trace-mobile-detail { display: block; padding: 12px; border-top: 1px solid #d2dad3; } }
 @media (max-width: 760px) { .trace-view { padding: 18px; } .view-switch { padding: 12px 18px; } }
+
+.trace-tool { margin: 8px; padding-top: 8px; border: 1px solid #d2dad3; border-radius: 6px; }
+.trace-tool.selected { border: 2px solid #257968; background: #f4f8f5; }

@@ -83,6 +83,11 @@ class Store:
                 input_payload_id TEXT NOT NULL REFERENCES payloads,
                 response_payload_id TEXT REFERENCES payloads, error_payload_id TEXT REFERENCES payloads,
                 usage TEXT, usage_state TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS tool_calls (
+                tool_call_id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions ON DELETE CASCADE,
+                turn_id TEXT NOT NULL REFERENCES turns ON DELETE CASCADE,
+                request_id TEXT NOT NULL REFERENCES requests ON DELETE CASCADE, ordinal INTEGER NOT NULL,
+                data TEXT NOT NULL);
 
             PRAGMA user_version=1;
         """)
@@ -149,6 +154,24 @@ class Store:
                     summary["response_payload_id"] = response_payload_id
             return self.event(session_id,turn_id,kind,summary,request_id=data["request_id"])
 
+    def observe_tool(self, session_id, turn_id, kind, data):
+        with self.db:
+            tool_id = data["tool_call_id"]
+            row = self.db.execute("SELECT data FROM tool_calls WHERE tool_call_id=?",(tool_id,)).fetchone()
+            facts = json.loads(row["data"]) if row else {}
+            summary = dict(data)
+            for field, payload_kind in (("arguments","tool_arguments"),("service","tool_service"),("result","tool_result"),("error","tool_error")):
+                content = summary.pop(field,None)
+                if content is not None:
+                    reference = {"arguments":"arguments","service":"service","result":"result","error":"error"}[field]+"_payload_id"
+                    summary[reference] = self.save_payload(session_id,turn_id,payload_kind,content)
+            summary["status"] = kind.split(".",1)[1]
+            facts.update(summary)
+            if row:
+                self.db.execute("UPDATE tool_calls SET data=? WHERE tool_call_id=?",(json.dumps(facts,ensure_ascii=False),tool_id))
+            else:
+                self.db.execute("INSERT INTO tool_calls VALUES (?,?,?,?,?,?)",(tool_id,session_id,turn_id,data["request_id"],data["ordinal"],json.dumps(facts,ensure_ascii=False)))
+            return self.event(session_id,turn_id,kind,summary,request_id=data["request_id"],tool_call_id=tool_id)
 
     def context(self, session_id):
         row = self.db.execute("SELECT messages FROM turns WHERE session_id=? AND status != 'running' AND reason IS NOT 'service_interrupted' ORDER BY ordinal DESC LIMIT 1", (session_id,)).fetchone()
@@ -233,7 +256,9 @@ class Store:
             request = dict(row)
             request["usage"] = json.loads(request["usage"]) if request["usage"] else None
             requests.append(request)
+        tool_calls = [json.loads(row["data"]) | {"turn_id":row["turn_id"]} for row in self.db.execute(
+            "SELECT tool_calls.data,tool_calls.turn_id FROM tool_calls JOIN turns USING(turn_id) JOIN requests USING(request_id) WHERE tool_calls.session_id=? AND turns.ordinal>=? AND turns.ordinal<=? ORDER BY turns.ordinal,requests.ordinal,tool_calls.ordinal",(session_id,first_ordinal,last_ordinal))]
         for turn in turns:
             turn["usage_summary"] = usage_summary([request for request in requests if request["turn_id"] == turn["turn_id"]])
         all_usage = [{"usage":json.loads(row["usage"]) if row["usage"] else None} for row in self.db.execute("SELECT usage FROM requests WHERE session_id=?", (session_id,))]
-        return {"usage_summary":usage_summary(all_usage),"requests":requests,"cursor":self.cursor(),"stream_id":self.stream_id,"schema_version":SCHEMA_VERSION,"session":dict(session),"turns":turns,"events":events,"total_turns":self.db.execute("SELECT COUNT(*) FROM turns WHERE session_id=?", (session_id,)).fetchone()[0],"next_before":first_ordinal if len(rows)>limit else None}
+        return {"tool_calls":tool_calls,"usage_summary":usage_summary(all_usage),"requests":requests,"cursor":self.cursor(),"stream_id":self.stream_id,"schema_version":SCHEMA_VERSION,"session":dict(session),"turns":turns,"events":events,"total_turns":self.db.execute("SELECT COUNT(*) FROM turns WHERE session_id=?", (session_id,)).fetchone()[0],"next_before":first_ordinal if len(rows)>limit else None}
