@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 export type AcceptedSubmission = {
   schema_version: number; submission_id: string; session_id: string; turn_id: string;
@@ -26,8 +26,11 @@ export function useSubmission(onAccepted: (accepted: AcceptedSubmission, submitt
   const [pending, setPending] = useState<PendingSubmission | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const inFlight = useRef(false);
 
   async function perform(submitted: PendingSubmission, query: boolean) {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setSubmitting(true);
     setError('');
     try {
@@ -49,7 +52,7 @@ export function useSubmission(onAccepted: (accepted: AcceptedSubmission, submitt
       } else {
         setError('连接中断，尚不能确认是否已接受。请核对提交或安全重试；不会自动重发，也不会把连接问题记作模型失败。');
       }
-    } finally { setSubmitting(false); }
+    } finally { inFlight.current = false; setSubmitting(false); }
   }
 
   async function send(input: string, sessionId: string | null) {
