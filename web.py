@@ -7,6 +7,7 @@ import hashlib
 import json
 import logging
 import os
+import sqlite3
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -84,6 +85,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
     accepting = False
     acceptance_lock = asyncio.Lock()
     storage_error: str | None = None
+    unsaved_fact: dict[str, str] | None = None
 
     stop_requested = asyncio.Event()
     stop_reason = "user_stop"
@@ -136,9 +138,29 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
         # 校验错误中的原输入可能含凭据，不能直接交给浏览器或日志。
         return JSONResponse(status_code=422,content={"detail":{"code":"INVALID_INPUT","message":"输入或提交身份格式不正确，请检查后重试。"}})
 
+    def storage_failed(message: str, *, kind: str | None = None, turn_id: str | None = None):
+        nonlocal accepting,storage_error,stop_reason,unsaved_fact
+        previous = (accepting,storage_error,unsaved_fact)
+        accepting = False
+        storage_error = "存储故障：" + message + " 请检查存储后重启。"
+        if kind is not None:
+            unsaved_fact = {"kind":kind,"turn_id":turn_id or "","message":message}
+        # 并发历史写入失败时，已进入 SDK 的调用仍等待真实返回。
+        # 后续边界复用停止信号；名额由 execute 在真正结束后释放。
+        if not stop_requested.is_set():
+            stop_reason = "storage_failure"
+        stop_requested.set()
+        if previous != (accepting,storage_error,unsaved_fact):
+            changed.set()
+
+    @app.exception_handler(sqlite3.Error)
+    async def storage_exception(_request, _error):
+        storage_failed("数据无法可靠读取或保存。")
+        return JSONResponse(status_code=503,content={"detail":{"code":"STORAGE_FAILURE","message":"存储故障，数据暂时无法核对，请检查后重启。"}})
+
     async def execute(identity, text):
-        nonlocal active,accepting,storage_error
-        messages: list[MessageParam] = store.context(identity["session_id"]) + [{"role":"user","content":text}]
+        nonlocal active,accepting
+        messages: list[MessageParam] = []
         outcome: dict[str, Any] = {}
         started = asyncio.get_running_loop().time()
         async def observe(kind, data):
@@ -152,13 +174,20 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                     else:
                         store.observe_tool(identity["session_id"],identity["turn_id"],kind,safe)
                 except Exception:
-                    raise TraceStorageError("请求事实未保存，已停止后续查询；请检查存储后重启。") from None
+                    message = ("调用返回或错误已收到，但未保存；仅保留最后成功提交的事实。"
+                               if kind in ("request.completed","request.failed","tool.completed","tool.failed")
+                               else "调用开始或执行事实未保存，已停止后续查询。")
+                    storage_failed(message,kind=kind,turn_id=identity["turn_id"])
+                    raise TraceStorageError(message) from None
                 changed.set()
         try:
+            try:
+                messages = store.context(identity["session_id"]) + [{"role":"user","content":text}]
+            except Exception:
+                storage_failed("完整上下文无法读取，查询未启动。",kind="turn.context",turn_id=identity["turn_id"])
+                raise TraceStorageError from None
             answer = await agent_loop(messages,runtime.client,runtime.tools,runtime.model,observer=observe,stop_requested=stop_requested,stop_reason=lambda: stop_reason)
-        except TraceStorageError as error:
-            accepting = False
-            storage_error = str(error)
+        except TraceStorageError:
             active = None
             changed.set()
             if runtime.tools.failure == "connection" and request_shutdown:
@@ -174,8 +203,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                          max(0,(asyncio.get_running_loop().time()-started)*1000))
         except Exception:
             # 保存失败时停止接受输入，保留最后提交事实，不能伪报终局已保存。
-            accepting = False
-            storage_error = "轮次结果未保存，请检查存储后重启。"
+            storage_failed("轮次结果未保存；仅保留最后成功提交的事实。",kind="turn.finished",turn_id=identity["turn_id"])
         finally:
             active = None
             if runtime.tools.failure == "connection":
@@ -186,7 +214,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
 
     @app.post("/api/turns",status_code=202)
     async def submit(body: Submission):
-        nonlocal task,active,accepting,storage_error,stop_reason
+        nonlocal task,active,stop_reason
         async with acceptance_lock:
             fingerprint = hashlib.sha256(json.dumps([body.input, body.session_id],ensure_ascii=False).encode()).hexdigest()
             if body.submission_id is not None:
@@ -209,9 +237,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             except KeyError:
                 raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"}) from None
             except Exception:
-                accepting = False
-                storage_error = "输入未保存，查询未启动，请检查存储后重启。"
-                changed.set()
+                storage_failed("输入未保存，查询未启动。",kind="turn.accepted")
                 raise HTTPException(503,{"code":"STORAGE_FAILURE","message":"输入未保存，查询未启动。"}) from None
             stop_requested.clear()
             stop_reason = "user_stop"
@@ -249,7 +275,8 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                 "stopping":bool(active and stop_requested.is_set()),
                 "map_paused":runtime.tools.failure is not None,
                 "map_pause_reason":runtime.tools.failure,
-                "service_status":"available" if accepting else "unavailable","storage_error":storage_error}
+                "service_status":"available" if accepting else "unavailable","storage_error":storage_error,
+                "unsaved_fact":unsaved_fact}
 
 
     @app.get("/api/sessions")
@@ -304,7 +331,11 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             last_state = None
             while True:
                 changed.clear()
-                batch = store.events_after(cursor)
+                try:
+                    batch = store.events_after(cursor)
+                except sqlite3.Error:
+                    storage_failed("执行通知暂时无法读取；仅保留最后成功提交的事实。")
+                    batch = []
                 for event in batch:
                     cursor = event["cursor"]
                     # 等待网络发送时其他页面可能删除；不发送已级联删除的预读摘要。
@@ -332,10 +363,11 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
         if not title:
             raise HTTPException(422,"请输入会话标题。")
         try:
-            changed = store.rename(session_id,title)
+            renamed = store.rename(session_id,title)
         except Exception:
-            raise HTTPException(503,{"code":"STORAGE_FAILURE","message":"标题未保存，请重试。"}) from None
-        if not changed:
+            storage_failed("标题未保存。")
+            raise HTTPException(503,{"code":"STORAGE_FAILURE","message":"存储故障，标题未保存，请检查后重启。"}) from None
+        if not renamed:
             raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"})
         return {"schema_version":SCHEMA_VERSION,"session_id":session_id,"title":title}
 
@@ -346,7 +378,8 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
         except ValueError:
             raise HTTPException(409,{"code":"BUSY","message":"会话正在执行或停止，请等待结束后删除。"}) from None
         except Exception:
-            raise HTTPException(503,{"code":"STORAGE_FAILURE","message":"会话未删除，请重试。"}) from None
+            storage_failed("会话删除未保存。")
+            raise HTTPException(503,{"code":"STORAGE_FAILURE","message":"存储故障，会话未删除，请检查后重启。"}) from None
         if not deleted:
             raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"})
         changed.set()
