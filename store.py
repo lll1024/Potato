@@ -123,7 +123,7 @@ class Store:
                 payload_id = self.save_payload(session_id,turn_id,field,data[field])
                 status = "failed" if failed else "completed"
                 self.db.execute(f"UPDATE requests SET status=?,finished_at=?,duration_ms=?,{field}_payload_id=?,usage=?,usage_state=? WHERE request_id=?",(status,data["finished_at"],data["duration_ms"],payload_id,json.dumps(data["usage"],ensure_ascii=False) if data["usage"] is not None else None,data["usage_state"],data["request_id"]))
-                summary = {"status":status,f"{field}_payload_id":payload_id,"duration_ms":data["duration_ms"],"usage":data["usage"],"usage_state":data["usage_state"]}
+                summary = {"status":status,f"{field}_payload_id":payload_id,"duration_ms":data["duration_ms"],"usage_state":data["usage_state"]}
                 if failed and data.get("response") is not None:
                     response_payload_id = self.save_payload(session_id,turn_id,"response",data["response"])
                     self.db.execute("UPDATE requests SET response_payload_id=? WHERE request_id=?",(response_payload_id,data["request_id"]))

@@ -193,13 +193,13 @@ async def agent_loop(
             duration_ms = max(0,(asyncio.get_running_loop().time()-started)*1000)
             finished_at = datetime.now(timezone.utc).isoformat()
             stage = "response_processing"
-            parsed = response.model_dump(mode="json", exclude_unset=True)
+            parsed = response.model_dump(mode="json", exclude_unset=True, warnings=False)
             service_request_id = getattr(response, "_request_id", None)
             if service_request_id is not None:
                 parsed["_request_id"] = service_request_id
             # 采集先于转换，保留 SDK 字段存在性；协议上下文仅使用脱敏内容块。
             response = response.model_copy(update={"content": [
-                type(block).model_validate_json(tools.redact(block.model_dump_json()))
+                type(block).model_validate_json(tools.redact(block.model_dump_json(warnings=False)))
                 for block in response.content
             ]})
         except Exception as error:
