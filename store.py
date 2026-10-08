@@ -41,6 +41,10 @@ def usage_summary(requests):
     return result
 
 
+class StartupError(RuntimeError):
+    """可直接展示的固定启动诊断，不含底层错误或路径。"""
+
+
 class Store:
     def __init__(self, data_dir: Path):
         self.db = sqlite3.connect(data_dir / "travel.sqlite3")
@@ -49,7 +53,7 @@ class Store:
         version = self.db.execute("PRAGMA user_version").fetchone()[0]
         if version not in (0, SCHEMA_VERSION):
             self.db.close()
-            raise RuntimeError("数据版本不兼容，请使用对应版本的服务。")
+            raise StartupError("数据版本不兼容，请使用对应版本的服务。")
         self.db.executescript("""
             CREATE TABLE IF NOT EXISTS sessions (
                 session_id TEXT PRIMARY KEY, title TEXT NOT NULL,
@@ -173,6 +177,13 @@ class Store:
                 self.db.execute("INSERT INTO tool_calls VALUES (?,?,?,?,?,?)",(tool_id,session_id,turn_id,data["request_id"],data["ordinal"],json.dumps(facts,ensure_ascii=False)))
             return self.event(session_id,turn_id,kind,summary,request_id=data["request_id"],tool_call_id=tool_id)
 
+    def recover(self):
+        # 新观察只终止遗留轮次，调用事实仍是上次成功提交的原样。
+        with self.db:
+            for row in self.db.execute("SELECT session_id,turn_id FROM turns WHERE status IN ('running','stopping')").fetchall():
+                self.db.execute("UPDATE turns SET status='terminated',reason='service_interrupted' WHERE turn_id=?", (row["turn_id"],))
+                self.event(row["session_id"],row["turn_id"],"turn.recovered", {"status":"terminated","reason":"service_interrupted","context_excluded":True,"message":"服务中断，未结束调用的结果未知；整轮已排除后续上下文。"})
+
     def context(self, session_id):
         row = self.db.execute("SELECT messages FROM turns WHERE session_id=? AND status != 'running' AND reason IS NOT 'service_interrupted' ORDER BY ordinal DESC LIMIT 1", (session_id,)).fetchone()
         return json.loads(row["messages"]) if row else []
@@ -258,7 +269,16 @@ class Store:
             requests.append(request)
         tool_calls = [json.loads(row["data"]) | {"turn_id":row["turn_id"]} for row in self.db.execute(
             "SELECT tool_calls.data,tool_calls.turn_id FROM tool_calls JOIN turns USING(turn_id) JOIN requests USING(request_id) WHERE tool_calls.session_id=? AND turns.ordinal>=? AND turns.ordinal<=? ORDER BY turns.ordinal,requests.ordinal,tool_calls.ordinal",(session_id,first_ordinal,last_ordinal))]
+        interrupted = {turn["turn_id"] for turn in turns if turn["reason"] == "service_interrupted"}
+        for request in requests:
+            if request["turn_id"] in interrupted and request["status"] == "running":
+                request["interrupted"] = True
+        for tool in tool_calls:
+            if tool["turn_id"] in interrupted and tool["status"] in ("pending","waiting","running"):
+                tool["interrupted"] = True
         for turn in turns:
+            if turn["turn_id"] in interrupted:
+                turn["context_excluded"] = True
             turn["usage_summary"] = usage_summary([request for request in requests if request["turn_id"] == turn["turn_id"]])
         all_usage = [{"usage":json.loads(row["usage"]) if row["usage"] else None} for row in self.db.execute("SELECT usage FROM requests WHERE session_id=?", (session_id,))]
         return {"tool_calls":tool_calls,"usage_summary":usage_summary(all_usage),"requests":requests,"cursor":self.cursor(),"stream_id":self.stream_id,"schema_version":SCHEMA_VERSION,"session":dict(session),"turns":turns,"events":events,"total_turns":self.db.execute("SELECT COUNT(*) FROM turns WHERE session_id=?", (session_id,)).fetchone()[0],"next_before":first_ordinal if len(rows)>limit else None}
