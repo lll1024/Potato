@@ -40,6 +40,15 @@ export function useServiceEvents() {
           setRevision(current => current + 1);
           void refresh().catch(unavailable);
         });
+        stream.addEventListener('service.state', event => {
+          if (cancelled) return;
+          try {
+            const notice = JSON.parse((event as MessageEvent).data);
+            if (notice.schema_version !== 1 || !notice.state) throw new Error('服务状态无法识别。');
+            setState(notice.state);
+            setConnectionError('');
+          } catch { unavailable(); }
+        });
         stream.onopen = () => {
           if (cancelled) return;
           setConnectionError('');

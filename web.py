@@ -251,11 +251,18 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             raise HTTPException(409,"事件游标无法续接，请重新读取快照。")
         async def stream():
             nonlocal cursor
+            last_state = None
             while True:
                 changed.clear()
                 for event in store.events_after(cursor):
                     cursor = event["cursor"]
                     yield f"id: {cursor}\nevent: trace\ndata: {json.dumps({'schema_version':SCHEMA_VERSION,**event},ensure_ascii=False)}\n\n"
+                current_state = await state()
+                if current_state != last_state:
+                    last_state = current_state
+                    notice = {"schema_version":SCHEMA_VERSION,"kind":"service.state","transient":True,"state":current_state}
+                    # 实时运行状态不冒充已提交轨迹，不能推进持久化 cursor。
+                    yield f"event: service.state\ndata: {json.dumps(notice,ensure_ascii=False)}\n\n"
                 try:
                     await asyncio.wait_for(changed.wait(),15)
                 except asyncio.TimeoutError:

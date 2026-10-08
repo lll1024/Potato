@@ -272,6 +272,7 @@ class SubmissionTests(unittest.IsolatedAsyncioTestCase):
                                 await started.put((event, (await page.get("/api/snapshot")).json()))
                             elif event["kind"] == "turn.finished":
                                 return (await page.get("/api/snapshot")).json()
+                    raise AssertionError("通知流没有返回轮次结束。")
                 observers = [asyncio.create_task(observe_page()) for _ in range(2)]
                 try:
                     for _ in observers:
@@ -301,3 +302,39 @@ class SubmissionTests(unittest.IsolatedAsyncioTestCase):
                     for observer in observers:
                         observer.cancel()
                     await asyncio.gather(*observers,return_exceptions=True)
+
+    async def test_other_page_receives_unavailable_state_when_acceptance_cannot_be_saved(self):
+        import json
+        import sqlite3
+        from pathlib import Path
+        from test_trace import serving
+        ready = asyncio.Event()
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory,ModelService([])) as page:
+                with sqlite3.connect(Path(directory)/"travel.sqlite3") as database:
+                    database.execute("CREATE TRIGGER fail_submission BEFORE INSERT ON submissions BEGIN SELECT RAISE(ABORT,'token=storage-secret'); END")
+                database.close()
+                async def observe_other_page():
+                    async with page.stream("GET","/api/events?after=0") as stream:
+                        ready.set()
+                        async for line in stream.aiter_lines():
+                            if line.startswith("data:"):
+                                event = json.loads(line[5:])
+                                if event.get("kind") == "service.state" and not event["state"]["accepting"]:
+                                    self.assertTrue(event["transient"])
+                                    self.assertNotIn("cursor",event)
+                                    self.assertNotIn("storage-secret",str(event))
+                                    return event["state"]
+                    raise AssertionError("通知流没有返回服务不可用状态。")
+                observer = asyncio.create_task(observe_other_page())
+                try:
+                    await asyncio.wait_for(ready.wait(),2)
+                    rejected = await page.post("/api/turns",json={"submission_id":"not-saved","input":"杭州"})
+                    self.assertEqual(rejected.status_code,503)
+                    state = await asyncio.wait_for(observer,2)
+                    self.assertFalse(state["accepting"])
+                    self.assertEqual(state["service_status"],"unavailable")
+                    self.assertIsNone(state["active_turn_id"])
+                finally:
+                    observer.cancel()
+                    await asyncio.gather(observer,return_exceptions=True)
