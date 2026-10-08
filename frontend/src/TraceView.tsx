@@ -4,6 +4,7 @@ import { Payload, Highlight, type TraceLocation } from './PayloadViewer';
 import { TraceSearch } from './TraceSearch';
 import { TraceTimeline } from './TraceTimeline';
 import { useReadingFollow } from './useReadingFollow';
+import { ReadingScroll } from './ReadingScroll';
 export type { TraceLocation } from './PayloadViewer';
 
 type Usage = Record<string, unknown>;
@@ -109,7 +110,6 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
     try {
       const page=await read<TraceSnapshot>(`/api/sessions/${id}?summary=true&before=${snapshot.next_before}`);
       if (sessionRef.current!==id) return;
-      follow.preservePosition();
       setSnapshot(current => current ? {...current,
         next_before:page.next_before,
         turns:[...page.turns.filter(item => !current.turns.some(old => old.turn_id===item.turn_id)),...current.turns].sort((a,b) => a.ordinal-b.ordinal),
@@ -180,33 +180,33 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
     <TraceSearch sessionId={sessionId} onLocate={target => void locate(target)} onInteraction={onInteraction} />
     <UsageTotals summary={snapshot?.usage_summary} />
     <div className="reading-follow"><p role="status">{follow.hasNew ? '有新事件' : follow.paused ? '已暂停跟随，正在阅读' : '正在跟随最新事件'}</p>{follow.paused && <button type="button" onClick={backToLatest}>回到最新</button>}</div>
-    <div className="trace-scroll" ref={follow.ref} onScroll={follow.onScroll} onClickCapture={event => {if ((event.target as HTMLElement).closest('summary')) onInteraction();}}>
+    <ReadingScroll className="trace-scroll" identity={sessionId} paused={follow.paused} scrollRef={follow.ref} onScroll={follow.onScroll} onClickCapture={event => {if ((event.target as HTMLElement).closest('summary')) onInteraction();}}>
     {snapshot?.next_before && <button type="button" disabled={loadingEarlier} onClick={() => void loadEarlier()}>加载更早轨迹</button>}
     {snapshot && <TraceTimeline turns={snapshot.turns} requests={snapshot.requests} tools={snapshot.tool_calls} events={snapshot.events} selected={selected} onLocate={timelineLocate} />}
     <div className="trace-layout">
       <div className="trace-tree">
         <details open={expanded.session ?? true} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,session:open}));}}>
           <summary>助手会话：{snapshot?.session.title ?? '正在读取'}</summary>
-          {snapshot?.turns.map(turn => <details data-reading-id={turn.turn_id} className={`trace-turn ${selected === turn.turn_id ? 'selected' : ''}`} id={`trace-object-${turn.turn_id}`} key={turn.turn_id} open={expanded[turn.turn_id] ?? false} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,[turn.turn_id]:open}));}}>
-            <summary>第 {turn.ordinal} 轮 · {turnStatus(turn)} · {turn.input_is_summary ? '输入摘要：' : ''}{turn.input}</summary>
+          {snapshot?.turns.map(turn => <details className={`trace-turn ${selected === turn.turn_id ? 'selected' : ''}`} id={`trace-object-${turn.turn_id}`} key={turn.turn_id} open={expanded[turn.turn_id] ?? false} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,[turn.turn_id]:open}));}}>
+            <summary data-reading-anchor={`turn:${turn.turn_id}`}>第 {turn.ordinal} 轮 · {turnStatus(turn)} · {turn.input_is_summary ? '输入摘要：' : ''}{turn.input}</summary>
             {turn.reason === 'service_interrupted' && <p className="hint">本轮已排除后续上下文；保留最后保存事实，没有自动重试或重放。</p>}
             <UsageTotals summary={turn.usage_summary} />
-            {narrow && selected===turn.turn_id && <div className="trace-mobile-detail">{turnDetail}</div>}
+            {narrow && selected===turn.turn_id && <div className="trace-mobile-detail" data-reading-anchor={`detail:${turn.turn_id}`}>{turnDetail}</div>}
             {snapshot.requests.filter(item => item.turn_id === turn.turn_id).map(item => <details key={item.request_id} id={`trace-object-${item.request_id}`} className={`trace-request ${selected === item.request_id ? 'selected' : ''}`} open={expanded[item.request_id] ?? false} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,[item.request_id]:open}));}}>
-              <summary>模型请求 {item.ordinal} · {item.interrupted ? '中断，结果未知' : statuses[item.status] ?? item.status}</summary>
+              <summary data-reading-anchor={`request:${item.request_id}`}>模型请求 {item.ordinal} · {item.interrupted ? '中断，结果未知' : statuses[item.status] ?? item.status}</summary>
               <div className="trace-request-row"><time dateTime={item.started_at}>{new Date(item.started_at).toLocaleTimeString('zh-CN')}</time><span>{item.duration_ms === null ? (item.interrupted ? '—（中断，结束未知）' : '—（尚未结束）') : `${item.duration_ms.toFixed(1)} ms`}</span><button aria-pressed={selected === item.request_id} onClick={() => select(item.request_id)}>查看详情</button></div>
               {snapshot.tool_calls.filter(call => call.request_id === item.request_id).map(call => <div key={call.tool_call_id} id={`trace-object-${call.tool_call_id}`} className={`trace-tool ${selected === call.tool_call_id ? 'selected' : ''}`}>
-                <div className="trace-request-row"><span>工具 {call.ordinal} · {call.name} · {call.interrupted ? '中断，结果未知' : toolStatuses[call.status] ?? call.status}</span><button aria-pressed={selected === call.tool_call_id} onClick={() => select(call.tool_call_id)}>查看工具详情</button></div>
-                {narrow && selected === call.tool_call_id && <div className="trace-mobile-detail"><ToolDetail tool={call} {...detailProps} /></div>}
+                <div className="trace-request-row" data-reading-anchor={`tool:${call.tool_call_id}`}><span>工具 {call.ordinal} · {call.name} · {call.interrupted ? '中断，结果未知' : toolStatuses[call.status] ?? call.status}</span><button aria-pressed={selected === call.tool_call_id} onClick={() => select(call.tool_call_id)}>查看工具详情</button></div>
+                {narrow && selected === call.tool_call_id && <div className="trace-mobile-detail" data-reading-anchor={`detail:${call.tool_call_id}`}><ToolDetail tool={call} {...detailProps} /></div>}
               </div>)}
-              {narrow && selected === item.request_id && <div className="trace-mobile-detail"><RequestDetail request={item} {...detailProps} /></div>}
+              {narrow && selected === item.request_id && <div className="trace-mobile-detail" data-reading-anchor={`detail:${item.request_id}`}><RequestDetail request={item} {...detailProps} /></div>}
             </details>)}
           </details>)}
         </details>
       </div>
-      <section className="trace-detail" aria-label="选中执行详情">{!narrow && (turnDetail ?? (tool ? <ToolDetail key={tool.tool_call_id} tool={tool} {...detailProps} /> : request ? <RequestDetail key={request.request_id} request={request} {...detailProps} /> : <p className="hint">选择模型请求或工具调用，查看真实时间与完整来源。</p>))}</section>
+      <section className="trace-detail" data-reading-anchor={`detail:${selected ?? 'none'}`} aria-label="选中执行详情">{!narrow && (turnDetail ?? (tool ? <ToolDetail key={tool.tool_call_id} tool={tool} {...detailProps} /> : request ? <RequestDetail key={request.request_id} request={request} {...detailProps} /> : <p className="hint">选择模型请求或工具调用，查看真实时间与完整来源。</p>))}</section>
     </div>
-    </div>
+    </ReadingScroll>
   </div>;
 }
 

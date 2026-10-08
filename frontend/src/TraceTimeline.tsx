@@ -31,8 +31,8 @@ export function TraceTimeline({turns, requests, tools, events, selected, onLocat
   boundaries.sort((a, b) => a.time.localeCompare(b.time) || a.order - b.order || a.identity.localeCompare(b.identity));
   return <section className="trace-timeline" aria-label="实际时间线">
     <h4>实际时间线</h4><p className="hint">只展示已采集的模型请求、工具 SDK 与应用边界；未结束调用没有结束时间或进度百分比。</p>
-    <ol>{boundaries.map(item => <li key={item.identity} data-reading-id={item.identity}>
-      <button type="button" aria-pressed={selected === item.objectId} onClick={() => onLocate(item.objectType, item.objectId, item.turnId)}>
+    <ol>{boundaries.map(item => <li key={item.identity}>
+      <button type="button" data-reading-anchor={`boundary:${item.identity}`} aria-pressed={selected === item.objectId} onClick={() => onLocate(item.objectType, item.objectId, item.turnId)}>
         <time dateTime={item.time}>{new Date(item.time).toLocaleTimeString('zh-CN', {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit', fractionalSecondDigits:3})}</time>
         <span>第 {item.turnOrdinal} 轮 · {item.label}</span>
       </button>
