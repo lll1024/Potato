@@ -18,6 +18,8 @@ from anthropic import AsyncAnthropic
 from anthropic.types import MessageParam
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
@@ -102,6 +104,11 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
 
     app = FastAPI(lifespan=lifespan)
 
+    @app.exception_handler(RequestValidationError)
+    async def invalid_submission(_request, _error):
+        # 校验错误中的原输入可能含凭据，不能直接交给浏览器或日志。
+        return JSONResponse(status_code=422,content={"detail":{"code":"INVALID_INPUT","message":"输入或提交身份格式不正确，请检查后重试。"}})
+
     async def execute(identity, text):
         nonlocal active
         messages: list[MessageParam] = [{"role":"user","content":text}]
@@ -145,7 +152,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             if active:
                 raise HTTPException(409,{"code":"BUSY","message":"已有一轮正在执行，请等待结束。"})
             if not body.input.strip():
-                raise HTTPException(422,"请输入旅行需求。")
+                raise HTTPException(422,{"code":"INVALID_INPUT","message":"请输入旅行需求。"})
             text = runtime.tools.redact(body.input)
             try:
                 identity = store.accept(text,submission_id=body.submission_id,fingerprint=fingerprint)

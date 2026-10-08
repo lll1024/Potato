@@ -171,3 +171,20 @@ class SubmissionTests(unittest.IsolatedAsyncioTestCase):
                     self.assertFalse(state["accepting"])
                     self.assertEqual(state["service_status"],"unavailable")
             self.assertEqual(model.requests,[])
+
+    async def test_invalid_submission_reports_safe_validation_error(self):
+        model = ModelService([])
+        @asynccontextmanager
+        async def resources():
+            tools = AmapTools(cast(Client, MapService()))
+            await tools.discover()
+            yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
+        with tempfile.TemporaryDirectory() as directory:
+            app = create_app(directory, resources=resources)
+            async with app.router.lifespan_context(app):
+                async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as page:
+                    rejected = await page.post("/api/turns", json={"submission_id":"password=validation-secret"*10,"input":"杭州"})
+                    self.assertEqual(rejected.status_code,422)
+                    self.assertNotIn("validation-secret",str(rejected.json()))
+                    self.assertEqual(rejected.json()["detail"]["code"],"INVALID_INPUT")
+            self.assertEqual(model.requests,[])
