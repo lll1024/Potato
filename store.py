@@ -158,7 +158,9 @@ class Store:
         matches = []
         turns = {row["turn_id"]:dict(row) for row in self.db.execute("SELECT * FROM turns WHERE session_id=? ORDER BY ordinal",(session_id,))}
         owners = {}
+        request_ordinals = {}
         for row in self.db.execute("SELECT * FROM requests WHERE session_id=?",(session_id,)):
+            request_ordinals[row["request_id"]] = row["ordinal"]
             for field in ("input","response","error"):
                 if row[field+"_payload_id"]:
                     owners[row[field+"_payload_id"]] = {"object_id":row["request_id"],"object_type":"request","request_id":row["request_id"],"request_ordinal":row["ordinal"]}
@@ -166,7 +168,7 @@ class Store:
             data = json.loads(row["data"])
             for field in ("arguments","service","result","error"):
                 if data.get(field+"_payload_id"):
-                    owners[data[field+"_payload_id"]] = {"object_id":data["tool_call_id"],"object_type":"tool","request_id":data["request_id"],"tool_ordinal":data["ordinal"],"tool_name":data["name"]}
+                    owners[data[field+"_payload_id"]] = {"object_id":data["tool_call_id"],"object_type":"tool","request_id":data["request_id"],"request_ordinal":request_ordinals[data["request_id"]],"tool_ordinal":data["ordinal"],"tool_name":data["name"]}
         def match(text, turn_id, field, owner, payload_id=None):
             highlight = query
             offset = text.find(highlight)
@@ -183,7 +185,8 @@ class Store:
             for row in self.db.execute("SELECT * FROM events WHERE session_id=? ORDER BY sequence",(session_id,)):
                 object_id = row["tool_call_id"] or row["request_id"] or row["turn_id"]
                 object_type = "tool" if row["tool_call_id"] else "request" if row["request_id"] else "turn"
-                match(row["data"],row["turn_id"],row["kind"],{"object_id":object_id,"object_type":object_type,"request_id":row["request_id"]})
+                owner = next((owner for owner in owners.values() if owner["object_id"]==object_id), {"object_id":object_id,"object_type":object_type,"request_id":row["request_id"]})
+                match(row["data"],row["turn_id"],row["kind"],owner)
         matches.sort(key=lambda item:item["turn_ordinal"])
         return {"schema_version":SCHEMA_VERSION,"scope":scope,"query":query,"matches":matches}
 

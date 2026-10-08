@@ -35,7 +35,7 @@ export function TraceSearch({sessionId,onLocate,onInteraction}: {sessionId: stri
     </form>
     <p role="status">{status}</p><p role="alert">{error}</p>
     {!!matches.length && <ul>{matches.map((match,index) => <li key={`${match.payload_id ?? match.object_id}-${match.field}-${index}`}><button onClick={() => {onInteraction?.(); onLocate({...match,query:match.highlight ?? searched});}}>
-      <strong>第 {match.turn_ordinal} 轮 · {match.object_type==='tool' ? `工具 ${match.tool_ordinal ?? ''} ${match.tool_name ?? ''}` : match.object_type==='request' ? `模型请求 ${match.request_ordinal ?? ''}` : '对话轮次'} · {fields[match.field] ?? match.field}</strong>
+      <strong>第 {match.turn_ordinal} 轮 · {match.object_type==='tool' ? `模型请求 ${match.request_ordinal ?? ''} / 工具 ${match.tool_ordinal ?? ''} ${match.tool_name ?? ''}` : match.object_type==='request' ? `模型请求 ${match.request_ordinal ?? ''}` : '对话轮次'} · {fields[match.field] ?? match.field}</strong>
       <span>节选：<Highlight text={match.excerpt ?? ''} query={match.highlight ?? searched} /></span>
       <small>对象 {match.object_id}{match.payload_id ? ` · 载荷 ${match.payload_id}` : ''}</small>
     </button></li>)}</ul>}
