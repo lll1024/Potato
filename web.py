@@ -430,6 +430,9 @@ def main() -> int:
             host="127.0.0.1",port=args.port,workers=1,access_log=False,log_level="critical",timeout_graceful_shutdown=1))
         try:
             server.run()
+        except KeyboardInterrupt:
+            # Uvicorn 已完成 lifespan 释放，再传播 SIGINT；正常中断不输出栈。
+            return 0
         except SystemExit:
             print(getattr(app.state,"startup_error","服务无法启动，请检查配置或存储后重启。"))
             return 1
