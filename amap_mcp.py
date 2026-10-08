@@ -269,7 +269,7 @@ class AmapTools:
             )
             # 配置片段可能使用 key=value；未配置到当前服务的凭据也不能存入详情。
             value = re.sub(
-                r"\b((?:key|api[_-]?key|access_token|token|auth|authorization|password|secret|auth_token|cookie|client_secret|refresh_token|x[_-]api[_-]key|anthropic_api_key|anthropic_auth_token)\s*=\s*)(?:\"[^\"]*\"|'[^']*'|[^\s,;&<>\"'\\]+)",
+                r"\b((?:key|api[_-]?key|access_token|token|auth|authorization|password|secret|auth_token|cookie|set[_-]cookie|client_secret|refresh_token|x[_-]api[_-]key|anthropic_api_key|anthropic_auth_token)\s*=\s*)(?:\"[^\"]*\"|'[^']*'|[^\s,;&<>\"'\\]+)",
                 lambda match: match[1] + "[REDACTED]", value, flags=re.IGNORECASE,
             )
             # 普通文字中的 JSON 凭据字段也须隐藏，例如用户粘贴配置片段。
