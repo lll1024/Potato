@@ -1,0 +1,32 @@
+.trace-view { padding: 20px 24px; min-width: 0; }
+.view-switch { display: flex; gap: 8px; padding: 12px 24px; border-bottom: 1px solid #e1e5e0; }
+.view-switch button[aria-pressed="false"], .trace-toolbar button, .trace-request-row button { color: #1e5148; background: white; }
+.trace-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.trace-toolbar h3 { margin: 0; }
+.trace-toolbar div { display: flex; gap: 6px; }
+.trace-toolbar button, .trace-request-row button { padding: 5px 10px; min-height: 32px; font-size: 12px; }
+.trace-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin-top: 18px; }
+.trace-tree, .trace-detail { min-width: 0; }
+.trace-detail { border-left: 1px solid #d2dad3; padding-left: 18px; font-size: 13px; }
+.trace-tree details { border: 1px solid #d2dad3; border-radius: 6px; margin-bottom: 8px; }
+.trace-tree summary { padding: 10px; cursor: pointer; font-size: 13px; overflow-wrap: anywhere; }
+.trace-turn { margin: 8px; }
+.trace-request { margin: 8px; }
+.trace-request.selected { border: 2px solid #257968; background: #f4f8f5; }
+.trace-request-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 0 10px 10px; font-size: 12px; }
+.trace-request-row button { margin-left: auto; }
+.usage-totals { display: flex; flex-wrap: wrap; gap: 8px 14px; font-size: 12px; padding: 8px; background: #f2f5f1; }
+.usage-totals small { color: #5d6961; }
+.request-facts { display: grid; grid-template-columns: minmax(80px, auto) minmax(0, 1fr); gap: 6px 12px; }
+.request-facts > div { display: contents; }
+.request-facts dt { color: #5d6961; }
+.request-facts dd { margin: 0; overflow-wrap: anywhere; }
+.trace-detail summary, .trace-mobile-detail summary { cursor: pointer; padding: 10px 0; font-size: 13px; }
+.trace-payload { border-top: 1px solid #d2dad3; margin-top: 8px; }
+.trace-view pre { max-height: 400px; overflow: auto; padding: 12px; border: 1px solid #d2dad3; background: #f6f8f5; font-size: 12px; line-height: 1.6; }
+.trace-view pre.wrap { white-space: pre-wrap; overflow-wrap: anywhere; }
+.wrap-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.trace-mobile-detail { display: none; }
+.trace-empty { padding: 24px; }
+@media (max-width: 1000px) { .trace-layout { grid-template-columns: minmax(0, 1fr); } .trace-detail { display: none; } .trace-mobile-detail { display: block; padding: 12px; border-top: 1px solid #d2dad3; } }
+@media (max-width: 760px) { .trace-view { padding: 18px; } .view-switch { padding: 12px 18px; } }

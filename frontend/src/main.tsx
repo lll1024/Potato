@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import './style.css';
+import { TraceView } from './TraceView';
 import { HistorySidebar, useConversationDraft } from './HistorySidebar';
 import { ConversationRounds, type Turn } from './ConversationRounds';
 
@@ -26,6 +27,7 @@ function statusText(turn: Turn): string {
 }
 
 function App() {
+  const [view, setView] = useState<'conversation' | 'trace'>('conversation');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const {draft, setDraft, removeDraft} = useConversationDraft(sessionId);
   const [earlierTurns, setEarlierTurns] = useState<Record<string, Turn[]>>({});
@@ -120,12 +122,13 @@ function App() {
           <h2 id="conversation-title">{snapshot?.session.title ?? '空白对话'}</h2>
           <p role="status">{turn ? statusText(turn) : busy ? '其他对话正在执行' : '准备就绪'}</p>
         </div>
-        <div className="messages">
+        <nav className="view-switch" aria-label="会话视图"><button aria-pressed={view === 'conversation'} onClick={() => setView('conversation')}>对话</button><button aria-pressed={view === 'trace'} onClick={() => setView('trace')}>执行轨迹</button></nav>
+        {view === 'trace' ? <TraceView sessionId={sessionId} /> : <div className="messages">
           {turn ? <>
             {canLoadEarlier && <button className="load-earlier" disabled={loadingEarlier} onClick={() => void loadEarlier()}>加载更早对话</button>}
             <ConversationRounds turns={turns} statusText={statusText} />
           </> : <div className="empty"><h3>从一条旅行需求开始</h3><p>可以查询地点、比较交通路线、寻找餐饮，或安排多日旅行行程。</p><p className="example">例如：查询杭州西湖的地址。</p></div>}
-        </div>
+        </div>}
         <form onSubmit={send}>
           <label htmlFor="travel-input">旅行需求</label>
           <textarea id="travel-input" name="travel-input" value={draft} onChange={event => setDraft(event.target.value)} required rows={4} placeholder="写下城市、日期和你想查询的内容" />
