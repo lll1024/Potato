@@ -325,7 +325,7 @@ class Store:
             next_cursor = base64.urlsafe_b64encode(json.dumps([last["updated_at"],last["session_id"]]).encode()).decode()
         return {"schema_version":SCHEMA_VERSION,"sessions":[dict(row) for row in rows[:limit]],"next_cursor":next_cursor}
 
-    def snapshot(self, session_id, limit=50, before=None, summary=False):
+    def snapshot(self, session_id, limit=50, before=None, summary=False, include_messages=True):
         session = self.db.execute("SELECT * FROM sessions WHERE session_id=?", (session_id,)).fetchone()
         if session is None:
             return None
@@ -333,14 +333,15 @@ class Store:
         rows = self.db.execute("SELECT * FROM turns WHERE session_id=? AND (? IS NULL OR ordinal < ?) ORDER BY ordinal DESC LIMIT ?",(session_id,before,before,limit+1)).fetchall()
         for row in reversed(rows[:limit]):
             turn = dict(row)
-            if summary:
+            if summary or not include_messages:
                 del turn["messages"]
+            if summary:
                 for field in ("input","answer"):
                     value=turn[field]
                     turn[field+"_is_summary"]=value is not None and len(value)>120
                     if value is not None:
                         turn[field]=value[:120]
-            else:
+            elif include_messages:
                 turn["messages"] = json.loads(turn["messages"])
             for payload in self.db.execute("SELECT payload_id,kind FROM payloads WHERE turn_id=? AND kind IN ('turn_input','turn_answer')",(row["turn_id"],)):
                 turn[payload["kind"].removeprefix("turn_")+"_payload_id"] = payload["payload_id"]

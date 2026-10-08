@@ -8,21 +8,15 @@ import { HistorySidebar, useConversationDraft } from './HistorySidebar';
 import { ConversationRounds, type Turn } from './ConversationRounds';
 import { useSubmission } from './useSubmission';
 import { useServiceEvents } from './useServiceEvents';
+import { requestJson } from './api';
+import { reasonLabels } from './turnReasons';
 
 type Snapshot = { schema_version: number; session: { title: string }; turns: Turn[]; next_before: number | null; total_turns: number };
 
-async function api<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(path, options);
-  const body = await response.json();
-  if (!response.ok) throw new Error(typeof body.detail === 'string' ? body.detail : body.detail?.message ?? '请求未成功，请检查输入或本机服务。');
-  if (body.schema_version !== 1) throw new Error('数据版本不兼容，请更新页面和服务。');
-  return body;
+function api<T>(path: string, options?: RequestInit): Promise<T> {
+  return requestJson<T>(path, '请求未成功，请检查输入或本机服务。', options);
 }
 
-const reasonLabels: Record<string, string> = {
-  model_error: '模型请求失败', execution_error: '服务执行失败', budget: '查询达到上限',
-  output_limit: '输出达到上限', user_stop: '用户停止', map_paused: '地图查询已暂停', service_shutdown: '服务退出', service_interrupted: '服务中断', storage_failure: '存储故障',
-};
 function statusText(turn: Turn): string {
   if (turn.status === 'running') return '正在执行';
   if (turn.status === 'completed') return turn.tool_error_count ? '完成，含工具错误' : '已完成';
@@ -58,7 +52,7 @@ function App() {
     let cancelled = false;
     async function refresh() {
       try {
-        const result = await api<Snapshot>(`/api/sessions/${sessionId}`);
+        const result = await api<Snapshot>(`/api/sessions/${sessionId}?include_messages=false`);
         if (!cancelled) setSnapshot(result);
       } catch (cause) {
         if (!cancelled && cause instanceof Error && cause.message === '会话不存在。') {deletedConversation(sessionId!); return;}
@@ -107,7 +101,7 @@ function App() {
     if (!before) return;
     setLoadingEarlier(true);
     try {
-      const page = await api<Snapshot>(`/api/sessions/${id}?before=${before}`);
+      const page = await api<Snapshot>(`/api/sessions/${id}?include_messages=false&before=${before}`);
       setEarlierTurns(current => ({...current, [id]: [...page.turns, ...(current[id] ?? [])]}));
     } catch (cause) { setError(cause instanceof Error ? cause.message : '无法读取更早对话。'); }
     finally { setLoadingEarlier(false); }

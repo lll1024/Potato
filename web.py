@@ -287,10 +287,10 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             raise HTTPException(422,"历史分页游标无效，请重新加载。") from None
 
     @app.get("/api/sessions/{session_id}")
-    async def snapshot(session_id: str, limit: int = Query(50,ge=1,le=100), before: int | None = Query(None,ge=1), summary: bool = False):
+    async def snapshot(session_id: str, limit: int = Query(50,ge=1,le=100), before: int | None = Query(None,ge=1), summary: bool = False, include_messages: bool = True):
         with store.db:
             store.db.execute("BEGIN")
-            result = store.snapshot(session_id,limit,before,summary)
+            result = store.snapshot(session_id,limit,before,summary,include_messages)
         if result is None:
             raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"})
         return result

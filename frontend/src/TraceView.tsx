@@ -5,6 +5,8 @@ import { TraceSearch } from './TraceSearch';
 import { TraceTimeline } from './TraceTimeline';
 import { useReadingFollow } from './useReadingFollow';
 import { ReadingScroll } from './ReadingScroll';
+import { requestJson } from './api';
+import { reasonLabels } from './turnReasons';
 export type { TraceLocation } from './PayloadViewer';
 
 type Usage = Record<string, unknown>;
@@ -27,19 +29,14 @@ type TraceEvent = {event_id: string; sequence: number; kind: string; request_id?
 type TraceSnapshot = {events: TraceEvent[]; session: {title: string}; turns: TraceTurn[]; requests: TraceRequest[]; tool_calls: TraceTool[]; usage_summary: UsageSummary; next_before: number | null; cursor: number; stream_id: string};
 type Props = {sessionId: string | null; refreshKey?: number; location?: TraceLocation | null; onInteraction?: () => void};
 const toolStatuses: Record<string,string> = {pending:'已提出',waiting:'限速等待',running:'执行中',completed:'成功',failed:'失败',not_executed:'未执行'};
-const reasonLabels: Record<string,string> = {budget:'查询达到上限',model_error:'模型请求失败',output_limit:'输出达到上限',map_paused:'地图查询已暂停',user_stop:'用户停止',service_shutdown:'服务退出',service_interrupted:'服务中断',storage_failure:'存储故障'};
 const failureLabels: Record<string,string> = {auth:'鉴权失败',quota:'额度或限流',connection:'连接不可恢复',service:'地图服务暂停',arguments:'参数错误',timeout:'查询超时',business:'地图业务失败',sdk_error:'SDK 错误标志',error:'普通工具失败'};
 function turnStatus(turn: TraceTurn) { return turn.status === 'completed' ? (turn.tool_error_count ? `完成，含工具错误（${turn.tool_error_count}）` : '已完成') : turn.status === 'running' ? '正在执行' : `${turn.status === 'failed' ? '失败' : '终止'}：${reasonLabels[turn.reason ?? ''] ?? turn.reason ?? '原因未知'}`; }
 const statuses: Record<string,string> = {running:'正在请求',completed:'已收到响应',failed:'请求失败'};
 const usageLabels: Record<string,string> = {input_tokens:'输入',output_tokens:'输出',cache_creation_input_tokens:'缓存写入',cache_read_input_tokens:'缓存读取',
   'cache_creation.ephemeral_5m_input_tokens':'缓存写入（5 分钟）', 'cache_creation.ephemeral_1h_input_tokens':'缓存写入（1 小时）'};
 
-async function read<T>(path: string): Promise<T> {
-  const response = await fetch(path);
-  const result = await response.json();
-  if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : result.detail?.message ?? '无法读取执行轨迹。');
-  if (result.schema_version !== 1) throw new Error('数据版本不兼容，请更新页面。');
-  return result;
+function read<T>(path: string): Promise<T> {
+  return requestJson<T>(path, '无法读取执行轨迹。', undefined, '数据版本不兼容，请更新页面。');
 }
 
 function UsageTotals({summary}: {summary?: UsageSummary}) {
