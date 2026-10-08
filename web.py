@@ -287,8 +287,10 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             raise HTTPException(422,"历史分页游标无效，请重新加载。") from None
 
     @app.get("/api/sessions/{session_id}")
-    async def snapshot(session_id: str, limit: int = Query(50,ge=1,le=100), before: int | None = Query(None,ge=1)):
-        result = store.snapshot(session_id,limit,before)
+    async def snapshot(session_id: str, limit: int = Query(50,ge=1,le=100), before: int | None = Query(None,ge=1), summary: bool = False):
+        with store.db:
+            store.db.execute("BEGIN")
+            result = store.snapshot(session_id,limit,before,summary)
         if result is None:
             raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"})
         return result
@@ -305,6 +307,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
     @app.get("/api/snapshot")
     async def global_snapshot():
         with store.db:
+            store.db.execute("BEGIN")
             return {**await state(),"cursor":store.cursor(),"stream_id":store.stream_id}
 
     @app.get("/api/payloads/{payload_id}")
@@ -317,22 +320,34 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
     @app.get("/api/events")
     async def events(request: Request, after: int | None=None, stream_id: str | None=None):
         try:
-            cursor = after if after is not None else int(request.headers.get("Last-Event-ID", "0"))
+            # EventSource 自动续接仍保留最初 URL；已处理身份优先于初始 after。
+            cursor = int(request.headers["Last-Event-ID"]) if "Last-Event-ID" in request.headers else after or 0
         except ValueError:
-            raise HTTPException(409,"事件游标无法续接，请重新读取快照。") from None
+            raise HTTPException(409,{"code":"SNAPSHOT_REQUIRED","message":"事件游标无法续接，请重新读取快照。"}) from None
         if cursor < 0 or cursor > store.cursor() or (stream_id is not None and stream_id != store.stream_id):
-            raise HTTPException(409,"事件游标无法续接，请重新读取快照。")
+            raise HTTPException(409,{"code":"SNAPSHOT_REQUIRED","message":"事件游标无法续接或数据目录已更换，请重新读取快照。"})
         async def stream():
             nonlocal cursor
             last_state = None
             while True:
                 changed.clear()
+                read_failed = False
                 try:
                     batch = store.events_after(cursor)
                 except sqlite3.Error:
                     storage_failed("执行通知暂时无法读取；仅保留最后成功提交的事实。")
+                    read_failed = True
                     batch = []
                 for event in batch:
+                    # 等待网络发送时其他页面可能删除；不发送已级联删除的预读摘要。
+                    try:
+                        if not store.event_exists(event["cursor"]):
+                            cursor = event["cursor"]
+                            continue
+                    except sqlite3.Error:
+                        storage_failed("执行通知暂时无法读取；仅保留最后成功提交的事实。")
+                        read_failed = True
+                        break
                     cursor = event["cursor"]
                     yield f"id: {cursor}\nevent: trace\ndata: {json.dumps({'schema_version':SCHEMA_VERSION,**event},ensure_ascii=False)}\n\n"
                 current_state = await state()
@@ -342,7 +357,16 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                     # 实时运行状态不冒充已提交轨迹，不能推进持久化 cursor。
                     yield f"event: service.state\ndata: {json.dumps(notice,ensure_ascii=False)}\n\n"
                 # yield 期间可能又有提交；先重新补齐，避免另一个订阅清空唤醒后漏等。
-                if batch:
+                if read_failed:
+                    await asyncio.sleep(1)
+                    continue
+                try:
+                    pending = store.cursor()>cursor
+                except sqlite3.Error:
+                    storage_failed("执行通知暂时无法读取；仅保留最后成功提交的事实。")
+                    await asyncio.sleep(1)
+                    continue
+                if batch or pending or changed.is_set() or await state()!=last_state:
                     continue
 
                 try:
@@ -375,6 +399,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             raise HTTPException(503,{"code":"STORAGE_FAILURE","message":"存储故障，会话未删除，请检查后重启。"}) from None
         if not deleted:
             raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"})
+        changed.set()
         return {"schema_version":SCHEMA_VERSION,"deleted_session_id":session_id}
 
     dist = Path(static_dir) if static_dir else Path(__file__).parent / "frontend" / "dist"

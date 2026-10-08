@@ -37,8 +37,9 @@ function statusLabel(session: Session) {
   return session.status === 'failed' ? '失败，可继续' : '终止，可继续';
 }
 
-export function HistorySidebar({sessionId, activeTurnId, onSelect, onDelete}: {
+export function HistorySidebar({sessionId, activeTurnId, refreshKey, onSelect, onDelete}: {
   sessionId: string | null; activeTurnId: string | null;
+  refreshKey?: number;
   onSelect: (id: string) => void; onDelete: (id: string) => void;
 }) {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -53,6 +54,7 @@ export function HistorySidebar({sessionId, activeTurnId, onSelect, onDelete}: {
   const deleteDialog = useRef<HTMLDialogElement>(null);
   const deleteTrigger = useRef<HTMLButtonElement | null>(null);
   const historyHeading = useRef<HTMLHeadingElement>(null);
+  const visibleCount = useRef(20);
 
   useEffect(() => {
     if (pendingDelete && !deleteDialog.current?.open) deleteDialog.current?.showModal();
@@ -70,16 +72,24 @@ export function HistorySidebar({sessionId, activeTurnId, onSelect, onDelete}: {
 
   useEffect(() => {
     let cancelled = false;
-    historyApi<Page>('/api/sessions?limit=20').then(page => {
-      if (!cancelled) { setSessions(page.sessions); setNextCursor(page.next_cursor); }
-    }).catch(cause => { if (!cancelled) setError(cause instanceof Error ? cause.message : '无法读取历史。'); });
+    async function refresh() {
+      let page=await historyApi<Page>('/api/sessions?limit=20');
+      const rows=[...page.sessions];
+      while (page.next_cursor && rows.length<visibleCount.current) {
+        page=await historyApi<Page>(`/api/sessions?limit=20&cursor=${encodeURIComponent(page.next_cursor)}`);
+        rows.push(...page.sessions);
+      }
+      if (!cancelled) {setSessions(rows); setNextCursor(page.next_cursor);}
+    }
+    void refresh().catch(cause => { if (!cancelled) setError(cause instanceof Error ? cause.message : '无法读取历史。'); });
     return () => { cancelled = true; };
-  }, [activeTurnId, revision]);
+  }, [activeTurnId, revision, refreshKey]);
 
   async function more() {
     setWorking(true); setError('');
     try {
       const page = await historyApi<Page>(`/api/sessions?limit=20&cursor=${encodeURIComponent(nextCursor ?? '')}`);
+      visibleCount.current+=page.sessions.length;
       setSessions(current => [...current, ...page.sessions.filter(item => !current.some(old => old.session_id === item.session_id))]);
       setNextCursor(page.next_cursor);
     } catch (cause) { setError(cause instanceof Error ? cause.message : '无法读取更多历史。'); }
