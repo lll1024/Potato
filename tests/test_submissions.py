@@ -188,3 +188,54 @@ class SubmissionTests(unittest.IsolatedAsyncioTestCase):
                     self.assertNotIn("validation-secret",str(rejected.json()))
                     self.assertEqual(rejected.json()["detail"]["code"],"INVALID_INPUT")
             self.assertEqual(model.requests,[])
+
+    async def test_deleted_submission_is_only_a_processed_identity_and_never_recreates_history(self):
+        model = ModelService([response([{"type":"text","text":"已经查询西湖。"}])])
+        @asynccontextmanager
+        async def resources():
+            tools = AmapTools(cast(Client, MapService()))
+            await tools.discover()
+            yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
+        with tempfile.TemporaryDirectory() as directory:
+            app = create_app(directory, resources=resources)
+            body = {"submission_id":"deleted-question","input":"删除后不能重建的西湖输入"}
+            async with app.router.lifespan_context(app):
+                async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as page:
+                    accepted = (await page.post("/api/turns",json=body)).json()
+                    async with asyncio.timeout(1):
+                        while (await page.get("/api/state")).json()["active_turn_id"]:
+                            await asyncio.sleep(0)
+                    self.assertEqual((await page.delete("/api/sessions/"+accepted["session_id"])).status_code,200)
+                    queried = await page.get("/api/submissions/deleted-question")
+                    retried = await page.post("/api/turns",json=body)
+                    for reply in (queried,retried):
+                        self.assertEqual(reply.status_code,410)
+                        self.assertEqual(reply.json()["detail"]["code"],"SUBMISSION_DELETED")
+                        self.assertNotIn(body["input"],str(reply.json()))
+                        self.assertNotIn(accepted["session_id"],str(reply.json()))
+                    self.assertEqual((await page.get("/api/sessions")).json()["sessions"],[])
+            restored = create_app(directory, resources=resources)
+            async with restored.router.lifespan_context(restored):
+                async with httpx.AsyncClient(transport=httpx.ASGITransport(app=restored), base_url="http://test") as page:
+                    self.assertEqual((await page.post("/api/turns",json=body)).status_code,410)
+                    self.assertEqual((await page.get("/api/sessions")).json()["sessions"],[])
+            self.assertEqual(len(model.requests),1)
+
+    async def test_invalid_history_title_and_target_do_not_echo_original_payload(self):
+        model = ModelService([])
+        @asynccontextmanager
+        async def resources():
+            tools = AmapTools(cast(Client, MapService()))
+            await tools.discover()
+            yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
+        with tempfile.TemporaryDirectory() as directory:
+            app = create_app(directory, resources=resources)
+            async with app.router.lifespan_context(app):
+                async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as page:
+                    invalid_title = await page.patch("/api/sessions/unknown",json={"title":"token=title-secret"*10})
+                    invalid_target = await page.post("/api/turns",json={"input":"杭州","session_id":{"token":"target-secret"}})
+                    for reply in (invalid_title,invalid_target):
+                        self.assertEqual(reply.status_code,422)
+                        self.assertEqual(reply.json()["detail"]["code"],"INVALID_INPUT")
+                        self.assertNotIn("secret",str(reply.json()))
+            self.assertEqual(model.requests,[])
