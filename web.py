@@ -31,7 +31,7 @@ from agent import SERVICE_MESSAGE, agent_loop
 from amap_http import AmapHTTPClient
 from amap_mcp import AmapTools
 from limits import TOOL_TIMEOUT
-from store import SCHEMA_VERSION, Store
+from store import SCHEMA_VERSION, StartupError, Store
 
 
 @dataclass
@@ -99,9 +99,10 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             try:
                 fcntl.flock(lock,fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
-                raise RuntimeError("同一数据目录已有旅行服务运行。") from None
+                raise StartupError("同一数据目录已有旅行服务运行。") from None
             store = Store(directory)
             try:
+                store.recover()
                 async with resources() as runtime:
                     stop_requested.clear()
                     accepting = True
@@ -119,7 +120,16 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                 store.close()
                 fcntl.flock(lock,fcntl.LOCK_UN)
 
-    app = FastAPI(lifespan=lifespan)
+    @asynccontextmanager
+    async def safe_lifespan(app):
+        try:
+            async with lifespan(app):
+                yield
+        except Exception as error:
+            app.state.startup_error = str(error) if isinstance(error,StartupError) else "服务无法启动，请检查配置或存储后重启。"
+            raise RuntimeError(app.state.startup_error) from None
+
+    app = FastAPI(lifespan=safe_lifespan)
 
     @app.exception_handler(RequestValidationError)
     async def invalid_submission(_request, _error):
@@ -256,14 +266,23 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"})
         return result
 
+    @app.get("/api/sessions/{session_id}/search")
+    async def search(session_id: str, q: str = Query(min_length=1), scope: str = "full"):
+        if scope not in ("full","summary"):
+            raise HTTPException(422,"搜索范围无效。")
+        result = store.search(session_id,runtime.tools.redact(q),scope)
+        if result is None:
+            raise HTTPException(404,"会话不存在。")
+        return result
+
     @app.get("/api/snapshot")
     async def global_snapshot():
         with store.db:
             return {**await state(),"cursor":store.cursor(),"stream_id":store.stream_id}
 
     @app.get("/api/payloads/{payload_id}")
-    async def payload(payload_id: str):
-        result = store.payload(payload_id)
+    async def payload(payload_id: str, offset: int | None = Query(None,ge=0), limit: int = Query(8192,ge=1,le=65536)):
+        result = store.payload(payload_id,offset,limit)
         if result is None:
             raise HTTPException(404,"详情不存在。")
         return result
@@ -348,9 +367,17 @@ def main() -> int:
             nonlocal connection_failed
             connection_failed = True
             server.should_exit = True
-        server = uvicorn.Server(uvicorn.Config(create_app(args.data_dir,request_shutdown=request_shutdown),
-            host="127.0.0.1",port=args.port,workers=1,access_log=False,timeout_graceful_shutdown=1))
-        server.run()
+        app = create_app(args.data_dir,request_shutdown=request_shutdown)
+        server = uvicorn.Server(uvicorn.Config(app,
+            host="127.0.0.1",port=args.port,workers=1,access_log=False,log_level="critical",timeout_graceful_shutdown=1))
+        try:
+            server.run()
+        except SystemExit:
+            print(getattr(app.state,"startup_error","服务无法启动，请检查配置或存储后重启。"))
+            return 1
+        if not server.started:
+            print(getattr(app.state,"startup_error","服务无法启动，请检查配置或存储后重启。"))
+            return 1
         if connection_failed:
             return 1
     except Exception:

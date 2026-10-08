@@ -41,6 +41,10 @@ def usage_summary(requests):
     return result
 
 
+class StartupError(RuntimeError):
+    """可直接展示的固定启动诊断，不含底层错误或路径。"""
+
+
 class Store:
     def __init__(self, data_dir: Path):
         self.db = sqlite3.connect(data_dir / "travel.sqlite3")
@@ -49,7 +53,7 @@ class Store:
         version = self.db.execute("PRAGMA user_version").fetchone()[0]
         if version not in (0, SCHEMA_VERSION):
             self.db.close()
-            raise RuntimeError("数据版本不兼容，请使用对应版本的服务。")
+            raise StartupError("数据版本不兼容，请使用对应版本的服务。")
         self.db.executescript("""
             CREATE TABLE IF NOT EXISTS sessions (
                 session_id TEXT PRIMARY KEY, title TEXT NOT NULL,
@@ -95,6 +99,12 @@ class Store:
         with self.db:
             self.db.execute("INSERT OR IGNORE INTO metadata VALUES ('stream_id',?)", (identity(),))
             self.db.execute("INSERT INTO event_cursors(event_id) SELECT e.event_id FROM events e WHERE NOT EXISTS (SELECT 1 FROM event_cursors c WHERE c.event_id=e.event_id) ORDER BY e.timestamp,e.session_id,e.sequence")
+            # 已保存的历史轮次也拥有稳定详情身份；只复制已脱敏的既有字段。
+            for row in self.db.execute("SELECT session_id,turn_id,input,answer FROM turns").fetchall():
+                for field in ("input","answer"):
+                    kind = "turn_" + field
+                    if row[field] is not None and not self.db.execute("SELECT 1 FROM payloads WHERE turn_id=? AND kind=?",(row["turn_id"],kind)).fetchone():
+                        self.save_payload(row["session_id"],row["turn_id"],kind,row[field])
         self.stream_id = self.db.execute("SELECT value FROM metadata WHERE name='stream_id'").fetchone()[0]
 
     def close(self):
@@ -131,9 +141,52 @@ class Store:
         self.db.execute("INSERT INTO payloads VALUES (?,?,?,?,?)", (payload_id,session_id,turn_id,kind,json.dumps(content,ensure_ascii=False)))
         return payload_id
 
-    def payload(self, payload_id):
+    def payload(self, payload_id, offset=None, limit=8192):
         row = self.db.execute("SELECT payload_id,kind,content FROM payloads WHERE payload_id=?", (payload_id,)).fetchone()
-        return {"schema_version":SCHEMA_VERSION,"payload_id":row["payload_id"],"kind":row["kind"],"content":json.loads(row["content"])} if row else None
+        if row is None:
+            return None
+        result = {"schema_version":SCHEMA_VERSION,"payload_id":row["payload_id"],"kind":row["kind"]}
+        if offset is None:
+            return {**result,"content":json.loads(row["content"])}
+        text = row["content"]
+        end = min(offset+limit,len(text))
+        return {**result,"offset":offset,"total":len(text),"text":text[offset:end],"next_offset":end if end<len(text) else None,"encoding":"unicode_code_points"}
+
+    def search(self, session_id, query, scope="full"):
+        if not self.db.execute("SELECT 1 FROM sessions WHERE session_id=?",(session_id,)).fetchone():
+            return None
+        matches = []
+        turns = {row["turn_id"]:dict(row) for row in self.db.execute("SELECT * FROM turns WHERE session_id=? ORDER BY ordinal",(session_id,))}
+        owners = {}
+        for row in self.db.execute("SELECT * FROM requests WHERE session_id=?",(session_id,)):
+            for field in ("input","response","error"):
+                if row[field+"_payload_id"]:
+                    owners[row[field+"_payload_id"]] = {"object_id":row["request_id"],"object_type":"request","request_id":row["request_id"],"request_ordinal":row["ordinal"]}
+        for row in self.db.execute("SELECT data,turn_id FROM tool_calls WHERE session_id=?",(session_id,)):
+            data = json.loads(row["data"])
+            for field in ("arguments","service","result","error"):
+                if data.get(field+"_payload_id"):
+                    owners[data[field+"_payload_id"]] = {"object_id":data["tool_call_id"],"object_type":"tool","request_id":data["request_id"],"tool_ordinal":data["ordinal"],"tool_name":data["name"]}
+        def match(text, turn_id, field, owner, payload_id=None):
+            highlight = query
+            offset = text.find(highlight)
+            if offset < 0:
+                highlight = json.dumps(query,ensure_ascii=False)[1:-1]
+                offset = text.find(highlight)
+            if offset >= 0:
+                matches.append({"turn_id":turn_id,"turn_ordinal":turns[turn_id]["ordinal"],"field":field,"payload_id":payload_id,"offset":offset,"highlight":highlight,"excerpt":text[max(0,offset-40):offset+len(highlight)+60],"excerpt_is_partial":True,**owner})
+        if scope == "full":
+            for row in self.db.execute("SELECT * FROM payloads WHERE session_id=? ORDER BY rowid",(session_id,)):
+                owner = owners.get(row["payload_id"],{"object_id":row["turn_id"],"object_type":"turn"})
+                match(row["content"],row["turn_id"],row["kind"],owner,row["payload_id"])
+        else:
+            for row in self.db.execute("SELECT * FROM events WHERE session_id=? ORDER BY sequence",(session_id,)):
+                object_id = row["tool_call_id"] or row["request_id"] or row["turn_id"]
+                object_type = "tool" if row["tool_call_id"] else "request" if row["request_id"] else "turn"
+                match(row["data"],row["turn_id"],row["kind"],{"object_id":object_id,"object_type":object_type,"request_id":row["request_id"]})
+        matches.sort(key=lambda item:item["turn_ordinal"])
+        return {"schema_version":SCHEMA_VERSION,"scope":scope,"query":query,"matches":matches}
+
 
     def observe_request(self, session_id, turn_id, kind, data):
         with self.db:
@@ -173,6 +226,13 @@ class Store:
                 self.db.execute("INSERT INTO tool_calls VALUES (?,?,?,?,?,?)",(tool_id,session_id,turn_id,data["request_id"],data["ordinal"],json.dumps(facts,ensure_ascii=False)))
             return self.event(session_id,turn_id,kind,summary,request_id=data["request_id"],tool_call_id=tool_id)
 
+    def recover(self):
+        # 新观察只终止遗留轮次，调用事实仍是上次成功提交的原样。
+        with self.db:
+            for row in self.db.execute("SELECT session_id,turn_id FROM turns WHERE status IN ('running','stopping')").fetchall():
+                self.db.execute("UPDATE turns SET status='terminated',reason='service_interrupted' WHERE turn_id=?", (row["turn_id"],))
+                self.event(row["session_id"],row["turn_id"],"turn.recovered", {"status":"terminated","reason":"service_interrupted","context_excluded":True,"message":"服务中断，未结束调用的结果未知；整轮已排除后续上下文。"})
+
     def context(self, session_id):
         row = self.db.execute("SELECT messages FROM turns WHERE session_id=? AND status != 'running' AND reason IS NOT 'service_interrupted' ORDER BY ordinal DESC LIMIT 1", (session_id,)).fetchone()
         return json.loads(row["messages"]) if row else []
@@ -189,6 +249,7 @@ class Store:
             messages = self.context(session_id) + [{"role":"user","content":text}]
             self.db.execute("INSERT INTO turns (turn_id,session_id,ordinal,input,status,created_at,messages) VALUES (?,?,?,?,'running',?,?)", (turn_id,session_id,ordinal,text,now,json.dumps(messages,ensure_ascii=False)))
             self.db.execute("UPDATE sessions SET updated_at=? WHERE session_id=?", (now,session_id))
+            self.save_payload(session_id,turn_id,"turn_input",text)
             self.event(session_id,turn_id,"turn.accepted",{"input_summary":text[:120]})
             if submission_id is not None:
                 self.db.execute("INSERT INTO submissions VALUES (?,?,?,?)", (submission_id,fingerprint,session_id,turn_id))
@@ -207,6 +268,7 @@ class Store:
         with self.db:
             self.db.execute("UPDATE turns SET status=?,reason=?,answer=?,answer_source=?,tool_error_count=?,finished_at=?,duration_ms=?,messages=? WHERE turn_id=?", (outcome["status"],outcome["reason"],answer,outcome["answer_source"],outcome["tool_error_count"],now,duration_ms,json.dumps(messages,ensure_ascii=False),turn_id))
             self.db.execute("UPDATE sessions SET updated_at=? WHERE session_id=?",(now,session_id))
+            self.save_payload(session_id,turn_id,"turn_answer",answer)
             self.event(session_id,turn_id,"turn.finished",{**outcome,"answer_summary":answer[:120]})
 
     def rename(self, session_id, title):
@@ -247,6 +309,8 @@ class Store:
         for row in reversed(rows[:limit]):
             turn = dict(row)
             turn["messages"] = json.loads(turn["messages"])
+            for payload in self.db.execute("SELECT payload_id,kind FROM payloads WHERE turn_id=? AND kind IN ('turn_input','turn_answer')",(row["turn_id"],)):
+                turn[payload["kind"].removeprefix("turn_")+"_payload_id"] = payload["payload_id"]
             turns.append(turn)
         events = []
         first_ordinal = turns[0]["ordinal"] if turns else 0
@@ -262,7 +326,16 @@ class Store:
             requests.append(request)
         tool_calls = [json.loads(row["data"]) | {"turn_id":row["turn_id"]} for row in self.db.execute(
             "SELECT tool_calls.data,tool_calls.turn_id FROM tool_calls JOIN turns USING(turn_id) JOIN requests USING(request_id) WHERE tool_calls.session_id=? AND turns.ordinal>=? AND turns.ordinal<=? ORDER BY turns.ordinal,requests.ordinal,tool_calls.ordinal",(session_id,first_ordinal,last_ordinal))]
+        interrupted = {turn["turn_id"] for turn in turns if turn["reason"] == "service_interrupted"}
+        for request in requests:
+            if request["turn_id"] in interrupted and request["status"] == "running":
+                request["interrupted"] = True
+        for tool in tool_calls:
+            if tool["turn_id"] in interrupted and tool["status"] in ("pending","waiting","running"):
+                tool["interrupted"] = True
         for turn in turns:
+            if turn["turn_id"] in interrupted:
+                turn["context_excluded"] = True
             turn["usage_summary"] = usage_summary([request for request in requests if request["turn_id"] == turn["turn_id"]])
         all_usage = [{"usage":json.loads(row["usage"]) if row["usage"] else None} for row in self.db.execute("SELECT usage FROM requests WHERE session_id=?", (session_id,))]
         return {"tool_calls":tool_calls,"usage_summary":usage_summary(all_usage),"requests":requests,"cursor":self.cursor(),"stream_id":self.stream_id,"schema_version":SCHEMA_VERSION,"session":dict(session),"turns":turns,"events":events,"total_turns":self.db.execute("SELECT COUNT(*) FROM turns WHERE session_id=?", (session_id,)).fetchone()[0],"next_before":first_ordinal if len(rows)>limit else None}
