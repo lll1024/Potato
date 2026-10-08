@@ -267,7 +267,7 @@ def main() -> int:
     for name in ("mcp","client","httpx2","httpcore2","anthropic"):
         logging.getLogger(name).setLevel(logging.CRITICAL+1)
     try:
-        uvicorn.run(create_app(args.data_dir),host="127.0.0.1",port=args.port,workers=1,access_log=False)
+        uvicorn.run(create_app(args.data_dir),host="127.0.0.1",port=args.port,workers=1,access_log=False,timeout_graceful_shutdown=1)
     except Exception:
         print(SERVICE_MESSAGE)
         return 1
