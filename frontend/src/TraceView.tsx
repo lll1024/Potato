@@ -131,7 +131,7 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
   function select(id: string) {onInteraction?.(); setSelected(id); setLocation(null);}
   const detailProps={location,onInteraction};
   const selectedTurn=snapshot?.turns.find(turn => turn.turn_id===selected);
-  const turnDetail=location?.object_type==='turn' ? <div onFocus={onInteraction} onWheel={onInteraction}>
+  const turnDetail=location?.object_type==='turn' ? <div key={location.turn_id} onFocus={onInteraction} onWheel={onInteraction}>
     <h3>第 {location.turn_ordinal} 轮 · 对话内容</h3>
     {selectedTurn && <p>{turnStatus(selectedTurn)} · {selectedTurn.answer_source === 'model' ? '模型回答' : selectedTurn.answer_source === 'application' ? '应用说明' : '尚无回答'}</p>}
     {!location.payload_id && <p><Highlight text={location.excerpt ?? ''} query={location.query} /></p>}

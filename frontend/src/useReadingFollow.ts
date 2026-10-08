@@ -4,6 +4,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 export function useReadingFollow(identity: string | null, marker: string) {
   const ref = useRef<HTMLDivElement>(null);
   const following = useRef(true);
+  const position = useRef(0);
   const lastMarker = useRef('');
   const lastIdentity = useRef(identity);
   const [paused, setPaused] = useState(false);
@@ -34,9 +35,15 @@ export function useReadingFollow(identity: string | null, marker: string) {
       if (element) element.scrollTop = element.scrollHeight;
     } else if (hadContent) setHasNew(true);
   }, [identity, marker]);
+  const attach = useCallback((element: HTMLDivElement | null) => {
+    if (ref.current) position.current=ref.current.scrollTop;
+    ref.current=element;
+    if (element) element.scrollTop=following.current ? element.scrollHeight : position.current;
+  }, []);
   const onScroll = useCallback(() => {
     const element = ref.current;
+    if (element) position.current=element.scrollTop;
     if (element && element.scrollHeight - element.scrollTop - element.clientHeight > 24) pause();
   }, [pause]);
-  return {ref, paused, hasNew, pause, resume, onScroll};
+  return {ref: attach, paused, hasNew, pause, resume, onScroll};
 }

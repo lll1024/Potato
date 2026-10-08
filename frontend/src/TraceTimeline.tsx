@@ -11,13 +11,14 @@ export function TraceTimeline({turns, requests, tools, events, selected, onLocat
   function add(objectType: 'request' | 'tool', objectId: string, turnId: string, time: string | null | undefined, kind: string, label: string, fallback: number) {
     if (!time) return;
     const turnOrdinal = turns.find(turn => turn.turn_id === turnId)?.ordinal ?? 0;
-    const event = events.find(item => item.kind === kind && (objectType === 'request' ? item.request_id === objectId : item.tool_call_id === objectId));
-    boundaries.push({identity: `${objectId}:${kind}`, objectId, objectType, turnId, turnOrdinal, time, label, order: event?.sequence ?? fallback});
+    const related=events.filter(item => objectType === 'request' ? item.request_id === objectId && !item.tool_call_id : item.tool_call_id === objectId);
+    const event=related.find(item => item.kind === kind) ?? (kind.endsWith('.result') ? related.at(-1) : undefined);
+    boundaries.push({identity: `${objectId}:${kind}`, objectId, objectType, turnId, turnOrdinal, time, label, order: (event?.sequence ?? fallback) * 10 + (kind.endsWith('.result') ? 1 : 0)});
   }
   for (const request of requests) {
     const title = `模型请求 ${request.ordinal}`;
-    add('request', request.request_id, request.turn_id, request.started_at, 'request.started', `${title} · SDK 开始${request.interrupted ? '（中断，结果未知）' : request.finished_at ? '' : '（尚未结束）'}`, request.ordinal * 10);
-    add('request', request.request_id, request.turn_id, request.finished_at, request.status === 'failed' ? 'request.failed' : 'request.completed', `${title} · SDK 结束${request.status === 'failed' ? '／失败' : '／已返回'}`, request.ordinal * 10 + 9);
+    add('request', request.request_id, request.turn_id, request.started_at, 'request.started', `${title} · 请求开始${request.interrupted ? '（中断，结果未知）' : request.finished_at ? '' : '（尚未结束）'}`, request.ordinal * 10);
+    add('request', request.request_id, request.turn_id, request.finished_at, request.status === 'failed' ? 'request.failed' : 'request.completed', `${title} · 请求结束${request.status === 'failed' ? '／失败' : '／已返回'}`, request.ordinal * 10 + 9);
   }
   for (const tool of tools) {
     const title = `工具 ${tool.ordinal} · ${tool.name}`;
@@ -29,7 +30,7 @@ export function TraceTimeline({turns, requests, tools, events, selected, onLocat
   }
   boundaries.sort((a, b) => a.time.localeCompare(b.time) || a.order - b.order || a.identity.localeCompare(b.identity));
   return <section className="trace-timeline" aria-label="实际时间线">
-    <h4>实际时间线</h4><p className="hint">只展示已采集的 SDK 与应用边界；未结束调用没有结束时间或进度百分比。</p>
+    <h4>实际时间线</h4><p className="hint">只展示已采集的模型请求、工具 SDK 与应用边界；未结束调用没有结束时间或进度百分比。</p>
     <ol>{boundaries.map(item => <li key={item.identity}>
       <button type="button" aria-pressed={selected === item.objectId} onClick={() => onLocate(item.objectType, item.objectId, item.turnId)}>
         <time dateTime={item.time}>{new Date(item.time).toLocaleTimeString('zh-CN', {hour12:false, fractionalSecondDigits:3})}</time>
