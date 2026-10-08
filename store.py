@@ -17,6 +17,19 @@ def timestamp() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def usage_summary(requests):
+    fields = {"input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"}
+    fields.update(key for request in requests for key,value in (request["usage"] or {}).items()
+                  if isinstance(value,(int,float)) and not isinstance(value,bool))
+    result = {}
+    for field in sorted(fields):
+        values = [request["usage"][field] for request in requests
+                  if isinstance((request["usage"] or {}).get(field),(int,float))
+                  and not isinstance(request["usage"][field],bool)]
+        result[field] = {"value":sum(values) if values else None,"known_count":len(values),"request_count":len(requests)}
+    return result
+
+
 class Store:
     def __init__(self, data_dir: Path):
         self.db = sqlite3.connect(data_dir / "travel.sqlite3")
@@ -40,8 +53,27 @@ class Store:
                 turn_id TEXT NOT NULL REFERENCES turns ON DELETE CASCADE, sequence INTEGER NOT NULL,
                 kind TEXT NOT NULL, timestamp TEXT NOT NULL, request_id TEXT, tool_call_id TEXT,
                 data TEXT NOT NULL, UNIQUE(session_id,sequence));
+            CREATE TABLE IF NOT EXISTS event_cursors (
+                cursor INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_id TEXT NOT NULL UNIQUE REFERENCES events ON DELETE CASCADE);
+            CREATE TABLE IF NOT EXISTS metadata (name TEXT PRIMARY KEY,value TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS payloads (
+                payload_id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions ON DELETE CASCADE,
+                turn_id TEXT NOT NULL REFERENCES turns ON DELETE CASCADE, kind TEXT NOT NULL, content TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS requests (
+                request_id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions ON DELETE CASCADE,
+                turn_id TEXT NOT NULL REFERENCES turns ON DELETE CASCADE, ordinal INTEGER NOT NULL,
+                status TEXT NOT NULL, started_at TEXT NOT NULL, finished_at TEXT, duration_ms REAL,
+                input_payload_id TEXT NOT NULL REFERENCES payloads,
+                response_payload_id TEXT REFERENCES payloads, error_payload_id TEXT REFERENCES payloads,
+                usage TEXT, usage_state TEXT NOT NULL);
             PRAGMA user_version=1;
         """)
+
+        with self.db:
+            self.db.execute("INSERT OR IGNORE INTO metadata VALUES ('stream_id',?)", (identity(),))
+            self.db.execute("INSERT OR IGNORE INTO event_cursors(event_id) SELECT event_id FROM events ORDER BY timestamp,session_id,sequence")
+        self.stream_id = self.db.execute("SELECT value FROM metadata WHERE name='stream_id'").fetchone()[0]
 
     def close(self):
         self.db.close()
@@ -54,14 +86,50 @@ class Store:
         self.db.execute("INSERT INTO events VALUES (?,?,?,?,?,?,?,?,?)", (
             event["event_id"],session_id,turn_id,event["sequence"],kind,event["timestamp"],
             request_id,tool_call_id,json.dumps(data,ensure_ascii=False)))
+        event["cursor"] = self.db.execute("INSERT INTO event_cursors(event_id) VALUES (?)", (event["event_id"],)).lastrowid
         return event
+
+    def cursor(self):
+        return self.db.execute("SELECT COALESCE(seq,0) FROM sqlite_sequence WHERE name='event_cursors'").fetchone()[0] if self.db.execute("SELECT 1 FROM sqlite_sequence WHERE name='event_cursors'").fetchone() else 0
+
+    def events_after(self, cursor):
+        result = []
+        for row in self.db.execute("SELECT e.*,c.cursor FROM events e JOIN event_cursors c USING(event_id) WHERE c.cursor>? ORDER BY c.cursor", (cursor,)):
+            event = dict(row)
+            event["data"] = json.loads(event["data"])
+            result.append(event)
+        return result
+
+    def save_payload(self, session_id, turn_id, kind, content):
+        payload_id = identity()
+        self.db.execute("INSERT INTO payloads VALUES (?,?,?,?,?)", (payload_id,session_id,turn_id,kind,json.dumps(content,ensure_ascii=False)))
+        return payload_id
+
+    def payload(self, payload_id):
+        row = self.db.execute("SELECT payload_id,kind,content FROM payloads WHERE payload_id=?", (payload_id,)).fetchone()
+        return {"schema_version":SCHEMA_VERSION,"payload_id":row["payload_id"],"kind":row["kind"],"content":json.loads(row["content"])} if row else None
+
+    def observe_request(self, session_id, turn_id, kind, data):
+        with self.db:
+            if kind == "request.started":
+                payload_id = self.save_payload(session_id,turn_id,"input",data["input"])
+                self.db.execute("INSERT INTO requests (request_id,session_id,turn_id,ordinal,status,started_at,input_payload_id,usage_state) VALUES (?,?,?,?,'running',?,?,'not_completed')", (data["request_id"],session_id,turn_id,data["ordinal"],data["started_at"],payload_id))
+                summary = {"ordinal":data["ordinal"],"status":"running","input_payload_id":payload_id}
+            else:
+                failed = kind == "request.failed"
+                field = "error" if failed else "response"
+                payload_id = self.save_payload(session_id,turn_id,field,data[field])
+                status = "failed" if failed else "completed"
+                self.db.execute(f"UPDATE requests SET status=?,finished_at=?,duration_ms=?,{field}_payload_id=?,usage=?,usage_state=? WHERE request_id=?",(status,data["finished_at"],data["duration_ms"],payload_id,json.dumps(data["usage"],ensure_ascii=False) if data["usage"] is not None else None,data["usage_state"],data["request_id"]))
+                summary = {"status":status,f"{field}_payload_id":payload_id,"duration_ms":data["duration_ms"],"usage":data["usage"],"usage_state":data["usage_state"]}
+            return self.event(session_id,turn_id,kind,summary,request_id=data["request_id"])
 
     def accept(self, text):
         session_id, turn_id, now = identity(), identity(), timestamp()
         with self.db:
             self.db.execute("INSERT INTO sessions VALUES (?,?,?,?)", (session_id,text[:40],now,now))
             self.db.execute("INSERT INTO turns (turn_id,session_id,ordinal,input,status,created_at,messages) VALUES (?,?,1,?,'running',?,?)", (turn_id,session_id,text,now,json.dumps([{"role":"user","content":text}],ensure_ascii=False)))
-            self.event(session_id,turn_id,"turn.accepted",{"input":text})
+            self.event(session_id,turn_id,"turn.accepted",{"input_summary":text[:120]})
         return {"schema_version":SCHEMA_VERSION,"session_id":session_id,"turn_id":turn_id}
 
     def finish(self, session_id, turn_id, answer, messages, outcome, duration_ms):
@@ -69,7 +137,7 @@ class Store:
         with self.db:
             self.db.execute("UPDATE turns SET status=?,reason=?,answer=?,answer_source=?,tool_error_count=?,finished_at=?,duration_ms=?,messages=? WHERE turn_id=?", (outcome["status"],outcome["reason"],answer,outcome["answer_source"],outcome["tool_error_count"],now,duration_ms,json.dumps(messages,ensure_ascii=False),turn_id))
             self.db.execute("UPDATE sessions SET updated_at=? WHERE session_id=?",(now,session_id))
-            self.event(session_id,turn_id,"turn.finished",{**outcome,"answer":answer})
+            self.event(session_id,turn_id,"turn.finished",{**outcome,"answer_summary":answer[:120]})
 
     def sessions(self):
         return [dict(row) for row in self.db.execute("SELECT * FROM sessions ORDER BY updated_at DESC,session_id")]
@@ -84,8 +152,15 @@ class Store:
             turn["messages"] = json.loads(turn["messages"])
             turns.append(turn)
         events = []
-        for row in self.db.execute("SELECT * FROM events WHERE session_id=? ORDER BY sequence", (session_id,)):
+        for row in self.db.execute("SELECT e.*,c.cursor FROM events e JOIN event_cursors c USING(event_id) WHERE session_id=? ORDER BY sequence", (session_id,)):
             event = dict(row)
             event["data"] = json.loads(event["data"])
             events.append(event)
-        return {"schema_version":SCHEMA_VERSION,"session":dict(session),"turns":turns,"events":events}
+        requests = []
+        for row in self.db.execute("SELECT * FROM requests WHERE session_id=? ORDER BY turn_id,ordinal", (session_id,)):
+            request = dict(row)
+            request["usage"] = json.loads(request["usage"]) if request["usage"] else None
+            requests.append(request)
+        for turn in turns:
+            turn["usage_summary"] = usage_summary([request for request in requests if request["turn_id"] == turn["turn_id"]])
+        return {"usage_summary":usage_summary(requests),"schema_version":SCHEMA_VERSION,"session":dict(session),"turns":turns,"events":events,"requests":requests,"cursor":self.cursor(),"stream_id":self.stream_id}

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import './style.css';
+import { TraceView } from './TraceView';
 
 type Turn = {
   turn_id: string; input: string; status: 'running' | 'completed' | 'failed' | 'terminated';
@@ -30,6 +31,7 @@ function statusText(turn: Turn): string {
 
 function App() {
   const [draft, setDraft] = useState('');
+  const [view, setView] = useState<'conversation' | 'trace'>('conversation');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [state, setState] = useState<ServiceState>({ active_turn_id: null, accepting: true });
@@ -99,7 +101,8 @@ function App() {
           <h2 id="conversation-title">{snapshot?.session.title ?? '空白对话'}</h2>
           <p role="status">{turn ? statusText(turn) : busy ? '其他对话正在执行' : '准备就绪'}</p>
         </div>
-        <div className="messages">
+        <nav className="view-switch" aria-label="会话视图"><button aria-pressed={view === 'conversation'} onClick={() => setView('conversation')}>对话</button><button aria-pressed={view === 'trace'} onClick={() => setView('trace')}>执行轨迹</button></nav>
+        {view === 'trace' ? <TraceView sessionId={sessionId} /> : <div className="messages">
           {turn ? <>
             <article className="message user"><h3>你的输入</h3><p>{turn.input}</p></article>
             {turn.answer !== null && <article className="message answer">
@@ -108,7 +111,7 @@ function App() {
             </article>}
             {turn.status === 'running' && <p className="hint">正在查询，最终回答会在本轮结束后显示。关闭页面不会停止后台查询。</p>}
           </> : <div className="empty"><h3>从一条旅行需求开始</h3><p>可以查询地点、比较交通路线、寻找餐饮，或安排多日旅行行程。</p><p className="example">例如：查询杭州西湖的地址。</p></div>}
-        </div>
+        </div>}
         <form onSubmit={send}>
           <label htmlFor="travel-input">旅行需求</label>
           <textarea id="travel-input" name="travel-input" value={draft} onChange={event => setDraft(event.target.value)} required rows={4} placeholder="写下城市、日期和你想查询的内容" />
