@@ -1,0 +1,35 @@
+* { box-sizing: border-box; }
+:root { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #202c2a; background: #f5f6f3; font-synthesis: none; }
+body { margin: 0; }
+button, textarea { font: inherit; }
+button { min-height: 40px; padding: 9px 18px; background: #1e5148; color: white; border: 1px solid #1e5148; border-radius: 7px; cursor: pointer; }
+button:disabled { opacity: .5; cursor: default; }
+button:focus-visible, textarea:focus-visible { outline: 3px solid #257968; outline-offset: 3px; }
+.app { max-width: 1280px; margin: auto; padding: 28px 36px; }
+header { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-bottom: 24px; border-bottom: 1px solid #d2dad3; }
+.eyebrow { font-size: 12px; color: #53635b; margin: 0 0 5px; }
+h1 { font-size: 25px; margin: 0; }
+h2 { font-size: 18px; margin: 0; overflow-wrap: anywhere; }
+h3 { font-size: 14px; margin: 0 0 12px; }
+p { line-height: 1.7; }
+main { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 30px; margin-top: 28px; }
+.conversation { min-width: 0; background: white; border: 1px solid #d2dad3; border-radius: 12px; overflow: hidden; }
+.conversation-heading { padding: 20px 24px; border-bottom: 1px solid #e1e5e0; }
+.conversation-heading p { margin: 5px 0 0; font-size: 13px; color: #466153; }
+.messages { min-height: 330px; padding: 24px; }
+.empty { padding: 50px 10px; max-width: 520px; margin: auto; }
+.empty h3 { font-size: 22px; }
+.example, .hint { color: #5d6961; font-size: 13px; }
+.message { padding: 20px; border-radius: 8px; margin-bottom: 18px; }
+.message p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+.user { background: #eff4ef; }
+.answer { border: 1px solid #dce5dc; }
+.answer-heading { display: flex; gap: 12px; align-items: baseline; }
+.answer-heading span { font-size: 12px; color: #5d6961; }
+form { padding: 20px 24px; border-top: 1px solid #e1e5e0; }
+label { display: block; font-size: 14px; margin-bottom: 10px; }
+textarea { width: 100%; resize: vertical; padding: 12px; font-size: 16px; line-height: 1.5; border: 1px solid #788a7d; border-radius: 7px; background: #fdfefd; }
+.form-bottom { display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+.error { color: #a32920; font-size: 14px; margin: 8px 0 0; overflow-wrap: anywhere; }
+aside { padding: 12px 0; font-size: 14px; }
+@media (max-width: 760px) { .app { padding: 20px 16px; } main { grid-template-columns: minmax(0, 1fr); gap: 20px; } aside { padding: 0 8px; } .messages, form, .conversation-heading { padding: 18px; } .form-bottom { align-items: flex-start; } .form-bottom button { flex-shrink: 0; margin-top: 12px; } }

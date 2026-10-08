@@ -201,14 +201,39 @@ class AmapTools:
     def redact(self, text: str) -> str:
         variants = {value for secret in self._secrets if secret
                     for value in (secret, quote(secret, safe=""), quote_plus(secret, safe=""))}
-        for secret in sorted(variants, key=len, reverse=True):
-            text = text.replace(secret, "[REDACTED]")
-        # 删除整个带凭据的 URL，兼顾 JSON 字符串与普通文字。
-        return re.sub(
-            r"https?://[^\s<>\"'\\]+",
-            lambda match: "[REDACTED_URL]" if re.search(
-                r"//[^/]*@|[?&](?:key|api[_-]?key|access_token|token|auth|password)=",
-                match[0], re.IGNORECASE,
-            ) else match[0],
-            text,
-        )
+        fields = {"key", "api_key", "apikey", "access_token", "token", "auth",
+                  "authorization", "password", "secret", "auth_token"}
+
+        def redact_text(value: str) -> str:
+            for secret in sorted(variants, key=len, reverse=True):
+                value = value.replace(secret, "[REDACTED]")
+            value = re.sub(
+                r'https?://[^\s<>"\'\\]+',
+                lambda match: "[REDACTED_URL]" if re.search(
+                    r"//[^/]*@|[?&](?:key|api[_-]?key|access_token|token|auth|password)=",
+                    match[0], re.IGNORECASE,
+                ) else match[0], value,
+            )
+            # 普通文字中的 JSON 凭据字段也须隐藏，例如用户粘贴配置片段。
+            return re.sub(
+                r'("(?:key|api[_-]?key|access_token|token|auth|authorization|password|secret|auth_token)"\s*:\s*)"(?:[^"\\]|\\.)*"',
+                lambda match: match[1] + '"[REDACTED]"', value, flags=re.IGNORECASE,
+            )
+
+        def clean(value):
+            if isinstance(value, dict):
+                return {key: "[REDACTED]" if key.lower().replace("-", "_") in fields
+                        else clean(item) for key, item in value.items()}
+            if isinstance(value, list):
+                return [clean(item) for item in value]
+            if isinstance(value, str):
+                return self.redact(value)
+            return value
+
+        try:
+            parsed = json.loads(text)
+        except (json.JSONDecodeError, ValueError):
+            return redact_text(text)
+        if isinstance(parsed, (dict, list)):
+            return json.dumps(clean(parsed), ensure_ascii=False)
+        return redact_text(text)
