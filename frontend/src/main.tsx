@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import './style.css';
 import { TraceView, type TraceLocation } from './TraceView';
 import { useReadingFollow } from './useReadingFollow';
+import { ReadingScroll } from './ReadingScroll';
 import { HistorySidebar, useConversationDraft } from './HistorySidebar';
 import { ConversationRounds, type Turn } from './ConversationRounds';
 import { useSubmission } from './useSubmission';
@@ -140,12 +141,12 @@ function App() {
         <nav className="view-switch" aria-label="会话视图"><button aria-pressed={view === 'conversation'} onClick={() => setView('conversation')}>对话</button><button aria-pressed={view === 'trace'} onClick={() => setView('trace')}>执行轨迹</button></nav>
         {view === 'trace' ? <TraceView sessionId={sessionId} refreshKey={serviceRevision} location={traceLocation} /> : <>
           <div className="reading-follow conversation-follow"><p role="status">{conversationFollow.hasNew ? '有新内容' : conversationFollow.paused ? '已暂停跟随，正在回看' : '停留底部时跟随新回答'}</p>{conversationFollow.paused && <button type="button" onClick={conversationFollow.resume}>回到最新</button>}</div>
-          <div className="messages" ref={conversationFollow.ref} onScroll={conversationFollow.onScroll}>
+          <ReadingScroll className="messages" identity={sessionId} paused={conversationFollow.paused} scrollRef={conversationFollow.ref} onScroll={conversationFollow.onScroll}>
           {turn ? <>
             {canLoadEarlier && <button className="load-earlier" disabled={loadingEarlier} onClick={() => void loadEarlier()}>加载更早对话</button>}
             <ConversationRounds turns={turns} statusText={statusText} onTrace={showTurnTrace} />
           </> : <div className="empty"><h3>从一条旅行需求开始</h3><p>可以查询地点、比较交通路线、寻找餐饮，或安排多日旅行行程。</p><p className="example">例如：查询杭州西湖的地址。</p></div>}
-        </div></>}
+        </ReadingScroll></>}
         <form onSubmit={send}>
           <label htmlFor="travel-input">旅行需求</label>
           <textarea id="travel-input" name="travel-input" value={draft} onChange={event => setDraft(event.target.value)} required rows={4} placeholder="写下城市、日期和你想查询的内容" />
