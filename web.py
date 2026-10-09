@@ -240,7 +240,8 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
         try:
             try:
                 messages = store.context(identity["session_id"]) + [{"role":"user","content":text}]
-                background = preference_background(store.preferences.snapshot()["preferences"])
+                preference_snapshot = store.preferences.snapshot()
+                background = preference_background(preference_snapshot["preferences"], preference_snapshot["ambiguities"])
             except Exception:
                 storage_failed("完整上下文无法读取，查询未启动。",kind="turn.context",turn_id=identity["turn_id"])
                 raise TraceStorageError from None

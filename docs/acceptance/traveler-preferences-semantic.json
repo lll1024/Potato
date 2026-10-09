@@ -1,0 +1,2435 @@
+{
+  "model": "gemini-3.8-flash",
+  "boundary": "公开HTTP+真实模型+临时SQLite+可控时间；地图替身",
+  "date": "2026-10-10",
+  "review": "12组保存动作、来源及后续原文复核完成；范围说明已修正，trip/rejected_suggestion最终真实定向复验明确排除节奏与单次预算等。成功样例不重复调用。",
+  "results": [
+    {
+      "case": "four",
+      "steps": [
+        {
+          "input": "我长期不吃辣。我喜欢逛博物馆。城市出行我通常优先坐地铁。我住宿一向喜欢安静、远离电梯的房间。这里只说明长期喜好，不用查地图，也不用安排具体行程。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "31c5c4cae7ba4abc9a906c990458f946",
+            "turn_id": "f463ac22d2194242a173807c75068f7c"
+          },
+          "answer": "已为您记下您的长期偏好：\n\n* **饮食**：不吃辣\n* **活动兴趣**：喜欢逛博物馆\n* **交通**：城市出行优先乘坐地铁\n* **住宿**：喜欢安静、远离电梯的房间\n\n在本次对话后续的地点、餐饮、住宿或行程建议中，我会参考这些偏好进行筛选与规划。需要说明的是，若希望这些偏好在后续的新会话中跨会话可用，需等待当前会话闲置一小时后由后台系统独立保存。\n\n后续如果您有出行计划、想了解特定城市或需要规划路线，随时告诉我即可！",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "f463ac22d2194242a173807c75068f7c",
+                "session_id": "31c5c4cae7ba4abc9a906c990458f946",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        },
+        {
+          "input": "我有什么已经保存的长期偏好？不用查询地图。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "68a5bf4d7ead41959cb9002c1b82f189",
+            "turn_id": "d8197011abcf4e9a86e9f7a4324c8375"
+          },
+          "answer": "目前我这里**没有收到任何已保存的长期偏好**记录。\n\n如果您在本次对话中提出具体的饮食口味、出行节奏、交通方式或住宿喜好，我会在本次规划中直接参考。跨会话的长期偏好通常会在会话闲置一小时后由系统后台独立保存，以便在以后的新会话中复用。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "f463ac22d2194242a173807c75068f7c",
+                "session_id": "31c5c4cae7ba4abc9a906c990458f946",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              },
+              {
+                "turn_id": "d8197011abcf4e9a86e9f7a4324c8375",
+                "session_id": "68a5bf4d7ead41959cb9002c1b82f189",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "4b4d649b5c684e23a72a6c60552f0553",
+                "category": "activity",
+                "content": "喜欢逛博物馆",
+                "source_turn_id": "f463ac22d2194242a173807c75068f7c",
+                "source_input": "我长期不吃辣。我喜欢逛博物馆。城市出行我通常优先坐地铁。我住宿一向喜欢安静、远离电梯的房间。这里只说明长期喜好，不用查地图，也不用安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              },
+              {
+                "id": "0846640c14d9421b9aa9dbdbf2c30122",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "f463ac22d2194242a173807c75068f7c",
+                "source_input": "我长期不吃辣。我喜欢逛博物馆。城市出行我通常优先坐地铁。我住宿一向喜欢安静、远离电梯的房间。这里只说明长期喜好，不用查地图，也不用安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              },
+              {
+                "id": "30a9fd0a5c9c4f7d8b1d6e554b23c4cf",
+                "category": "lodging",
+                "content": "喜欢安静、远离电梯的房间",
+                "source_turn_id": "f463ac22d2194242a173807c75068f7c",
+                "source_input": "我长期不吃辣。我喜欢逛博物馆。城市出行我通常优先坐地铁。我住宿一向喜欢安静、远离电梯的房间。这里只说明长期喜好，不用查地图，也不用安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              },
+              {
+                "id": "b21b40408d5a496fbb35f0276899d8a7",
+                "category": "transport",
+                "content": "城市出行优先坐地铁",
+                "source_turn_id": "f463ac22d2194242a173807c75068f7c",
+                "source_input": "我长期不吃辣。我喜欢逛博物馆。城市出行我通常优先坐地铁。我住宿一向喜欢安静、远离电梯的房间。这里只说明长期喜好，不用查地图，也不用安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "给我这次旅行选择餐饮、活动、交通和房间的原则。只说原则，不用查地图，不需要具体地点。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "4339b6fa51b049479b8823e9a15ef45c",
+            "turn_id": "f8836a93136647b28bd3ce8925e9768f"
+          },
+          "answer": "本次旅行在餐饮、活动、交通和房间选择上，将遵循以下原则：\n\n### 1. 餐饮原则\n* **严格免辣/清淡优先**：优先筛选粤菜、江南菜、本帮菜、清淡潮汕菜或温和家常菜等口味偏淡的餐系。\n* **主动确认调味**：点餐及预订时明确备注“不吃辣”，避开含辣椒、花椒、辣油等重辛香料菜品，并向店家核实具体出餐调味。\n\n### 2. 活动原则\n* **文博主题优先**：行程活动以综合性博物馆、专题展馆、历史遗址及美术艺术展为主轴。\n* **注重预约与闭馆核查**：提前规划场馆预约窗口，并注意周一或节假日闭馆规则，确保行程连贯。\n\n### 3. 交通原则\n* **轨道交通优先**：城市内部出行优先采用地铁/轻轨，降低地面道路拥堵的不确定性。\n* **衔接动线合理**：地点间衔接以地铁沿线站点为主要节点，结合适度步行，保持出行的准时与舒适。\n\n### 4. 房间选择原则\n* **安静优先**：预订时明确备注需要“安静房型”，尽量安排在走廊尽头、内侧或高层。\n* **远离噪音声源**：明确要求避开电梯井、设备间、楼梯口及布草房等人流和机械运转频繁的区域。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "4b4d649b5c684e23a72a6c60552f0553",
+                "category": "activity",
+                "content": "喜欢逛博物馆",
+                "source_turn_id": "f463ac22d2194242a173807c75068f7c",
+                "source_input": "我长期不吃辣。我喜欢逛博物馆。城市出行我通常优先坐地铁。我住宿一向喜欢安静、远离电梯的房间。这里只说明长期喜好，不用查地图，也不用安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              },
+              {
+                "id": "0846640c14d9421b9aa9dbdbf2c30122",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "f463ac22d2194242a173807c75068f7c",
+                "source_input": "我长期不吃辣。我喜欢逛博物馆。城市出行我通常优先坐地铁。我住宿一向喜欢安静、远离电梯的房间。这里只说明长期喜好，不用查地图，也不用安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              },
+              {
+                "id": "30a9fd0a5c9c4f7d8b1d6e554b23c4cf",
+                "category": "lodging",
+                "content": "喜欢安静、远离电梯的房间",
+                "source_turn_id": "f463ac22d2194242a173807c75068f7c",
+                "source_input": "我长期不吃辣。我喜欢逛博物馆。城市出行我通常优先坐地铁。我住宿一向喜欢安静、远离电梯的房间。这里只说明长期喜好，不用查地图，也不用安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              },
+              {
+                "id": "b21b40408d5a496fbb35f0276899d8a7",
+                "category": "transport",
+                "content": "城市出行优先坐地铁",
+                "source_turn_id": "f463ac22d2194242a173807c75068f7c",
+                "source_input": "我长期不吃辣。我喜欢逛博物馆。城市出行我通常优先坐地铁。我住宿一向喜欢安静、远离电梯的房间。这里只说明长期喜好，不用查地图，也不用安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "f8836a93136647b28bd3ce8925e9768f",
+                "session_id": "4339b6fa51b049479b8823e9a15ef45c",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        }
+      ],
+      "requests": [
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "已为您记下您的长期偏好：\n\n* **饮食**：不吃辣\n* **活动兴趣**：喜欢逛博物馆\n* **交通**：城市出行优先乘坐地铁\n* **住宿**：喜欢安静、远离电梯的房间\n\n在本次对话后续的地点、餐饮、住宿或行程建议中，我会参考这些偏好进行筛选与规划。需要说明的是，若希望这些偏好在后续的新会话中跨会话可用，需等待当前会话闲置一小时后由后台系统独立保存。\n\n后续如果您有出行计划、想了解特定城市或需要规划路线，随时告诉我即可！"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "目前我这里**没有收到任何已保存的长期偏好**记录。\n\n如果您在本次对话中提出具体的饮食口味、出行节奏、交通方式或住宿喜好，我会在本次规划中直接参考。跨会话的长期偏好通常会在会话闲置一小时后由系统后台独立保存，以便在以后的新会话中复用。"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "f463ac22d2194242a173807c75068f7c",
+                "input": "我长期不吃辣。我喜欢逛博物馆。城市出行我通常优先坐地铁。我住宿一向喜欢安静、远离电梯的房间。这里只说明长期喜好，不用查地图，也不用安排具体行程。"
+              }
+            ],
+            "existing_preferences": [],
+            "context": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[{\"operation\":\"add\",\"category\":\"diet\",\"content\":\"不吃辣\",\"source_turn_id\":\"f463ac22d2194242a173807c75068f7c\",\"evidence\":\"长期不吃辣\"},{\"operation\":\"add\",\"category\":\"activity\",\"content\":\"喜欢逛博物馆\",\"source_turn_id\":\"f463ac22d2194242a173807c75068f7c\",\"evidence\":\"喜欢逛博物馆\"},{\"operation\":\"add\",\"category\":\"transport\",\"content\":\"城市出行优先坐地铁\",\"source_turn_id\":\"f463ac22d2194242a173807c75068f7c\",\"evidence\":\"城市出行我通常优先坐地铁\"},{\"operation\":\"add\",\"category\":\"lodging\",\"content\":\"喜欢安静、远离电梯的房间\",\"source_turn_id\":\"f463ac22d2194242a173807c75068f7c\",\"evidence\":\"住宿一向喜欢安静、远离电梯的房间\"}]}"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "d8197011abcf4e9a86e9f7a4324c8375",
+                "input": "我有什么已经保存的长期偏好？不用查询地图。"
+              }
+            ],
+            "existing_preferences": [
+              {
+                "id": "4b4d649b5c684e23a72a6c60552f0553",
+                "category": "activity",
+                "content": "喜欢逛博物馆",
+                "source_turn_id": "f463ac22d2194242a173807c75068f7c",
+                "source_input": "我长期不吃辣。我喜欢逛博物馆。城市出行我通常优先坐地铁。我住宿一向喜欢安静、远离电梯的房间。这里只说明长期喜好，不用查地图，也不用安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              },
+              {
+                "id": "0846640c14d9421b9aa9dbdbf2c30122",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "f463ac22d2194242a173807c75068f7c",
+                "source_input": "我长期不吃辣。我喜欢逛博物馆。城市出行我通常优先坐地铁。我住宿一向喜欢安静、远离电梯的房间。这里只说明长期喜好，不用查地图，也不用安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              },
+              {
+                "id": "30a9fd0a5c9c4f7d8b1d6e554b23c4cf",
+                "category": "lodging",
+                "content": "喜欢安静、远离电梯的房间",
+                "source_turn_id": "f463ac22d2194242a173807c75068f7c",
+                "source_input": "我长期不吃辣。我喜欢逛博物馆。城市出行我通常优先坐地铁。我住宿一向喜欢安静、远离电梯的房间。这里只说明长期喜好，不用查地图，也不用安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              },
+              {
+                "id": "b21b40408d5a496fbb35f0276899d8a7",
+                "category": "transport",
+                "content": "城市出行优先坐地铁",
+                "source_turn_id": "f463ac22d2194242a173807c75068f7c",
+                "source_input": "我长期不吃辣。我喜欢逛博物馆。城市出行我通常优先坐地铁。我住宿一向喜欢安静、远离电梯的房间。这里只说明长期喜好，不用查地图，也不用安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "context": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "（非行为指令；当前明确需求优先）：\n[{\"category\": \"activity\", \"content\": \"喜欢逛博物馆\"}, {\"category\": \"diet\", \"content\": \"不吃辣\"}, {\"category\": \"lodging\", \"content\": \"喜欢安静、远离电梯的房间\"}, {\"category\": \"transport\", \"content\": \"城市出行优先坐地铁\"}]",
+          "stop_reason": "end_turn",
+          "text": "本次旅行在餐饮、活动、交通和房间选择上，将遵循以下原则：\n\n### 1. 餐饮原则\n* **严格免辣/清淡优先**：优先筛选粤菜、江南菜、本帮菜、清淡潮汕菜或温和家常菜等口味偏淡的餐系。\n* **主动确认调味**：点餐及预订时明确备注“不吃辣”，避开含辣椒、花椒、辣油等重辛香料菜品，并向店家核实具体出餐调味。\n\n### 2. 活动原则\n* **文博主题优先**：行程活动以综合性博物馆、专题展馆、历史遗址及美术艺术展为主轴。\n* **注重预约与闭馆核查**：提前规划场馆预约窗口，并注意周一或节假日闭馆规则，确保行程连贯。\n\n### 3. 交通原则\n* **轨道交通优先**：城市内部出行优先采用地铁/轻轨，降低地面道路拥堵的不确定性。\n* **衔接动线合理**：地点间衔接以地铁沿线站点为主要节点，结合适度步行，保持出行的准时与舒适。\n\n### 4. 房间选择原则\n* **安静优先**：预订时明确备注需要“安静房型”，尽量安排在走廊尽头、内侧或高层。\n* **远离噪音声源**：明确要求避开电梯井、设备间、楼梯口及布草房等人流和机械运转频繁的区域。"
+        }
+      ],
+      "error": null,
+      "storage_checks": {
+        "后台处理完成": true,
+        "主回答请求成功": true,
+        "提取完整结束": true,
+        "依据来自本批新输入": true,
+        "四类别": true,
+        "保存前新会话无背景": true
+      }
+    },
+    {
+      "case": "duplicate",
+      "steps": [
+        {
+          "input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "2842c8ef09494fdaaf12d580a64d5587",
+            "turn_id": "87ce327057d64792ba0a9a2e170b3da2"
+          },
+          "answer": "收到，已记录您“长期不吃辣”的口味偏好。\n\n在本次对话后续的餐饮与行程建议中，我会参考这一偏好；跨会话长期使用须等待当前会话闲置一小时后由系统在后台独立保存，之后的新会话才会生效。后续有具体的出行或推荐需求时，您可以随时告诉我！",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "87ce327057d64792ba0a9a2e170b3da2",
+                "session_id": "2842c8ef09494fdaaf12d580a64d5587",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "b54d6cdaa0f24f20a7085bb74dd3734a",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "87ce327057d64792ba0a9a2e170b3da2",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "我还是一直不吃辣。只讨论口味，不用查询。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "b90be0f2e42d417b9363395adf7934a1",
+            "turn_id": "c6f46fe026644b9ea5102903695d598f"
+          },
+          "answer": "收到，已记下您一直坚持“不吃辣”的口味偏好。本次对话会全程参考这一要求；如果您希望这项长期偏好在以后的新会话中继续生效，系统会在会话闲置一小时后自动在后台保存更新。\n\n既然只讨论口味、不涉及具体地点查询，关于“不吃辣”的饮食方向，平时在出行或日常用餐时，通常有几种比较契合的口味风格：\n\n1. **鲜香清淡型（如粤菜、顺德菜、潮汕风味）**：注重食材原本的鲜甜与本味，做法多以清蒸、白灼、煲汤、生滚为主，极少使用辣椒，非常适合完全不吃辣的人群。\n2. **咸鲜醇厚型（如淮扬菜、鲁菜传统菜）**：淮扬菜讲究刀工与原汁原味，注重汤清味醇；鲁菜的传统酱香、葱香和扒、烩类菜肴也多以咸鲜见长，避开川湘重辣。\n3. **浓油赤酱/微甜型（如本帮菜、苏锡菜）**：偏好酱香与适度冰糖提鲜，风味醇厚而不带辣味。\n4. **原味炖煮/素食轻食类**：如各式砂锅炖汤、菌菇汤锅或清淡轻食，注重温和与低刺激。\n\n您平时在不吃辣的前提下，更偏好哪一类风味（例如偏向**鲜香清淡**、**咸鲜**，还是带有一点**酸甜/微甜**）？是否有特别喜欢的菜系或需要避开的调味（比如葱蒜、香菜或重油）？随时和我聊聊您的喜好！",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "b54d6cdaa0f24f20a7085bb74dd3734a",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "87ce327057d64792ba0a9a2e170b3da2",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "c6f46fe026644b9ea5102903695d598f",
+                "session_id": "b90be0f2e42d417b9363395adf7934a1",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "b54d6cdaa0f24f20a7085bb74dd3734a",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "c6f46fe026644b9ea5102903695d598f",
+                "source_input": "我还是一直不吃辣。只讨论口味，不用查询。",
+                "updated_at": "1970-01-01T04:46:40+00:00",
+                "input_order": 2,
+                "version": 2
+              }
+            ],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "仅根据我已经保存的长期偏好，说明以后选择餐饮、活动、交通和住宿时的原则。不用查询，不需要具体地点。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "7c4fe7e5cae548e18032f83b81b86b32",
+            "turn_id": "ba48b38eceff45e6a8c04be00aefee9d"
+          },
+          "answer": "根据您当前已保存的长期偏好记录，原则如下：\n\n### 1. 餐饮选择原则\n* **已记录偏好**：不吃辣。\n* **规划原则**：优先考虑口味温和、不含辣的菜系与餐馆，避开主打香辣、麻辣或重度辛辣的品类；在筛选或建议菜品时以不辣选项为主，实际菜单和辣度要求会在规划时提示向店家确认。\n\n---\n\n### 2. 活动、交通与住宿选择原则\n* **记录状态**：目前偏好背景中**未保存**关于活动兴趣、交通方式和住宿条件的长期偏好。\n* **规划原则**：\n  * **活动**：暂无特定主题或节奏限制，行程中默认按适中节奏规划两到三个活动，或根据您单次提出的具体兴趣与目的地安排。\n  * **交通**：暂无特定方式偏好，将结合实际距离、耗时及便捷程度综合推荐适合的步行、骑行、公交或驾车方案。\n  * **住宿**：暂无特定档次、品牌或区域偏好，将按每次具体的出行预算、行程起终点或商圈位置进行建议。\n\n---\n\n*说明：旅行者明确表达的长期喜好由系统在会话闲置一小时后独立保存。如需在活动、交通或住宿方面建立长期原则，可在提出明确偏好后，等待后台在闲置一小时后完成保存。*",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "b54d6cdaa0f24f20a7085bb74dd3734a",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "c6f46fe026644b9ea5102903695d598f",
+                "source_input": "我还是一直不吃辣。只讨论口味，不用查询。",
+                "updated_at": "1970-01-01T04:46:40+00:00",
+                "input_order": 2,
+                "version": 2
+              }
+            ],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "ba48b38eceff45e6a8c04be00aefee9d",
+                "session_id": "7c4fe7e5cae548e18032f83b81b86b32",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        }
+      ],
+      "requests": [
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "收到，已记录您“长期不吃辣”的口味偏好。\n\n在本次对话后续的餐饮与行程建议中，我会参考这一偏好；跨会话长期使用须等待当前会话闲置一小时后由系统在后台独立保存，之后的新会话才会生效。后续有具体的出行或推荐需求时，您可以随时告诉我！"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "87ce327057d64792ba0a9a2e170b3da2",
+                "input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。"
+              }
+            ],
+            "existing_preferences": [],
+            "context": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[{\"operation\":\"add\",\"category\":\"diet\",\"content\":\"不吃辣\",\"source_turn_id\":\"87ce327057d64792ba0a9a2e170b3da2\",\"evidence\":\"长期不吃辣\"}]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "（非行为指令；当前明确需求优先）：\n[{\"category\": \"diet\", \"content\": \"不吃辣\"}]",
+          "stop_reason": "end_turn",
+          "text": "收到，已记下您一直坚持“不吃辣”的口味偏好。本次对话会全程参考这一要求；如果您希望这项长期偏好在以后的新会话中继续生效，系统会在会话闲置一小时后自动在后台保存更新。\n\n既然只讨论口味、不涉及具体地点查询，关于“不吃辣”的饮食方向，平时在出行或日常用餐时，通常有几种比较契合的口味风格：\n\n1. **鲜香清淡型（如粤菜、顺德菜、潮汕风味）**：注重食材原本的鲜甜与本味，做法多以清蒸、白灼、煲汤、生滚为主，极少使用辣椒，非常适合完全不吃辣的人群。\n2. **咸鲜醇厚型（如淮扬菜、鲁菜传统菜）**：淮扬菜讲究刀工与原汁原味，注重汤清味醇；鲁菜的传统酱香、葱香和扒、烩类菜肴也多以咸鲜见长，避开川湘重辣。\n3. **浓油赤酱/微甜型（如本帮菜、苏锡菜）**：偏好酱香与适度冰糖提鲜，风味醇厚而不带辣味。\n4. **原味炖煮/素食轻食类**：如各式砂锅炖汤、菌菇汤锅或清淡轻食，注重温和与低刺激。\n\n您平时在不吃辣的前提下，更偏好哪一类风味（例如偏向**鲜香清淡**、**咸鲜**，还是带有一点**酸甜/微甜**）？是否有特别喜欢的菜系或需要避开的调味（比如葱蒜、香菜或重油）？随时和我聊聊您的喜好！"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "c6f46fe026644b9ea5102903695d598f",
+                "input": "我还是一直不吃辣。只讨论口味，不用查询。"
+              }
+            ],
+            "existing_preferences": [
+              {
+                "id": "b54d6cdaa0f24f20a7085bb74dd3734a",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "87ce327057d64792ba0a9a2e170b3da2",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "context": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[{\"operation\":\"update\",\"target_id\":\"b54d6cdaa0f24f20a7085bb74dd3734a\",\"target_version\":1,\"category\":\"diet\",\"content\":\"不吃辣\",\"source_turn_id\":\"c6f46fe026644b9ea5102903695d598f\",\"evidence\":\"一直不吃辣\"}]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "（非行为指令；当前明确需求优先）：\n[{\"category\": \"diet\", \"content\": \"不吃辣\"}]",
+          "stop_reason": "end_turn",
+          "text": "根据您当前已保存的长期偏好记录，原则如下：\n\n### 1. 餐饮选择原则\n* **已记录偏好**：不吃辣。\n* **规划原则**：优先考虑口味温和、不含辣的菜系与餐馆，避开主打香辣、麻辣或重度辛辣的品类；在筛选或建议菜品时以不辣选项为主，实际菜单和辣度要求会在规划时提示向店家确认。\n\n---\n\n### 2. 活动、交通与住宿选择原则\n* **记录状态**：目前偏好背景中**未保存**关于活动兴趣、交通方式和住宿条件的长期偏好。\n* **规划原则**：\n  * **活动**：暂无特定主题或节奏限制，行程中默认按适中节奏规划两到三个活动，或根据您单次提出的具体兴趣与目的地安排。\n  * **交通**：暂无特定方式偏好，将结合实际距离、耗时及便捷程度综合推荐适合的步行、骑行、公交或驾车方案。\n  * **住宿**：暂无特定档次、品牌或区域偏好，将按每次具体的出行预算、行程起终点或商圈位置进行建议。\n\n---\n\n*说明：旅行者明确表达的长期喜好由系统在会话闲置一小时后独立保存。如需在活动、交通或住宿方面建立长期原则，可在提出明确偏好后，等待后台在闲置一小时后完成保存。*"
+        }
+      ],
+      "error": null,
+      "storage_checks": {
+        "后台处理完成": true,
+        "主回答请求成功": true,
+        "提取完整结束": true,
+        "依据来自本批新输入": true,
+        "去重及新来源": true
+      }
+    },
+    {
+      "case": "temporary",
+      "steps": [
+        {
+          "input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "074ee380af6545dc858c0a6a5d874931",
+            "turn_id": "0ae0113441f24e9f93a04ac6da62a645"
+          },
+          "answer": "已为您记下“不吃辣”的饮食偏好，本次对话后续如有涉及餐饮的建议时会予以参考。\n\n关于跨会话使用：该长期偏好将在本会话闲置一小时后由后台系统独立保存，保存完成前暂无法承诺自动用于后续的新会话，目前尚未即时跨会话生效。后续如有需要规划的城市或行程，随时告诉我即可。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "0ae0113441f24e9f93a04ac6da62a645",
+                "session_id": "074ee380af6545dc858c0a6a5d874931",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "7b4b30846f8b4528b35ab185f616d416",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "0ae0113441f24e9f93a04ac6da62a645",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "这次可以吃一点辣。请按这次的条件给我点餐原则，不用查询。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "0f877a2e42f94d50bbac2c3b2c9573d1",
+            "turn_id": "fa4a4a672f3c4c628433fc76e2b191f7"
+          },
+          "answer": "按您本次**“可以吃一点辣”**的要求，为您梳理以下适度尝试辣味的点餐原则：\n\n---\n\n### 一、 辣度控制与点餐沟通\n1. **明确标注与主动沟通**：点餐时主动告知服务员“只要微辣”或“微微辣”。由于不同菜系或地域对微辣的标准差异较大，点餐前可先向店家核实具体辣度程度。\n2. **要求“辣椒/辣酱单独分装”**：对于汤粉、凉拌菜、蘸料或烤物，建议优先要求将辣椒油、辣椒面或辣酱单独盛碟，方便根据自己的耐受程度自行蘸取或添加。\n\n---\n\n### 二、 菜品结构与搭配\n1. **“一辣配多清淡”**：一餐建议只选 **1 道**微辣菜品作为风味尝鲜，其余菜品搭配清炒、白灼、清蒸、清汤等不辣做法，避免全桌皆辣。\n2. **避开重油复合辣型**：\n   * **可尝试**：以提香为主的轻度辣味（如轻微胡椒提味、少量生抽酱油拌微量辣椒圈、甜辣酱汁）。\n   * **暂不建议**：重油重辣的红油底料、浸透泡椒的菜品，或辣度无法自行剥离的高油温爆炒菜。\n\n---\n\n### 三、 就餐保护与解辣准备\n1. **不空腹直接吃辣**：先吃主食（米饭、面条）或温热清淡的蔬菜、汤品垫底，减少对胃部的直接刺激。\n2. **准备解辣饮品**：桌上备好常温牛奶、豆奶、酸奶或温水，若遇到实际辣度超出预期时可及时缓解。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "7b4b30846f8b4528b35ab185f616d416",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "0ae0113441f24e9f93a04ac6da62a645",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "fa4a4a672f3c4c628433fc76e2b191f7",
+                "session_id": "0f877a2e42f94d50bbac2c3b2c9573d1",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "7b4b30846f8b4528b35ab185f616d416",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "0ae0113441f24e9f93a04ac6da62a645",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "下次点餐选口味的原则是什么？不查地图。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "8d673674570545bb81c07c2bbd3de8ed",
+            "turn_id": "70e527273c0c4af09da450563af72c18"
+          },
+          "answer": "根据您**不吃辣**的饮食偏好，下次点餐选口味时建议遵循以下原则：\n\n---\n\n### 1. 核心沟通原则：明确提出“完全免辣”\n* **提前说明忌口**：下单或点餐时，主动明确向店家提出“完全不放辣”，说明不放辣椒、辣椒油、剁椒、泡椒以及辣味胡椒等调味品。\n* **避免模糊表达**：尽量避免说“微辣”或“少辣”，部分餐饮习惯中“微辣”仍含有辣椒成分；直接说明“一点辣都不能吃”更为稳妥。\n\n---\n\n### 2. 菜品筛选与核实原则\n* **确认隐形辣味**：部分汤底、酱料、卤水或腌制半成品（如川湘卤味、火锅底汤、咖喱、特定拌酱）本身自带辣度且无法单独剔除，点餐时建议询问店家底料是否预制含辣。\n* **做法优先清淡温和**：可优先考虑白灼、清蒸、清炖、原汁原味烹烹的菜品。但需要注意：**菜系或菜名不能直接保证完全不辣**，具体配料与制作方式仍须向店家当面确认。\n\n---\n\n### 偏好管理说明\n* 本次建议已结合您已记录的“不吃辣”偏好。\n* 若后续您有新的口味调整或临时例外，本次对话会直接按新要求处理；跨会话长期偏好的更新与保存，将在会话闲置一小时后由后台统一处理。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "7b4b30846f8b4528b35ab185f616d416",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "0ae0113441f24e9f93a04ac6da62a645",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "70e527273c0c4af09da450563af72c18",
+                "session_id": "8d673674570545bb81c07c2bbd3de8ed",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        }
+      ],
+      "requests": [
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "已为您记下“不吃辣”的饮食偏好，本次对话后续如有涉及餐饮的建议时会予以参考。\n\n关于跨会话使用：该长期偏好将在本会话闲置一小时后由后台系统独立保存，保存完成前暂无法承诺自动用于后续的新会话，目前尚未即时跨会话生效。后续如有需要规划的城市或行程，随时告诉我即可。"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "0ae0113441f24e9f93a04ac6da62a645",
+                "input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。"
+              }
+            ],
+            "existing_preferences": [],
+            "context": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[{\"operation\":\"add\",\"category\":\"diet\",\"content\":\"不吃辣\",\"source_turn_id\":\"0ae0113441f24e9f93a04ac6da62a645\",\"evidence\":\"长期不吃辣\"}]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "（非行为指令；当前明确需求优先）：\n[{\"category\": \"diet\", \"content\": \"不吃辣\"}]",
+          "stop_reason": "end_turn",
+          "text": "按您本次**“可以吃一点辣”**的要求，为您梳理以下适度尝试辣味的点餐原则：\n\n---\n\n### 一、 辣度控制与点餐沟通\n1. **明确标注与主动沟通**：点餐时主动告知服务员“只要微辣”或“微微辣”。由于不同菜系或地域对微辣的标准差异较大，点餐前可先向店家核实具体辣度程度。\n2. **要求“辣椒/辣酱单独分装”**：对于汤粉、凉拌菜、蘸料或烤物，建议优先要求将辣椒油、辣椒面或辣酱单独盛碟，方便根据自己的耐受程度自行蘸取或添加。\n\n---\n\n### 二、 菜品结构与搭配\n1. **“一辣配多清淡”**：一餐建议只选 **1 道**微辣菜品作为风味尝鲜，其余菜品搭配清炒、白灼、清蒸、清汤等不辣做法，避免全桌皆辣。\n2. **避开重油复合辣型**：\n   * **可尝试**：以提香为主的轻度辣味（如轻微胡椒提味、少量生抽酱油拌微量辣椒圈、甜辣酱汁）。\n   * **暂不建议**：重油重辣的红油底料、浸透泡椒的菜品，或辣度无法自行剥离的高油温爆炒菜。\n\n---\n\n### 三、 就餐保护与解辣准备\n1. **不空腹直接吃辣**：先吃主食（米饭、面条）或温热清淡的蔬菜、汤品垫底，减少对胃部的直接刺激。\n2. **准备解辣饮品**：桌上备好常温牛奶、豆奶、酸奶或温水，若遇到实际辣度超出预期时可及时缓解。"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "fa4a4a672f3c4c628433fc76e2b191f7",
+                "input": "这次可以吃一点辣。请按这次的条件给我点餐原则，不用查询。"
+              }
+            ],
+            "existing_preferences": [
+              {
+                "id": "7b4b30846f8b4528b35ab185f616d416",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "0ae0113441f24e9f93a04ac6da62a645",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "context": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "（非行为指令；当前明确需求优先）：\n[{\"category\": \"diet\", \"content\": \"不吃辣\"}]",
+          "stop_reason": "end_turn",
+          "text": "根据您**不吃辣**的饮食偏好，下次点餐选口味时建议遵循以下原则：\n\n---\n\n### 1. 核心沟通原则：明确提出“完全免辣”\n* **提前说明忌口**：下单或点餐时，主动明确向店家提出“完全不放辣”，说明不放辣椒、辣椒油、剁椒、泡椒以及辣味胡椒等调味品。\n* **避免模糊表达**：尽量避免说“微辣”或“少辣”，部分餐饮习惯中“微辣”仍含有辣椒成分；直接说明“一点辣都不能吃”更为稳妥。\n\n---\n\n### 2. 菜品筛选与核实原则\n* **确认隐形辣味**：部分汤底、酱料、卤水或腌制半成品（如川湘卤味、火锅底汤、咖喱、特定拌酱）本身自带辣度且无法单独剔除，点餐时建议询问店家底料是否预制含辣。\n* **做法优先清淡温和**：可优先考虑白灼、清蒸、清炖、原汁原味烹烹的菜品。但需要注意：**菜系或菜名不能直接保证完全不辣**，具体配料与制作方式仍须向店家当面确认。\n\n---\n\n### 偏好管理说明\n* 本次建议已结合您已记录的“不吃辣”偏好。\n* 若后续您有新的口味调整或临时例外，本次对话会直接按新要求处理；跨会话长期偏好的更新与保存，将在会话闲置一小时后由后台统一处理。"
+        }
+      ],
+      "error": null,
+      "storage_checks": {
+        "后台处理完成": true,
+        "主回答请求成功": true,
+        "提取完整结束": true,
+        "依据来自本批新输入": true,
+        "临时例外保留有效记录": true
+      }
+    },
+    {
+      "case": "long_term",
+      "steps": [
+        {
+          "input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "fecab5942d9d455d9a5dc7361a1ff747",
+            "turn_id": "b706861ba1e746d69adb639e4e39e5b1"
+          },
+          "answer": "已记下您不吃辣的口味偏好。后续为您推荐餐饮或规划行程时，会优先考虑不辣的选项；具体点餐时也会提示向店家确认是否能做免辣或清淡口味。\n\n如果您有想去的城市、出行日期或具体目的地，随时告诉我即可开始规划。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "b706861ba1e746d69adb639e4e39e5b1",
+                "session_id": "fecab5942d9d455d9a5dc7361a1ff747",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "4c18ec5b932e49669dd7ad9caf5e3459",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "b706861ba1e746d69adb639e4e39e5b1",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "我现在喜欢吃辣了，以后也按这个口味推荐。不用查询。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "91ef1c4b49e94ce5b839f2858f072320",
+            "turn_id": "f291813751b74af997207095525aec48"
+          },
+          "answer": "收到，已为您更新口味偏好！之后的餐饮推荐和行程安排中，会优先为您推荐偏辣、嗜辣或提供辣味菜品的选择。\n\n如果您有具体的出行城市、目的地或想了解的美食推荐，随时告诉我即可。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "4c18ec5b932e49669dd7ad9caf5e3459",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "b706861ba1e746d69adb639e4e39e5b1",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "f291813751b74af997207095525aec48",
+                "session_id": "91ef1c4b49e94ce5b839f2858f072320",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "4c18ec5b932e49669dd7ad9caf5e3459",
+                "category": "diet",
+                "content": "喜欢吃辣",
+                "source_turn_id": "f291813751b74af997207095525aec48",
+                "source_input": "我现在喜欢吃辣了，以后也按这个口味推荐。不用查询。",
+                "updated_at": "1970-01-01T04:46:40+00:00",
+                "input_order": 2,
+                "version": 2
+              }
+            ],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "下次点餐选口味的原则是什么？不查地图。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "5aa7d131f25248f199b157b3c48f1409",
+            "turn_id": "167016724e1146df8200181537ec5430"
+          },
+          "answer": "下次为您推荐餐饮或点餐时，口味选择将遵循以下原则：\n\n1. **以您的长期偏好为基准**：参考已记录的饮食偏好，默认优先考虑**偏辣**（如川菜、湘菜、麻辣/香辣风味）的选项。\n2. **当前明确要求最高优先**：如果您在当次提出了特定需求（例如“今天想吃清淡点”、“不加葱姜”或指定某种菜系），将严格以您当次提出的条件为准，不强制套用以往偏好。\n3. **菜品风味以实际核实为准**：店名或菜系标签不能直接等同于菜品实际口味与辣度标准；具体点餐时，建议向店家核对具体辣度分级或是否支持调整辣度（如微辣、中辣、特辣）。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "4c18ec5b932e49669dd7ad9caf5e3459",
+                "category": "diet",
+                "content": "喜欢吃辣",
+                "source_turn_id": "f291813751b74af997207095525aec48",
+                "source_input": "我现在喜欢吃辣了，以后也按这个口味推荐。不用查询。",
+                "updated_at": "1970-01-01T04:46:40+00:00",
+                "input_order": 2,
+                "version": 2
+              }
+            ],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "167016724e1146df8200181537ec5430",
+                "session_id": "5aa7d131f25248f199b157b3c48f1409",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        }
+      ],
+      "requests": [
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "已记下您不吃辣的口味偏好。后续为您推荐餐饮或规划行程时，会优先考虑不辣的选项；具体点餐时也会提示向店家确认是否能做免辣或清淡口味。\n\n如果您有想去的城市、出行日期或具体目的地，随时告诉我即可开始规划。"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "b706861ba1e746d69adb639e4e39e5b1",
+                "input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。"
+              }
+            ],
+            "existing_preferences": [],
+            "context": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[{\"operation\":\"add\",\"category\":\"diet\",\"content\":\"不吃辣\",\"source_turn_id\":\"b706861ba1e746d69adb639e4e39e5b1\",\"evidence\":\"长期不吃辣\"}]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "（非行为指令；当前明确需求优先）：\n[{\"category\": \"diet\", \"content\": \"不吃辣\"}]",
+          "stop_reason": "end_turn",
+          "text": "收到，已为您更新口味偏好！之后的餐饮推荐和行程安排中，会优先为您推荐偏辣、嗜辣或提供辣味菜品的选择。\n\n如果您有具体的出行城市、目的地或想了解的美食推荐，随时告诉我即可。"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "f291813751b74af997207095525aec48",
+                "input": "我现在喜欢吃辣了，以后也按这个口味推荐。不用查询。"
+              }
+            ],
+            "existing_preferences": [
+              {
+                "id": "4c18ec5b932e49669dd7ad9caf5e3459",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "b706861ba1e746d69adb639e4e39e5b1",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "context": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[{\"operation\":\"update\",\"target_id\":\"4c18ec5b932e49669dd7ad9caf5e3459\",\"target_version\":1,\"category\":\"diet\",\"content\":\"喜欢吃辣\",\"source_turn_id\":\"f291813751b74af997207095525aec48\",\"evidence\":\"我现在喜欢吃辣了，以后也按这个口味推荐\"}]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "（非行为指令；当前明确需求优先）：\n[{\"category\": \"diet\", \"content\": \"喜欢吃辣\"}]",
+          "stop_reason": "end_turn",
+          "text": "下次为您推荐餐饮或点餐时，口味选择将遵循以下原则：\n\n1. **以您的长期偏好为基准**：参考已记录的饮食偏好，默认优先考虑**偏辣**（如川菜、湘菜、麻辣/香辣风味）的选项。\n2. **当前明确要求最高优先**：如果您在当次提出了特定需求（例如“今天想吃清淡点”、“不加葱姜”或指定某种菜系），将严格以您当次提出的条件为准，不强制套用以往偏好。\n3. **菜品风味以实际核实为准**：店名或菜系标签不能直接等同于菜品实际口味与辣度标准；具体点餐时，建议向店家核对具体辣度分级或是否支持调整辣度（如微辣、中辣、特辣）。"
+        }
+      ],
+      "error": null,
+      "storage_checks": {
+        "后台处理完成": true,
+        "主回答请求成功": true,
+        "提取完整结束": true,
+        "依据来自本批新输入": true,
+        "长期变化更新原条目及来源": true
+      }
+    },
+    {
+      "case": "third_party",
+      "steps": [
+        {
+          "input": "妈妈不吃辣，这次我们一起去。我没有说自己的长期口味。这里只交流，不用查询。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "cba0c527fee84e3c85b09fcd3146ca88",
+            "turn_id": "62e8d6fcc0d044baa745d80445533e7f"
+          },
+          "answer": "明白，这次与妈妈同行，在本次行程和餐饮规划中会以“不吃辣”作为饮食参考，为您和妈妈推荐清淡、适口的餐食选择。\n\n请问你们这次计划去哪个城市旅行？大概游玩几天，或者目前有没有已经想去的景点或大致出行时间？随时可以告诉我，我们再进一步交流。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "62e8d6fcc0d044baa745d80445533e7f",
+                "session_id": "cba0c527fee84e3c85b09fcd3146ca88",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "仅根据我已经保存的长期偏好，说明以后选择餐饮、活动、交通和住宿时的原则。不用查询，不需要具体地点。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "6b429fb9ebb0488a816abc6b3f9776d6",
+            "turn_id": "a26c426d820141ceae2b6c5ef04b7718"
+          },
+          "answer": "目前系统**未接收到您已保存的长期偏好背景数据**。\n\n关于偏好的管理与应用原则说明如下：\n\n1. **长期偏好保存机制**：旅行者明确表达的稳定饮食、活动兴趣、交通和住宿喜好，是由服务在**会话闲置一小时后**由后台独立保存的。未收到已保存数据时，无法直接调取您过去的跨会话偏好记录。\n2. **本次规划的原则与处理方式**：\n   - **本次对话优先**：如果您现在提供具体的偏好（例如特定菜系/忌口、偏好的活动节奏与类型、优先的交通工具、住宿标准等），本次对话会立即以此为原则为您制定与筛选方案。\n   - **后续生效**：新表达的喜好同样需要等待本次会话闲置一小时后完成后台保存，届时才能在以后的全新会话中长期复用。\n\n如果您希望确立后续的规划原则，可以随时告诉我您的具体喜好（如餐饮口味与预算、活动类型与节奏、习惯的交通方式及住宿要求），我会在本次规划中严格遵循。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "a26c426d820141ceae2b6c5ef04b7718",
+                "session_id": "6b429fb9ebb0488a816abc6b3f9776d6",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        }
+      ],
+      "requests": [
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "明白，这次与妈妈同行，在本次行程和餐饮规划中会以“不吃辣”作为饮食参考，为您和妈妈推荐清淡、适口的餐食选择。\n\n请问你们这次计划去哪个城市旅行？大概游玩几天，或者目前有没有已经想去的景点或大致出行时间？随时可以告诉我，我们再进一步交流。"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "62e8d6fcc0d044baa745d80445533e7f",
+                "input": "妈妈不吃辣，这次我们一起去。我没有说自己的长期口味。这里只交流，不用查询。"
+              }
+            ],
+            "existing_preferences": [],
+            "context": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "目前系统**未接收到您已保存的长期偏好背景数据**。\n\n关于偏好的管理与应用原则说明如下：\n\n1. **长期偏好保存机制**：旅行者明确表达的稳定饮食、活动兴趣、交通和住宿喜好，是由服务在**会话闲置一小时后**由后台独立保存的。未收到已保存数据时，无法直接调取您过去的跨会话偏好记录。\n2. **本次规划的原则与处理方式**：\n   - **本次对话优先**：如果您现在提供具体的偏好（例如特定菜系/忌口、偏好的活动节奏与类型、优先的交通工具、住宿标准等），本次对话会立即以此为原则为您制定与筛选方案。\n   - **后续生效**：新表达的喜好同样需要等待本次会话闲置一小时后完成后台保存，届时才能在以后的全新会话中长期复用。\n\n如果您希望确立后续的规划原则，可以随时告诉我您的具体喜好（如餐饮口味与预算、活动类型与节奏、习惯的交通方式及住宿要求），我会在本次规划中严格遵循。"
+        }
+      ],
+      "error": null,
+      "storage_checks": {
+        "后台处理完成": true,
+        "主回答请求成功": true,
+        "提取完整结束": true,
+        "依据来自本批新输入": true,
+        "排除非本人稳定偏好": true
+      }
+    },
+    {
+      "case": "pace",
+      "steps": [
+        {
+          "input": "今天很累，每天只想玩一个景点，慢慢走。这里只交流本次要求，不用查询。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "e285ea4f68d842078cb0996b4c33fd33",
+            "turn_id": "766ddd8171ed48b5804fd58a673e73c2"
+          },
+          "answer": "收到，完全理解。本次行程会严格按照您的要求，**每天只安排一个景点，节奏放得最慢、舒缓漫步**，绝不多赶行程。\n\n既然本次先不进行具体查询，您可以随时告诉我：\n1. 您计划出行的**城市**；\n2. 计划游玩的**天数或具体日期**；\n3. 是否已有特别想去的单个核心景点，或对景点的类型有何想法（例如公园、博物馆或古镇街区等）。\n\n准备好时告诉我即可，后续规划会完全遵循这个轻松的节奏来展开。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "766ddd8171ed48b5804fd58a673e73c2",
+                "session_id": "e285ea4f68d842078cb0996b4c33fd33",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "仅根据我已经保存的长期偏好，说明以后选择餐饮、活动、交通和住宿时的原则。不用查询，不需要具体地点。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "f08fa93b3a9e41208fb6520fbe3c342e",
+            "turn_id": "c3ef0fedc1344ba2a0b22883bf06da89"
+          },
+          "answer": "目前系统**尚未收到您已保存的长期偏好背景信息**。\n\n按照系统机制：\n1. **跨会话保存**：若您在对话中明确提出了饮食习惯、活动兴趣、出行交通及住宿等喜好，需要等待会话闲置一小时后由系统后台独立保存，之后的新会话才能作为长期偏好读取并应用。\n2. **本次对话使用**：如果您现在告知具体的偏好要求，本次对话在后续规划中会直接参考；但跨会话的持久化仍须等待闲置一小时后的后台保存。\n\n如果您希望设定这些原则，可以随时告诉我您在餐饮（如菜系、口味、忌口）、活动（如节奏、偏好类型）、交通（如出行方式偏好）及住宿等方面的要求。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "c3ef0fedc1344ba2a0b22883bf06da89",
+                "session_id": "f08fa93b3a9e41208fb6520fbe3c342e",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        }
+      ],
+      "requests": [
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "收到，完全理解。本次行程会严格按照您的要求，**每天只安排一个景点，节奏放得最慢、舒缓漫步**，绝不多赶行程。\n\n既然本次先不进行具体查询，您可以随时告诉我：\n1. 您计划出行的**城市**；\n2. 计划游玩的**天数或具体日期**；\n3. 是否已有特别想去的单个核心景点，或对景点的类型有何想法（例如公园、博物馆或古镇街区等）。\n\n准备好时告诉我即可，后续规划会完全遵循这个轻松的节奏来展开。"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "766ddd8171ed48b5804fd58a673e73c2",
+                "input": "今天很累，每天只想玩一个景点，慢慢走。这里只交流本次要求，不用查询。"
+              }
+            ],
+            "existing_preferences": [],
+            "context": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "目前系统**尚未收到您已保存的长期偏好背景信息**。\n\n按照系统机制：\n1. **跨会话保存**：若您在对话中明确提出了饮食习惯、活动兴趣、出行交通及住宿等喜好，需要等待会话闲置一小时后由系统后台独立保存，之后的新会话才能作为长期偏好读取并应用。\n2. **本次对话使用**：如果您现在告知具体的偏好要求，本次对话在后续规划中会直接参考；但跨会话的持久化仍须等待闲置一小时后的后台保存。\n\n如果您希望设定这些原则，可以随时告诉我您在餐饮（如菜系、口味、忌口）、活动（如节奏、偏好类型）、交通（如出行方式偏好）及住宿等方面的要求。"
+        }
+      ],
+      "error": null,
+      "storage_checks": {
+        "后台处理完成": true,
+        "主回答请求成功": true,
+        "提取完整结束": true,
+        "依据来自本批新输入": true,
+        "排除非本人稳定偏好": true
+      }
+    },
+    {
+      "case": "trip",
+      "steps": [
+        {
+          "input": "这次11月1日去杭州，预算2000元，已经订了西湖边的酒店。这里只交流本次安排，不用查询。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "2cb5414d6e694ba48aab93ce3b80dd48",
+            "turn_id": "673db5b631ca4d94a52d6e4f3c00dec9"
+          },
+          "answer": "收到，已记下您这次11月1日前往杭州的计划（住宿在西湖边，单次预算2000元，仅作为本次行程安排）。\n\n为了更好地帮您梳理这次的行程框架，请问：\n\n1. **行程天数**：这次是11月1日当天的一日游，还是从11月1日开始的多日游（共几天）？\n2. **游玩偏好与节奏**：是否有特别想去的地方（例如西湖环湖漫步、灵隐飞来峰、龙井茶村/九溪、良渚文化等）？节奏上更偏好轻松慢游还是充实打卡？\n3. **抵离时间**：预计11月1日几点左右到达杭州，行程结束当天大约几点返程？\n\n您可以随时补充这些信息，我们再一起讨论具体的活动衔接与路线安排。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "673db5b631ca4d94a52d6e4f3c00dec9",
+                "session_id": "2cb5414d6e694ba48aab93ce3b80dd48",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "仅根据我已经保存的长期偏好，说明以后选择餐饮、活动、交通和住宿时的原则。不用查询，不需要具体地点。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "659bf35466214b65bbf5d5d506ecdabd",
+            "turn_id": "1cad674548b644d0b0be8d55d3663abc"
+          },
+          "answer": "目前系统内**暂无已保存的长期偏好**。\n\n在尚未建立偏好记录的情况下，服务对于后续规划的基本处理原则及偏好保存机制说明如下：\n\n### 1. 当前各维度的默认处理原则（在无偏好记录时）\n* **餐饮**：不默认预设菜系、口味或辣度倾向。在规划前会先与您确认偏好（或在未提供时说明假设并查询有明确依据的候选），点餐及菜品特征以实际核实为准，不凭店名或菜系臆断。\n* **活动**：不预设特定的景点或活动类型偏好。默认结合目的地、常规游览可行性与地理分布给出建议，活动时段与内容均需经实际核实。\n* **交通**：根据实际起终点距离、耗时与出行便利度，客观比较并提供适用的交通方式（公交、步行、驾车/打车、骑行等），不预设偏爱或排斥某种方式。\n* **住宿**：不预设具体品牌、星级或位置倾向，具体规划时需根据您给出的确切地点或要求进行安排。\n\n---\n\n### 2. 长期偏好的记录范围与保存机制\n如果您希望在以后的规划中直接复用习惯，可以补充属于您的长期偏好：\n\n* **可保存为长期偏好的范围**：严格限定为您本人明确表达的**稳定饮食喜好**（如固定忌口、特定风味偏好）、**活动兴趣**（如偏好历史人文、自然风光等）、**交通习惯**（如长途优先高铁、市内偏好公共交通等）以及**住宿喜好**（如特定住宿类型偏好）。\n* **不跨会话保存的内容**：游玩节奏（如特种兵/慢节奏）、当天精力状况、旅行日期、单次预算、同行人信息、具体某次行程的酒店安排及临时例外要求，这些仅用于当前单次对话，不会作为长期偏好保存。\n* **生效机制**：当您在对话中明确表达了稳定的饮食、活动兴趣、交通或住宿喜好后，本次对话会即时参考；而跨会话的长期保存需要在会话闲置一小时后由后台独立保存，之后的新会话才会自动带入这些原则。\n\n如果您现在有需要沉淀的长期偏好，欢迎随时告知。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "1cad674548b644d0b0be8d55d3663abc",
+                "session_id": "659bf35466214b65bbf5d5d506ecdabd",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        }
+      ],
+      "requests": [
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "收到，已记下您这次11月1日前往杭州的计划（住宿在西湖边，单次预算2000元，仅作为本次行程安排）。\n\n为了更好地帮您梳理这次的行程框架，请问：\n\n1. **行程天数**：这次是11月1日当天的一日游，还是从11月1日开始的多日游（共几天）？\n2. **游玩偏好与节奏**：是否有特别想去的地方（例如西湖环湖漫步、灵隐飞来峰、龙井茶村/九溪、良渚文化等）？节奏上更偏好轻松慢游还是充实打卡？\n3. **抵离时间**：预计11月1日几点左右到达杭州，行程结束当天大约几点返程？\n\n您可以随时补充这些信息，我们再一起讨论具体的活动衔接与路线安排。"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "673db5b631ca4d94a52d6e4f3c00dec9",
+                "input": "这次11月1日去杭州，预算2000元，已经订了西湖边的酒店。这里只交流本次安排，不用查询。"
+              }
+            ],
+            "existing_preferences": [],
+            "context": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "目前系统内**暂无已保存的长期偏好**。\n\n在尚未建立偏好记录的情况下，服务对于后续规划的基本处理原则及偏好保存机制说明如下：\n\n### 1. 当前各维度的默认处理原则（在无偏好记录时）\n* **餐饮**：不默认预设菜系、口味或辣度倾向。在规划前会先与您确认偏好（或在未提供时说明假设并查询有明确依据的候选），点餐及菜品特征以实际核实为准，不凭店名或菜系臆断。\n* **活动**：不预设特定的景点或活动类型偏好。默认结合目的地、常规游览可行性与地理分布给出建议，活动时段与内容均需经实际核实。\n* **交通**：根据实际起终点距离、耗时与出行便利度，客观比较并提供适用的交通方式（公交、步行、驾车/打车、骑行等），不预设偏爱或排斥某种方式。\n* **住宿**：不预设具体品牌、星级或位置倾向，具体规划时需根据您给出的确切地点或要求进行安排。\n\n---\n\n### 2. 长期偏好的记录范围与保存机制\n如果您希望在以后的规划中直接复用习惯，可以补充属于您的长期偏好：\n\n* **可保存为长期偏好的范围**：严格限定为您本人明确表达的**稳定饮食喜好**（如固定忌口、特定风味偏好）、**活动兴趣**（如偏好历史人文、自然风光等）、**交通习惯**（如长途优先高铁、市内偏好公共交通等）以及**住宿喜好**（如特定住宿类型偏好）。\n* **不跨会话保存的内容**：游玩节奏（如特种兵/慢节奏）、当天精力状况、旅行日期、单次预算、同行人信息、具体某次行程的酒店安排及临时例外要求，这些仅用于当前单次对话，不会作为长期偏好保存。\n* **生效机制**：当您在对话中明确表达了稳定的饮食、活动兴趣、交通或住宿喜好后，本次对话会即时参考；而跨会话的长期保存需要在会话闲置一小时后由后台独立保存，之后的新会话才会自动带入这些原则。\n\n如果您现在有需要沉淀的长期偏好，欢迎随时告知。"
+        }
+      ],
+      "error": null,
+      "storage_checks": {
+        "后台处理完成": true,
+        "主回答请求成功": true,
+        "提取完整结束": true,
+        "依据来自本批新输入": true,
+        "排除非本人稳定偏好": true
+      }
+    },
+    {
+      "case": "rejected_suggestion",
+      "steps": [
+        {
+          "input": "请建议一种室内文化活动，只讨论活动类型，不用查询地图。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "706af04d06a64c9ba1f2e0b3d748801b",
+            "turn_id": "48278489f46c4b5ea16fd5b7b9ea05e5"
+          },
+          "answer": "建议选择**参观艺术博物馆或美术馆的主题展览**。\n\n### 活动特点与体验价值\n1. **环境受天气影响小**：完全在室内空间进行，不受降温、降雨或炎热天气干扰，参观节奏可快可慢。\n2. **文化与审美体验丰富**：无论是综合性历史艺术展、当代艺术装置展，还是专题摄影展，通常都有清晰的策展逻辑和叙事，能沉浸式了解特定时期的文化背景或艺术风格。\n3. **互动与延展空间多**：多数馆舍配有语音导览、文创空间或阅读区，可以结合个人节奏安排停留时间。\n\n---\n\n*注：如需后续具体落实到某座城市的具体场馆、开放时段及交通安排，可随时告知城市和出行计划。*",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "48278489f46c4b5ea16fd5b7b9ea05e5",
+                "session_id": "706af04d06a64c9ba1f2e0b3d748801b",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        },
+        {
+          "input": "不要按你刚才的博物馆建议安排，这次改去公园。只讨论本次调整，不用查询。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "706af04d06a64c9ba1f2e0b3d748801b",
+            "turn_id": "13d9699663cf41f2baa5cb7b108c8438"
+          },
+          "answer": "本次行程建议调整为**公园漫步与户外游憩**。\n\n### 本次调整的特点与体验变化\n1. **场景从室内转向自然与开阔空间**：由室内的展品观赏，转为在绿植、湖泊或步道间漫步，视野更加开阔，整体节奏更为松弛。\n2. **体验形式更偏向休闲与身心放松**：可以在林荫道散步、静坐长椅小憩、观察季节性植被或景观造景，活动自主度高。\n3. **环境因素需考虑天气**：与室内场馆相比，公园活动受气温、日照和降水影响明显，出行体验与当天天气紧密相关。\n\n---\n\n*注：如需后续具体安排某座城市的公园选址、开放时间、门票预约及交通路线，请随时提供具体城市和出行日期。*",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "48278489f46c4b5ea16fd5b7b9ea05e5",
+                "session_id": "706af04d06a64c9ba1f2e0b3d748801b",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              },
+              {
+                "turn_id": "13d9699663cf41f2baa5cb7b108c8438",
+                "session_id": "706af04d06a64c9ba1f2e0b3d748801b",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "仅根据我已经保存的长期偏好，说明以后选择餐饮、活动、交通和住宿时的原则。不用查询，不需要具体地点。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "8ad62194bda649a489f57d0f4991957f",
+            "turn_id": "98e7fb44c38a45e69a41e46e80314480"
+          },
+          "answer": "目前系统内**暂无您已保存的长期偏好记录**，因此暂时无法基于已保存的历史喜好为您总结专属的选择原则。\n\n如果您希望在后续的新会话中自动参考您的长期喜好，可以随时告诉我您在以下方面的稳定偏好：\n\n* **饮食**：如长期坚持的饮食禁忌、偏好的菜系或稳定口味偏好；\n* **活动兴趣**：如偏好的景点类型（人文历史、自然风光、艺术展馆等）或长期主题兴趣；\n* **交通**：如日常偏好的出行方式（公共交通、打车、步行或自驾等）；\n* **住宿**：如对住宿类型、品牌风格或设施配套的长期稳定要求。\n\n**偏好保存说明**：\n* 只有您本人明确表达的**稳定饮食、活动兴趣、交通和住宿喜好**可作为长期偏好，在当前会话闲置一小时后由后台独立保存，以便在以后的新会话中复用；\n* 游玩节奏、当天精力、具体旅行日期、单次旅行预算、具体酒店预订安排、同行人信息以及单次的“本次/这次”临时要求，均仅用于当前对话，不会跨会话保存。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "98e7fb44c38a45e69a41e46e80314480",
+                "session_id": "8ad62194bda649a489f57d0f4991957f",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        }
+      ],
+      "requests": [
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "建议选择**参观艺术博物馆或美术馆的主题展览**。\n\n### 活动特点与体验价值\n1. **环境受天气影响小**：完全在室内空间进行，不受降温、降雨或炎热天气干扰，参观节奏可快可慢。\n2. **文化与审美体验丰富**：无论是综合性历史艺术展、当代艺术装置展，还是专题摄影展，通常都有清晰的策展逻辑和叙事，能沉浸式了解特定时期的文化背景或艺术风格。\n3. **互动与延展空间多**：多数馆舍配有语音导览、文创空间或阅读区，可以结合个人节奏安排停留时间。\n\n---\n\n*注：如需后续具体落实到某座城市的具体场馆、开放时段及交通安排，可随时告知城市和出行计划。*"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "本次行程建议调整为**公园漫步与户外游憩**。\n\n### 本次调整的特点与体验变化\n1. **场景从室内转向自然与开阔空间**：由室内的展品观赏，转为在绿植、湖泊或步道间漫步，视野更加开阔，整体节奏更为松弛。\n2. **体验形式更偏向休闲与身心放松**：可以在林荫道散步、静坐长椅小憩、观察季节性植被或景观造景，活动自主度高。\n3. **环境因素需考虑天气**：与室内场馆相比，公园活动受气温、日照和降水影响明显，出行体验与当天天气紧密相关。\n\n---\n\n*注：如需后续具体安排某座城市的公园选址、开放时间、门票预约及交通路线，请随时提供具体城市和出行日期。*"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "48278489f46c4b5ea16fd5b7b9ea05e5",
+                "input": "请建议一种室内文化活动，只讨论活动类型，不用查询地图。"
+              },
+              {
+                "turn_id": "13d9699663cf41f2baa5cb7b108c8438",
+                "input": "不要按你刚才的博物馆建议安排，这次改去公园。只讨论本次调整，不用查询。"
+              }
+            ],
+            "existing_preferences": [],
+            "context": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "目前系统内**暂无您已保存的长期偏好记录**，因此暂时无法基于已保存的历史喜好为您总结专属的选择原则。\n\n如果您希望在后续的新会话中自动参考您的长期喜好，可以随时告诉我您在以下方面的稳定偏好：\n\n* **饮食**：如长期坚持的饮食禁忌、偏好的菜系或稳定口味偏好；\n* **活动兴趣**：如偏好的景点类型（人文历史、自然风光、艺术展馆等）或长期主题兴趣；\n* **交通**：如日常偏好的出行方式（公共交通、打车、步行或自驾等）；\n* **住宿**：如对住宿类型、品牌风格或设施配套的长期稳定要求。\n\n**偏好保存说明**：\n* 只有您本人明确表达的**稳定饮食、活动兴趣、交通和住宿喜好**可作为长期偏好，在当前会话闲置一小时后由后台独立保存，以便在以后的新会话中复用；\n* 游玩节奏、当天精力、具体旅行日期、单次旅行预算、具体酒店预订安排、同行人信息以及单次的“本次/这次”临时要求，均仅用于当前对话，不会跨会话保存。"
+        }
+      ],
+      "error": null,
+      "storage_checks": {
+        "后台处理完成": true,
+        "主回答请求成功": true,
+        "提取完整结束": true,
+        "依据来自本批新输入": true,
+        "排除非本人稳定偏好": true
+      }
+    },
+    {
+      "case": "long_term_negative",
+      "steps": [
+        {
+          "input": "我一直不喜欢博物馆，长期更喜欢自然公园。只交流长期喜好，不用查询。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "a809f6068f284d808e49dc5db8fdd699",
+            "turn_id": "adb2a8217e904694a2906a5ee4abdcc0"
+          },
+          "answer": "已了解您的偏好：**长期更喜欢自然公园，不喜欢博物馆**。\n\n在本次对话后续的行程或活动推荐中，我会充分参考这一喜好，尽量避开博物馆类景点，优先考虑自然风光与公园景观。\n\n关于跨会话使用：当前表达的长期喜好在本次对话中会直接参考；若要在后续新会话中自动生效，须等待本次会话闲置一小时后由系统后台独立保存，目前尚未跨会话同步。后续如有具体的目的地或出行计划，随时可以告诉我！",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "adb2a8217e904694a2906a5ee4abdcc0",
+                "session_id": "a809f6068f284d808e49dc5db8fdd699",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "0720a254a9fe47919ef0f582432078bc",
+                "category": "activity",
+                "content": "不喜欢博物馆",
+                "source_turn_id": "adb2a8217e904694a2906a5ee4abdcc0",
+                "source_input": "我一直不喜欢博物馆，长期更喜欢自然公园。只交流长期喜好，不用查询。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              },
+              {
+                "id": "57488caf8a1b44c3bf58d3743473cf0b",
+                "category": "activity",
+                "content": "喜欢自然公园",
+                "source_turn_id": "adb2a8217e904694a2906a5ee4abdcc0",
+                "source_input": "我一直不喜欢博物馆，长期更喜欢自然公园。只交流长期喜好，不用查询。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "活动类型怎么选？只说原则，不用查询。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "25f5cc2961e84c978810505e140c5376",
+            "turn_id": "8e086bb2657a480d86d5e8e7d684b1bb"
+          },
+          "answer": "选择旅行活动类型时，可以遵循以下核心原则：\n\n1. **兴趣与偏好优先**\n   * **契合喜好**：优先挑选自己或同行者真正感兴趣的场景（例如偏好自然公园、山水风光、特色街区漫步等，避开不感兴趣或体验感较低的类型）。\n   * **明确排除项**：果断舍弃“虽然热门但不合胃口”的打卡点，把有限的时间留给能带来积极情绪的体验。\n\n2. **动线顺畅与区域聚合**\n   * **同区串联**：单日的活动尽量规划在同一片区或交通便捷的主线上，避免跨城折返和把过多时间消耗在路上。\n   * **就近衔接**：活动地点与拟用餐区域保持合理距离，使行程衔接自然。\n\n3. **体力分配与动静结合**\n   * **节奏适度**：单日核心活动通常控制在 2～3 个，避免走马观花或过度疲劳。\n   * **强度互补**：高耗体力的项目（如登山、大面积徒步）建议搭配低强度的轻松项目（如园林休憩、滨水漫步或街区休闲），保持体力续航。\n\n4. **时段与开放规律相符**\n   * **顺应自然采光**：视野开阔、拍照或赏景需求高的自然风光，优先安排在光线好或特定时段（如清晨、傍晚）；\n   * **注意开放周期**：部分场所有特定休息日（如部分场所周一闭馆）或早早闭园的限制，选定时需提前留意时间窗口。\n\n5. **天气契合与灵活应变**\n   * **晴天与舒适气候**：优先投入到开阔度高、依赖视线和户外漫步的自然景观或露天活动中；\n   * **雨雪或极端天气**：及时备选有良好遮蔽、室内动线丰富或交通更稳妥的活动形式。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "0720a254a9fe47919ef0f582432078bc",
+                "category": "activity",
+                "content": "不喜欢博物馆",
+                "source_turn_id": "adb2a8217e904694a2906a5ee4abdcc0",
+                "source_input": "我一直不喜欢博物馆，长期更喜欢自然公园。只交流长期喜好，不用查询。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              },
+              {
+                "id": "57488caf8a1b44c3bf58d3743473cf0b",
+                "category": "activity",
+                "content": "喜欢自然公园",
+                "source_turn_id": "adb2a8217e904694a2906a5ee4abdcc0",
+                "source_input": "我一直不喜欢博物馆，长期更喜欢自然公园。只交流长期喜好，不用查询。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "8e086bb2657a480d86d5e8e7d684b1bb",
+                "session_id": "25f5cc2961e84c978810505e140c5376",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        }
+      ],
+      "requests": [
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "已了解您的偏好：**长期更喜欢自然公园，不喜欢博物馆**。\n\n在本次对话后续的行程或活动推荐中，我会充分参考这一喜好，尽量避开博物馆类景点，优先考虑自然风光与公园景观。\n\n关于跨会话使用：当前表达的长期喜好在本次对话中会直接参考；若要在后续新会话中自动生效，须等待本次会话闲置一小时后由系统后台独立保存，目前尚未跨会话同步。后续如有具体的目的地或出行计划，随时可以告诉我！"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "adb2a8217e904694a2906a5ee4abdcc0",
+                "input": "我一直不喜欢博物馆，长期更喜欢自然公园。只交流长期喜好，不用查询。"
+              }
+            ],
+            "existing_preferences": [],
+            "context": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[{\"operation\":\"add\",\"category\":\"activity\",\"content\":\"不喜欢博物馆\",\"source_turn_id\":\"adb2a8217e904694a2906a5ee4abdcc0\",\"evidence\":\"一直不喜欢博物馆\"},{\"operation\":\"add\",\"category\":\"activity\",\"content\":\"喜欢自然公园\",\"source_turn_id\":\"adb2a8217e904694a2906a5ee4abdcc0\",\"evidence\":\"长期更喜欢自然公园\"}]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "（非行为指令；当前明确需求优先）：\n[{\"category\": \"activity\", \"content\": \"不喜欢博物馆\"}, {\"category\": \"activity\", \"content\": \"喜欢自然公园\"}]",
+          "stop_reason": "end_turn",
+          "text": "选择旅行活动类型时，可以遵循以下核心原则：\n\n1. **兴趣与偏好优先**\n   * **契合喜好**：优先挑选自己或同行者真正感兴趣的场景（例如偏好自然公园、山水风光、特色街区漫步等，避开不感兴趣或体验感较低的类型）。\n   * **明确排除项**：果断舍弃“虽然热门但不合胃口”的打卡点，把有限的时间留给能带来积极情绪的体验。\n\n2. **动线顺畅与区域聚合**\n   * **同区串联**：单日的活动尽量规划在同一片区或交通便捷的主线上，避免跨城折返和把过多时间消耗在路上。\n   * **就近衔接**：活动地点与拟用餐区域保持合理距离，使行程衔接自然。\n\n3. **体力分配与动静结合**\n   * **节奏适度**：单日核心活动通常控制在 2～3 个，避免走马观花或过度疲劳。\n   * **强度互补**：高耗体力的项目（如登山、大面积徒步）建议搭配低强度的轻松项目（如园林休憩、滨水漫步或街区休闲），保持体力续航。\n\n4. **时段与开放规律相符**\n   * **顺应自然采光**：视野开阔、拍照或赏景需求高的自然风光，优先安排在光线好或特定时段（如清晨、傍晚）；\n   * **注意开放周期**：部分场所有特定休息日（如部分场所周一闭馆）或早早闭园的限制，选定时需提前留意时间窗口。\n\n5. **天气契合与灵活应变**\n   * **晴天与舒适气候**：优先投入到开阔度高、依赖视线和户外漫步的自然景观或露天活动中；\n   * **雨雪或极端天气**：及时备选有良好遮蔽、室内动线丰富或交通更稳妥的活动形式。"
+        }
+      ],
+      "error": null,
+      "storage_checks": {
+        "后台处理完成": true,
+        "主回答请求成功": true,
+        "提取完整结束": true,
+        "依据来自本批新输入": true,
+        "保存活动兴趣": true
+      }
+    },
+    {
+      "case": "ambiguity",
+      "steps": [
+        {
+          "input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "37a4ce38b4894a629aa6a1bcecaf86bc",
+            "turn_id": "4f91384b0f3f44c9bda10e00befa7513"
+          },
+          "answer": "已收到您的口味偏好：**长期不吃辣**。\n\n在本次对话后续的餐饮推荐中，我会参考这一偏好为您筛选不辣或清淡口味的选项。关于长期偏好的跨会话使用，须等待本次会话闲置一小时后由后台系统独立保存，保存后方可在以后的新会话中生效。\n\n后续如有具体的出行城市、游玩计划或餐饮需求，随时告诉我即可。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "4f91384b0f3f44c9bda10e00befa7513",
+                "session_id": "37a4ce38b4894a629aa6a1bcecaf86bc",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "4f91384b0f3f44c9bda10e00befa7513",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "那个现在也可以了。只讨论口味，不用查询。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "37a4ce38b4894a629aa6a1bcecaf86bc",
+            "turn_id": "30e652f1b29045819e2676e50092b0dd"
+          },
+          "answer": "请问您指的“也可以了”，是指现在可以接受吃辣了吗？\n\n如果是的话，想和您确认一下：这是指**本次/近期可以尝试吃辣（作为一次例外）**，还是以后**长期的饮食偏好都调整为可以吃辣**呢？\n\n明确后，在本次对话中我会按您的最新要求为您挑选口味；若是长期偏好的变更，同样需等待会话闲置一小时后由后台保存，以便未来跨会话生效。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "4f91384b0f3f44c9bda10e00befa7513",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "30e652f1b29045819e2676e50092b0dd",
+                "session_id": "37a4ce38b4894a629aa6a1bcecaf86bc",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "4f91384b0f3f44c9bda10e00befa7513",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [
+              {
+                "target_id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "target_version": 1,
+                "category": "diet",
+                "content": "待澄清是否长期接受吃辣还是仅为临时偏好",
+                "source_turn_id": "30e652f1b29045819e2676e50092b0dd",
+                "source_input": "那个现在也可以了。只讨论口味，不用查询。",
+                "evidence": "那个现在也可以了",
+                "input_order": 2,
+                "updated_at": "1970-01-01T04:46:40+00:00"
+              }
+            ],
+            "processing": []
+          }
+        },
+        {
+          "input": "杭州东站怎么坐地铁到西湖？只说选择地铁的原则，不用查询具体路线。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "18a59bef48594826a94badae4edbc102",
+            "turn_id": "6a56f60c4de54fc6beebb5a7b20b726b"
+          },
+          "answer": "从杭州东站乘地铁前往西湖，在规划具体乘坐方案时，主要可参考以下几条选择原则：\n\n1. **以游玩第一站或酒店方位为导向**  \n   西湖景区范围较大，环湖不同方位分布着不同的地铁站。选择线路的前提是先明确西湖的具体切入点（例如：湖滨商业区与音乐喷泉、断桥与北山街、柳浪闻莺与南山路，还是雷峰塔周边等），避免下车后绕湖走冤枉路。\n\n2. **优先考虑直达以减少换乘**  \n   杭州东站汇集了多条地铁线路，如果目标站点能够一车直达，通常比需要站内换乘的路线更省时、省力。在多条方案耗时接近的情况下，优先选择直达线路。\n\n3. **结合携带行李情况平衡步行距离**  \n   若携带大件行李或老人小孩同行，应重点考虑地铁出站口到目的地（如酒店或景区入口）的地面步行距离；若轻装出行且打算直接徒步游湖，则可根据环湖游览的整体动线选择起点站。\n\n4. **节假日及高峰期考量客流拥挤度**  \n   西湖紧邻的核心大站（如直接靠近湖滨的站点）在周末或节假日客流往往非常密集，进出站和候车排队时间较长。若遇客流高峰，可考虑选择距湖滨稍远1~2站的邻近车站下车，再步行或骑行前往，体验可能更舒适。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "4f91384b0f3f44c9bda10e00befa7513",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [
+              {
+                "target_id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "target_version": 1,
+                "category": "diet",
+                "content": "待澄清是否长期接受吃辣还是仅为临时偏好",
+                "source_turn_id": "30e652f1b29045819e2676e50092b0dd",
+                "source_input": "那个现在也可以了。只讨论口味，不用查询。",
+                "evidence": "那个现在也可以了",
+                "input_order": 2,
+                "updated_at": "1970-01-01T04:46:40+00:00"
+              }
+            ],
+            "processing": [
+              {
+                "turn_id": "6a56f60c4de54fc6beebb5a7b20b726b",
+                "session_id": "18a59bef48594826a94badae4edbc102",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        },
+        {
+          "input": "以后给我推荐餐馆时怎么选口味？只讨论原则，不用查询。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "3eee43d7da644c2f98eb1c0dbf4931af",
+            "turn_id": "80ca4f0ff48c44949fb98f370bb517df"
+          },
+          "answer": "在为您推荐餐馆时，口味选择通常遵循以下几项原则：\n\n1. **当前需求绝对优先**：如果您在具体的旅行提问中明确指定了菜系、风味或口味偏好（例如“想吃粤菜”、“这次想尝试点微辣”），会严格按照您当次提出的要求来筛选推荐。\n2. **结合已保存的长期偏好**：当您未提出特定口味要求时，会默认参考您已保存的饮食习惯。目前系统中已保存的长期饮食偏好为**“不吃辣”**。\n3. **基于事实与可核实信息建议**：推荐时不会仅凭菜系标签（如“粤菜通常清淡”）或店名擅自断定所有菜品均不辣，而是会建议您向店家确认或询问是否能提供免辣/清淡做法；未获取详细菜单与口味信息时，会明确标为待核实。\n\n---\n\n**关于您长期口味偏好的确认：**\n此前记录到您曾提到对吃辣的态度有所调整（如“现在也可以了”），想向您确认一下：**这是作为以后的长期偏好调整（即以后推荐常规餐馆时无需再严格避开辣味），还是之前某次出行的特定临时尝试？**\n\n您明确确认后，本次对话中会立即参考新的标准；跨会话长期生效则需要等待本次会话闲置一小时后由系统后台自动保存。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "4f91384b0f3f44c9bda10e00befa7513",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [
+              {
+                "target_id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "target_version": 1,
+                "category": "diet",
+                "content": "待澄清是否长期接受吃辣还是仅为临时偏好",
+                "source_turn_id": "30e652f1b29045819e2676e50092b0dd",
+                "source_input": "那个现在也可以了。只讨论口味，不用查询。",
+                "evidence": "那个现在也可以了",
+                "input_order": 2,
+                "updated_at": "1970-01-01T04:46:40+00:00"
+              }
+            ],
+            "processing": [
+              {
+                "turn_id": "6a56f60c4de54fc6beebb5a7b20b726b",
+                "session_id": "18a59bef48594826a94badae4edbc102",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              },
+              {
+                "turn_id": "80ca4f0ff48c44949fb98f370bb517df",
+                "session_id": "3eee43d7da644c2f98eb1c0dbf4931af",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        },
+        {
+          "input": "这次明确只吃清淡无辣，给我点餐原则，不用查询。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "6f12f0ede742451181486c876d1ec47d",
+            "turn_id": "150d9d636fee4461ab3213f7742aaccc"
+          },
+          "answer": "本次严格按照**清淡无辣**的要求，为您梳理以下通用的点餐原则与避坑建议：\n\n---\n\n### 一、 烹饪方式优先与回避\n* **优先选择**：\n  * **蒸、煮、白灼、炖、煲**：如清蒸鱼、白灼时蔬、清炖鸡汤、原盅煲汤。这类做法还原食材本味，通常不需要辣椒增味。\n  * **清炒、上汤**：如清炒时蔬、上汤娃娃菜（以皮蛋、高汤提味）。\n* **尽量避开**：\n  * **麻辣、香辣、水煮、干锅、剁椒、红油、泡椒**等明确带辣的烹调方式。\n  * **重油重酱红烧**：部分菜系的红烧、干烧或烧烤酱料中可能混有微量干辣椒、辣椒粉或辣豆瓣酱。\n\n---\n\n### 二、 点餐沟通与下单备注\n* **明确强调“零辣”**：点餐时告知服务员“**完全不吃辣，微辣也不要，一点辣都不能放**”。\n* **注意“配色辣椒”**：很多后厨习惯用红椒、青椒切丝切块配色，需特别备注“**不要放任何青椒、红椒或辣椒圈配色/点缀**”（避免混入线椒、朝天椒）。\n* **确认隐形辛辣（胡椒与生姜）**：\n  * 猪肚鸡、牛肉汤、部分羊肉汤或海鲜汤中常会加入较多白胡椒粉提味，喝起来会有辛辣刺激感。点汤品前可主动询问：“汤底胡椒味重不重？能否免放或少放胡椒粉？”\n\n---\n\n### 三、 菜系与品类推荐参考\n* **粤菜 / 潮汕菜**：白切鸡、清蒸海鲜、白灼菜心、潮汕清汤牛肉火锅（选清水/牛骨清汤底）、生滚肉片/海鲜粥等，天然契合清淡无辣偏好。\n* **淮扬菜 / 江浙菜**：清炒虾仁、清炖狮子头、大煮干丝、西湖莼菜汤等，注重鲜嫩清淡。\n* **家常菜 / 面食**：番茄炒蛋、菌菇豆腐汤、清汤面、清炖排骨汤等。\n\n---\n\n### 四、 蘸料与调味把控\n* 遇到火锅、白灼或白切类菜品时，调料台优先选择：**生抽/蒸鱼豉油、香油、芝麻酱、葱花、香菜、蒜泥**。\n* 避开成分不明的复合调味汁、特制辣椒酱、红油或带辣味的沙茶酱/XO酱。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "4f91384b0f3f44c9bda10e00befa7513",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [
+              {
+                "target_id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "target_version": 1,
+                "category": "diet",
+                "content": "待澄清是否长期接受吃辣还是仅为临时偏好",
+                "source_turn_id": "30e652f1b29045819e2676e50092b0dd",
+                "source_input": "那个现在也可以了。只讨论口味，不用查询。",
+                "evidence": "那个现在也可以了",
+                "input_order": 2,
+                "updated_at": "1970-01-01T04:46:40+00:00"
+              }
+            ],
+            "processing": [
+              {
+                "turn_id": "6a56f60c4de54fc6beebb5a7b20b726b",
+                "session_id": "18a59bef48594826a94badae4edbc102",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              },
+              {
+                "turn_id": "80ca4f0ff48c44949fb98f370bb517df",
+                "session_id": "3eee43d7da644c2f98eb1c0dbf4931af",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              },
+              {
+                "turn_id": "150d9d636fee4461ab3213f7742aaccc",
+                "session_id": "6f12f0ede742451181486c876d1ec47d",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        },
+        {
+          "input": "刚才我的意思是以后也喜欢吃辣，不只是这次。不用查询。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "73a150401e384bb28bf8f388d372df97",
+            "turn_id": "ce1a2db9d35345e9a8b5a53ed19a307a"
+          },
+          "answer": "收到，已为您更新饮食偏好的记录方向。本次对话后续为您推荐餐饮或规划行程时，会参考您喜欢吃辣的口味偏好。\n\n关于跨会话使用，系统会在当前会话闲置满一小时后由后台独立保存更新该长期偏好；在此之前不会即时同步到新的独立会话中。后续如有具体的旅行或餐饮规划需求，随时告诉我即可。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "4f91384b0f3f44c9bda10e00befa7513",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [
+              {
+                "target_id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "target_version": 1,
+                "category": "diet",
+                "content": "待澄清是否长期接受吃辣还是仅为临时偏好",
+                "source_turn_id": "30e652f1b29045819e2676e50092b0dd",
+                "source_input": "那个现在也可以了。只讨论口味，不用查询。",
+                "evidence": "那个现在也可以了",
+                "input_order": 2,
+                "updated_at": "1970-01-01T04:46:40+00:00"
+              }
+            ],
+            "processing": [
+              {
+                "turn_id": "6a56f60c4de54fc6beebb5a7b20b726b",
+                "session_id": "18a59bef48594826a94badae4edbc102",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              },
+              {
+                "turn_id": "80ca4f0ff48c44949fb98f370bb517df",
+                "session_id": "3eee43d7da644c2f98eb1c0dbf4931af",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              },
+              {
+                "turn_id": "150d9d636fee4461ab3213f7742aaccc",
+                "session_id": "6f12f0ede742451181486c876d1ec47d",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              },
+              {
+                "turn_id": "ce1a2db9d35345e9a8b5a53ed19a307a",
+                "session_id": "73a150401e384bb28bf8f388d372df97",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "before_one_hour": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "4f91384b0f3f44c9bda10e00befa7513",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [
+              {
+                "target_id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "target_version": 1,
+                "category": "diet",
+                "content": "待澄清是否长期接受吃辣还是仅为临时偏好",
+                "source_turn_id": "30e652f1b29045819e2676e50092b0dd",
+                "source_input": "那个现在也可以了。只讨论口味，不用查询。",
+                "evidence": "那个现在也可以了",
+                "input_order": 2,
+                "updated_at": "1970-01-01T04:46:40+00:00"
+              }
+            ],
+            "processing": [
+              {
+                "turn_id": "6a56f60c4de54fc6beebb5a7b20b726b",
+                "session_id": "18a59bef48594826a94badae4edbc102",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              },
+              {
+                "turn_id": "80ca4f0ff48c44949fb98f370bb517df",
+                "session_id": "3eee43d7da644c2f98eb1c0dbf4931af",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              },
+              {
+                "turn_id": "150d9d636fee4461ab3213f7742aaccc",
+                "session_id": "6f12f0ede742451181486c876d1ec47d",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              },
+              {
+                "turn_id": "ce1a2db9d35345e9a8b5a53ed19a307a",
+                "session_id": "73a150401e384bb28bf8f388d372df97",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "category": "diet",
+                "content": "喜欢吃辣",
+                "source_turn_id": "ce1a2db9d35345e9a8b5a53ed19a307a",
+                "source_input": "刚才我的意思是以后也喜欢吃辣，不只是这次。不用查询。",
+                "updated_at": "1970-01-01T05:46:40+00:00",
+                "input_order": 6,
+                "version": 2
+              }
+            ],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "下次点餐怎么选口味？只说原则，不用查询。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "98b0ba1c1df342238cf9904d7cc929de",
+            "turn_id": "c42350b546a246659b9d42c5f178ba86"
+          },
+          "answer": "结合您喜欢吃辣的偏好，点餐选口味时可以参考以下几个原则：\n\n1. **按菜系与地域校准辣度**  \n   不同地域对辣度的定义差异较大（例如川湘菜、江西菜与常见外卖的辣度标准不同）。在初次尝试的餐厅，建议先向店家核实其辣度标准，从微辣或中辣起步尝试，避免过辣影响用餐体验。\n\n2. **浓淡互补，搭配解辣菜品**  \n   如果主菜偏重香辣、麻辣或酸辣，建议搭配 1～2 道清淡的汤品、蔬菜或温和主食（如米饭、面点），丰富层次的同时平衡肠胃负担。\n\n3. **分清辣味类型**  \n   根据个人喜好区分麻辣（花椒/藤椒）、香辣（油泼辣子/干辣椒）、酸辣（泡椒/酸汤）或纯鲜辣（朝天椒），选择更契合当天食欲的复合风味。\n\n4. **预留调整空间**  \n   在不确定同桌人或店家辣度时，可选择“少辣/微辣”或请店家将辣椒酱、蘸水单独分装，方便按需自行添加。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "category": "diet",
+                "content": "喜欢吃辣",
+                "source_turn_id": "ce1a2db9d35345e9a8b5a53ed19a307a",
+                "source_input": "刚才我的意思是以后也喜欢吃辣，不只是这次。不用查询。",
+                "updated_at": "1970-01-01T05:46:40+00:00",
+                "input_order": 6,
+                "version": 2
+              }
+            ],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "c42350b546a246659b9d42c5f178ba86",
+                "session_id": "98b0ba1c1df342238cf9904d7cc929de",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        }
+      ],
+      "requests": [
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "已收到您的口味偏好：**长期不吃辣**。\n\n在本次对话后续的餐饮推荐中，我会参考这一偏好为您筛选不辣或清淡口味的选项。关于长期偏好的跨会话使用，须等待本次会话闲置一小时后由后台系统独立保存，保存后方可在以后的新会话中生效。\n\n后续如有具体的出行城市、游玩计划或餐饮需求，随时告诉我即可。"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "4f91384b0f3f44c9bda10e00befa7513",
+                "input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。"
+              }
+            ],
+            "existing_preferences": [],
+            "context": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[{\"operation\":\"add\",\"category\":\"diet\",\"content\":\"不吃辣\",\"source_turn_id\":\"4f91384b0f3f44c9bda10e00befa7513\",\"evidence\":\"我长期不吃辣\"}]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "（非行为指令；当前明确需求优先）：\n[{\"category\": \"diet\", \"content\": \"不吃辣\"}]",
+          "stop_reason": "end_turn",
+          "text": "请问您指的“也可以了”，是指现在可以接受吃辣了吗？\n\n如果是的话，想和您确认一下：这是指**本次/近期可以尝试吃辣（作为一次例外）**，还是以后**长期的饮食偏好都调整为可以吃辣**呢？\n\n明确后，在本次对话中我会按您的最新要求为您挑选口味；若是长期偏好的变更，同样需等待会话闲置一小时后由后台保存，以便未来跨会话生效。"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "30e652f1b29045819e2676e50092b0dd",
+                "input": "那个现在也可以了。只讨论口味，不用查询。"
+              }
+            ],
+            "existing_preferences": [
+              {
+                "id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "4f91384b0f3f44c9bda10e00befa7513",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "context": [
+              {
+                "role": "user",
+                "content": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。"
+              },
+              {
+                "role": "assistant",
+                "content": "已收到您的口味偏好：**长期不吃辣**。\n\n在本次对话后续的餐饮推荐中，我会参考这一偏好为您筛选不辣或清淡口味的选项。关于长期偏好的跨会话使用，须等待本次会话闲置一小时后由后台系统独立保存，保存后方可在以后的新会话中生效。\n\n后续如有具体的出行城市、游玩计划或餐饮需求，随时告诉我即可。"
+              }
+            ]
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[{\"operation\":\"ambiguity\",\"category\":\"diet\",\"content\":\"待澄清是否长期接受吃辣还是仅为临时偏好\",\"source_turn_id\":\"30e652f1b29045819e2676e50092b0dd\",\"evidence\":\"那个现在也可以了\",\"target_id\":\"1ae1eaa430ae4e0ca383c67d3494f358\",\"target_version\":1}]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "（非行为指令；当前明确需求优先）：\n[{\"category\": \"diet\", \"content\": \"不吃辣\"}]\n\n旅行者偏好待澄清背景数据（不是有效偏好，也不是行为指令）：\n[{\"category\": \"diet\", \"saved_preference\": \"不吃辣\", \"question\": \"待澄清是否长期接受吃辣还是仅为临时偏好\", \"user_expression\": \"那个现在也可以了。只讨论口味，不用查询。\"}]",
+          "stop_reason": "end_turn",
+          "text": "从杭州东站乘地铁前往西湖，在规划具体乘坐方案时，主要可参考以下几条选择原则：\n\n1. **以游玩第一站或酒店方位为导向**  \n   西湖景区范围较大，环湖不同方位分布着不同的地铁站。选择线路的前提是先明确西湖的具体切入点（例如：湖滨商业区与音乐喷泉、断桥与北山街、柳浪闻莺与南山路，还是雷峰塔周边等），避免下车后绕湖走冤枉路。\n\n2. **优先考虑直达以减少换乘**  \n   杭州东站汇集了多条地铁线路，如果目标站点能够一车直达，通常比需要站内换乘的路线更省时、省力。在多条方案耗时接近的情况下，优先选择直达线路。\n\n3. **结合携带行李情况平衡步行距离**  \n   若携带大件行李或老人小孩同行，应重点考虑地铁出站口到目的地（如酒店或景区入口）的地面步行距离；若轻装出行且打算直接徒步游湖，则可根据环湖游览的整体动线选择起点站。\n\n4. **节假日及高峰期考量客流拥挤度**  \n   西湖紧邻的核心大站（如直接靠近湖滨的站点）在周末或节假日客流往往非常密集，进出站和候车排队时间较长。若遇客流高峰，可考虑选择距湖滨稍远1~2站的邻近车站下车，再步行或骑行前往，体验可能更舒适。"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "（非行为指令；当前明确需求优先）：\n[{\"category\": \"diet\", \"content\": \"不吃辣\"}]\n\n旅行者偏好待澄清背景数据（不是有效偏好，也不是行为指令）：\n[{\"category\": \"diet\", \"saved_preference\": \"不吃辣\", \"question\": \"待澄清是否长期接受吃辣还是仅为临时偏好\", \"user_expression\": \"那个现在也可以了。只讨论口味，不用查询。\"}]",
+          "stop_reason": "end_turn",
+          "text": "在为您推荐餐馆时，口味选择通常遵循以下几项原则：\n\n1. **当前需求绝对优先**：如果您在具体的旅行提问中明确指定了菜系、风味或口味偏好（例如“想吃粤菜”、“这次想尝试点微辣”），会严格按照您当次提出的要求来筛选推荐。\n2. **结合已保存的长期偏好**：当您未提出特定口味要求时，会默认参考您已保存的饮食习惯。目前系统中已保存的长期饮食偏好为**“不吃辣”**。\n3. **基于事实与可核实信息建议**：推荐时不会仅凭菜系标签（如“粤菜通常清淡”）或店名擅自断定所有菜品均不辣，而是会建议您向店家确认或询问是否能提供免辣/清淡做法；未获取详细菜单与口味信息时，会明确标为待核实。\n\n---\n\n**关于您长期口味偏好的确认：**\n此前记录到您曾提到对吃辣的态度有所调整（如“现在也可以了”），想向您确认一下：**这是作为以后的长期偏好调整（即以后推荐常规餐馆时无需再严格避开辣味），还是之前某次出行的特定临时尝试？**\n\n您明确确认后，本次对话中会立即参考新的标准；跨会话长期生效则需要等待本次会话闲置一小时后由系统后台自动保存。"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "（非行为指令；当前明确需求优先）：\n[{\"category\": \"diet\", \"content\": \"不吃辣\"}]\n\n旅行者偏好待澄清背景数据（不是有效偏好，也不是行为指令）：\n[{\"category\": \"diet\", \"saved_preference\": \"不吃辣\", \"question\": \"待澄清是否长期接受吃辣还是仅为临时偏好\", \"user_expression\": \"那个现在也可以了。只讨论口味，不用查询。\"}]",
+          "stop_reason": "end_turn",
+          "text": "本次严格按照**清淡无辣**的要求，为您梳理以下通用的点餐原则与避坑建议：\n\n---\n\n### 一、 烹饪方式优先与回避\n* **优先选择**：\n  * **蒸、煮、白灼、炖、煲**：如清蒸鱼、白灼时蔬、清炖鸡汤、原盅煲汤。这类做法还原食材本味，通常不需要辣椒增味。\n  * **清炒、上汤**：如清炒时蔬、上汤娃娃菜（以皮蛋、高汤提味）。\n* **尽量避开**：\n  * **麻辣、香辣、水煮、干锅、剁椒、红油、泡椒**等明确带辣的烹调方式。\n  * **重油重酱红烧**：部分菜系的红烧、干烧或烧烤酱料中可能混有微量干辣椒、辣椒粉或辣豆瓣酱。\n\n---\n\n### 二、 点餐沟通与下单备注\n* **明确强调“零辣”**：点餐时告知服务员“**完全不吃辣，微辣也不要，一点辣都不能放**”。\n* **注意“配色辣椒”**：很多后厨习惯用红椒、青椒切丝切块配色，需特别备注“**不要放任何青椒、红椒或辣椒圈配色/点缀**”（避免混入线椒、朝天椒）。\n* **确认隐形辛辣（胡椒与生姜）**：\n  * 猪肚鸡、牛肉汤、部分羊肉汤或海鲜汤中常会加入较多白胡椒粉提味，喝起来会有辛辣刺激感。点汤品前可主动询问：“汤底胡椒味重不重？能否免放或少放胡椒粉？”\n\n---\n\n### 三、 菜系与品类推荐参考\n* **粤菜 / 潮汕菜**：白切鸡、清蒸海鲜、白灼菜心、潮汕清汤牛肉火锅（选清水/牛骨清汤底）、生滚肉片/海鲜粥等，天然契合清淡无辣偏好。\n* **淮扬菜 / 江浙菜**：清炒虾仁、清炖狮子头、大煮干丝、西湖莼菜汤等，注重鲜嫩清淡。\n* **家常菜 / 面食**：番茄炒蛋、菌菇豆腐汤、清汤面、清炖排骨汤等。\n\n---\n\n### 四、 蘸料与调味把控\n* 遇到火锅、白灼或白切类菜品时，调料台优先选择：**生抽/蒸鱼豉油、香油、芝麻酱、葱花、香菜、蒜泥**。\n* 避开成分不明的复合调味汁、特制辣椒酱、红油或带辣味的沙茶酱/XO酱。"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "（非行为指令；当前明确需求优先）：\n[{\"category\": \"diet\", \"content\": \"不吃辣\"}]\n\n旅行者偏好待澄清背景数据（不是有效偏好，也不是行为指令）：\n[{\"category\": \"diet\", \"saved_preference\": \"不吃辣\", \"question\": \"待澄清是否长期接受吃辣还是仅为临时偏好\", \"user_expression\": \"那个现在也可以了。只讨论口味，不用查询。\"}]",
+          "stop_reason": "end_turn",
+          "text": "收到，已为您更新饮食偏好的记录方向。本次对话后续为您推荐餐饮或规划行程时，会参考您喜欢吃辣的口味偏好。\n\n关于跨会话使用，系统会在当前会话闲置满一小时后由后台独立保存更新该长期偏好；在此之前不会即时同步到新的独立会话中。后续如有具体的旅行或餐饮规划需求，随时告诉我即可。"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "6a56f60c4de54fc6beebb5a7b20b726b",
+                "input": "杭州东站怎么坐地铁到西湖？只说选择地铁的原则，不用查询具体路线。"
+              }
+            ],
+            "existing_preferences": [
+              {
+                "id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "4f91384b0f3f44c9bda10e00befa7513",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "context": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[]}"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "80ca4f0ff48c44949fb98f370bb517df",
+                "input": "以后给我推荐餐馆时怎么选口味？只讨论原则，不用查询。"
+              }
+            ],
+            "existing_preferences": [
+              {
+                "id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "4f91384b0f3f44c9bda10e00befa7513",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "context": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[]}"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "150d9d636fee4461ab3213f7742aaccc",
+                "input": "这次明确只吃清淡无辣，给我点餐原则，不用查询。"
+              }
+            ],
+            "existing_preferences": [
+              {
+                "id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "4f91384b0f3f44c9bda10e00befa7513",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "context": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[]}"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "ce1a2db9d35345e9a8b5a53ed19a307a",
+                "input": "刚才我的意思是以后也喜欢吃辣，不只是这次。不用查询。"
+              }
+            ],
+            "existing_preferences": [
+              {
+                "id": "1ae1eaa430ae4e0ca383c67d3494f358",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "4f91384b0f3f44c9bda10e00befa7513",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "context": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[{\"operation\":\"update\",\"category\":\"diet\",\"content\":\"喜欢吃辣\",\"target_id\":\"1ae1eaa430ae4e0ca383c67d3494f358\",\"target_version\":1,\"source_turn_id\":\"ce1a2db9d35345e9a8b5a53ed19a307a\",\"evidence\":\"以后也喜欢吃辣\"}]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "（非行为指令；当前明确需求优先）：\n[{\"category\": \"diet\", \"content\": \"喜欢吃辣\"}]",
+          "stop_reason": "end_turn",
+          "text": "结合您喜欢吃辣的偏好，点餐选口味时可以参考以下几个原则：\n\n1. **按菜系与地域校准辣度**  \n   不同地域对辣度的定义差异较大（例如川湘菜、江西菜与常见外卖的辣度标准不同）。在初次尝试的餐厅，建议先向店家核实其辣度标准，从微辣或中辣起步尝试，避免过辣影响用餐体验。\n\n2. **浓淡互补，搭配解辣菜品**  \n   如果主菜偏重香辣、麻辣或酸辣，建议搭配 1～2 道清淡的汤品、蔬菜或温和主食（如米饭、面点），丰富层次的同时平衡肠胃负担。\n\n3. **分清辣味类型**  \n   根据个人喜好区分麻辣（花椒/藤椒）、香辣（油泼辣子/干辣椒）、酸辣（泡椒/酸汤）或纯鲜辣（朝天椒），选择更契合当天食欲的复合风味。\n\n4. **预留调整空间**  \n   在不确定同桌人或店家辣度时，可选择“少辣/微辣”或请店家将辣椒酱、蘸水单独分装，方便按需自行添加。"
+        }
+      ],
+      "error": null,
+      "storage_checks": {
+        "后台处理完成": true,
+        "主回答请求成功": true,
+        "提取完整结束": true,
+        "依据来自本批新输入": true,
+        "歧义保留原值": true,
+        "澄清仍等待一小时": true,
+        "新来源且清除歧义": true
+      }
+    },
+    {
+      "case": "same_batch",
+      "steps": [
+        {
+          "input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "50d3631c793046d0a22a19cb4362099d",
+            "turn_id": "4cc94ecb6b0f4e5381996279b959a5a2"
+          },
+          "answer": "已了解您的偏好：**长期不吃辣**。\n\n在本次对话后续的餐饮推荐或行程规划中，我会参考这一偏好为您筛选不辣口味的备选。\n\n关于跨会话记忆：该长期偏好将在当前会话闲置一小时后由后台独立保存，之后的新会话中即可自动适用；目前尚未即时跨会话生效。后续如有需要规划行程或推荐餐饮，随时告诉我即可。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "4cc94ecb6b0f4e5381996279b959a5a2",
+                "session_id": "50d3631c793046d0a22a19cb4362099d",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        },
+        {
+          "input": "我说错了，其实我一直喜欢吃辣。只交流长期喜好，不用查询。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "50d3631c793046d0a22a19cb4362099d",
+            "turn_id": "6f7656ba02a04b829dd8166b4a9dd460"
+          },
+          "answer": "好的，已为您更正偏好：**长期偏好为喜欢吃辣**。\n\n在本次对话后续的餐饮与行程规划中，我会按照这一新喜好为您参考和筛选偏辣口味的选项。\n\n同样说明一下，该长期偏好的跨会话更新将在当前会话闲置一小时后由后台独立保存，在新会话中生效；目前尚未即时跨会话保存。后续若需要查询地点、美食或规划行程，随时告诉我。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "4cc94ecb6b0f4e5381996279b959a5a2",
+                "session_id": "50d3631c793046d0a22a19cb4362099d",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              },
+              {
+                "turn_id": "6f7656ba02a04b829dd8166b4a9dd460",
+                "session_id": "50d3631c793046d0a22a19cb4362099d",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "ed88120a48a9469487ab66a4719a58cb",
+                "category": "diet",
+                "content": "喜欢吃辣",
+                "source_turn_id": "6f7656ba02a04b829dd8166b4a9dd460",
+                "source_input": "我说错了，其实我一直喜欢吃辣。只交流长期喜好，不用查询。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 2,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "仅根据我已经保存的长期偏好，说明以后选择餐饮、活动、交通和住宿时的原则。不用查询，不需要具体地点。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "3a49d77e5cbe4e2cb684f623be4ddaee",
+            "turn_id": "e768c5250b9e4652aa0f23e1ea8bd15b"
+          },
+          "answer": "根据您目前已保存的长期偏好记录，未来在各维度的选择原则如下：\n\n### 1. 餐饮原则\n* **已保存偏好**：喜欢吃辣。\n* **选择原则**：\n  * 优先推荐支持辣度选择或主打川湘、香辣等风味的餐饮类型。\n  * 搜索和提出点餐建议时优先考虑含辣菜品（具体供应情况仍以店家实际菜单为准）。\n\n---\n\n### 2. 活动、交通与住宿原则\n* **已保存偏好**：目前**暂无**关于活动、交通和住宿的长期偏好记录。\n* **规划与选择原则**：\n  * **活动**：默认按常规旅行节奏安排（如每天2~3个活动），优先结合地理位置顺路衔接；游玩偏好（如人文、自然、亲子、户外等）将在具体行程中按您当时的说明安排。\n  * **交通**：默认结合各地点间的距离与便利性，在步行、公共交通、打车/驾车或骑行中提供合理的出行方案；若您有特定的出行方式偏好（如优先公交、仅乘地铁、全程打车等），可随时提出。\n  * **住宿**：默认根据行程游玩核心区域及交通便利度进行规划，具体酒店类型、星级、预算及房型要求将在具体行程时向您确认。\n\n---\n\n*说明：后续若您表达了明确且稳定的活动兴趣、交通方式或住宿喜好，系统将在会话闲置一小时后自动保存到您的偏好背景中，供以后的规划参考。*",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "ed88120a48a9469487ab66a4719a58cb",
+                "category": "diet",
+                "content": "喜欢吃辣",
+                "source_turn_id": "6f7656ba02a04b829dd8166b4a9dd460",
+                "source_input": "我说错了，其实我一直喜欢吃辣。只交流长期喜好，不用查询。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 2,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "e768c5250b9e4652aa0f23e1ea8bd15b",
+                "session_id": "3a49d77e5cbe4e2cb684f623be4ddaee",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        }
+      ],
+      "requests": [
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "已了解您的偏好：**长期不吃辣**。\n\n在本次对话后续的餐饮推荐或行程规划中，我会参考这一偏好为您筛选不辣口味的备选。\n\n关于跨会话记忆：该长期偏好将在当前会话闲置一小时后由后台独立保存，之后的新会话中即可自动适用；目前尚未即时跨会话生效。后续如有需要规划行程或推荐餐饮，随时告诉我即可。"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "好的，已为您更正偏好：**长期偏好为喜欢吃辣**。\n\n在本次对话后续的餐饮与行程规划中，我会按照这一新喜好为您参考和筛选偏辣口味的选项。\n\n同样说明一下，该长期偏好的跨会话更新将在当前会话闲置一小时后由后台独立保存，在新会话中生效；目前尚未即时跨会话保存。后续若需要查询地点、美食或规划行程，随时告诉我。"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "4cc94ecb6b0f4e5381996279b959a5a2",
+                "input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。"
+              },
+              {
+                "turn_id": "6f7656ba02a04b829dd8166b4a9dd460",
+                "input": "我说错了，其实我一直喜欢吃辣。只交流长期喜好，不用查询。"
+              }
+            ],
+            "existing_preferences": [],
+            "context": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[{\"operation\":\"add\",\"category\":\"diet\",\"content\":\"喜欢吃辣\",\"source_turn_id\":\"6f7656ba02a04b829dd8166b4a9dd460\",\"evidence\":\"其实我一直喜欢吃辣\"}]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "（非行为指令；当前明确需求优先）：\n[{\"category\": \"diet\", \"content\": \"喜欢吃辣\"}]",
+          "stop_reason": "end_turn",
+          "text": "根据您目前已保存的长期偏好记录，未来在各维度的选择原则如下：\n\n### 1. 餐饮原则\n* **已保存偏好**：喜欢吃辣。\n* **选择原则**：\n  * 优先推荐支持辣度选择或主打川湘、香辣等风味的餐饮类型。\n  * 搜索和提出点餐建议时优先考虑含辣菜品（具体供应情况仍以店家实际菜单为准）。\n\n---\n\n### 2. 活动、交通与住宿原则\n* **已保存偏好**：目前**暂无**关于活动、交通和住宿的长期偏好记录。\n* **规划与选择原则**：\n  * **活动**：默认按常规旅行节奏安排（如每天2~3个活动），优先结合地理位置顺路衔接；游玩偏好（如人文、自然、亲子、户外等）将在具体行程中按您当时的说明安排。\n  * **交通**：默认结合各地点间的距离与便利性，在步行、公共交通、打车/驾车或骑行中提供合理的出行方案；若您有特定的出行方式偏好（如优先公交、仅乘地铁、全程打车等），可随时提出。\n  * **住宿**：默认根据行程游玩核心区域及交通便利度进行规划，具体酒店类型、星级、预算及房型要求将在具体行程时向您确认。\n\n---\n\n*说明：后续若您表达了明确且稳定的活动兴趣、交通方式或住宿喜好，系统将在会话闲置一小时后自动保存到您的偏好背景中，供以后的规划参考。*"
+        }
+      ],
+      "error": null,
+      "storage_checks": {
+        "后台处理完成": true,
+        "主回答请求成功": true,
+        "提取完整结束": true,
+        "依据来自本批新输入": true,
+        "仅最终修正且来源较新": true
+      }
+    },
+    {
+      "case": "old_context",
+      "steps": [
+        {
+          "input": "请介绍素食的含义，我没有表达自己的饮食喜好。不用查询。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "e17e2dca42744ef1964509e615356f57",
+            "turn_id": "73cd7cfe39b545308c32740e71f13432"
+          },
+          "answer": "素食通常是指以植物性食物为主、不食用动物肉类的饮食方式。由于文化、信仰、环保或健康理念的不同，素食在实际生活中有多种细分类型：\n\n---\n\n### 一、常见分类\n\n1. **蛋奶素（Lacto-Ovo Vegetarian）**\n   * **特点**：不吃红肉、禽肉、水产等所有动物肉类，但食用**蛋类**和**奶制品**（如牛奶、奶酪、酸奶）。这是日常生活中较为普遍的一种素食形式。\n\n2. **奶素（Lacto-Vegetarian）**\n   * **特点**：不吃肉类、水产和蛋类，但食用**奶制品**。\n\n3. **蛋素（Ovo-Vegetarian）**\n   * **特点**：不吃肉类、水产和奶制品，但食用**蛋类**。\n\n4. **纯素（Vegan / 严格素食）**\n   * **特点**：完全不摄入任何动物源性食品，包括肉类、鱼虾水产、蛋类、奶制品、动物油脂，通常也包括蜂蜜等动物副产品。\n\n5. **东方传统/宗教素食（斋食）**\n   * **特点**：除了不食肉、蛋类（部分宗派亦不食奶制品）之外，通常还忌食“五辛”（葱、蒜、韭菜、薤、洋葱等具有刺激气味的植物）。\n\n---\n\n### 二、常见缘由与背景\n\n人们选择素食的原因多样，主要包括：\n* **健康与营养考量**：增加膳食纤维、植物蛋白摄入，控制饱和脂肪或胆固醇。\n* **生态与环境保护**：减少因养殖业带来的碳排放、土地与水资源消耗。\n* **动物保护与伦理**：倡导减少对动物生命的伤害与利用。\n* **宗教与传统习俗**：出于信仰戒律、修持或特定节庆的习俗要求。\n\n---\n\n已明确这仅是对概念的客观了解，并未记录为您的个人饮食偏好。如果您后续需要规划旅行或推荐餐饮，可随时说明您的实际需求与口味。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "73cd7cfe39b545308c32740e71f13432",
+                "session_id": "e17e2dca42744ef1964509e615356f57",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "继续。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "e17e2dca42744ef1964509e615356f57",
+            "turn_id": "6a7eb7cb0a9a4b86b8e518fd98215eb2"
+          },
+          "answer": "接上文，进一步介绍素食的历史脉络、营养构成要点以及现代衍生的相关饮食概念：\n\n---\n\n### 三、素食的历史与文化演进\n\n1. **东方传统中的素食思想**\n   * **中国古代**：早期的“斋”主要指在祭祀前洁净身心、不饮酒、不吃荤辛（最初“荤”指葱蒜等辛辣植物，“腥”指肉类）。魏晋南北朝时期，梁武帝颁布《断酒肉文》，确立了汉传佛教全面茹素的传统，对后世东亚饮食文化影响深远。\n   * **南亚次大陆**：在印度，源自耆那教、印度教和佛教的不害（Ahimsa）思想，使得印度成为世界上素食人口比例较高、素食文化积淀深厚的地区。\n\n2. **西方语境下的素食发展**\n   * 古希腊哲学家毕达哥拉斯等曾提倡不杀生、不食肉的饮食理念，早年在西方甚至一度被称为“毕达哥拉斯饮食”。\n   * 19世纪中叶，英国建立了世界上第一个“素食协会”（Vegetarian Society），正式推广现代意义上的素食主义；20世纪中叶后，严格纯素（Veganism）逐渐独立发展，不仅关乎饮食，也延伸至拒绝皮草、动物实验产品等生活方式。\n\n---\n\n### 四、素食饮食的营养学关注点\n\n营养学上普遍认为，合理搭配的素食可以满足人体日常营养需求，但需注意某些容易相对缺乏或吸收率较低的营养素：\n\n* **蛋白质**：通过豆类（大豆、鹰嘴豆、扁豆）、坚果、种子和谷物的互补搭配，可获取完整的必需氨基酸。\n* **维生素 B12**：主要存在于动物性食品中。纯素食者通常需要通过营养酵母、强化食品或膳食补充剂来维持正常水平。\n* **铁与锌**：植物性铁（非血红素铁）的吸收率低于动物性铁（血红素铁），通常建议搭配富含维生素 C 的果蔬以促进吸收。\n* **钙与维生素 D**：除奶制品外，深绿色蔬菜、豆腐（传统石膏/卤水凝固型）、强化植物奶等也是植物性钙的来源。\n* **Omega-3 脂肪酸**：亚麻籽、奇亚籽、核桃等植物油脂可提供 ALA，人体转化效率有限，有时会选用海藻油补充 DHA/EPA。\n\n---\n\n### 五、现代衍生概念：弹性素食与植物基\n\n随着大众对健康与低碳生活的关注，近年来衍生出更多灵活的饮食概念：\n\n1. **弹性素食（Flexitarian）**\n   * 以植物性食物为主，但不严格戒断肉类。通常在日常大部分时间吃素，在特定社交场合或偶尔摄入少量肉食，更强调减少肉类消费而非绝对禁绝。\n2. **植物基饮食（Plant-based Diet）**\n   * 强调多吃未经精细加工的天然全谷物、蔬菜、水果、豆类、坚果，较少依赖深加工食品；许多“人造肉”（植物肉）也属于这一商业和食品科技潮流。\n\n---\n\n如果后续您有特定的旅行规划、目的地探索或当地特色餐饮咨询，可以随时告诉我目的地和具体偏好。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "6a7eb7cb0a9a4b86b8e518fd98215eb2",
+                "session_id": "e17e2dca42744ef1964509e615356f57",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "仅根据我已经保存的长期偏好，说明以后选择餐饮、活动、交通和住宿时的原则。不用查询，不需要具体地点。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "17377f015e3a434b9b4d4385e3a225ec",
+            "turn_id": "9d231764d0004342a5bb6840c6dce994"
+          },
+          "answer": "目前系统中**尚未收到您已保存的长期偏好记录**。\n\n因此，现在无法直接列出专属于您的既有偏好原则。关于后续偏好的记录与使用规则如下：\n\n1. **本次对话参考**：您可以在本次对话中随时告知您在餐饮、活动、交通和住宿方面的具体喜好或禁忌，在后续规划中会直接予以参考。\n2. **跨会话长期生效**：您在对话中明确表达的稳定偏好，须在**当前会话闲置一小时后**由后台独立保存；保存成功后，才会在未来的新会话中自动作为长期偏好生效。\n\n如果您希望确立以后的选择原则，可以随时补充您的偏好要求（例如：饮食口味与禁忌、活动偏好与节奏、交通出行习惯、住宿要求等）。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "9d231764d0004342a5bb6840c6dce994",
+                "session_id": "17377f015e3a434b9b4d4385e3a225ec",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        }
+      ],
+      "requests": [
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "素食通常是指以植物性食物为主、不食用动物肉类的饮食方式。由于文化、信仰、环保或健康理念的不同，素食在实际生活中有多种细分类型：\n\n---\n\n### 一、常见分类\n\n1. **蛋奶素（Lacto-Ovo Vegetarian）**\n   * **特点**：不吃红肉、禽肉、水产等所有动物肉类，但食用**蛋类**和**奶制品**（如牛奶、奶酪、酸奶）。这是日常生活中较为普遍的一种素食形式。\n\n2. **奶素（Lacto-Vegetarian）**\n   * **特点**：不吃肉类、水产和蛋类，但食用**奶制品**。\n\n3. **蛋素（Ovo-Vegetarian）**\n   * **特点**：不吃肉类、水产和奶制品，但食用**蛋类**。\n\n4. **纯素（Vegan / 严格素食）**\n   * **特点**：完全不摄入任何动物源性食品，包括肉类、鱼虾水产、蛋类、奶制品、动物油脂，通常也包括蜂蜜等动物副产品。\n\n5. **东方传统/宗教素食（斋食）**\n   * **特点**：除了不食肉、蛋类（部分宗派亦不食奶制品）之外，通常还忌食“五辛”（葱、蒜、韭菜、薤、洋葱等具有刺激气味的植物）。\n\n---\n\n### 二、常见缘由与背景\n\n人们选择素食的原因多样，主要包括：\n* **健康与营养考量**：增加膳食纤维、植物蛋白摄入，控制饱和脂肪或胆固醇。\n* **生态与环境保护**：减少因养殖业带来的碳排放、土地与水资源消耗。\n* **动物保护与伦理**：倡导减少对动物生命的伤害与利用。\n* **宗教与传统习俗**：出于信仰戒律、修持或特定节庆的习俗要求。\n\n---\n\n已明确这仅是对概念的客观了解，并未记录为您的个人饮食偏好。如果您后续需要规划旅行或推荐餐饮，可随时说明您的实际需求与口味。"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "73cd7cfe39b545308c32740e71f13432",
+                "input": "请介绍素食的含义，我没有表达自己的饮食喜好。不用查询。"
+              }
+            ],
+            "existing_preferences": [],
+            "context": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "接上文，进一步介绍素食的历史脉络、营养构成要点以及现代衍生的相关饮食概念：\n\n---\n\n### 三、素食的历史与文化演进\n\n1. **东方传统中的素食思想**\n   * **中国古代**：早期的“斋”主要指在祭祀前洁净身心、不饮酒、不吃荤辛（最初“荤”指葱蒜等辛辣植物，“腥”指肉类）。魏晋南北朝时期，梁武帝颁布《断酒肉文》，确立了汉传佛教全面茹素的传统，对后世东亚饮食文化影响深远。\n   * **南亚次大陆**：在印度，源自耆那教、印度教和佛教的不害（Ahimsa）思想，使得印度成为世界上素食人口比例较高、素食文化积淀深厚的地区。\n\n2. **西方语境下的素食发展**\n   * 古希腊哲学家毕达哥拉斯等曾提倡不杀生、不食肉的饮食理念，早年在西方甚至一度被称为“毕达哥拉斯饮食”。\n   * 19世纪中叶，英国建立了世界上第一个“素食协会”（Vegetarian Society），正式推广现代意义上的素食主义；20世纪中叶后，严格纯素（Veganism）逐渐独立发展，不仅关乎饮食，也延伸至拒绝皮草、动物实验产品等生活方式。\n\n---\n\n### 四、素食饮食的营养学关注点\n\n营养学上普遍认为，合理搭配的素食可以满足人体日常营养需求，但需注意某些容易相对缺乏或吸收率较低的营养素：\n\n* **蛋白质**：通过豆类（大豆、鹰嘴豆、扁豆）、坚果、种子和谷物的互补搭配，可获取完整的必需氨基酸。\n* **维生素 B12**：主要存在于动物性食品中。纯素食者通常需要通过营养酵母、强化食品或膳食补充剂来维持正常水平。\n* **铁与锌**：植物性铁（非血红素铁）的吸收率低于动物性铁（血红素铁），通常建议搭配富含维生素 C 的果蔬以促进吸收。\n* **钙与维生素 D**：除奶制品外，深绿色蔬菜、豆腐（传统石膏/卤水凝固型）、强化植物奶等也是植物性钙的来源。\n* **Omega-3 脂肪酸**：亚麻籽、奇亚籽、核桃等植物油脂可提供 ALA，人体转化效率有限，有时会选用海藻油补充 DHA/EPA。\n\n---\n\n### 五、现代衍生概念：弹性素食与植物基\n\n随着大众对健康与低碳生活的关注，近年来衍生出更多灵活的饮食概念：\n\n1. **弹性素食（Flexitarian）**\n   * 以植物性食物为主，但不严格戒断肉类。通常在日常大部分时间吃素，在特定社交场合或偶尔摄入少量肉食，更强调减少肉类消费而非绝对禁绝。\n2. **植物基饮食（Plant-based Diet）**\n   * 强调多吃未经精细加工的天然全谷物、蔬菜、水果、豆类、坚果，较少依赖深加工食品；许多“人造肉”（植物肉）也属于这一商业和食品科技潮流。\n\n---\n\n如果后续您有特定的旅行规划、目的地探索或当地特色餐饮咨询，可以随时告诉我目的地和具体偏好。"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "6a7eb7cb0a9a4b86b8e518fd98215eb2",
+                "input": "继续。"
+              }
+            ],
+            "existing_preferences": [],
+            "context": [
+              {
+                "role": "user",
+                "content": "请介绍素食的含义，我没有表达自己的饮食喜好。不用查询。"
+              },
+              {
+                "role": "assistant",
+                "content": "素食通常是指以植物性食物为主、不食用动物肉类的饮食方式。由于文化、信仰、环保或健康理念的不同，素食在实际生活中有多种细分类型：\n\n---\n\n### 一、常见分类\n\n1. **蛋奶素（Lacto-Ovo Vegetarian）**\n   * **特点**：不吃红肉、禽肉、水产等所有动物肉类，但食用**蛋类**和**奶制品**（如牛奶、奶酪、酸奶）。这是日常生活中较为普遍的一种素食形式。\n\n2. **奶素（Lacto-Vegetarian）**\n   * **特点**：不吃肉类、水产和蛋类，但食用**奶制品**。\n\n3. **蛋素（Ovo-Vegetarian）**\n   * **特点**：不吃肉类、水产和奶制品，但食用**蛋类**。\n\n4. **纯素（Vegan / 严格素食）**\n   * **特点**：完全不摄入任何动物源性食品，包括肉类、鱼虾水产、蛋类、奶制品、动物油脂，通常也包括蜂蜜等动物副产品。\n\n5. **东方传统/宗教素食（斋食）**\n   * **特点**：除了不食肉、蛋类（部分宗派亦不食奶制品）之外，通常还忌食“五辛”（葱、蒜、韭菜、薤、洋葱等具有刺激气味的植物）。\n\n---\n\n### 二、常见缘由与背景\n\n人们选择素食的原因多样，主要包括：\n* **健康与营养考量**：增加膳食纤维、植物蛋白摄入，控制饱和脂肪或胆固醇。\n* **生态与环境保护**：减少因养殖业带来的碳排放、土地与水资源消耗。\n* **动物保护与伦理**：倡导减少对动物生命的伤害与利用。\n* **宗教与传统习俗**：出于信仰戒律、修持或特定节庆的习俗要求。\n\n---\n\n已明确这仅是对概念的客观了解，并未记录为您的个人饮食偏好。如果您后续需要规划旅行或推荐餐饮，可随时说明您的实际需求与口味。"
+              }
+            ]
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "目前系统中**尚未收到您已保存的长期偏好记录**。\n\n因此，现在无法直接列出专属于您的既有偏好原则。关于后续偏好的记录与使用规则如下：\n\n1. **本次对话参考**：您可以在本次对话中随时告知您在餐饮、活动、交通和住宿方面的具体喜好或禁忌，在后续规划中会直接予以参考。\n2. **跨会话长期生效**：您在对话中明确表达的稳定偏好，须在**当前会话闲置一小时后**由后台独立保存；保存成功后，才会在未来的新会话中自动作为长期偏好生效。\n\n如果您希望确立以后的选择原则，可以随时补充您的偏好要求（例如：饮食口味与禁忌、活动偏好与节奏、交通出行习惯、住宿要求等）。"
+        }
+      ],
+      "error": null,
+      "storage_checks": {
+        "后台处理完成": true,
+        "主回答请求成功": true,
+        "提取完整结束": true,
+        "依据来自本批新输入": true,
+        "排除非本人稳定偏好": true
+      }
+    }
+  ]
+}
