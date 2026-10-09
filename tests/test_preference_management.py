@@ -147,3 +147,67 @@ class ManagementTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual([(p['category'], p['content']) for p in saved], [('activity', '喜欢博物馆')])
                 extracts = [r for r in model.requests if r['system'].startswith('旅行者偏好提取')]
                 self.assertIn(pending['turn_id'], [i['turn_id'] for i in json.loads(extracts[-1]['messages'][0]['content'])['new_inputs']])
+
+    async def test_manual_edit_resolves_saved_ambiguity_persistently(self):
+        from test_preference_changes import ChangesModel, add, targeted
+        model, clock = ChangesModel(), Clock()
+        model.suggest = lambda payload: {'changes': [add(payload)]}
+        with tempfile.TemporaryDirectory() as directory:
+            async with self.service(directory, model, clock) as client:
+                await self.finish(client, '我一直不吃辣')
+                await clock.advance(3600)
+                original = (await client.get('/api/preferences')).json()['preferences'][0]
+                model.suggest = lambda payload: {'changes': [targeted(payload, 'ambiguity', '是否接受辣味', '那个现在也可以了')]}
+                await self.finish(client, '那个现在也可以了')
+                await clock.advance(3600)
+                self.assertEqual(len((await client.get('/api/preferences')).json()['ambiguities']), 1)
+                edited = await client.patch('/api/preferences/' + original['id'], json={'version': original['version'], 'content': '喜欢清淡口味'})
+                self.assertEqual(edited.status_code, 200)
+                self.assertEqual(edited.json()['ambiguities'], [])
+            async with self.service(directory, model, clock) as client:
+                state = (await client.get('/api/preferences')).json()
+                self.assertEqual(state['ambiguities'], [])
+                self.assertEqual([p['content'] for p in state['preferences']], ['喜欢清淡口味'])
+
+    async def test_late_targeted_update_and_ambiguity_cannot_undo_management(self):
+        from test_preference_changes import ChangesModel, add, targeted
+        for management in ('edit', 'delete'):
+            for operation in ('update', 'ambiguity'):
+                with self.subTest(management=management, operation=operation):
+                    model, clock = ChangesModel(), Clock()
+                    model.suggest = lambda payload: {'changes': [add(payload)]}
+                    with tempfile.TemporaryDirectory() as directory:
+                        async with self.service(directory, model, clock) as client:
+                            await self.finish(client, '我一直不吃辣')
+                            await clock.advance(3600)
+                            original = (await client.get('/api/preferences')).json()['preferences'][0]
+                            entered, release = asyncio.Event(), asyncio.Event()
+                            create = model.create
+                            async def waiting(**kwargs):
+                                if kwargs['system'].startswith('旅行者偏好提取'):
+                                    entered.set()
+                                    await release.wait()
+                                return await create(**kwargs)
+                            model.create = waiting
+                            expression = '我以后喜欢吃辣' if operation == 'update' else '那个现在也可以了'
+                            model.suggest = lambda payload: {'changes': [targeted(payload, operation, '喜欢吃辣', expression)]}
+                            await self.finish(client, expression)
+                            await clock.advance(3600)
+                            self.assertTrue(entered.is_set())
+                            path = '/api/preferences/' + original['id']
+                            if management == 'edit':
+                                managed = await client.patch(path, json={'version': original['version'], 'content': '喜欢清淡口味'})
+                            else:
+                                managed = await client.delete(path, params={'version': original['version']})
+                            self.assertEqual(managed.status_code, 200)
+                            saved = managed.json()['preferences']
+                            release.set()
+                            for _ in range(30):
+                                await asyncio.sleep(0)
+                            state = (await client.get('/api/preferences')).json()
+                            self.assertEqual(state['preferences'], saved)
+                            self.assertEqual(state['ambiguities'], [])
+                        async with self.service(directory, model, clock) as client:
+                            state = (await client.get('/api/preferences')).json()
+                            self.assertEqual(state['preferences'], saved)
+                            self.assertEqual(state['ambiguities'], [])

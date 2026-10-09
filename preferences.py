@@ -76,6 +76,7 @@ class PreferenceStore:
                 return 'conflict'
             self.db.execute('UPDATE preferences SET content=?,updated_at=?,version=version+1 WHERE id=?',
                             (content, datetime.fromtimestamp(now, timezone.utc).isoformat(), preference_id))
+            self.db.execute('DELETE FROM preference_ambiguities WHERE target_id=?', (preference_id,))
             self.managed(row['category'])
         return 'saved'
 
@@ -126,11 +127,15 @@ class PreferenceStore:
             if not self.current(batch, now):
                 return False
             inputs = {item['turn_id']: item for item in batch['inputs']}
+            # 复核请求快照的目标版本；同一批次内的多次修正共享事务起始版本。
+            initial_versions = {row['id']: row['version'] for row in self.db.execute('SELECT id,version FROM preferences')}
             for change in sorted(changes, key=lambda item: inputs[item['source_turn_id']]['input_order']):
                 source = inputs[change['source_turn_id']]
                 watermark = self.db.execute('SELECT suppressed_through FROM preference_management WHERE category=?',
                                             (change['category'],)).fetchone()
                 if watermark and source['input_order'] <= watermark['suppressed_through']:
+                    continue
+                if change['operation'] != 'add' and initial_versions.get(change['target_id']) != change['target_version']:
                     continue
                 duplicate = self.db.execute('SELECT * FROM preferences WHERE category=? AND content=?', (change['category'], change['content'])).fetchone()
                 if change['operation'] == 'ambiguity':
