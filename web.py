@@ -176,7 +176,8 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                     try:
                         changes = await extract_preferences(runtime, batch, existing)
                     except Exception:
-                        store.preferences.failed(batch)
+                        if store.preferences.current(batch, preference_clock()):
+                            store.preferences.failed(batch)
                     else:
                         store.preferences.commit(batch, changes, preference_clock())
                     continue
@@ -285,6 +286,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
         if saved is None:
             raise HTTPException(404, {"code":"TURN_NOT_FOUND","message":"轮次不存在。"})
         if active and active["turn_id"] == turn_id:
+            store.preferences.cancel(turn_id)
             stop_requested.set()
             changed.set()
         return {"schema_version":SCHEMA_VERSION,"turn_id":turn_id,"status":saved["status"],
