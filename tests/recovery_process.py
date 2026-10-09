@@ -1,5 +1,7 @@
 """真实子进程仅替换外部模型与地图地址，复用生产执行和保存路径。"""
 import sys
+import asyncio
+from pathlib import Path
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -25,7 +27,15 @@ async def resources():
 
 
 if __name__ == '__main__':
-    app = create_app(sys.argv[1], resources=resources)
+    options = {}
+    if len(sys.argv) > 4:
+        clock_file = Path(sys.argv[4])
+        options['preference_clock'] = lambda: float(clock_file.read_text())
+        # 只唤醒已注入的等待资源，不引入业务测试接口或调用调度内部。
+        async def wait(_delay):
+            await asyncio.sleep(.02)
+        options['preference_wait'] = wait
+    app = create_app(sys.argv[1], resources=resources, **options)
     server = uvicorn.Server(uvicorn.Config(app, host='127.0.0.1', port=int(sys.argv[2]),
                                          log_level='critical', access_log=False, timeout_graceful_shutdown=1))
     try:

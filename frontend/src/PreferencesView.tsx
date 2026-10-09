@@ -39,6 +39,10 @@ export function PreferencesView({onBack}: {onBack: () => void}) {
     if (notice && !saving) refreshButton.current?.focus();
   }, [notice, saving]);
   const failed = snapshot?.processing.filter(item => item.status === 'failed') ?? [];
+  const waiting = snapshot?.processing.filter(item => item.status === 'pending' && item.attempts === 0).length ?? 0;
+  const retrying = snapshot?.processing.filter(item => item.status === 'pending' && item.attempts > 0).length ?? 0;
+  const extracting = snapshot?.processing.filter(item => item.status === 'processing').length ?? 0;
+  const cancelled = snapshot?.processing.filter(item => item.status === 'cancelled').length ?? 0;
   return <section className="preferences-view" aria-labelledby="preferences-title">
     <div className="preferences-heading">
       <h2 id="preferences-title">旅行者偏好</h2>
@@ -49,7 +53,15 @@ export function PreferencesView({onBack}: {onBack: () => void}) {
     {loading && <p role="status">正在读取偏好…</p>}
     {error && <p className="error" role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}
-    {failed.length > 0 && <div className="preference-failures"><h3>尚未保存的输入</h3><p>有 {failed.length} 轮偏好提取未成功，已有偏好仍然保留。</p></div>}
+    {snapshot && snapshot.processing.length > 0 && <section className="preference-processing" aria-label="后台偏好提取" aria-live="polite">
+      <h3>后台偏好提取</h3>
+      <p className="hint">后台保存独立于旅行回答和地图查询。下方列表只显示已保存的偏好。</p>
+      {waiting > 0 && <p>{waiting} 轮正在等待会话闲置。</p>}
+      {extracting > 0 && <p>{extracting} 轮正在提取偏好。</p>}
+      {retrying > 0 && <p>{retrying} 轮将等待后重试。</p>}
+      {cancelled > 0 && <p>{cancelled} 轮已随停止回答取消提取。</p>}
+      {failed.length > 0 && <div className="preference-failures"><h3>尚未保存的输入</h3><p>有 {failed.length} 轮偏好提取未成功，已有偏好仍然保留。</p><p>已达到自动重试上限，尚未保存。可以在对话中重新表达需要保存的长期喜好。</p></div>}
+    </section>}
     {snapshot && !snapshot.preferences.length && <div className="preferences-empty"><h3>暂无已保存的偏好</h3><p>在对话中表达你的长期喜好即可。临时安排、游玩节奏和同行人的偏好不会保存到这里。</p></div>}
     {snapshot && categories.map(([category, title]) => {
       const items = snapshot.preferences.filter(item => item.category === category);

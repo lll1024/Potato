@@ -151,6 +151,8 @@ class PreferenceChangesTests(unittest.IsolatedAsyncioTestCase):
                 await clock.advance(3600)
                 self.assertEqual(captured[0]['context'][0], {'role': 'user', 'content': '我长期喜欢吃辣'})
                 self.assertEqual([item['input'] for item in captured[0]['new_inputs']], ['那个一直如此'])
+                await clock.advance(30)
+                await clock.advance(120)
                 state = (await client.get('/api/preferences')).json()
                 self.assertEqual(state['preferences'], [])
                 self.assertEqual(state['processing'][0]['status'], 'failed')
@@ -169,6 +171,8 @@ class PreferenceChangesTests(unittest.IsolatedAsyncioTestCase):
                         model.suggest = lambda payload: {'changes': [add(payload, '喜欢素食', '长期喜欢素食'),
                             {**targeted(payload, 'update', '喜欢吃辣', '以后喜欢吃辣'), **invalid}]}
                         await clock.advance(3600)
+                        await clock.advance(30)
+                        await clock.advance(120)
                         state = (await client.get('/api/preferences')).json()
                         self.assertEqual(state['preferences'], saved)
                         self.assertEqual(state['processing'][0]['status'], 'failed')

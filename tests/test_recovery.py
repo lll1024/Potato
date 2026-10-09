@@ -28,12 +28,12 @@ def free_port():
 
 
 class ExternalServices:
-    def __init__(self):
+    def __init__(self, preference_handler=None):
         self.model_calls = []
         self.map_calls = []
         self.entered = asyncio.Event()
         self.release = asyncio.Event()
-        self.block = None
+        self.block: str | None = None
         maps = MCPServer('恢复验收地图')
 
         @maps.tool(name='maps_text_search')
@@ -56,6 +56,8 @@ class ExternalServices:
         async def message(request: Request):
             data = await request.json()
             self.model_calls.append(data)
+            if preference_handler and data['system'].startswith('旅行者偏好提取'):
+                return await preference_handler(data)
             if self.block == 'model':
                 self.entered.set()
                 await self.release.wait()
@@ -84,11 +86,12 @@ class ExternalServices:
 
 
 @asynccontextmanager
-async def process(directory, external, *, expected_failure=False):
+async def process(directory, external, *, expected_failure=False, clock_file=None):
     port = free_port()
     env = {**os.environ, 'PYTHONPATH':str(ROOT)}
+    arguments = [directory, str(port), external] + ([str(clock_file)] if clock_file else [])
     child = await asyncio.create_subprocess_exec(sys.executable, str(ROOT/'tests/recovery_process.py'),
-        directory, str(port), external, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT, env=env)
+        *arguments, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT, env=env)
     output = b''
     try:
         async with httpx.AsyncClient(base_url=f'http://127.0.0.1:{port}', timeout=3) as client:
