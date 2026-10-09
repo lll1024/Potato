@@ -58,7 +58,7 @@ export function useSubmission(onAccepted: (accepted: AcceptedSubmission, submitt
   }
 
   async function send(input: string, sessionId: string | null) {
-    if (submitting || pending) return;
+    if (inFlight.current || submitting || pending || !input.trim()) return;
     const submitted = {submission_id: crypto.randomUUID(), input, session_id: sessionId};
     setPending(submitted);
     await perform(submitted, false);

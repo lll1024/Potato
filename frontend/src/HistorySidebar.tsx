@@ -7,6 +7,17 @@ type Session = {
   reason: string | null; tool_error_count: number;
 };
 type Page = { sessions: Session[]; next_cursor: string | null };
+type Indicators = Record<string, {status: 'running' | 'unread'; updated_at: string | null}>;
+const indicatorKey = 'travel.conversation-activity.v2';
+
+function savedIndicators(): Indicators {
+  try {
+    const saved: unknown = JSON.parse(localStorage.getItem(indicatorKey) ?? '{}');
+    if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return {};
+    return Object.fromEntries(Object.entries(saved).filter(([, value]) => value && typeof value === 'object'
+      && (value.status === 'running' || value.status === 'unread') && (value.updated_at === null || typeof value.updated_at === 'string'))) as Indicators;
+  } catch { return {}; }
+}
 
 function historyApi<T>(path: string, options?: RequestInit): Promise<T> {
   return requestJson<T>(path, '历史操作未成功，请重试。', options);
@@ -35,12 +46,16 @@ function statusLabel(session: Session) {
   return session.status === 'failed' ? '失败，可继续' : '终止，可继续';
 }
 
-export function HistorySidebar({sessionId, activeTurnId, refreshKey, onSelect, onDelete}: {
+export function HistorySidebar({sessionId, activeTurnId, activeSessionId, stopping, viewingResults = true, viewedUpdatedAt, resetKey, refreshKey, onSelect, onDelete}: {
   sessionId: string | null; activeTurnId: string | null;
+  activeSessionId?: string | null; stopping?: boolean;
+  viewingResults?: boolean; viewedUpdatedAt?: string; resetKey?: number;
   refreshKey?: number;
   onSelect: (id: string) => void; onDelete: (id: string) => void;
 }) {
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [indicators, setIndicators] = useState(savedIndicators);
+  const [visible, setVisible] = useState(() => document.visibilityState === 'visible');
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [title, setTitle] = useState('');
@@ -57,6 +72,38 @@ export function HistorySidebar({sessionId, activeTurnId, refreshKey, onSelect, o
   const historyRegion = useRef<HTMLElement>(null);
   const visibleCount = useRef(20);
   const menuSession = sessions.find(session => session.session_id === menuId);
+
+  useEffect(() => {
+    const change = () => setVisible(document.visibilityState === 'visible');
+    document.addEventListener('visibilitychange', change);
+    return () => document.removeEventListener('visibilitychange', change);
+  }, []);
+  useEffect(() => {
+    if (resetKey) setIndicators({});
+  }, [resetKey]);
+  useEffect(() => {
+    setIndicators(current => {
+      const next = {...current};
+      if (activeSessionId && next[activeSessionId]?.status !== 'running') {
+        next[activeSessionId] = {status: 'running', updated_at: sessions.find(item => item.session_id === activeSessionId)?.updated_at ?? null};
+      }
+      for (const session of sessions) {
+        const id = session.session_id;
+        if (session.status === 'running') next[id] = {status: 'running', updated_at: session.updated_at};
+        else if (id === activeSessionId) continue;
+        else if (session.status === 'completed' && next[id]?.status === 'running' && next[id].updated_at !== session.updated_at) {
+          next[id] = {status: 'unread', updated_at: session.updated_at};
+        }
+        else if (session.status !== 'completed') delete next[id];
+        if (id === sessionId && id !== activeSessionId && viewingResults && visible && session.status === 'completed'
+          && next[id]?.status === 'unread' && next[id].updated_at === viewedUpdatedAt) delete next[id];
+      }
+      return JSON.stringify(next) === JSON.stringify(current) ? current : next;
+    });
+  }, [sessions, sessionId, activeSessionId, viewingResults, viewedUpdatedAt, visible]);
+  useEffect(() => {
+    try {localStorage.setItem(indicatorKey, JSON.stringify(indicators));} catch { /* 本机存储不可用时仍保留当前页面的提示。 */ }
+  }, [indicators]);
 
   function closeMenu(restoreFocus = false) {
     menuPanel.current?.hidePopover();
@@ -147,6 +194,7 @@ export function HistorySidebar({sessionId, activeTurnId, refreshKey, onSelect, o
       await historyApi(`/api/sessions/${session.session_id}`, {method: 'DELETE'});
       if (editing === session.session_id) setEditing(null);
       onDelete(session.session_id); setRevision(current => current + 1);
+      setIndicators(current => {const next = {...current}; delete next[session.session_id]; return next;});
       deleteTrigger.current = null;
       deleteDialog.current?.close();
     } catch (cause) { setDeleteError(cause instanceof Error ? cause.message : '删除失败。'); }
@@ -156,9 +204,12 @@ export function HistorySidebar({sessionId, activeTurnId, refreshKey, onSelect, o
   return <aside className="history" aria-label="历史会话" ref={historyRegion} tabIndex={-1}>
     <ul className="history-list">{sessions.map(session => <li className="history-item" key={session.session_id}>
       {editing !== session.session_id && <button className="history-select" aria-current={sessionId === session.session_id ? 'true' : undefined} onClick={() => onSelect(session.session_id)}>
-        <strong>{session.title}</strong>
+        <strong>{(session.status === 'running' || session.session_id === activeSessionId)
+          ? <span className="activity-spinner" role="img" aria-label="正在处理" />
+          : indicators[session.session_id]?.status === 'unread' && <span className="unread-result-dot" role="img" aria-label="有未查看的结果" />}
+          <span className="history-title">{session.title}</span></strong>
         <time dateTime={session.updated_at}>{new Date(session.updated_at).toLocaleString('zh-CN')}</time>
-        <span>{statusLabel(session)}</span>
+        <span>{statusLabel(session.session_id === activeSessionId ? {...session, status: stopping ? 'stopping' : 'running'} : session)}</span>
       </button>}
       <button className="history-menu-trigger" type="button" disabled={working} aria-label={`会话操作“${session.title}”`} aria-haspopup="menu" aria-expanded={menuId === session.session_id} aria-controls="history-menu"
         onClick={event => {menuTrigger.current = event.currentTarget; setMenuId(current => current === session.session_id ? null : session.session_id);}}
@@ -184,7 +235,7 @@ export function HistorySidebar({sessionId, activeTurnId, refreshKey, onSelect, o
         items[next]?.focus();
       }}>
       <button role="menuitem" type="button" disabled={working} onClick={() => {if (menuSession) {setEditing(menuSession.session_id); setTitle(menuSession.title);} closeMenu();}}>重命名</button>
-      <button role="menuitem" type="button" disabled={working || !menuSession || ['running', 'stopping'].includes(menuSession.status)} onClick={() => {if (menuSession) {deleteTrigger.current = menuTrigger.current; setDeleteError(''); setPendingDelete(menuSession);} closeMenu();}}>删除会话</button>
+      <button role="menuitem" type="button" disabled={working || !menuSession || menuSession.session_id === activeSessionId || ['running', 'stopping'].includes(menuSession.status)} onClick={() => {if (menuSession) {deleteTrigger.current = menuTrigger.current; setDeleteError(''); setPendingDelete(menuSession);} closeMenu();}}>删除会话</button>
     </div>
     {!sessions.length && <p className="hint">暂无已发送的会话</p>}
     {nextCursor !== null && <button disabled={working} onClick={() => void more()}>加载更多会话</button>}
