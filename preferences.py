@@ -40,6 +40,10 @@ class PreferenceStore:
     def finish(self, turn_id, now):
         self.db.execute('UPDATE preference_inputs SET ended_at=? WHERE turn_id=?', (now, turn_id))
 
+    def cancel(self, turn_id):
+        with self.db:
+            self.db.execute("UPDATE preference_inputs SET status='cancelled',error=NULL WHERE turn_id=? AND status != 'completed'", (turn_id,))
+
     def snapshot(self):
         return {'schema_version': 1,
                 'preferences': [dict(row) for row in self.db.execute('SELECT * FROM preferences ORDER BY category,input_order,id')],
