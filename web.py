@@ -209,7 +209,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
     async def edit_preference(preference_id: str, edit: EditPreference):
         if not edit.content.strip():
             raise HTTPException(422, detail={"message": "偏好内容不能为空。"})
-        return preference_result(store.preferences.edit(preference_id, edit.version, edit.content.strip(), preference_clock()))
+        return preference_result(store.preferences.edit(preference_id, edit.version, runtime.tools.redact(edit.content.strip()), preference_clock()))
 
     @app.delete("/api/preferences/{preference_id}")
     async def delete_preference(preference_id: str, version: int = Query(gt=0)):

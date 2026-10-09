@@ -103,7 +103,7 @@ class Evaluation:
 
 DIET = '我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。'
 RUNS = {}
-CASES = ['four', 'duplicate', 'temporary', 'long_term', 'third_party', 'pace', 'trip', 'rejected_suggestion', 'long_term_negative', 'ambiguity', 'same_batch', 'old_context']
+CASES = ['four', 'duplicate', 'temporary', 'long_term', 'third_party', 'pace', 'trip', 'rejected_suggestion', 'long_term_negative', 'ambiguity', 'same_batch', 'old_context', 'reference', 'managed_edit', 'managed_delete']
 
 
 async def evaluate(name, model):
@@ -112,7 +112,7 @@ async def evaluate(name, model):
     with tempfile.TemporaryDirectory() as directory:
         async with run.service(directory) as client:
             seed = None
-            if name in ('duplicate', 'temporary', 'long_term', 'ambiguity'):
+            if name in ('duplicate', 'temporary', 'long_term', 'ambiguity', 'managed_edit', 'managed_delete'):
                 seed = await run.turn(client, DIET)
                 await run.idle(client)
             if name == 'four':
@@ -158,6 +158,19 @@ async def evaluate(name, model):
                 first = await run.turn(client, DIET)
                 await run.turn(client, '我说错了，其实我一直喜欢吃辣。只交流长期喜好，不用查询。', first['session_id'])
                 await run.idle(client)
+            elif name == 'reference':
+                first = await run.turn(client, '请只推荐一种户外活动，用“自然公园徒步”这个活动名称回答，不用查地图，不列其他选项。')
+                await run.turn(client, '你刚才说的那个我一直很喜欢。这里只交流长期喜好，不用查询。', first['session_id'])
+                await run.idle(client)
+                await run.turn(client, '我的已保存长期活动兴趣是什么？只说原则，不用查询。')
+            elif name in ('managed_edit', 'managed_delete'):
+                await run.turn(client, '我一向避开辣椒，通常坚持不吃有辣味的东西；另外我长期喜欢喝绿茶。这只表达本人长期喜好，不用查地图。')
+                original = (await client.get('/api/preferences')).json()['preferences'][0]
+                path = '/api/preferences/' + original['id']
+                managed = (await client.patch(path, json={'version': original['version'], 'content': '喜欢清淡口味'})
+                           if name == 'managed_edit' else await client.delete(path, params={'version': original['version']}))
+                managed.raise_for_status()
+                run.steps[-1]['management'] = {'operation': name, 'state': managed.json()}
             elif name == 'old_context':
                 first = await run.turn(client, '请介绍素食的含义，我没有表达自己的饮食喜好。不用查询。')
                 await run.idle(client)
@@ -165,6 +178,11 @@ async def evaluate(name, model):
                 await run.idle(client)
             if name in ('duplicate', 'third_party', 'pace', 'trip', 'rejected_suggestion', 'same_batch', 'old_context'):
                 await run.turn(client, '仅根据我已经保存的长期偏好，说明以后选择餐饮、活动、交通和住宿时的原则。不用查询，不需要具体地点。')
+        if name in ('managed_edit', 'managed_delete'):
+            # 已接受而尚未提取的旧表达在管理后跨真实生命周期重启处理。
+            async with run.service(directory) as client:
+                await run.idle(client)
+                await run.turn(client, '我的已保存长期饮食喜好有哪些？只说已有记录，不用查询。')
         if name == 'ambiguity':
             async with run.service(directory) as client:
                 await run.turn(client, '杭州东站怎么坐地铁到西湖？只说选择地铁的原则，不用查询具体路线。')
@@ -221,6 +239,13 @@ def storage_checks(result):
         clear = next(s for s in steps if 'before_one_hour' in s)
         checks['澄清仍等待一小时'] = clear['before_one_hour']['preferences'] == states[0]['preferences']
         checks['新来源且清除歧义'] = not final['ambiguities'] and len(final['preferences']) == 1 and final['preferences'][0]['source_turn_id'] == clear['identity']['turn_id']
+    elif name == 'reference':
+        checks['批内指代有助手上下文且新输入授权'] = bool(final['preferences']) and all(
+            p['category'] == 'activity' and p['source_turn_id'] == steps[1]['identity']['turn_id'] for p in final['preferences'])
+    elif name in ('managed_edit', 'managed_delete'):
+        managed = steps[1]['management']['state']['preferences']
+        checks['管理结果保留并新增独立同类别条目'] = all(p in final['preferences'] for p in managed) and len(final['preferences']) == len(managed) + 1
+        checks['独立条目来自管理前新表达'] = sum(p['source_turn_id'] == steps[1]['identity']['turn_id'] for p in final['preferences']) == 1
     elif name == 'same_batch':
         checks['仅最终修正且来源较新'] = len(final['preferences']) == 1 and final['preferences'][0]['source_turn_id'] == steps[1]['identity']['turn_id']
     return checks
