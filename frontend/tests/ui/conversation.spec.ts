@@ -40,7 +40,7 @@ async function conversation(page: Page) {
   });
   await page.goto('/');
   await expect(page.getByText('旧会话', {exact: true})).toHaveCount(1);
-  await expect(page.locator('.global-status').getByRole('status')).toContainText('准备就绪');
+  await expect(page.getByRole('status').filter({hasText: '本机可接收输入'})).toBeVisible();
   return {state, sessions, turn, activity, writes, notify: async () => {
     cursor++;
     await page.evaluate(({state, cursor}) => {

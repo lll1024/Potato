@@ -4,6 +4,7 @@ export type ServiceState = {
   active_turn_id: string | null; active_session_id: string | null; accepting: boolean;
   stopping: boolean; map_paused: boolean; map_pause_reason: string | null;
   service_status: 'available' | 'unavailable'; storage_error?: string | null;
+  unsaved_fact?: {turn_id: string; kind: string; message: string} | null;
 };
 type ServiceSnapshot = ServiceState & { schema_version: number; state?: ServiceState; cursor: number; stream_id: string };
 

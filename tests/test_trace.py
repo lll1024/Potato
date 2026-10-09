@@ -171,7 +171,9 @@ class ModelTraceTests(unittest.IsolatedAsyncioTestCase):
                 self.assertGreaterEqual(two["duration_ms"],0)
                 self.assertEqual(snapshot["turns"][0]["status"],"failed")
                 self.assertEqual(snapshot["turns"][0]["reason"],"model_error")
-                self.assertIn("查到一个地点",snapshot["turns"][0]["answer"])
+                self.assertNotIn("查到一个地点",snapshot["turns"][0]["answer"])
+                result = (await client.get("/api/payloads/"+snapshot["tool_calls"][0]["result_payload_id"])).json()
+                self.assertIn("查到一个地点",str(result))
 
     async def test_request_save_failure_stops_queries_and_preserves_last_committed_fact(self):
         import sqlite3

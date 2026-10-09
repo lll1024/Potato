@@ -6,6 +6,7 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
+from query_materials import summarize_query
 
 SCHEMA_VERSION = 1
 
@@ -368,6 +369,23 @@ class Store:
             if tool["turn_id"] in interrupted and tool["status"] in ("pending","waiting","running"):
                 tool["interrupted"] = True
         for turn in turns:
+            turn["query_materials"] = []
+            turn["unreadable_query_count"] = 0
+            for tool in tool_calls:
+                if turn["status"] == "completed" and turn["answer_source"] != "application":
+                    break
+                if tool["turn_id"] != turn["turn_id"] or tool["status"] != "completed" or not tool.get("result_payload_id"):
+                    continue
+                payload = self.payload(tool["result_payload_id"])
+                result = payload["content"] if payload else None
+                if not isinstance(result, dict) or result.get("is_error") is not False:
+                    continue
+                original_input = next(row["input"] for row in rows if row["turn_id"] == turn["turn_id"])
+                material = summarize_query(tool["name"], result, original_input)
+                if material["entries"]:
+                    turn["query_materials"].append({**material, "tool_call_id": tool["tool_call_id"], "payload_id": tool["result_payload_id"]})
+                else:
+                    turn["unreadable_query_count"] += 1
             if turn["turn_id"] in interrupted:
                 turn["context_excluded"] = True
             turn["usage_summary"] = usage_summary([request for request in requests if request["turn_id"] == turn["turn_id"]])

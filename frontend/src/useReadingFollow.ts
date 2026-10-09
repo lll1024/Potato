@@ -5,11 +5,13 @@ export function useReadingFollow(identity: string | null, marker: string) {
   const ref = useRef<HTMLDivElement>(null);
   const following = useRef(true);
   const position = useRef(0);
+  const attached = useRef(false);
   const lastMarker = useRef('');
   const lastIdentity = useRef(identity);
   const [paused, setPaused] = useState(false);
   const [hasNew, setHasNew] = useState(false);
   const pause = useCallback(() => {
+    if (ref.current) position.current = ref.current.scrollTop;
     following.current = false;
     setPaused(true);
   }, []);
@@ -35,10 +37,15 @@ export function useReadingFollow(identity: string | null, marker: string) {
       if (element) element.scrollTop = element.scrollHeight;
     } else if (hadContent) setHasNew(true);
   }, [identity, marker]);
+  useLayoutEffect(() => {
+    if (!attached.current || !ref.current) return;
+    attached.current = false;
+    // 完整视图布局完成后恢复，避免挂载过程中按尚未稳定的高度夹紧位置。
+    ref.current.scrollTop = following.current ? ref.current.scrollHeight : position.current;
+  });
   const attach = useCallback((element: HTMLDivElement | null) => {
-    if (ref.current) position.current=ref.current.scrollTop;
     ref.current=element;
-    if (element) element.scrollTop=following.current ? element.scrollHeight : position.current;
+    attached.current = Boolean(element);
   }, []);
   const onScroll = useCallback(() => {
     const element = ref.current;

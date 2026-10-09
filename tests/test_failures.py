@@ -58,7 +58,7 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
         answer = await agent_loop(history, cast(AsyncAnthropic, model), tools, "test-model")
 
         self.assertIn("模型", answer)
-        self.assertIn("杭州市西湖区", answer)
+        self.assertNotIn("杭州市西湖区", answer)
         self.assertIn("待核实", answer)
         history.append({"role": "user", "content": "服务恢复了，继续"})
         followup = ModelService([response([{"type": "text", "text": "西湖位于杭州市西湖区。"}])])
@@ -99,8 +99,9 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
 
                 self.assertEqual(len(service.calls), 2)
                 self.assertEqual(len(model.requests), 1)
-                self.assertIn(explanation, answer)
-                self.assertIn("杭州市西湖区", answer)
+                self.assertIn("地图查询已暂停", answer)
+                self.assertNotIn("杭州市西湖区", answer)
+                self.assertIn("杭州市西湖区", str(history))
                 self.assertIn("待核实", answer)
                 results = history[-2]["content"]
                 self.assertEqual([item["tool_use_id"] for item in results], ["ok", "fault", "unexecuted"])
@@ -213,9 +214,10 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(service.calls), 1)
         self.assertEqual(len(model.requests), 1)
         self.assertIn("上限", answer)
-        self.assertIn("杭州市西湖区", answer)
+        self.assertNotIn("杭州市西湖区", answer)
         self.assertIn("待核实", answer)
-        self.assertIn("灵隐寺", answer)
+        self.assertNotIn("灵隐寺", answer)
+        self.assertIn("灵隐寺", str(history))
         results = history[-2]["content"]
         self.assertEqual([item["tool_use_id"] for item in results], ["done", "pending"])
         self.assertFalse(results[0]["is_error"])
@@ -248,7 +250,8 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(len(service.calls), expected_calls)
                 self.assertEqual(len(model.requests), expected_rounds)
                 self.assertIn("上限", answer)
-                self.assertIn("西湖", answer)
+                self.assertNotIn("西湖", answer)
+                self.assertIn("西湖", str(history))
                 self.assertIn("待核实", answer)
                 history.append({"role": "user", "content": "新的请求，只查一次"})
                 followup = ModelService([

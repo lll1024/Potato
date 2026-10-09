@@ -194,7 +194,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                 request_shutdown()
             return
         except Exception:
-            answer = SERVICE_MESSAGE
+            answer = "这次请求未能完成，旅行行程尚未完成。请查看处理记录或重新尝试。"
             outcome.update(status="failed",reason="execution_error",answer_source="application",tool_error_count=0)
         try:
             answer = runtime.tools.redact(answer)

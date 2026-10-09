@@ -139,7 +139,9 @@ class StopTests(unittest.IsolatedAsyncioTestCase):
                 results=messages[-2]['content']
                 self.assertEqual([result['tool_use_id'] for result in results],['lake-0','lake-1','lake-2'])
                 self.assertEqual([result['is_error'] for result in results],[False,True,True])
-                self.assertIn('查到一个地点',saved['turns'][0]['answer'])
+                self.assertNotIn('查到一个地点',saved['turns'][0]['answer'])
+                raw = (await client.get('/api/payloads/'+first['result_payload_id'])).json()
+                self.assertIn('查到一个地点',str(raw))
 
     async def test_rate_limit_wait_can_stop_without_second_sdk_call(self):
         class CountingMaps(MapService):

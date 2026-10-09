@@ -12,6 +12,7 @@ import { useSubmission } from './useSubmission';
 import { useServiceEvents } from './useServiceEvents';
 import { requestJson } from './api';
 import { reasonLabels } from './turnReasons';
+import { isExceptional, type QueryMaterial } from './ExceptionOutcome';
 
 type Snapshot = RoundActivity & { schema_version: number; session: { title: string; updated_at?: string }; turns: Turn[]; next_before: number | null; total_turns: number };
 
@@ -22,12 +23,13 @@ function api<T>(path: string, options?: RequestInit): Promise<T> {
 function statusText(turn: Turn): string {
   if (turn.status === 'running') return '正在执行';
   if (turn.status === 'completed') return turn.tool_error_count ? '完成，含工具错误' : '已完成';
+  if (turn.reason === 'user_stop') return '已停止';
   return `${turn.status === 'failed' ? '失败' : '终止'}：${reasonLabels[turn.reason ?? ''] ?? turn.reason ?? '原因未知'}`;
 }
 
 const mapPauseLabels: Record<string, string> = {
-  auth: '地图鉴权失败，请检查配置权限后重启。', quota: '地图额度耗尽或访问受限，请检查额度与限流后重启。',
-  connection: '地图连接不可用，请检查网络及服务后重启。', service: '地图服务暂不可用，请等待服务恢复后重启。',
+  auth: '当前无法进行新的地图查询。仍可讨论已有资料。', quota: '查询额度或访问受限，当前无法进行新的地图查询。仍可讨论已有资料。',
+  connection: '地图连接不可用，当前无法继续查询。', service: '地图服务暂不可用，当前无法继续查询。',
 };
 
 function App() {
@@ -39,12 +41,13 @@ function App() {
   const [earlierActivity, setEarlierActivity] = useState<Record<string, RoundActivity>>({});
   const [loadingEarlier, setLoadingEarlier] = useState(false);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [materialsExpanded, setMaterialsExpanded] = useState<Record<string, boolean>>({});
   const {state, revision: serviceRevision, datasetRevision, deletedSession, connectionError, recoveryNotice, refresh: refreshService} = useServiceEvents();
   const [error, setError] = useState('');
   const [stoppingId, setStoppingId] = useState<string | null>(null);
 
   const submission = useSubmission((accepted, submitted) => {
-    clearSubmittedDraft(submitted.session_id, submitted.input);
+    if (!submitted.preserve_draft) clearSubmittedDraft(submitted.session_id, submitted.input);
     if (sessionId === submitted.session_id && accepted.session_id !== sessionId) setSnapshot(null);
     setSessionId(current => current === submitted.session_id ? accepted.session_id : current);
     void refreshService().catch(() => setError('提交已接受，但暂时无法核对服务状态。'));
@@ -95,7 +98,7 @@ function App() {
   }
   useEffect(() => {if (deletedSession) deletedConversation(deletedSession);}, [deletedSession]);
   useEffect(() => {
-    if (datasetRevision) {setEarlierTurns({}); setEarlierActivity({}); selectConversation(null);}
+    if (datasetRevision) {setEarlierTurns({}); setEarlierActivity({}); setMaterialsExpanded({}); selectConversation(null);}
   }, [datasetRevision]);
   async function loadEarlier() {
     conversationFollow.pause();
@@ -119,6 +122,16 @@ function App() {
   const turns = [...(sessionId ? earlierTurns[sessionId] ?? [] : []), ...(snapshot?.turns ?? [])]
     .filter((turn, index, all) => all.findIndex(item => item.turn_id === turn.turn_id) === index);
   const turn = snapshot?.turns.at(-1);
+  const storageTurnId = state.storage_error && state.unsaved_fact?.turn_id ? state.unsaved_fact.turn_id : undefined;
+  const retryBlocked = submission.pending ? '这次提交尚待核对，请先核对原提交。'
+    : busy || stoppingId ? (state.stopping || stoppingId ? '正在停止，仍占用执行名额。' : '全局忙，请等待当前请求结束。')
+    : !state.accepting ? (state.storage_error ?? '本机暂不可接收输入，请等待服务可用后再尝试。')
+    : state.map_paused ? '地图查询仍暂停，暂不能重新查询；可编辑需求，讨论已有资料。' : '';
+  async function retryTurn(failed: Turn) {
+    if (retryBlocked || !sessionId || turn?.turn_id !== failed.turn_id || !isExceptional(failed)) return;
+    setError('');
+    await submission.send(failed.input, sessionId, true);
+  }
   const conversationFollow=useReadingFollow(sessionId, turn ? JSON.stringify([turn.turn_id,turn.status,turn.answer,snapshot?.events?.at(-1)?.event_id]) : '');
   const activity: RoundActivity = {
     requests: [...(sessionId ? earlierActivity[sessionId]?.requests ?? [] : []), ...(snapshot?.requests ?? [])],
@@ -130,18 +143,24 @@ function App() {
     setTraceLocation({turn_id:turn.turn_id,turn_ordinal:turn.ordinal,object_type:'turn',object_id:turn.turn_id,payload_id:null,field:'turn_input',query:''});
     setView('trace');
   }
+  function showMaterialTrace(turn: Turn, material: QueryMaterial) {
+    conversationFollow.pause();
+    setTraceLocation({turn_id: turn.turn_id, turn_ordinal: turn.ordinal, object_type: 'tool', object_id: material.tool_call_id,
+      payload_id: material.payload_id, field: 'tool_result', query: ''});
+    setView('trace');
+  }
   const canLoadEarlier = Boolean(snapshot && turns[0]?.ordinal > 1);
   return <div className="app">
     <header>
       <div><p className="eyebrow">本机调试</p><h1>旅行助手</h1></div>
       <div className="global-status">
-        <p role="status">{state.active_turn_id ? `${state.stopping ? '正在停止，仍占用执行名额' : '全局忙，正在执行'} · ${state.active_session_id === sessionId ? '当前会话' : '其他会话'}` : state.accepting ? '全局准备就绪' : '本机服务暂不可用'}</p>
+        <p role="status">{state.active_turn_id ? `${state.stopping ? '正在停止，仍占用执行名额' : '全局忙，正在执行'} · ${state.active_session_id === sessionId ? '当前会话' : '其他会话'}` : state.accepting ? '本机可接收输入' : '本机服务暂不可用'}</p>
         {state.active_turn_id && <div>
           <button type="button" disabled={state.stopping || stoppingId === state.active_turn_id} onClick={() => void stopTurn(state.active_turn_id!)}>{state.stopping ? '正在停止…' : stoppingId === state.active_turn_id ? '正在请求停止…' : '停止执行中的轮次'}</button>
           <p className="hint">停止会阻止后续查询；已发起的调用会等待真实返回，期间仍占用执行名额。</p>
         </div>}
         {state.active_session_id && state.active_session_id !== sessionId && <button onClick={() => selectConversation(state.active_session_id)}>查看执行中的会话</button>}
-        {state.map_paused && <p>地图查询已暂停：{mapPauseLabels[state.map_pause_reason ?? ''] ?? '请修复配置、网络或服务后重启。'}</p>}
+        {state.map_paused && <p>地图查询已暂停：{mapPauseLabels[state.map_pause_reason ?? ''] ?? '当前无法继续查询；仍可讨论已有资料。'}</p>}
       </div>
       <button onClick={newConversation}>新建对话</button>
     </header>
@@ -149,7 +168,7 @@ function App() {
       <section className="conversation" aria-labelledby="conversation-title">
         <div className="conversation-heading">
           <h2 id="conversation-title">{snapshot?.session.title ?? '空白对话'}</h2>
-          <p role="status">{turn ? statusText(turn) : busy ? '其他对话正在执行' : '准备就绪'}</p>
+          <p role="status">{turn ? turn.turn_id === storageTurnId ? '存储故障，结果未完整保存' : statusText(turn) : busy ? '其他对话正在执行' : '旅行规划与查询'}</p>
         </div>
         <nav className="view-switch" aria-label="会话视图"><button aria-pressed={view === 'conversation'} onClick={() => setView('conversation')}>对话</button><button aria-pressed={view === 'trace'} onClick={() => setView('trace')}>执行轨迹</button></nav>
         {view === 'trace' ? <TraceView sessionId={sessionId} refreshKey={serviceRevision} location={traceLocation} /> : <>
@@ -158,6 +177,10 @@ function App() {
           {turn ? <>
             {canLoadEarlier && <button className="load-earlier" disabled={loadingEarlier} onClick={() => void loadEarlier()}>加载更早对话</button>}
             <ConversationRounds turns={turns} statusText={statusText} onTrace={showTurnTrace} activity={activity}
+              onRetry={failed => void retryTurn(failed)} retryTurnId={turn && (isExceptional(turn) || turn.turn_id === storageTurnId) ? turn.turn_id : undefined}
+              storageTurnId={storageTurnId}
+              retryBlocked={retryBlocked} onMaterialTrace={showMaterialTrace}
+              materialsExpanded={materialsExpanded} onMaterialsExpanded={(id, expanded) => setMaterialsExpanded(current => ({...current, [id]: expanded}))}
               stoppingTurnId={state.stopping ? state.active_turn_id : stoppingId} disconnected={Boolean(connectionError)} onRead={conversationFollow.pause} />
           </> : <div className="empty"><h3>从一条旅行需求开始</h3><p>可以查询地点、比较交通路线、寻找餐饮，或安排多日旅行行程。</p><p className="example">例如：查询杭州西湖的地址。</p></div>}
         </ReadingScroll></>}

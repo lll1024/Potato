@@ -141,19 +141,11 @@ BUDGET_MESSAGE = "已达到本轮查询上限，查询尚未全部完成，请�
 SERVICE_MESSAGE = "服务调用失败，本地运行已结束。请检查 Key、模型配置、网络及服务状态；地图信息尚未核实。"
 
 
-def terminated_answer(reason: str, outcomes: list[tuple[str, ToolResult]]) -> str:
-    verified = [f"{name}：{result['content']}" for name, result in outcomes
-                if not result["is_error"]]
-    missing = [f"{name}：{result['content']}" for name, result in outcomes
-               if result["is_error"]]
-    return "\n".join([
-        reason,
-        "已核实的查询结果（高德原始返回）：",
-        *(verified or ["本次尚无成功的查询结果。"]),
-        "待核实：",
-        *missing,
-        "尚未完成或未查询的地点、交通及其他信息均待核实。",
-    ])
+def terminated_answer(reason: str, outcomes: list[ToolResult]) -> str:
+    return "\n".join([reason, "这次请求未能完成，旅行行程尚未完成。",
+        "已有查询资料可通过处理记录核对。" if any(not result["is_error"] for result in outcomes)
+        else "本次尚无成功的查询结果。",
+        "未完成的信息仍待核实。"])
 
 
 async def agent_loop(
@@ -165,7 +157,7 @@ async def agent_loop(
     messages[:] = json.loads(tools.redact(json.dumps(messages, ensure_ascii=False)))
     calls = 0
     tool_errors = 0
-    outcomes: list[tuple[str, ToolResult]] = []
+    outcomes: list[ToolResult] = []
     stopped: str | None = None
     status = "terminated"
     reason: str | None = "budget"
@@ -231,7 +223,7 @@ async def agent_loop(
                     "usage_state":"returned" if parsed is not None and parsed.get("usage") is not None else "not_returned",
                 })
             status, reason = "failed", "model_error"
-            stopped = "模型服务请求失败，已停止本次查询。请检查 MODEL_ID、模型凭据、服务地址、网络和额度，恢复后继续。"
+            stopped = "模型请求未能完成，已停止本次查询。"
             break
         assert response is not None and parsed is not None
         if observer:
@@ -296,8 +288,7 @@ async def agent_loop(
                 if (stopped and output["content"].startswith("未执行：")) or output["content"] == BUDGET_MESSAGE:
                     await tool_observer("tool.not_executed",{"status":"not_executed",
                         "reason":reason,"result":output,"finished_at":datetime.now(timezone.utc).isoformat()})
-            label = f"{block.name}（{json.dumps(block.input, ensure_ascii=False)}）"
-            outcomes.append((label, output))
+            outcomes.append(output)
             results.append({
                 "type": "tool_result", "tool_use_id": block.id,
                 "content": output["content"], "is_error": output["is_error"],
@@ -309,7 +300,9 @@ async def agent_loop(
         if stopped or calls >= max_tool_calls:
             break
 
-    answer = terminated_answer(stopped or BUDGET_MESSAGE, outcomes)
+    descriptions = {"map_paused": "地图查询已暂停，查询资料不完整。", "user_stop": "已停止本轮查询。",
+        "service_shutdown": "本机服务已退出。", "storage_failure": "存储故障，只能确认最后成功保存的事实。"}
+    answer = terminated_answer(descriptions.get(reason, stopped or BUDGET_MESSAGE), outcomes)
     messages.append({"role": "assistant", "content": answer})
     return await finished(answer, "application")
 

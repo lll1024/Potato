@@ -43,7 +43,8 @@ function statusLabel(session: Session) {
   if (session.status === 'running') return '正在执行';
   if (session.status === 'stopping') return '正在停止';
   if (session.status === 'completed') return session.tool_error_count ? '完成，含工具错误' : '已完成';
-  return session.status === 'failed' ? '失败，可继续' : '终止，可继续';
+  if (session.reason === 'user_stop') return '已停止';
+  return session.status === 'failed' ? '请求未完成' : '已终止';
 }
 
 export function HistorySidebar({sessionId, activeTurnId, activeSessionId, stopping, viewingResults = true, viewedUpdatedAt, resetKey, refreshKey, onSelect, onDelete}: {

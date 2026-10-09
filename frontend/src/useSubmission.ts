@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 export type AcceptedSubmission = {
   schema_version: number; submission_id: string; session_id: string; turn_id: string;
 };
-export type PendingSubmission = { submission_id: string; input: string; session_id: string | null };
+export type PendingSubmission = { submission_id: string; input: string; session_id: string | null; preserve_draft?: boolean };
 
 class SubmissionError extends Error {
   constructor(readonly code: string, message: string) { super(message); }
@@ -37,7 +37,7 @@ export function useSubmission(onAccepted: (accepted: AcceptedSubmission, submitt
     setError('');
     try {
       const accepted = await request(query ? `/api/submissions/${encodeURIComponent(submitted.submission_id)}` : '/api/turns', query ? undefined : {
-        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(submitted),
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({submission_id: submitted.submission_id, input: submitted.input, session_id: submitted.session_id}),
       });
       setPending(null);
       acceptedCallback.current(accepted, submitted);
@@ -57,9 +57,9 @@ export function useSubmission(onAccepted: (accepted: AcceptedSubmission, submitt
     } finally { inFlight.current = false; setSubmitting(false); }
   }
 
-  async function send(input: string, sessionId: string | null) {
+  async function send(input: string, sessionId: string | null, preserveDraft = false) {
     if (inFlight.current || submitting || pending || !input.trim()) return;
-    const submitted = {submission_id: crypto.randomUUID(), input, session_id: sessionId};
+    const submitted = {submission_id: crypto.randomUUID(), input, session_id: sessionId, preserve_draft: preserveDraft};
     setPending(submitted);
     await perform(submitted, false);
   }

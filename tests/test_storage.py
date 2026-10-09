@@ -157,6 +157,11 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(saved['requests'][0]['status'],'completed')
                     self.assertNotIn(kind,[event['kind'] for event in saved['events']])
                     self.assertNotIn('turn.finished',[event['kind'] for event in saved['events']])
+                    if kind=='tool.waiting':
+                        self.assertEqual(saved['turns'][0]['query_materials'][0]['entries'],[['名称：西湖','地址：杭州市西湖区']])
+                    else:
+                        self.assertEqual(saved['turns'][0]['query_materials'],[])
+                    self.assertEqual(saved['turns'][0]['unreadable_query_count'],0)
                     if kind=='tool.pending': self.assertEqual(saved['tool_calls'],[])
                     else:
                         one=saved['tool_calls'][0]

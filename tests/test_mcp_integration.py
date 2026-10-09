@@ -102,9 +102,10 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
                                                       "test-model", max_rounds=1)
 
                 self.assertEqual(len(sent), 2)
-                self.assertIn(explanation, answer)
+                self.assertIn("地图查询已暂停", answer)
                 self.assertNotIn("上限", answer)
-                self.assertIn("杭州市西湖区", answer)
+                self.assertNotIn("杭州市西湖区", answer)
+                self.assertIn("杭州市西湖区", str(history))
                 self.assertIn("待核实", answer)
                 results = history[-2]["content"]
                 self.assertEqual([item["tool_use_id"] for item in results], ["ok", "fault", "pending"])
@@ -149,7 +150,7 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(await run_cli("test-amap-key"), 1)
                 user_input.assert_called_once()
 
-        self.assertIn("连接不可用", captured.getvalue())
+        self.assertIn("地图查询已暂停", captured.getvalue())
         self.assertIn("待核实", captured.getvalue())
         self.assertTrue(model_http.is_closed)
         with self.assertRaises(RuntimeError):
