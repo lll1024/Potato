@@ -9,7 +9,9 @@ from test_preferences import Clock, PreferenceModel
 
 
 class ManagementTests(unittest.IsolatedAsyncioTestCase):
-    service = support.PreferenceTests.service
+    def service(self, directory, model, clock):
+        return support.PreferenceTests().service(directory, model, clock)
+
     finish = support.PreferenceTests.finish
 
     async def test_edit_is_versioned_persistent_and_immediately_used_in_new_conversations(self):
