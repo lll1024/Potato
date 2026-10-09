@@ -187,6 +187,7 @@ class TravelDatesTests(unittest.IsolatedAsyncioTestCase):
             yield MapService()
         with (
             patch("agent.Client", side_effect=external_maps),
+            patch("travel_tools.Client", side_effect=RuntimeError("外部资料服务不可用")),
             patch("agent.AsyncAnthropic", side_effect=external_model),
             patch("agent.streamable_http_client", return_value=None),
             patch("builtins.input", side_effect=["本周末去北京", "exit"]),

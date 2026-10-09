@@ -377,8 +377,8 @@ class Store:
             turn["query_materials"] = []
             turn["unreadable_query_count"] = 0
             for tool in tool_calls:
-                if turn["status"] == "completed" and turn["answer_source"] != "application":
-                    break
+                if turn["status"] == "completed" and turn["answer_source"] != "application" and tool["name"] not in ("tavily-search", "tavily_search", "tavily-extract", "tavily_extract"):
+                    continue
                 if tool["turn_id"] != turn["turn_id"] or tool["status"] != "completed" or not tool.get("result_payload_id"):
                     continue
                 payload = self.payload(tool["result_payload_id"])

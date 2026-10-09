@@ -32,6 +32,7 @@ from pydantic import BaseModel, Field
 from agent import SERVICE_MESSAGE, agent_loop
 from amap_http import AmapHTTPClient
 from amap_mcp import AmapTools
+from travel_tools import TravelTools, connected_travel_tools
 from limits import TOOL_TIMEOUT
 from store import SCHEMA_VERSION, StartupError, Store
 
@@ -39,7 +40,7 @@ from store import SCHEMA_VERSION, StartupError, Store
 @dataclass
 class Runtime:
     client: AsyncAnthropic
-    tools: AmapTools
+    tools: AmapTools | TravelTools
     model: str
 
 
@@ -60,7 +61,8 @@ async def configured_resources():
             tools = AmapTools(map_client,api_key=api_key,http_client=http_client,secrets=tuple(
                 os.getenv(name, "") for name in ("ANTHROPIC_API_KEY","ANTHROPIC_AUTH_TOKEN")))
             await tools.discover()
-            yield Runtime(model_client,tools,os.environ["MODEL_ID"])
+            async with connected_travel_tools(tools) as travel_tools:
+                yield Runtime(model_client,travel_tools,os.environ["MODEL_ID"])
     except Exception:
         raise RuntimeError(SERVICE_MESSAGE) from None
 
