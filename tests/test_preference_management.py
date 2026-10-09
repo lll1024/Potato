@@ -112,3 +112,38 @@ class ManagementTests(unittest.IsolatedAsyncioTestCase):
                 await self.finish(client, '推荐餐厅')
                 self.assertNotIn('素食', model.requests[-1]['system'])
                 self.assertNotIn('不吃辣', model.requests[-1]['system'])
+
+    async def test_diet_management_keeps_unrelated_pending_activity_expression(self):
+        model, clock = PreferenceModel(), Clock()
+        with tempfile.TemporaryDirectory() as directory:
+            async with self.service(directory, model, clock) as client:
+                await self.finish(client, '我一直不吃辣')
+                await clock.advance(3600)
+                original = (await client.get('/api/preferences')).json()['preferences'][0]
+                entered, release = asyncio.Event(), asyncio.Event()
+                create = model.create
+                async def waiting(**kwargs):
+                    if kwargs['system'].startswith('旅行者偏好提取'):
+                        entered.set()
+                        await release.wait()
+                    return await create(**kwargs)
+                model.create = waiting
+                model.extract = lambda inputs: {'changes': [
+                    {'operation': 'add', 'category': 'diet', 'content': '不吃辣', 'source_turn_id': inputs[0]['turn_id'], 'evidence': '不吃辣'},
+                    {'operation': 'add', 'category': 'activity', 'content': '喜欢博物馆', 'source_turn_id': inputs[0]['turn_id'], 'evidence': '喜欢博物馆'}]}
+                await self.finish(client, '我一直不吃辣，也一直喜欢博物馆')
+                await clock.advance(3600)
+                self.assertTrue(entered.is_set())
+                pending = await self.finish(client, '我一直不吃辣，也一直喜欢博物馆')
+                deleted = await client.delete('/api/preferences/' + original['id'], params={'version': original['version']})
+                self.assertEqual(deleted.status_code, 200)
+                release.set()
+                for _ in range(30):
+                    await asyncio.sleep(0)
+                saved = (await client.get('/api/preferences')).json()['preferences']
+                self.assertEqual([(p['category'], p['content']) for p in saved], [('activity', '喜欢博物馆')])
+                await clock.advance(3600)
+                saved = (await client.get('/api/preferences')).json()['preferences']
+                self.assertEqual([(p['category'], p['content']) for p in saved], [('activity', '喜欢博物馆')])
+                extracts = [r for r in model.requests if r['system'].startswith('旅行者偏好提取')]
+                self.assertIn(pending['turn_id'], [i['turn_id'] for i in json.loads(extracts[-1]['messages'][0]['content'])['new_inputs']])
