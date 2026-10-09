@@ -30,3 +30,23 @@ test('集中查看偏好空状态及来源，阅读不会发起提问', async ({
   await page.getByRole('button', {name: '返回对话'}).click();
   await expect(page.getByRole('textbox', {name: '旅行需求'})).toBeVisible();
 });
+
+test('刷新列表显示长期变化后的真实内容、来源和时间', async ({page}) => {
+  let preference = {id: 'diet-1', category: 'diet', content: '不吃辣', source_turn_id: 'turn-1', source_input: '我一直不吃辣', updated_at: '2026-10-10T04:00:00Z', input_order: 1, version: 1};
+  await page.addInitScript(() => Object.defineProperty(window, 'EventSource', {value: class extends EventTarget {close() {}}}));
+  await page.route('**/api/**', async route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === '/api/preferences') await route.fulfill({json: {schema_version: 1, preferences: [preference], processing: []}});
+    else if (path === '/api/snapshot') await route.fulfill({json: {schema_version: 1, cursor: 0, stream_id: 'test', active_turn_id: null, accepting: true}});
+    else await route.fulfill({json: {schema_version: 1, sessions: [], next_cursor: null}});
+  });
+  await page.goto('/');
+  await page.getByRole('button', {name: '旅行者偏好', exact: true}).click();
+  await expect(page.getByText('不吃辣', {exact: true})).toBeVisible();
+  preference = {...preference, content: '喜欢吃辣', source_turn_id: 'turn-2', source_input: '我现在喜欢吃辣了，以后也按这个口味推荐', updated_at: '2026-10-10T06:00:00Z', input_order: 2, version: 2};
+  await page.getByRole('button', {name: '刷新偏好'}).click();
+  await expect(page.getByText('喜欢吃辣', {exact: true})).toBeVisible();
+  await expect(page.getByText(preference.source_input, {exact: true})).toBeVisible();
+  await expect(page.getByText('不吃辣', {exact: true})).toHaveCount(0);
+  await expect(page.locator('time')).toHaveAttribute('dateTime', '2026-10-10T06:00:00Z');
+});
