@@ -5,6 +5,7 @@ import { TraceView, type TraceLocation } from './TraceView';
 import { useReadingFollow } from './useReadingFollow';
 import { ReadingScroll } from './ReadingScroll';
 import { HistorySidebar, useConversationDraft } from './HistorySidebar';
+import { ComposerInput } from './ComposerInput';
 import { ConversationRounds, type Turn } from './ConversationRounds';
 import { useSubmission } from './useSubmission';
 import { useServiceEvents } from './useServiceEvents';
@@ -148,7 +149,7 @@ function App() {
         </ReadingScroll></>}
         <form onSubmit={send}>
           <label htmlFor="travel-input">旅行需求</label>
-          <textarea id="travel-input" name="travel-input" value={draft} onChange={event => setDraft(event.target.value)} required rows={4} placeholder="写下城市、日期和你想查询的内容" />
+          <ComposerInput value={draft} onChange={setDraft} />
           <div className="form-bottom"><p className="hint">{sessionId ? '继续提问会使用此会话的完整上下文。切换会话保留当前草稿。' : '发送后保存到本机；空白对话不会产生记录。'}</p><button type="submit" disabled={busy || Boolean(submission.pending) || !state.accepting}>{submission.submitting ? '正在发送…' : '发送'}</button></div>
           <p role="status" className="hint">{submission.pending ? '这次提交尚待核对；编辑草稿不会改变原提交，刷新页面不会自动重发。' : ''}</p>
           {submission.pending && <div className="submission-actions">

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { requestJson } from './api';
+import './conversation-controls.css';
 
 type Session = {
   session_id: string; title: string; updated_at: string; status: string;
@@ -47,11 +48,46 @@ export function HistorySidebar({sessionId, activeTurnId, refreshKey, onSelect, o
   const [working, setWorking] = useState(false);
   const [revision, setRevision] = useState(0);
   const [pendingDelete, setPendingDelete] = useState<Session | null>(null);
+  const [menuId, setMenuId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState('');
+  const menuPanel = useRef<HTMLDivElement>(null);
+  const menuTrigger = useRef<HTMLButtonElement | null>(null);
   const deleteDialog = useRef<HTMLDialogElement>(null);
   const deleteTrigger = useRef<HTMLButtonElement | null>(null);
-  const historyHeading = useRef<HTMLHeadingElement>(null);
+  const historyRegion = useRef<HTMLElement>(null);
   const visibleCount = useRef(20);
+  const menuSession = sessions.find(session => session.session_id === menuId);
+
+  function closeMenu(restoreFocus = false) {
+    menuPanel.current?.hidePopover();
+    setMenuId(null);
+    if (restoreFocus) menuTrigger.current?.focus();
+  }
+
+  function finishEditing() {
+    setEditing(null);
+    window.requestAnimationFrame(() => menuTrigger.current?.focus());
+  }
+
+  useEffect(() => {
+    const panel = menuPanel.current;
+    const trigger = menuTrigger.current;
+    if (!menuSession || !panel || !trigger) {panel?.hidePopover(); return;}
+    panel.showPopover();
+    function position() {
+      const rect = trigger!.getBoundingClientRect();
+      panel!.style.left = `${Math.max(8, Math.min(rect.right - panel!.offsetWidth, window.innerWidth - panel!.offsetWidth - 8))}px`;
+      panel!.style.top = `${Math.max(8, Math.min(rect.bottom + 4, window.innerHeight - panel!.offsetHeight - 8))}px`;
+    }
+    position();
+    panel.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
+    window.addEventListener('resize', position);
+    window.addEventListener('scroll', position, true);
+    return () => {
+      window.removeEventListener('resize', position);
+      window.removeEventListener('scroll', position, true);
+    };
+  }, [menuId, Boolean(menuSession)]);
 
   useEffect(() => {
     if (pendingDelete && !deleteDialog.current?.open) deleteDialog.current?.showModal();
@@ -61,9 +97,10 @@ export function HistorySidebar({sessionId, activeTurnId, refreshKey, onSelect, o
     setPendingDelete(null);
     setDeleteError('');
     window.requestAnimationFrame(() => {
+      if (menuPanel.current?.matches(':popover-open')) return;
       const trigger = deleteTrigger.current;
       if (trigger?.isConnected && !trigger.disabled) trigger.focus();
-      else historyHeading.current?.focus();
+      else historyRegion.current?.focus();
     });
   }
 
@@ -97,7 +134,7 @@ export function HistorySidebar({sessionId, activeTurnId, refreshKey, onSelect, o
     event.preventDefault(); setWorking(true); setError('');
     try {
       await historyApi(`/api/sessions/${editing}`, {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({title})});
-      setEditing(null); setRevision(current => current + 1);
+      finishEditing(); setRevision(current => current + 1);
     } catch (cause) { setError(cause instanceof Error ? cause.message : '重命名失败。'); }
     finally { setWorking(false); }
   }
@@ -116,29 +153,43 @@ export function HistorySidebar({sessionId, activeTurnId, refreshKey, onSelect, o
     finally { setWorking(false); }
   }
 
-  return <aside className="history" aria-labelledby="history-title">
-    <h2 id="history-title" ref={historyHeading} tabIndex={-1}>历史会话</h2>
-    <p className="hint">按最近对话活动排序。回看不会发起查询。</p>
-    <ul className="history-list">{sessions.map(session => <li key={session.session_id}>
-      <button className="history-select" aria-current={sessionId === session.session_id ? 'true' : undefined} onClick={() => onSelect(session.session_id)}>
+  return <aside className="history" aria-label="历史会话" ref={historyRegion} tabIndex={-1}>
+    <ul className="history-list">{sessions.map(session => <li className="history-item" key={session.session_id}>
+      {editing !== session.session_id && <button className="history-select" aria-current={sessionId === session.session_id ? 'true' : undefined} onClick={() => onSelect(session.session_id)}>
         <strong>{session.title}</strong>
         <time dateTime={session.updated_at}>{new Date(session.updated_at).toLocaleString('zh-CN')}</time>
         <span>{statusLabel(session)}</span>
+      </button>}
+      <button className="history-menu-trigger" type="button" disabled={working} aria-label={`会话操作“${session.title}”`} aria-haspopup="menu" aria-expanded={menuId === session.session_id} aria-controls="history-menu"
+        onClick={event => {menuTrigger.current = event.currentTarget; setMenuId(current => current === session.session_id ? null : session.session_id);}}
+        onKeyDown={event => {if (['ArrowDown', 'ArrowUp'].includes(event.key)) {event.preventDefault(); menuTrigger.current = event.currentTarget; setMenuId(session.session_id);}}}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" /></svg>
       </button>
-      <div className="history-actions">
-        <button disabled={working} aria-label={`重命名“${session.title}”`} onClick={() => {setEditing(session.session_id); setTitle(session.title);}}>重命名</button>
-        <button disabled={working || ['running', 'stopping'].includes(session.status)} aria-label={`删除“${session.title}”`} onClick={event => {deleteTrigger.current = event.currentTarget; setDeleteError(''); setPendingDelete(session);}}>删除</button>
-      </div>
-      {editing === session.session_id && <form className="rename-form" onSubmit={rename}>
+      {editing === session.session_id && <form className="rename-form" onSubmit={rename} onKeyDown={event => {if (event.key === 'Escape') {event.preventDefault(); event.stopPropagation(); if (!working) finishEditing();}}}>
         <label htmlFor="session-title">会话标题</label>
-        <input id="session-title" name="session-title" value={title} onChange={event => setTitle(event.target.value)} required maxLength={120} autoFocus />
-        <div className="history-actions"><button type="submit" disabled={working}>保存标题</button><button type="button" onClick={() => setEditing(null)}>取消</button></div>
+        <input id="session-title" name="session-title" value={title} onChange={event => setTitle(event.target.value)} required maxLength={120} disabled={working} autoFocus />
+        <div className="history-actions"><button type="submit" disabled={working}>保存标题</button><button type="button" disabled={working} onClick={finishEditing}>取消</button></div>
       </form>}
     </li>)}</ul>
-    {!sessions.length && <p className="hint">尚无已发送的会话。</p>}
+    <div id="history-menu" className="history-menu" ref={menuPanel} popover="auto" role="menu" aria-label="会话操作"
+      onToggle={event => {if (event.newState === 'closed' && !event.currentTarget.matches(':popover-open')) setMenuId(null);}}
+      onBlur={event => {if (!event.currentTarget.contains(event.relatedTarget)) closeMenu();}}
+      onKeyDown={event => {
+        if (event.key === 'Escape') {event.preventDefault(); event.stopPropagation(); closeMenu(true); return;}
+        if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const items = [...event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')];
+        const index = items.indexOf(document.activeElement as HTMLButtonElement);
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+        items[next]?.focus();
+      }}>
+      <button role="menuitem" type="button" disabled={working} onClick={() => {if (menuSession) {setEditing(menuSession.session_id); setTitle(menuSession.title);} closeMenu();}}>重命名</button>
+      <button role="menuitem" type="button" disabled={working || !menuSession || ['running', 'stopping'].includes(menuSession.status)} onClick={() => {if (menuSession) {deleteTrigger.current = menuTrigger.current; setDeleteError(''); setPendingDelete(menuSession);} closeMenu();}}>删除会话</button>
+    </div>
+    {!sessions.length && <p className="hint">暂无已发送的会话</p>}
     {nextCursor !== null && <button disabled={working} onClick={() => void more()}>加载更多会话</button>}
     <p className="error" role="alert">{error}</p>
-    <dialog ref={deleteDialog} className="delete-dialog" aria-labelledby="delete-dialog-title" aria-describedby="delete-dialog-description" onClose={closedDeleteDialog} onCancel={event => {if (working) event.preventDefault();}}>
+    <dialog ref={deleteDialog} className="delete-dialog" aria-labelledby="delete-dialog-title" aria-describedby="delete-dialog-description" onClose={closedDeleteDialog} onCancel={event => {if (working) event.preventDefault();}} onKeyDown={event => {if (event.key === 'Escape') event.stopPropagation();}}>
       <h2 id="delete-dialog-title">删除会话？</h2>
       <p id="delete-dialog-description">删除“{pendingDelete?.title}”后，此会话的对话、上下文和执行轨迹将一并删除。</p>
       <p className="error" role="alert">{deleteError}</p>
