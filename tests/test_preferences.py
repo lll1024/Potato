@@ -52,13 +52,13 @@ class PreferenceModel:
 
 class PreferenceTests(unittest.IsolatedAsyncioTestCase):
     @asynccontextmanager
-    async def service(self, directory, model, clock):
+    async def service(self, directory, model, clock, **options):
         @asynccontextmanager
         async def resources():
             tools = AmapTools(cast(Client, MapService()))
             await tools.discover()
             yield Runtime(cast(AsyncAnthropic, model), tools, 'test-model')
-        app = create_app(directory, resources=resources, preference_clock=clock, preference_wait=clock.wait)
+        app = create_app(directory, resources=resources, preference_clock=clock, preference_wait=clock.wait, **options)
         async with app.router.lifespan_context(app):
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
                 yield client
@@ -152,6 +152,8 @@ class PreferenceTests(unittest.IsolatedAsyncioTestCase):
             async with self.service(directory, model, clock) as client:
                 await self.finish(client, '妈妈不吃辣，我暂时随她吃')
                 await clock.advance(3600)
+                await clock.advance(30)
+                await clock.advance(120)
                 state = (await client.get('/api/preferences')).json()
                 self.assertEqual(state['preferences'], [])
                 self.assertEqual(state['processing'][0]['status'], 'failed')
@@ -197,6 +199,8 @@ class PreferenceTests(unittest.IsolatedAsyncioTestCase):
                 model.create = truncated
                 await self.finish(client, '我一直不吃辣')
                 await clock.advance(3600)
+                await clock.advance(30)
+                await clock.advance(120)
                 state = (await client.get('/api/preferences')).json()
                 self.assertEqual(state['preferences'], saved)
                 self.assertEqual(state['processing'][0]['status'], 'failed')

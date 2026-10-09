@@ -86,7 +86,7 @@ class RenameSession(BaseModel):
     title: str = Field(min_length=1, max_length=120)
 
 def create_app(data_dir: str | Path, *, resources=configured_resources, static_dir: str | Path | None=None, request_shutdown: Callable[[], None] | None=None,
-               preference_clock=time.time, preference_wait=asyncio.sleep) -> FastAPI:
+               preference_clock=time.time, preference_wait=asyncio.sleep, preference_timeout=60.0) -> FastAPI:
     directory = Path(data_dir)
     task: asyncio.Task | None = None
     active: dict[str, str] | None = None
@@ -113,6 +113,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             store = Store(directory)
             try:
                 store.recover()
+                store.preferences.recover(preference_clock())
                 async with resources() as runtime:
                     stop_requested.clear()
                     accepting = True
@@ -178,11 +179,14 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                 batch = store.preferences.eligible(preference_clock()) if accepting else None
                 if batch:
                     existing = store.preferences.snapshot()['preferences']
+                    if not store.preferences.start(batch, preference_clock()):
+                        continue
                     try:
-                        changes = await extract_preferences(runtime, batch, existing)
+                        changes = await asyncio.wait_for(extract_preferences(runtime, batch, existing), preference_timeout)
+                    except sqlite3.Error:
+                        raise
                     except Exception:
-                        if store.preferences.current(batch, preference_clock()):
-                            store.preferences.failed(batch)
+                        store.preferences.failed(batch, preference_clock())
                     else:
                         store.preferences.commit(batch, changes, preference_clock())
                     continue
