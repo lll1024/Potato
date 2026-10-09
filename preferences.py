@@ -31,6 +31,10 @@ class PreferenceStore:
                 source_turn_id TEXT REFERENCES turns ON DELETE SET NULL,
                 source_input TEXT NOT NULL, updated_at TEXT NOT NULL,
                 input_order INTEGER NOT NULL, version INTEGER NOT NULL DEFAULT 1);
+            CREATE TABLE IF NOT EXISTS preference_management (
+                id INTEGER PRIMARY KEY CHECK (id=1), revision INTEGER NOT NULL,
+                suppressed_through INTEGER NOT NULL);
+            INSERT OR IGNORE INTO preference_management VALUES (1,0,0);
         ''')
 
     def accept(self, session_id, turn_id, text, now):
@@ -45,6 +49,34 @@ class PreferenceStore:
                 'preferences': [dict(row) for row in self.db.execute('SELECT * FROM preferences ORDER BY category,input_order,id')],
                 'processing': [dict(row) for row in self.db.execute('SELECT turn_id,session_id,status,attempts,error FROM preference_inputs WHERE status != \'completed\' ORDER BY input_order')]}
 
+    def managed(self):
+        # 管理操作之前已接收的所有输入失去自动保存资格，包括还未进入模型的输入。
+        self.db.execute('UPDATE preference_management SET revision=revision+1,suppressed_through=MAX(suppressed_through,COALESCE((SELECT MAX(input_order) FROM preference_inputs),0)) WHERE id=1')
+        self.db.execute("UPDATE preference_inputs SET status='completed',error=NULL WHERE input_order <= (SELECT suppressed_through FROM preference_management WHERE id=1) AND status != 'completed'")
+
+    def edit(self, preference_id, version, content, now):
+        with self.db:
+            row = self.db.execute('SELECT * FROM preferences WHERE id=?', (preference_id,)).fetchone()
+            if row is None:
+                return 'missing'
+            if row['version'] != version:
+                return 'conflict'
+            self.db.execute('UPDATE preferences SET content=?,updated_at=?,version=version+1 WHERE id=?',
+                            (content, datetime.fromtimestamp(now, timezone.utc).isoformat(), preference_id))
+            self.managed()
+        return 'saved'
+
+    def delete(self, preference_id, version):
+        with self.db:
+            row = self.db.execute('SELECT version FROM preferences WHERE id=?', (preference_id,)).fetchone()
+            if row is None:
+                return 'missing'
+            if row['version'] != version:
+                return 'conflict'
+            self.db.execute('DELETE FROM preferences WHERE id=?', (preference_id,))
+            self.managed()
+        return 'saved'
+
     def eligible(self, now):
         rows = self.db.execute('''SELECT i.* FROM preference_inputs i
             WHERE i.status='pending'
@@ -56,12 +88,18 @@ class PreferenceStore:
         session_id = rows[0]['session_id']
         inputs = [dict(row) for row in rows if row['session_id'] == session_id]
         latest = self.db.execute('SELECT MAX(input_order) FROM preference_inputs WHERE session_id=?', (session_id,)).fetchone()[0]
-        return {'session_id': session_id, 'generation': latest, 'inputs': inputs}
+        revision = self.db.execute('SELECT revision FROM preference_management WHERE id=1').fetchone()[0]
+        return {'session_id': session_id, 'generation': latest, 'inputs': inputs, 'management_revision': revision}
 
     def current(self, batch, now):
         latest = self.db.execute('SELECT input_order,ended_at FROM preference_inputs WHERE session_id=? ORDER BY input_order DESC LIMIT 1',
                                  (batch['session_id'],)).fetchone()
-        return bool(latest and latest['input_order'] == batch['generation'] and latest['ended_at'] is not None
+        management = self.db.execute('SELECT revision,suppressed_through FROM preference_management WHERE id=1').fetchone()
+        authorized = management['revision'] == batch['management_revision'] and all(
+            item['input_order'] > management['suppressed_through'] and self.db.execute(
+                "SELECT 1 FROM preference_inputs WHERE turn_id=? AND status='pending'", (item['turn_id'],)).fetchone()
+            for item in batch['inputs'])
+        return bool(authorized and latest and latest['input_order'] == batch['generation'] and latest['ended_at'] is not None
                     and latest['ended_at'] <= now - IDLE_SECONDS
                     and not self.db.execute("SELECT 1 FROM turns WHERE session_id=? AND status IN ('running','stopping')", (batch['session_id'],)).fetchone())
 
@@ -83,7 +121,7 @@ class PreferenceStore:
     def failed(self, batch):
         with self.db:
             for item in batch['inputs']:
-                self.db.execute("UPDATE preference_inputs SET status='failed',attempts=attempts+1,error='偏好提取未成功，尚未保存。' WHERE turn_id=?", (item['turn_id'],))
+                self.db.execute("UPDATE preference_inputs SET status='failed',attempts=attempts+1,error='偏好提取未成功，尚未保存。' WHERE turn_id=? AND status='pending'", (item['turn_id'],))
 
 
 def validate_changes(value, inputs):

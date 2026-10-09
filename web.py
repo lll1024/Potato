@@ -77,6 +77,11 @@ class Submission(BaseModel):
 
 
 
+class EditPreference(BaseModel):
+    version: int = Field(gt=0, strict=True)
+    content: str = Field(min_length=1, max_length=2000)
+
+
 class RenameSession(BaseModel):
     title: str = Field(min_length=1, max_length=120)
 
@@ -187,6 +192,23 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
     @app.get("/api/preferences")
     async def preferences():
         return store.preferences.snapshot()
+
+    def preference_result(result):
+        if result == 'missing':
+            raise HTTPException(404, detail={"message": "该偏好已删除，请刷新偏好列表。"})
+        if result == 'conflict':
+            raise HTTPException(409, detail={"message": "该偏好已更新，请刷新后重新修改。"})
+        return store.preferences.snapshot()
+
+    @app.patch("/api/preferences/{preference_id}")
+    async def edit_preference(preference_id: str, edit: EditPreference):
+        if not edit.content.strip():
+            raise HTTPException(422, detail={"message": "偏好内容不能为空。"})
+        return preference_result(store.preferences.edit(preference_id, edit.version, edit.content.strip(), preference_clock()))
+
+    @app.delete("/api/preferences/{preference_id}")
+    async def delete_preference(preference_id: str, version: int = Query(gt=0)):
+        return preference_result(store.preferences.delete(preference_id, version))
 
     async def execute(identity, text):
         nonlocal active,accepting
