@@ -17,3 +17,15 @@
 .preference-failures { padding: 16px 0; border-bottom: 1px solid #e1e5e0; color: #a32920; }
 .preference-failures p { margin-bottom: 0; }
 @media (max-width: 760px) { .preferences-view { padding: 18px; } .preferences-heading { align-items: flex-start; } }
+
+.preference-row { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; margin-bottom: 12px; }
+.preference-row .preference-content { flex: 1 1 16em; margin: 0; }
+.preference-editor { display: grid; gap: 10px; max-width: 70ch; margin-bottom: 18px; }
+.preference-editor label { font-weight: 600; }
+.preference-editor textarea { width: 100%; min-height: 100px; padding: 10px; border: 1px solid #70857a; border-radius: 6px; font: inherit; font-size: 16px; color: #153c32; background: white; resize: vertical; box-sizing: border-box; caret-color: #1e5148; }
+.preference-delete { margin-bottom: 18px; padding: 12px 0; }
+.preference-delete p { margin: 0 0 10px; }
+.preferences-actions .preference-delete-button { color: #962a22; border-color: #b45449; }
+.preferences-actions .preference-delete-button:hover:not(:disabled) { background: #fff0ed; }
+.preferences-view :focus-visible { outline: 2px solid #1e5148; outline-offset: 3px; }
+.preferences-view ::selection { color: #153c32; background: #d5e9df; }
