@@ -47,7 +47,7 @@ class CLITests(unittest.TestCase):
     def test_missing_amap_key_has_an_actionable_message_without_traceback(self):
         project = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as directory:
-            for name in ["agent.py", "amap_mcp.py", "amap_http.py", "limits.py"]:
+            for name in ["agent.py", "amap_mcp.py", "amap_http.py", "limits.py", "travel_tools.py", "tavily_mcp.py"]:
                 shutil.copy(project / name, directory)
             result = subprocess.run(
                 [sys.executable, "agent.py", "--check-amap"],
