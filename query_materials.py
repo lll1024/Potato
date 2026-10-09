@@ -31,7 +31,24 @@ def returned_data(result):
     return {}
 
 
-def weather_limit(travel_input, covered):
+def weather_limit(travel_input, covered, date_context=None):
+    if date_context is not None:
+        dates = date_context["travel_dates"]
+        if dates["status"] == "resolved":
+            start, end = date.fromisoformat(dates["start_date"]), date.fromisoformat(dates["end_date"])
+            applicable = set()
+            for value in covered:
+                try:
+                    day = date.fromisoformat(value)
+                except (ValueError, TypeError):
+                    continue
+                if start <= day <= end:
+                    applicable.add(day)
+            if len(applicable) != (end - start).days + 1:
+                return f"已确定旅行日期：{start.isoformat()} 至 {end.isoformat()}。旅行日期超出这份预报的覆盖范围，不能用于对应日期；天气仍待核实。"
+            return f"这份预报覆盖已确定的旅行日期：{start.isoformat()} 至 {end.isoformat()}；仅适用于列出的预报日期，不能外推其他日期。"
+        return "旅行年份或日期尚未确认，尚无法确认这份天气资料对旅行日期的适用性；日期仍需澄清，天气待核实。"
+
     explicit = []
     for year, month, day in re.findall(r"(\d{4})[年/-](\d{1,2})[月/-](\d{1,2})日?", travel_input):
         try:
@@ -46,7 +63,7 @@ def weather_limit(travel_input, covered):
     return "旅行年份或日期尚未确认，尚无法确认这份天气资料对旅行日期的适用性；不能将其当成春节天气。"
 
 
-def summarize_query(name, result, travel_input):
+def summarize_query(name, result, travel_input, date_context=None):
     data = returned_data(result)
     entries = []
     notes = []
@@ -136,7 +153,7 @@ def summarize_query(name, result, travel_input):
                         entries.append(lines)
                         notes.append("实时天气不能作为未来旅行日期的预报。")
         if entries:
-            notes.append(weather_limit(travel_input, covered))
+            notes.append(weather_limit(travel_input, covered, date_context))
     elif name in ("maps_direction_walking", "maps_direction_driving", "maps_direction_transit_integrated", "maps_direction_bicycling"):
         title = "交通路线"
         mode = {"maps_direction_walking": "步行", "maps_direction_driving": "驾车",

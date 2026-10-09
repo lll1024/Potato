@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 from query_materials import summarize_query
+from travel_dates import saved_date_context
 
 SCHEMA_VERSION = 1
 
@@ -369,6 +370,10 @@ class Store:
             if tool["turn_id"] in interrupted and tool["status"] in ("pending","waiting","running"):
                 tool["interrupted"] = True
         for turn in turns:
+            first_request = next((request for request in requests if request["turn_id"] == turn["turn_id"]), None)
+            context_payload = self.payload(first_request["input_payload_id"]) if first_request else None
+            context = saved_date_context(context_payload["content"].get("system", "")) if context_payload else None
+            turn["travel_date_context"] = context
             turn["query_materials"] = []
             turn["unreadable_query_count"] = 0
             for tool in tool_calls:
@@ -381,7 +386,7 @@ class Store:
                 if not isinstance(result, dict) or result.get("is_error") is not False:
                     continue
                 original_input = next(row["input"] for row in rows if row["turn_id"] == turn["turn_id"])
-                material = summarize_query(tool["name"], result, original_input)
+                material = summarize_query(tool["name"], result, original_input, context)
                 if material["entries"]:
                     turn["query_materials"].append({**material, "tool_call_id": tool["tool_call_id"], "payload_id": tool["result_payload_id"]})
                 else:
