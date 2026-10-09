@@ -11,6 +11,7 @@ import type { RoundActivity } from './RoundProgress';
 import { useSubmission } from './useSubmission';
 import { useServiceEvents } from './useServiceEvents';
 import { requestJson } from './api';
+import {PreferencesView} from './PreferencesView';
 import { reasonLabels } from './turnReasons';
 import { isExceptional, type QueryMaterial } from './ExceptionOutcome';
 
@@ -33,7 +34,7 @@ const mapPauseLabels: Record<string, string> = {
 };
 
 function App() {
-  const [view, setView] = useState<'conversation' | 'trace'>('conversation');
+  const [view, setView] = useState<'conversation' | 'trace' | 'preferences'>('conversation');
   const [traceLocation,setTraceLocation]=useState<TraceLocation | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const {draft, setDraft, removeDraft, clearSubmittedDraft} = useConversationDraft(sessionId);
@@ -89,7 +90,7 @@ function App() {
   function selectConversation(id: string | null) {
     setSessionId(id); setSnapshot(null); setTraceLocation(null); setError('');
   }
-  function newConversation() { selectConversation(null); }
+  function newConversation() { selectConversation(null); setView('conversation'); }
   function deletedConversation(id: string) {
     removeDraft(id);
     setEarlierTurns(current => { const remaining = {...current}; delete remaining[id]; return remaining; });
@@ -162,9 +163,11 @@ function App() {
         {state.active_session_id && state.active_session_id !== sessionId && <button onClick={() => selectConversation(state.active_session_id)}>查看执行中的会话</button>}
         {state.map_paused && <p>地图查询已暂停：{mapPauseLabels[state.map_pause_reason ?? ''] ?? '当前无法继续查询；仍可讨论已有资料。'}</p>}
       </div>
+      <button onClick={() => setView('preferences')} aria-pressed={view === 'preferences'}>旅行者偏好</button>
       <button onClick={newConversation}>新建对话</button>
     </header>
     <main>
+      {view === 'preferences' ? <PreferencesView onBack={() => setView('conversation')} /> : <>
       <section className="conversation" aria-labelledby="conversation-title">
         <div className="conversation-heading">
           <h2 id="conversation-title">{snapshot?.session.title ?? '空白对话'}</h2>
@@ -202,6 +205,7 @@ function App() {
       <HistorySidebar sessionId={sessionId} activeTurnId={state.active_turn_id} activeSessionId={state.active_session_id} stopping={state.stopping}
         viewingResults={view === 'conversation' && Boolean(snapshot) && turn?.status !== 'running'} viewedUpdatedAt={snapshot?.session.updated_at} resetKey={datasetRevision}
         refreshKey={serviceRevision} onSelect={selectConversation} onDelete={deletedConversation} />
+      </>}
     </main>
   </div>;
 }

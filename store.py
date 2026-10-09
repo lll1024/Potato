@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 from query_materials import summarize_query
+from preferences import PreferenceStore
 
 SCHEMA_VERSION = 1
 
@@ -116,6 +117,7 @@ class Store:
                     kind = "turn_" + field
                     if row[field] is not None and not self.db.execute("SELECT 1 FROM payloads WHERE turn_id=? AND kind=?",(row["turn_id"],kind)).fetchone():
                         self.save_payload(row["session_id"],row["turn_id"],kind,row[field])
+        self.preferences = PreferenceStore(self.db)
         self.stream_id = self.db.execute("SELECT value FROM metadata WHERE name='stream_id'").fetchone()[0]
 
     def close(self):
@@ -258,7 +260,7 @@ class Store:
         row = self.db.execute("SELECT messages FROM turns WHERE session_id=? AND status != 'running' AND reason IS NOT 'service_interrupted' ORDER BY ordinal DESC LIMIT 1", (session_id,)).fetchone()
         return json.loads(row["messages"]) if row else []
 
-    def accept(self, text, session_id=None, *, submission_id=None, fingerprint=None):
+    def accept(self, text, session_id=None, *, submission_id=None, fingerprint=None, preference_now=None):
         turn_id, now = identity(), timestamp()
         with self.db:
             if session_id is None:
@@ -270,6 +272,8 @@ class Store:
             messages = self.context(session_id) + [{"role":"user","content":text}]
             self.db.execute("INSERT INTO turns (turn_id,session_id,ordinal,input,status,created_at,messages) VALUES (?,?,?,?,'running',?,?)", (turn_id,session_id,ordinal,text,now,json.dumps(messages,ensure_ascii=False)))
             self.db.execute("UPDATE sessions SET updated_at=? WHERE session_id=?", (now,session_id))
+            if preference_now is not None:
+                self.preferences.accept(session_id, turn_id, text, preference_now)
             self.save_payload(session_id,turn_id,"turn_input",text)
             self.event(session_id,turn_id,"turn.accepted",{"input_summary":text[:120]})
             if submission_id is not None:
@@ -284,11 +288,13 @@ class Store:
         row = self.db.execute("SELECT turn_id,status FROM turns WHERE turn_id=?", (turn_id,)).fetchone()
         return dict(row) if row else None
 
-    def finish(self, session_id, turn_id, answer, messages, outcome, duration_ms):
+    def finish(self, session_id, turn_id, answer, messages, outcome, duration_ms, *, preference_now=None):
         now = timestamp()
         with self.db:
             self.db.execute("UPDATE turns SET status=?,reason=?,answer=?,answer_source=?,tool_error_count=?,finished_at=?,duration_ms=?,messages=? WHERE turn_id=?", (outcome["status"],outcome["reason"],answer,outcome["answer_source"],outcome["tool_error_count"],now,duration_ms,json.dumps(messages,ensure_ascii=False),turn_id))
             self.db.execute("UPDATE sessions SET updated_at=? WHERE session_id=?",(now,session_id))
+            if preference_now is not None:
+                self.preferences.finish(turn_id, preference_now)
             self.save_payload(session_id,turn_id,"turn_answer",answer)
             self.event(session_id,turn_id,"turn.finished",{**outcome,"answer_summary":answer[:120]})
 
