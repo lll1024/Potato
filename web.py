@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import sqlite3
+import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -33,6 +34,7 @@ from amap_http import AmapHTTPClient
 from amap_mcp import AmapTools
 from limits import TOOL_TIMEOUT
 from store import SCHEMA_VERSION, StartupError, Store
+from preferences import extract_preferences, preference_background
 
 
 @dataclass
@@ -78,7 +80,8 @@ class Submission(BaseModel):
 class RenameSession(BaseModel):
     title: str = Field(min_length=1, max_length=120)
 
-def create_app(data_dir: str | Path, *, resources=configured_resources, static_dir: str | Path | None=None, request_shutdown: Callable[[], None] | None=None) -> FastAPI:
+def create_app(data_dir: str | Path, *, resources=configured_resources, static_dir: str | Path | None=None, request_shutdown: Callable[[], None] | None=None,
+               preference_clock=time.time, preference_wait=asyncio.sleep) -> FastAPI:
     directory = Path(data_dir)
     task: asyncio.Task | None = None
     active: dict[str, str] | None = None
@@ -108,6 +111,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                 async with resources() as runtime:
                     stop_requested.clear()
                     accepting = True
+                    preference_task = asyncio.create_task(process_preferences())
                     try:
                         yield
                     finally:
@@ -116,6 +120,11 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                             stop_reason = "service_shutdown"
                         stop_requested.set()
                         changed.set()
+                        preference_task.cancel()
+                        try:
+                            await preference_task
+                        except asyncio.CancelledError:
+                            pass
                         if task:
                             await task
             finally:
@@ -158,6 +167,27 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
         storage_failed("数据无法可靠读取或保存。")
         return JSONResponse(status_code=503,content={"detail":{"code":"STORAGE_FAILURE","message":"存储故障，数据暂时无法核对，请检查后重启。"}})
 
+    async def process_preferences():
+        while True:
+            try:
+                batch = store.preferences.eligible(preference_clock()) if accepting else None
+                if batch:
+                    existing = store.preferences.snapshot()['preferences']
+                    try:
+                        changes = await extract_preferences(runtime, batch, existing)
+                    except Exception:
+                        store.preferences.failed(batch)
+                    else:
+                        store.preferences.commit(batch, changes, preference_clock())
+                    continue
+            except sqlite3.Error:
+                storage_failed("偏好存储无法可靠读取或保存。")
+            await preference_wait(30)
+
+    @app.get("/api/preferences")
+    async def preferences():
+        return store.preferences.snapshot()
+
     async def execute(identity, text):
         nonlocal active,accepting
         messages: list[MessageParam] = []
@@ -183,10 +213,12 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
         try:
             try:
                 messages = store.context(identity["session_id"]) + [{"role":"user","content":text}]
+                background = preference_background(store.preferences.snapshot()["preferences"])
             except Exception:
                 storage_failed("完整上下文无法读取，查询未启动。",kind="turn.context",turn_id=identity["turn_id"])
                 raise TraceStorageError from None
-            answer = await agent_loop(messages,runtime.client,runtime.tools,runtime.model,observer=observe,stop_requested=stop_requested,stop_reason=lambda: stop_reason)
+            answer = await agent_loop(messages,runtime.client,runtime.tools,runtime.model,observer=observe,stop_requested=stop_requested,stop_reason=lambda: stop_reason,
+                                      preference_background=background)
         except TraceStorageError:
             active = None
             changed.set()
@@ -200,7 +232,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             answer = runtime.tools.redact(answer)
             messages = json.loads(runtime.tools.redact(json.dumps(messages,ensure_ascii=False)))
             store.finish(identity["session_id"],identity["turn_id"],answer,messages,outcome,
-                         max(0,(asyncio.get_running_loop().time()-started)*1000))
+                         max(0,(asyncio.get_running_loop().time()-started)*1000), preference_now=preference_clock())
         except Exception:
             # 保存失败时停止接受输入，保留最后提交事实，不能伪报终局已保存。
             storage_failed("轮次结果未保存；仅保留最后成功提交的事实。",kind="turn.finished",turn_id=identity["turn_id"])
@@ -233,7 +265,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                 raise HTTPException(422,{"code":"INVALID_INPUT","message":"请输入旅行需求。"})
             text = runtime.tools.redact(body.input)
             try:
-                identity = store.accept(text,body.session_id,submission_id=body.submission_id,fingerprint=fingerprint)
+                identity = store.accept(text,body.session_id,submission_id=body.submission_id,fingerprint=fingerprint,preference_now=preference_clock())
             except KeyError:
                 raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"}) from None
             except Exception:
