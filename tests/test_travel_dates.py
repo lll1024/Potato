@@ -33,6 +33,7 @@ class TravelDatesTests(unittest.IsolatedAsyncioTestCase):
             async with app.router.lifespan_context(app):
                 async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
                     accepted = (await client.post("/api/turns", json={"input": text})).json()
+                    saved = {}
                     for _ in range(100):
                         saved = (await client.get("/api/sessions/" + accepted["session_id"])).json()
                         if saved["turns"][0]["status"] != "running":
@@ -136,6 +137,7 @@ class TravelDatesTests(unittest.IsolatedAsyncioTestCase):
                     for _ in range(2):
                         # 两个独立会话避免把历史日期持久化验收混入本切片。
                         accepted = (await client.post("/api/turns", json={"input": "明天去杭州西湖"})).json()
+                        saved = {}
                         for _ in range(100):
                             saved = (await client.get("/api/sessions/" + accepted["session_id"])).json()
                             if saved["turns"][0]["status"] != "running":

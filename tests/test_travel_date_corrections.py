@@ -54,18 +54,20 @@ class TravelDateCorrectionTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(saved["turns"][0]["travel_date_context"]["travel_dates"], dates)
 
     async def test_one_day_clarification_resolves_original_sunday_after_restart(self):
-        saved, model = await self.conversation([
-            ("2026-10-11T09:00:00+08:00", "本周末去北京两日游"),
-            ("2026-10-12T09:00:00+08:00", "那改成一日游"),
-        ])
-        self.assertEqual(saved["turns"][0]["travel_date_context"]["travel_dates"]["status"], "needs_clarification")
-        context = context_from_request(model.requests[-1])
-        dates = context["travel_dates"]
-        self.assertEqual(dates["status"], "resolved")
-        self.assertEqual((dates["start_date"], dates["end_date"]), ("2026-10-11", "2026-10-11"))
-        self.assertEqual(dates["reference_time"], "2026-10-11T09:00:00+08:00")
-        self.assertEqual(context["today"], "2026-10-12")
-        self.assertEqual(saved["turns"][-1]["travel_date_context"], context)
+        for reply in ("那改成一日游", "一日游"):
+            with self.subTest(reply=reply):
+                saved, model = await self.conversation([
+                    ("2026-10-11T09:00:00+08:00", "本周末去北京两日游"),
+                    ("2026-10-12T09:00:00+08:00", reply),
+                ])
+                self.assertEqual(saved["turns"][0]["travel_date_context"]["travel_dates"]["status"], "needs_clarification")
+                context = context_from_request(model.requests[-1])
+                dates = context["travel_dates"]
+                self.assertEqual(dates["status"], "resolved")
+                self.assertEqual((dates["start_date"], dates["end_date"]), ("2026-10-11", "2026-10-11"))
+                self.assertEqual(dates["reference_time"], "2026-10-11T09:00:00+08:00")
+                self.assertEqual(context["today"], "2026-10-12")
+                self.assertEqual(saved["turns"][-1]["travel_date_context"], context)
 
     async def test_duration_change_updates_end_date_and_weather_range_after_restart(self):
         from test_exception_experience import FailingAfterTools
@@ -104,4 +106,16 @@ class TravelDateCorrectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((context["travel_dates"]["start_date"], context["travel_dates"]["end_date"]),
                          ("2026-10-17", "2026-10-18"))
         self.assertTrue(context["dates_changed"])
+        self.assertEqual(saved["turns"][-1]["travel_date_context"], context)
+
+    async def test_unrelated_past_trip_does_not_hide_this_trips_new_departure(self):
+        saved, model = await self.conversation([
+            ("2026-10-09T09:00:00+08:00", "明天去杭州西湖"),
+            ("2026-10-10T09:01:00+08:00", "之前去过北京，这次下周末去杭州西湖"),
+        ])
+        context = context_from_request(model.requests[-1])
+        self.assertEqual((context["travel_dates"]["start_date"], context["travel_dates"]["end_date"]),
+                         ("2026-10-17", "2026-10-18"))
+        self.assertTrue(context["dates_changed"])
+        self.assertEqual(context["previous_travel_dates"]["end_date"], "2026-10-10")
         self.assertEqual(saved["turns"][-1]["travel_date_context"], context)
