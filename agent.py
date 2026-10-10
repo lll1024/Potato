@@ -20,7 +20,7 @@ from mcp.client.streamable_http import streamable_http_client
 from amap_http import AmapHTTPClient
 from amap_mcp import AmapTools, ToolResult
 from limits import MAX_ROUNDS, MAX_TOOL_CALLS, TOOL_TIMEOUT
-from travel_dates import current_time, model_date_context, turn_date_context
+from travel_dates import current_time, model_date_context, saved_date_context, turn_date_context
 from travel_tools import TravelTools, connected_travel_tools
 
 SYSTEM = """你是旅行助手，可以查询地点及详情、比较交通路线、推荐餐饮，并安排一天或多天的旅行行程。
@@ -99,6 +99,9 @@ is_error 为 true 的工具结果只表示失败，不可作为地点或交通�
 每轮提供固定的 Asia/Shanghai 时间及旅行日期上下文；本轮多次查询均使用同一基准。
 travel_dates.status 为 resolved 时，直接使用具体旅行日期，回答中明确列出公历日期并继续规划；
 对已经确定的“明天、本周末、下周末”不因用户未写年份而再次询问年月日。
+后续轮次只刷新 now；travel_dates 的 reference_time 是原始日期解释基准，不能按新时间重解释历史输入。
+dates_changed 为 true 时，按新日期检查受影响的每天安排、开放及预约资料、天气覆盖和后续查询条件，
+在回答中指出影响；保留其他用户条件，不将 previous_travel_dates 的旧天气或旧公告自动用于新日期。
 周一为一周首日；本周末为本周六、周日，周六保留两日，周日只保留当天并说明周六已过去；
 下周末为下一周的周六、周日。显式日期优先于相对默认，日期属于本次旅行，不是长期旅行者偏好。
 travel_dates.status 为 needs_clarification 时，针对 explanation 中的冲突或不确定条件先澄清，
@@ -184,11 +187,12 @@ async def agent_loop(
     observer: Callable[[str, dict[str, Any]], Awaitable[None]] | None = None,
     stop_requested: asyncio.Event | None = None, stop_reason: str | Callable[[], str] = "user_stop",
     clock: Callable[[], datetime] | None = None,
+    previous_date_context: dict[str, Any] | None = None,
 ) -> str:
     messages[:] = json.loads(tools.redact(json.dumps(messages, ensure_ascii=False)))
     latest_input = next((message["content"] for message in reversed(messages)
                          if message["role"] == "user" and isinstance(message["content"], str)), "")
-    date_context = turn_date_context(str(latest_input), (clock or current_time)())
+    date_context = turn_date_context(str(latest_input), (clock or current_time)(), previous_date_context)
     system = SYSTEM + model_date_context(date_context)
     calls = 0
     tool_errors = 0
@@ -369,6 +373,11 @@ async def run_cli(api_key: str, *, check_amap: bool = False, clock: Callable[[],
                 max_retries=0,
             ) as model_client:
                 history: list[MessageParam] = []
+                date_context: dict[str, Any] | None = None
+                async def remember_date_context(kind, data):
+                    nonlocal date_context
+                    if kind == "request.started":
+                        date_context = saved_date_context(data["input"]["system"])
                 while True:
                     try:
                         query = input("user: >> ")
@@ -377,7 +386,8 @@ async def run_cli(api_key: str, *, check_amap: bool = False, clock: Callable[[],
                     if query.strip().lower() in ("q", "exit", ""):
                         return 0
                     history.append({"role": "user", "content": query})
-                    answer = await agent_loop(history, model_client, travel_tools, os.environ["MODEL_ID"], clock=clock)
+                    answer = await agent_loop(history, model_client, travel_tools, os.environ["MODEL_ID"], clock=clock,
+                                              previous_date_context=date_context, observer=remember_date_context)
                     print(answer)
                     if tools.failure == "connection":
                         return 1
