@@ -141,7 +141,7 @@ test('输入框一行起步，多行自动增高，切换保留草稿并恢复�
   await page.getByRole('button', { name: /杭州行程.*已完成/ }).click();
   await expect(input).toHaveValue('');
   await expect.poll(async () => (await input.boundingBox())!.height).toBeLessThanOrEqual(40);
-  await page.getByRole('button', { name: '新建对话', exact: true }).click();
+  await page.getByRole('button', { name: '新会话', exact: true }).click();
   await expect(input).toHaveValue('杭州\n西湖\n餐饮\n交通');
   await expect.poll(async () => (await input.boundingBox())!.height).toBeGreaterThan(initial + 40);
   await input.fill('');

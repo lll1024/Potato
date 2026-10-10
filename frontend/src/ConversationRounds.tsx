@@ -1,3 +1,4 @@
+import { AnswerBody } from './AnswerBody';
 import { RoundProgress, type RoundActivity } from './RoundProgress';
 import { ExceptionOutcome, isExceptional, type QueryMaterial } from './ExceptionOutcome';
 
@@ -25,7 +26,7 @@ export function ConversationRounds({turns, statusText, onTrace, activity, stoppi
       {(isExceptional(turn) || turn.turn_id === storageTurnId) && <ExceptionOutcome turn={turn} onTrace={onTrace} onMaterialTrace={onMaterialTrace} storageFault={turn.turn_id === storageTurnId}
         materialsExpanded={materialsExpanded?.[turn.turn_id]} onMaterialsExpanded={onMaterialsExpanded}
         onRetry={turn.turn_id === retryTurnId ? onRetry : undefined} retryBlocked={retryBlocked} onRead={onRead} />}
-      {(!isExceptional(turn) || (turn.reason === 'output_limit' && turn.answer_source === 'model')) && turn.answer !== null && <p>{turn.answer}</p>}
+      {(!isExceptional(turn) || (turn.reason === 'output_limit' && turn.answer_source === 'model')) && turn.answer !== null && <AnswerBody text={turn.answer} />}
     </article>}
   </section>)}</>;
 }

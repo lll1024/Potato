@@ -29,14 +29,24 @@ export function TraceTimeline({turns, requests, tools, events, selected, onLocat
     add('tool', tool.tool_call_id, tool.turn_id, tool.finished_at, `tool.${tool.status}.result`, `${title} · 应用回填${tool.status === 'not_executed' ? '（未调用）' : ''}`, tool.ordinal * 10 + 4);
   }
   boundaries.sort((a, b) => a.time.localeCompare(b.time) || a.order - b.order || a.identity.localeCompare(b.identity));
+  const times = boundaries.map(item => Date.parse(item.time));
+  const start = times.length ? Math.min(...times) : 0;
+  const range = times.length ? Math.max(...times) - start : 0;
+  function position(from: string, to?: string | null) {
+    return {left: `${range ? (Date.parse(from) - start) / range * 100 : 0}%`, width: to && range ? `${(Date.parse(to) - Date.parse(from)) / range * 100}%` : '0%'};
+  }
   return <section className="trace-timeline" aria-label="实际时间线">
-    <h4>实际时间线</h4><p className="hint">只展示已采集的模型请求、工具 SDK 与应用边界；未结束调用没有结束时间或进度百分比。</p>
+    <div className="timeline-caption"><h4>实际时间线</h4><span>未结束调用仅标记开始</span></div>
+    <div className="timeline-lane"><span>模型</span><div>{requests.map(item => <button type="button" key={item.request_id} className={`timeline-bar model ${selected === item.request_id ? 'selected' : ''}`} style={position(item.started_at, item.finished_at)} aria-label={`第 ${turns.find(turn => turn.turn_id === item.turn_id)?.ordinal} 轮，模型请求 ${item.ordinal}，${item.finished_at ? '已结束' : '尚未结束'}`} title={`模型请求 ${item.ordinal} · ${item.started_at}${item.finished_at ? ` → ${item.finished_at}` : ' · 结束未知'}`} onClick={() => onLocate('request', item.request_id, item.turn_id)} />)}</div></div>
+    <div className="timeline-lane"><span>工具</span><div>{tools.map(item => <button type="button" key={item.tool_call_id} className={`timeline-bar tool ${selected === item.tool_call_id ? 'selected' : ''}`} style={position(item.proposed_at, item.finished_at)} aria-label={`第 ${turns.find(turn => turn.turn_id === item.turn_id)?.ordinal} 轮，工具 ${item.ordinal}，${item.name}，提出至应用回填${item.finished_at ? '' : '，尚未结束'}`} title={`${item.name} · 提出 ${item.proposed_at}${item.finished_at ? ` → 应用回填 ${item.finished_at}` : ' · 回填未知'}`} onClick={() => onLocate('tool', item.tool_call_id, item.turn_id)} />)}</div></div>
+    <details className="timeline-boundaries"><summary>查看 {boundaries.length} 个已采集时间边界</summary>
+    <p className="hint">模型条显示请求至结束；工具条显示提出至应用回填。SDK 与限速等待的独立边界见下方记录。</p>
     <ol>{boundaries.map(item => <li key={item.identity}>
       <button type="button" data-reading-anchor={`boundary:${item.identity}`} aria-pressed={selected === item.objectId} onClick={() => onLocate(item.objectType, item.objectId, item.turnId)}>
         <time dateTime={item.time}>{new Date(item.time).toLocaleTimeString('zh-CN', {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit', fractionalSecondDigits:3})}</time>
         <span>第 {item.turnOrdinal} 轮 · {item.label}</span>
       </button>
-    </li>)}</ol>
+    </li>)}</ol></details>
     {!boundaries.length && <p className="hint">等待真实请求与工具事件。</p>}
   </section>;
 }

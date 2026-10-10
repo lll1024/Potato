@@ -29,7 +29,7 @@ export function TraceSearch({sessionId,onLocate,onInteraction}: {sessionId: stri
   }
   return <section className="trace-search" aria-label="当前会话搜索">
     <form onSubmit={event => {event.preventDefault(); void search();}}>
-      <label>搜索当前会话<input name="trace-query" value={query} onFocus={onInteraction} onChange={event => {onInteraction?.(); setQuery(event.target.value);}} /></label>
+      <label>搜索当前会话<input name="trace-query" placeholder="搜索轨迹与完整载荷…" value={query} onFocus={onInteraction} onChange={event => {onInteraction?.(); setQuery(event.target.value);}} /></label>
       <label>搜索范围<select value={scope} onChange={event => {onInteraction?.(); setScope(event.target.value);}}><option value="full">完整已保存内容（含未加载）</option><option value="summary">仅摘要</option></select></label>
       <button disabled={busy}>{busy ? '搜索中…' : '搜索'}</button>
     </form>
