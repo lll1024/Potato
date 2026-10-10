@@ -1,7 +1,7 @@
 """共享地图与官方资料的工具声明、分派及连接生命周期。"""
 from contextlib import AsyncExitStack, asynccontextmanager
 
-import httpx2
+from source_http import SourceHTTPClient
 from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 
@@ -18,8 +18,8 @@ class TravelTools:
 
     @property
     def source_status(self):
-        if self.sources and self.sources.failure == "quota":
-            return "资料免费额度耗尽或限流，当前运行暂停资料查询；可继续地图查询，不切换付费。"
+        if self.sources and self.sources.failure:
+            return self.sources.failure_message
         return "官方资料搜索与正文提取可用。" if self.sources else UNAVAILABLE_MESSAGE
 
     @property
@@ -41,7 +41,7 @@ async def connected_travel_tools(amap: AmapTools):
         sources = None
         try:
             # 固定免费 keyless 端点，不读取 API Key，也不携带 Authorization。
-            http_client = await stack.enter_async_context(httpx2.AsyncClient(timeout=TOOL_TIMEOUT, headers=KEYLESS_HEADERS))
+            http_client = await stack.enter_async_context(SourceHTTPClient(timeout=TOOL_TIMEOUT, headers=KEYLESS_HEADERS))
             client = await stack.enter_async_context(Client(streamable_http_client(TAVILY_URL, http_client=http_client), read_timeout_seconds=TOOL_TIMEOUT))
             candidate = TavilyTools(client, redact=amap.redact)
             await candidate.discover()
