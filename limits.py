@@ -5,5 +5,6 @@ TOOL_TIMEOUT = 30.0
 MAP_CALL_INTERVAL = 0.4
 # 资料侧独立的本机请求间隔，不代表供应商账户额度或官方 QPS。
 SOURCE_CALL_INTERVAL = 0.4
-MAX_ROUNDS = 20
+# 允许逐条完成地图预算内的查询，并留出最终回答的模型请求。
+MAX_ROUNDS = 80
 MAX_TOOL_CALLS = 64

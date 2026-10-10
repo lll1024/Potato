@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import sqlite3
+import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
@@ -35,6 +36,7 @@ from amap_mcp import AmapTools
 from travel_tools import TravelTools, connected_travel_tools
 from limits import TOOL_TIMEOUT
 from store import SCHEMA_VERSION, StartupError, Store
+from preferences import extract_preferences, preference_background
 
 
 @dataclass
@@ -78,10 +80,16 @@ class Submission(BaseModel):
 
 
 
+class EditPreference(BaseModel):
+    version: int = Field(gt=0, strict=True)
+    content: str = Field(min_length=1, max_length=2000)
+
+
 class RenameSession(BaseModel):
     title: str = Field(min_length=1, max_length=120)
 
-def create_app(data_dir: str | Path, *, resources=configured_resources, static_dir: str | Path | None=None, request_shutdown: Callable[[], None] | None=None, clock: Callable[[], datetime] | None=None) -> FastAPI:
+def create_app(data_dir: str | Path, *, resources=configured_resources, static_dir: str | Path | None=None, request_shutdown: Callable[[], None] | None=None, clock: Callable[[], datetime] | None=None,
+               preference_clock=time.time, preference_wait=asyncio.sleep, preference_timeout=60.0) -> FastAPI:
     directory = Path(data_dir)
     task: asyncio.Task | None = None
     active: dict[str, str] | None = None
@@ -108,9 +116,11 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             store = Store(directory)
             try:
                 store.recover()
+                store.preferences.recover(preference_clock())
                 async with resources() as runtime:
                     stop_requested.clear()
                     accepting = True
+                    preference_task = asyncio.create_task(process_preferences())
                     try:
                         yield
                     finally:
@@ -119,6 +129,11 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                             stop_reason = "service_shutdown"
                         stop_requested.set()
                         changed.set()
+                        preference_task.cancel()
+                        try:
+                            await preference_task
+                        except asyncio.CancelledError:
+                            pass
                         if task:
                             await task
             finally:
@@ -161,6 +176,48 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
         storage_failed("数据无法可靠读取或保存。")
         return JSONResponse(status_code=503,content={"detail":{"code":"STORAGE_FAILURE","message":"存储故障，数据暂时无法核对，请检查后重启。"}})
 
+    async def process_preferences():
+        while True:
+            try:
+                batch = store.preferences.eligible(preference_clock()) if accepting else None
+                if batch:
+                    existing = store.preferences.snapshot()['preferences']
+                    if not store.preferences.start(batch, preference_clock()):
+                        continue
+                    try:
+                        changes = await asyncio.wait_for(extract_preferences(runtime, batch, existing), preference_timeout)
+                    except sqlite3.Error:
+                        raise
+                    except Exception:
+                        store.preferences.failed(batch, preference_clock())
+                    else:
+                        store.preferences.commit(batch, changes, preference_clock())
+                    continue
+            except sqlite3.Error:
+                storage_failed("偏好存储无法可靠读取或保存。")
+            await preference_wait(30)
+
+    @app.get("/api/preferences")
+    async def preferences():
+        return store.preferences.snapshot()
+
+    def preference_result(result):
+        if result == 'missing':
+            raise HTTPException(404, detail={"message": "该偏好已删除，请刷新偏好列表。"})
+        if result == 'conflict':
+            raise HTTPException(409, detail={"message": "该偏好已更新，请刷新后重新修改。"})
+        return store.preferences.snapshot()
+
+    @app.patch("/api/preferences/{preference_id}")
+    async def edit_preference(preference_id: str, edit: EditPreference):
+        if not edit.content.strip():
+            raise HTTPException(422, detail={"message": "偏好内容不能为空。"})
+        return preference_result(store.preferences.edit(preference_id, edit.version, runtime.tools.redact(edit.content.strip()), preference_clock()))
+
+    @app.delete("/api/preferences/{preference_id}")
+    async def delete_preference(preference_id: str, version: int = Query(gt=0)):
+        return preference_result(store.preferences.delete(preference_id, version))
+
     async def execute(identity, text):
         nonlocal active,accepting
         messages: list[MessageParam] = []
@@ -188,10 +245,14 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                 messages = store.context(identity["session_id"]) + [{"role":"user","content":text}]
                 previous_date_context = store.date_context(identity["session_id"])
                 previous_source_materials = store.source_context(identity["session_id"])
+                preference_snapshot = store.preferences.snapshot()
+                background = preference_background(preference_snapshot["preferences"], preference_snapshot["ambiguities"])
             except Exception:
                 storage_failed("完整上下文无法读取，查询未启动。",kind="turn.context",turn_id=identity["turn_id"])
                 raise TraceStorageError from None
-            answer = await agent_loop(messages,runtime.client,runtime.tools,runtime.model,observer=observe,stop_requested=stop_requested,stop_reason=lambda: stop_reason,clock=clock,previous_date_context=previous_date_context,previous_source_materials=previous_source_materials)
+            answer = await agent_loop(messages,runtime.client,runtime.tools,runtime.model,observer=observe,stop_requested=stop_requested,stop_reason=lambda: stop_reason,
+                                      preference_background=background, clock=clock, previous_date_context=previous_date_context,
+                                      previous_source_materials=previous_source_materials)
         except TraceStorageError:
             active = None
             changed.set()
@@ -205,7 +266,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             answer = runtime.tools.redact(answer)
             messages = json.loads(runtime.tools.redact(json.dumps(messages,ensure_ascii=False)))
             store.finish(identity["session_id"],identity["turn_id"],answer,messages,outcome,
-                         max(0,(asyncio.get_running_loop().time()-started)*1000))
+                         max(0,(asyncio.get_running_loop().time()-started)*1000), preference_now=preference_clock())
         except Exception:
             # 保存失败时停止接受输入，保留最后提交事实，不能伪报终局已保存。
             storage_failed("轮次结果未保存；仅保留最后成功提交的事实。",kind="turn.finished",turn_id=identity["turn_id"])
@@ -238,7 +299,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                 raise HTTPException(422,{"code":"INVALID_INPUT","message":"请输入旅行需求。"})
             text = runtime.tools.redact(body.input)
             try:
-                identity = store.accept(text,body.session_id,submission_id=body.submission_id,fingerprint=fingerprint)
+                identity = store.accept(text,body.session_id,submission_id=body.submission_id,fingerprint=fingerprint,preference_now=preference_clock())
             except KeyError:
                 raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"}) from None
             except Exception:
@@ -258,6 +319,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
         if saved is None:
             raise HTTPException(404, {"code":"TURN_NOT_FOUND","message":"轮次不存在。"})
         if active and active["turn_id"] == turn_id:
+            store.preferences.cancel(turn_id)
             stop_requested.set()
             changed.set()
         return {"schema_version":SCHEMA_VERSION,"turn_id":turn_id,"status":saved["status"],

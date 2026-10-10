@@ -230,7 +230,7 @@ test('提交尚未返回时立即反馈，重复提交不重复发送，编辑�
     release();
     await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
     await expect(input).toHaveValue('');
-    await page.getByRole('button', {name: '新建对话', exact: true}).click();
+    await page.getByRole('button', {name: '新会话', exact: true}).click();
     await expect(input).toHaveValue('接着编辑的新草稿');
     expect(app.writes).toHaveLength(1);
   } finally {release();}

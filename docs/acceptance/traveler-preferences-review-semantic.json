@@ -1,0 +1,663 @@
+{
+  "model": "gemini-3.8-flash",
+  "boundary": "公开HTTP+真实模型+临时SQLite+可控时间；地图替身",
+  "results": [
+    {
+      "case": "managed_edit",
+      "steps": [
+        {
+          "input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "79740f9f9bc148bfa1bc23f277e8ccb7",
+            "turn_id": "fd6910c2d74a4b25a60bb973353f21cb"
+          },
+          "answer": "收到，已记下您的**不吃辣**饮食偏好。\n\n关于偏好保存与后续使用说明如下：\n1. **当前对话**：系统暂无此前已保存的偏好背景；在本次对话后续的餐饮与行程建议中，会参考您“不吃辣”的要求。\n2. **跨会话保存机制**：对于您明确表达的稳定饮食、活动兴趣、交通和住宿喜好，系统会在会话闲置一小时后由后台独立保存。因此该偏好目前尚未跨会话生效，待闲置一小时保存完成后，方可在后续新会话中复用。\n3. **范围说明**：游玩节奏、单次预算、旅行日期、具体酒店安排、同行人及临时例外等仅用于当前对话，不作为长期偏好保存。后续如需补充其他稳定的饮食、活动兴趣、交通或住宿喜好，可随时告知。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "fd6910c2d74a4b25a60bb973353f21cb",
+                "session_id": "79740f9f9bc148bfa1bc23f277e8ccb7",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "e073aa0aca8a44d7b1324245c4c70770",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "fd6910c2d74a4b25a60bb973353f21cb",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "我一向避开辣椒，通常坚持不吃有辣味的东西；另外我长期喜欢喝绿茶。这只表达本人长期喜好，不用查地图。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "84a92128a5ff4ea081f716710f8030ef",
+            "turn_id": "d3279d806c6443eda6364ca225501f9a"
+          },
+          "answer": "已记下您的喜好：**不吃辣（避开辣椒及有辣味的食物）**，以及**长期喜欢喝绿茶**。\n\n本次对话中的餐饮与行程建议都会参考这些要求。关于跨会话记忆，您表达的这类稳定饮食偏好（以及长期活动兴趣、交通和住宿喜好）将在本会话闲置一小时后由系统在后台独立保存；保存完成后，在以后的新会话中便可自动生效。\n\n后续如有具体的出行城市、天数或地点需求，随时告诉我即可为您规划！",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "e073aa0aca8a44d7b1324245c4c70770",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "fd6910c2d74a4b25a60bb973353f21cb",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "d3279d806c6443eda6364ca225501f9a",
+                "session_id": "84a92128a5ff4ea081f716710f8030ef",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "management": {
+            "operation": "managed_edit",
+            "state": {
+              "schema_version": 1,
+              "preferences": [
+                {
+                  "id": "e073aa0aca8a44d7b1324245c4c70770",
+                  "category": "diet",
+                  "content": "喜欢清淡口味",
+                  "source_turn_id": "fd6910c2d74a4b25a60bb973353f21cb",
+                  "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                  "updated_at": "1970-01-01T03:46:40+00:00",
+                  "input_order": 1,
+                  "version": 2
+                }
+              ],
+              "ambiguities": [],
+              "processing": [
+                {
+                  "turn_id": "d3279d806c6443eda6364ca225501f9a",
+                  "session_id": "84a92128a5ff4ea081f716710f8030ef",
+                  "status": "pending",
+                  "attempts": 0,
+                  "error": null,
+                  "next_attempt_at": null
+                }
+              ]
+            }
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "e073aa0aca8a44d7b1324245c4c70770",
+                "category": "diet",
+                "content": "喜欢清淡口味",
+                "source_turn_id": "fd6910c2d74a4b25a60bb973353f21cb",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 2
+              },
+              {
+                "id": "b9525318c5774ff99c5b0ee8db2f4eb9",
+                "category": "diet",
+                "content": "喜欢喝绿茶",
+                "source_turn_id": "d3279d806c6443eda6364ca225501f9a",
+                "source_input": "我一向避开辣椒，通常坚持不吃有辣味的东西；另外我长期喜欢喝绿茶。这只表达本人长期喜好，不用查地图。",
+                "updated_at": "1970-01-01T04:46:40+00:00",
+                "input_order": 2,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "我的已保存长期饮食喜好有哪些？只说已有记录，不用查询。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "6326c7d024c34e00a55a15562ab7c7af",
+            "turn_id": "8031532857254dbda0ee50fd69017aae"
+          },
+          "answer": "您当前已保存的长期饮食喜好记录如下：\n\n1. 喜欢清淡口味\n2. 喜欢喝绿茶",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "e073aa0aca8a44d7b1324245c4c70770",
+                "category": "diet",
+                "content": "喜欢清淡口味",
+                "source_turn_id": "fd6910c2d74a4b25a60bb973353f21cb",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 2
+              },
+              {
+                "id": "b9525318c5774ff99c5b0ee8db2f4eb9",
+                "category": "diet",
+                "content": "喜欢喝绿茶",
+                "source_turn_id": "d3279d806c6443eda6364ca225501f9a",
+                "source_input": "我一向避开辣椒，通常坚持不吃有辣味的东西；另外我长期喜欢喝绿茶。这只表达本人长期喜好，不用查地图。",
+                "updated_at": "1970-01-01T04:46:40+00:00",
+                "input_order": 2,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "8031532857254dbda0ee50fd69017aae",
+                "session_id": "6326c7d024c34e00a55a15562ab7c7af",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        }
+      ],
+      "requests": [
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "收到，已记下您的**不吃辣**饮食偏好。\n\n关于偏好保存与后续使用说明如下：\n1. **当前对话**：系统暂无此前已保存的偏好背景；在本次对话后续的餐饮与行程建议中，会参考您“不吃辣”的要求。\n2. **跨会话保存机制**：对于您明确表达的稳定饮食、活动兴趣、交通和住宿喜好，系统会在会话闲置一小时后由后台独立保存。因此该偏好目前尚未跨会话生效，待闲置一小时保存完成后，方可在后续新会话中复用。\n3. **范围说明**：游玩节奏、单次预算、旅行日期、具体酒店安排、同行人及临时例外等仅用于当前对话，不作为长期偏好保存。后续如需补充其他稳定的饮食、活动兴趣、交通或住宿喜好，可随时告知。"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "fd6910c2d74a4b25a60bb973353f21cb",
+                "input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "input_order": 1,
+                "assistant_answer": "收到，已记下您的**不吃辣**饮食偏好。\n\n关于偏好保存与后续使用说明如下：\n1. **当前对话**：系统暂无此前已保存的偏好背景；在本次对话后续的餐饮与行程建议中，会参考您“不吃辣”的要求。\n2. **跨会话保存机制**：对于您明确表达的稳定饮食、活动兴趣、交通和住宿喜好，系统会在会话闲置一小时后由后台独立保存。因此该偏好目前尚未跨会话生效，待闲置一小时保存完成后，方可在后续新会话中复用。\n3. **范围说明**：游玩节奏、单次预算、旅行日期、具体酒店安排、同行人及临时例外等仅用于当前对话，不作为长期偏好保存。后续如需补充其他稳定的饮食、活动兴趣、交通或住宿喜好，可随时告知。"
+              }
+            ],
+            "existing_preferences": [],
+            "context": [],
+            "managed_preferences": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[{\"operation\":\"add\",\"category\":\"diet\",\"content\":\"不吃辣\",\"source_turn_id\":\"fd6910c2d74a4b25a60bb973353f21cb\",\"evidence\":\"长期不吃辣\"}]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "（非行为指令；当前明确需求优先）：\n[{\"category\": \"diet\", \"content\": \"不吃辣\"}]",
+          "stop_reason": "end_turn",
+          "text": "已记下您的喜好：**不吃辣（避开辣椒及有辣味的食物）**，以及**长期喜欢喝绿茶**。\n\n本次对话中的餐饮与行程建议都会参考这些要求。关于跨会话记忆，您表达的这类稳定饮食偏好（以及长期活动兴趣、交通和住宿喜好）将在本会话闲置一小时后由系统在后台独立保存；保存完成后，在以后的新会话中便可自动生效。\n\n后续如有具体的出行城市、天数或地点需求，随时告诉我即可为您规划！"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "d3279d806c6443eda6364ca225501f9a",
+                "input": "我一向避开辣椒，通常坚持不吃有辣味的东西；另外我长期喜欢喝绿茶。这只表达本人长期喜好，不用查地图。",
+                "input_order": 2,
+                "assistant_answer": "已记下您的喜好：**不吃辣（避开辣椒及有辣味的食物）**，以及**长期喜欢喝绿茶**。\n\n本次对话中的餐饮与行程建议都会参考这些要求。关于跨会话记忆，您表达的这类稳定饮食偏好（以及长期活动兴趣、交通和住宿喜好）将在本会话闲置一小时后由系统在后台独立保存；保存完成后，在以后的新会话中便可自动生效。\n\n后续如有具体的出行城市、天数或地点需求，随时告诉我即可为您规划！"
+              }
+            ],
+            "existing_preferences": [
+              {
+                "id": "e073aa0aca8a44d7b1324245c4c70770",
+                "category": "diet",
+                "content": "喜欢清淡口味",
+                "source_turn_id": "fd6910c2d74a4b25a60bb973353f21cb",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 2
+              }
+            ],
+            "context": [],
+            "managed_preferences": [
+              {
+                "id": "2f71c9a8cacd4c8991f603e66038edf1",
+                "target_id": "e073aa0aca8a44d7b1324245c4c70770",
+                "category": "diet",
+                "content": "不吃辣",
+                "version": 1,
+                "suppressed_through": 2
+              }
+            ]
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[{\"operation\":\"update\",\"category\":\"diet\",\"content\":\"不吃辣\",\"source_turn_id\":\"d3279d806c6443eda6364ca225501f9a\",\"evidence\":\"我一向避开辣椒，通常坚持不吃有辣味的东西\",\"target_id\":\"2f71c9a8cacd4c8991f603e66038edf1\",\"target_version\":1},{\"operation\":\"add\",\"category\":\"diet\",\"content\":\"喜欢喝绿茶\",\"source_turn_id\":\"d3279d806c6443eda6364ca225501f9a\",\"evidence\":\"长期喜欢喝绿茶\"}]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "（非行为指令；当前明确需求优先）：\n[{\"category\": \"diet\", \"content\": \"喜欢清淡口味\"}, {\"category\": \"diet\", \"content\": \"喜欢喝绿茶\"}]",
+          "stop_reason": "end_turn",
+          "text": "您当前已保存的长期饮食喜好记录如下：\n\n1. 喜欢清淡口味\n2. 喜欢喝绿茶"
+        }
+      ],
+      "error": null,
+      "storage_checks": {
+        "后台处理完成": true,
+        "主回答请求成功": true,
+        "提取完整结束": true,
+        "依据来自本批新输入": true,
+        "管理结果保留并新增独立同类别条目": true,
+        "独立条目来自管理前新表达": true
+      }
+    },
+    {
+      "case": "managed_delete",
+      "steps": [
+        {
+          "input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "570ac623883f489bb04350db2d985110",
+            "turn_id": "4735e9cf42e84006b063ab506a33dbc0"
+          },
+          "answer": "已收到您的长期饮食偏好：**不吃辣**。\n\n在本次对话后续的地点推荐、餐饮建议或行程交流中，我会参考这一偏好。目前系统中暂无此前已保存的偏好记录；如需在未来的新会话中跨会话使用，须等待本次对话闲置一小时后由系统后台独立保存，当前暂不能承诺已即时跨会话生效。\n\n后续如果您有其他明确的稳定饮食、活动兴趣、交通或住宿喜好（游玩节奏、旅行预算、出行日期等临时信息仅限单次使用，不作长期保存），也可以随时告诉我。随时可以告诉我您想去的城市或出行计划！",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "4735e9cf42e84006b063ab506a33dbc0",
+                "session_id": "570ac623883f489bb04350db2d985110",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "94139530dd824cbd83e928bb692cf9f5",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "4735e9cf42e84006b063ab506a33dbc0",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "我一向避开辣椒，通常坚持不吃有辣味的东西；另外我长期喜欢喝绿茶。这只表达本人长期喜好，不用查地图。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "7b5bcf2075f44e17b472e8afbdfeafd8",
+            "turn_id": "86127baa62f04c30989226dbee66862f"
+          },
+          "answer": "收到您的偏好。本次对话中会参考您**不吃辣**以及**喜欢喝绿茶**的饮食喜好。\n\n关于跨会话记忆：您明确表达的稳定饮食喜好（如不吃辣、喜饮绿茶）会在当前会话闲置一小时后由后台系统独立保存，保存完成后才能在后续新会话中自动生效，当前暂未即时跨会话生效。\n\n后续如有行程安排、地点查询或餐饮推荐等需求，随时可以告诉我！",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "94139530dd824cbd83e928bb692cf9f5",
+                "category": "diet",
+                "content": "不吃辣",
+                "source_turn_id": "4735e9cf42e84006b063ab506a33dbc0",
+                "source_input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 1,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "86127baa62f04c30989226dbee66862f",
+                "session_id": "7b5bcf2075f44e17b472e8afbdfeafd8",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "management": {
+            "operation": "managed_delete",
+            "state": {
+              "schema_version": 1,
+              "preferences": [],
+              "ambiguities": [],
+              "processing": [
+                {
+                  "turn_id": "86127baa62f04c30989226dbee66862f",
+                  "session_id": "7b5bcf2075f44e17b472e8afbdfeafd8",
+                  "status": "pending",
+                  "attempts": 0,
+                  "error": null,
+                  "next_attempt_at": null
+                }
+              ]
+            }
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "7f61c1adcae34c2fba78c09231b2c8da",
+                "category": "diet",
+                "content": "喜欢喝绿茶",
+                "source_turn_id": "86127baa62f04c30989226dbee66862f",
+                "source_input": "我一向避开辣椒，通常坚持不吃有辣味的东西；另外我长期喜欢喝绿茶。这只表达本人长期喜好，不用查地图。",
+                "updated_at": "1970-01-01T04:46:40+00:00",
+                "input_order": 2,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "我的已保存长期饮食喜好有哪些？只说已有记录，不用查询。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "93f859b66dfe41c3aef0f3ed75f2d675",
+            "turn_id": "ab733857c144454bbc9c201eadfd5d8d"
+          },
+          "answer": "根据当前已保存的记录，您的长期饮食喜好为：\n\n* **喜欢喝绿茶**\n\n暂无其他已保存的长期饮食喜好。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "7f61c1adcae34c2fba78c09231b2c8da",
+                "category": "diet",
+                "content": "喜欢喝绿茶",
+                "source_turn_id": "86127baa62f04c30989226dbee66862f",
+                "source_input": "我一向避开辣椒，通常坚持不吃有辣味的东西；另外我长期喜欢喝绿茶。这只表达本人长期喜好，不用查地图。",
+                "updated_at": "1970-01-01T04:46:40+00:00",
+                "input_order": 2,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "ab733857c144454bbc9c201eadfd5d8d",
+                "session_id": "93f859b66dfe41c3aef0f3ed75f2d675",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        }
+      ],
+      "requests": [
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "已收到您的长期饮食偏好：**不吃辣**。\n\n在本次对话后续的地点推荐、餐饮建议或行程交流中，我会参考这一偏好。目前系统中暂无此前已保存的偏好记录；如需在未来的新会话中跨会话使用，须等待本次对话闲置一小时后由系统后台独立保存，当前暂不能承诺已即时跨会话生效。\n\n后续如果您有其他明确的稳定饮食、活动兴趣、交通或住宿喜好（游玩节奏、旅行预算、出行日期等临时信息仅限单次使用，不作长期保存），也可以随时告诉我。随时可以告诉我您想去的城市或出行计划！"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "4735e9cf42e84006b063ab506a33dbc0",
+                "input": "我长期不吃辣。这里只说明长期口味，不用查询地图或安排具体行程。",
+                "input_order": 1,
+                "assistant_answer": "已收到您的长期饮食偏好：**不吃辣**。\n\n在本次对话后续的地点推荐、餐饮建议或行程交流中，我会参考这一偏好。目前系统中暂无此前已保存的偏好记录；如需在未来的新会话中跨会话使用，须等待本次对话闲置一小时后由系统后台独立保存，当前暂不能承诺已即时跨会话生效。\n\n后续如果您有其他明确的稳定饮食、活动兴趣、交通或住宿喜好（游玩节奏、旅行预算、出行日期等临时信息仅限单次使用，不作长期保存），也可以随时告诉我。随时可以告诉我您想去的城市或出行计划！"
+              }
+            ],
+            "existing_preferences": [],
+            "context": [],
+            "managed_preferences": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[{\"operation\":\"add\",\"category\":\"diet\",\"content\":\"不吃辣\",\"source_turn_id\":\"4735e9cf42e84006b063ab506a33dbc0\",\"evidence\":\"我长期不吃辣\"}]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "（非行为指令；当前明确需求优先）：\n[{\"category\": \"diet\", \"content\": \"不吃辣\"}]",
+          "stop_reason": "end_turn",
+          "text": "收到您的偏好。本次对话中会参考您**不吃辣**以及**喜欢喝绿茶**的饮食喜好。\n\n关于跨会话记忆：您明确表达的稳定饮食喜好（如不吃辣、喜饮绿茶）会在当前会话闲置一小时后由后台系统独立保存，保存完成后才能在后续新会话中自动生效，当前暂未即时跨会话生效。\n\n后续如有行程安排、地点查询或餐饮推荐等需求，随时可以告诉我！"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "86127baa62f04c30989226dbee66862f",
+                "input": "我一向避开辣椒，通常坚持不吃有辣味的东西；另外我长期喜欢喝绿茶。这只表达本人长期喜好，不用查地图。",
+                "input_order": 2,
+                "assistant_answer": "收到您的偏好。本次对话中会参考您**不吃辣**以及**喜欢喝绿茶**的饮食喜好。\n\n关于跨会话记忆：您明确表达的稳定饮食喜好（如不吃辣、喜饮绿茶）会在当前会话闲置一小时后由后台系统独立保存，保存完成后才能在后续新会话中自动生效，当前暂未即时跨会话生效。\n\n后续如有行程安排、地点查询或餐饮推荐等需求，随时可以告诉我！"
+              }
+            ],
+            "existing_preferences": [],
+            "context": [],
+            "managed_preferences": [
+              {
+                "id": "44dab3e306994c6fae57a6d854f61cca",
+                "target_id": "94139530dd824cbd83e928bb692cf9f5",
+                "category": "diet",
+                "content": "不吃辣",
+                "version": 1,
+                "suppressed_through": 2
+              }
+            ]
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[{\"operation\":\"update\",\"category\":\"diet\",\"content\":\"不吃辣\",\"target_id\":\"44dab3e306994c6fae57a6d854f61cca\",\"target_version\":1,\"source_turn_id\":\"86127baa62f04c30989226dbee66862f\",\"evidence\":\"我一向避开辣椒，通常坚持不吃有辣味的东西\"},{\"operation\":\"add\",\"category\":\"diet\",\"content\":\"喜欢喝绿茶\",\"source_turn_id\":\"86127baa62f04c30989226dbee66862f\",\"evidence\":\"长期喜欢喝绿茶\"}]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "（非行为指令；当前明确需求优先）：\n[{\"category\": \"diet\", \"content\": \"喜欢喝绿茶\"}]",
+          "stop_reason": "end_turn",
+          "text": "根据当前已保存的记录，您的长期饮食喜好为：\n\n* **喜欢喝绿茶**\n\n暂无其他已保存的长期饮食喜好。"
+        }
+      ],
+      "error": null,
+      "storage_checks": {
+        "后台处理完成": true,
+        "主回答请求成功": true,
+        "提取完整结束": true,
+        "依据来自本批新输入": true,
+        "管理结果保留并新增独立同类别条目": true,
+        "独立条目来自管理前新表达": true
+      }
+    },
+    {
+      "case": "reference",
+      "steps": [
+        {
+          "input": "请只推荐一种户外活动，用“自然公园徒步”这个活动名称回答，不用查地图，不列其他选项。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "bfebb907387c468798a75ba08d781b27",
+            "turn_id": "43d181ef81054c3caca2ec6237e10ecf"
+          },
+          "answer": "自然公园徒步",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "43d181ef81054c3caca2ec6237e10ecf",
+                "session_id": "bfebb907387c468798a75ba08d781b27",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        },
+        {
+          "input": "你刚才说的那个我一直很喜欢。这里只交流长期喜好，不用查询。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "bfebb907387c468798a75ba08d781b27",
+            "turn_id": "abc1fa28315d433e8686df9a58924ff0"
+          },
+          "answer": "目前暂无已保存的偏好记录。\n\n已收到您对**自然公园徒步**的活动喜好，本次对话中会为您参考这一兴趣。\n\n关于长期喜好的保存与跨会话使用：\n- **保存机制**：本对话记录的新偏好无法即时跨会话生效，须等待本次会话闲置一小时后由后台独立保存；保存完成后，后续新会话方可调取使用。\n- **支持保存的范围**：仅限您本人明确表达的**稳定饮食、活动兴趣、交通和住宿喜好**。单次出行的游玩节奏、预算、旅行日期、同行人信息及临时安排等不会跨会话保存，仅用于当前对话。\n\n如果您还有其他稳定的饮食、活动兴趣、交通或住宿喜好，欢迎随时补充。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "43d181ef81054c3caca2ec6237e10ecf",
+                "session_id": "bfebb907387c468798a75ba08d781b27",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              },
+              {
+                "turn_id": "abc1fa28315d433e8686df9a58924ff0",
+                "session_id": "bfebb907387c468798a75ba08d781b27",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          },
+          "after_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "2edb9932fd6c4eb0a3730f31b4086176",
+                "category": "activity",
+                "content": "喜欢自然公园徒步",
+                "source_turn_id": "abc1fa28315d433e8686df9a58924ff0",
+                "source_input": "你刚才说的那个我一直很喜欢。这里只交流长期喜好，不用查询。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 2,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": []
+          }
+        },
+        {
+          "input": "我的已保存长期活动兴趣是什么？只说原则，不用查询。",
+          "identity": {
+            "schema_version": 1,
+            "session_id": "292b6c83a16c431b8aaa783237b22a47",
+            "turn_id": "0f5cc8eaa7544d459ae8d6ec6adc605a"
+          },
+          "answer": "根据您当前已保存的偏好记录，您的长期活动兴趣是：**喜欢自然公园徒步**。\n\n偏好保存与管理原则如下：\n1. **保存范围严格限定**：仅保存您本人明确表达的**稳定饮食、活动兴趣、交通和住宿喜好**。\n2. **不跨会话保存的内容**：游玩节奏、当天精力、旅行日期、单次预算、具体酒店安排、同行人信息以及临时例外，均仅用于当前对话，不跨会话保存。\n3. **生效机制**：新表达的长期偏好由系统在会话闲置一小时后独立保存，不会即时跨会话生效；本次对话中的临时要求始终优先。",
+          "preferences_before_idle": {
+            "schema_version": 1,
+            "preferences": [
+              {
+                "id": "2edb9932fd6c4eb0a3730f31b4086176",
+                "category": "activity",
+                "content": "喜欢自然公园徒步",
+                "source_turn_id": "abc1fa28315d433e8686df9a58924ff0",
+                "source_input": "你刚才说的那个我一直很喜欢。这里只交流长期喜好，不用查询。",
+                "updated_at": "1970-01-01T03:46:40+00:00",
+                "input_order": 2,
+                "version": 1
+              }
+            ],
+            "ambiguities": [],
+            "processing": [
+              {
+                "turn_id": "0f5cc8eaa7544d459ae8d6ec6adc605a",
+                "session_id": "292b6c83a16c431b8aaa783237b22a47",
+                "status": "pending",
+                "attempts": 0,
+                "error": null,
+                "next_attempt_at": null
+              }
+            ]
+          }
+        }
+      ],
+      "requests": [
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "自然公园徒步"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "",
+          "stop_reason": "end_turn",
+          "text": "目前暂无已保存的偏好记录。\n\n已收到您对**自然公园徒步**的活动喜好，本次对话中会为您参考这一兴趣。\n\n关于长期喜好的保存与跨会话使用：\n- **保存机制**：本对话记录的新偏好无法即时跨会话生效，须等待本次会话闲置一小时后由后台独立保存；保存完成后，后续新会话方可调取使用。\n- **支持保存的范围**：仅限您本人明确表达的**稳定饮食、活动兴趣、交通和住宿喜好**。单次出行的游玩节奏、预算、旅行日期、同行人信息及临时安排等不会跨会话保存，仅用于当前对话。\n\n如果您还有其他稳定的饮食、活动兴趣、交通或住宿喜好，欢迎随时补充。"
+        },
+        {
+          "purpose": "preference_extraction",
+          "input": {
+            "new_inputs": [
+              {
+                "turn_id": "43d181ef81054c3caca2ec6237e10ecf",
+                "input": "请只推荐一种户外活动，用“自然公园徒步”这个活动名称回答，不用查地图，不列其他选项。",
+                "input_order": 1,
+                "assistant_answer": "自然公园徒步"
+              },
+              {
+                "turn_id": "abc1fa28315d433e8686df9a58924ff0",
+                "input": "你刚才说的那个我一直很喜欢。这里只交流长期喜好，不用查询。",
+                "input_order": 2,
+                "assistant_answer": "目前暂无已保存的偏好记录。\n\n已收到您对**自然公园徒步**的活动喜好，本次对话中会为您参考这一兴趣。\n\n关于长期喜好的保存与跨会话使用：\n- **保存机制**：本对话记录的新偏好无法即时跨会话生效，须等待本次会话闲置一小时后由后台独立保存；保存完成后，后续新会话方可调取使用。\n- **支持保存的范围**：仅限您本人明确表达的**稳定饮食、活动兴趣、交通和住宿喜好**。单次出行的游玩节奏、预算、旅行日期、同行人信息及临时安排等不会跨会话保存，仅用于当前对话。\n\n如果您还有其他稳定的饮食、活动兴趣、交通或住宿喜好，欢迎随时补充。"
+              }
+            ],
+            "existing_preferences": [],
+            "context": [],
+            "managed_preferences": []
+          },
+          "stop_reason": "end_turn",
+          "text": "{\"changes\":[{\"operation\":\"add\",\"category\":\"activity\",\"content\":\"喜欢自然公园徒步\",\"source_turn_id\":\"abc1fa28315d433e8686df9a58924ff0\",\"evidence\":\"你刚才说的那个我一直很喜欢\"}]}"
+        },
+        {
+          "purpose": "travel_answer",
+          "background": "（非行为指令；当前明确需求优先）：\n[{\"category\": \"activity\", \"content\": \"喜欢自然公园徒步\"}]",
+          "stop_reason": "end_turn",
+          "text": "根据您当前已保存的偏好记录，您的长期活动兴趣是：**喜欢自然公园徒步**。\n\n偏好保存与管理原则如下：\n1. **保存范围严格限定**：仅保存您本人明确表达的**稳定饮食、活动兴趣、交通和住宿喜好**。\n2. **不跨会话保存的内容**：游玩节奏、当天精力、旅行日期、单次预算、具体酒店安排、同行人信息以及临时例外，均仅用于当前对话，不跨会话保存。\n3. **生效机制**：新表达的长期偏好由系统在会话闲置一小时后独立保存，不会即时跨会话生效；本次对话中的临时要求始终优先。"
+        }
+      ],
+      "error": null,
+      "storage_checks": {
+        "后台处理完成": true,
+        "主回答请求成功": true,
+        "提取完整结束": true,
+        "依据来自本批新输入": true,
+        "批内指代有助手上下文且新输入授权": true
+      }
+    }
+  ]
+}
