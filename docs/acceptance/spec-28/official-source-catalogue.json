@@ -1,0 +1,57 @@
+[
+  {
+    "site": "故宫博物院",
+    "title": "故宫博物院参观须知 - 故宫博物院",
+    "url": "https://www.dpm.org.cn/singles_detail/259831.html",
+    "published_at": null,
+    "entry_type": "官方小程序名称（非可直接购票的网页URL）",
+    "body_path": "gugong-jina.txt",
+    "original_fetch_time": "2026-10-10T07:50:28+08:00",
+    "original_body_sha256": "ec5ba087acb22a9edec703e847c1a01c95f973ceda7d3b4ba84e8252cc84e139",
+    "display_copy_normalization": "仅去除行尾空白；未规范化正文仍保存在实际模型工具载荷中"
+  },
+  {
+    "site": "中国国家博物馆",
+    "title": "服务_中国国家博物馆官方网站",
+    "url": "https://www.chnmuseum.cn/cg/",
+    "published_at": null,
+    "entry_type": "官网服务页面与扫码预约入口",
+    "body_path": "guobo-jina.txt",
+    "original_fetch_time": "2026-10-10T07:50:39+08:00",
+    "original_body_sha256": "4d9793b1cb67314b575893600e1edc9d56d0efedfd37c7ea3e3e9ca4001d6260",
+    "display_copy_normalization": "仅去除行尾空白；未规范化正文仍保存在实际模型工具载荷中"
+  },
+  {
+    "site": "上海博物馆",
+    "title": "上海博物馆参观公告",
+    "url": "https://reservation.shanghaimuseum.net/",
+    "published_at": null,
+    "entry_type": "官方参观公告网页 + 微信公众号/小程序操作路径",
+    "body_path": "shangbo-jina.txt",
+    "original_fetch_time": "2026-10-10T07:50:40+08:00",
+    "original_body_sha256": "66be28a6d9f76e7d4ccec8141d4adf10a542b3345eb50cdbe78448d2fe5b1098",
+    "display_copy_normalization": "仅去除行尾空白；未规范化正文仍保存在实际模型工具载荷中"
+  },
+  {
+    "site": "故宫导览页",
+    "title": "导览 - 故宫博物院",
+    "url": "https://www.dpm.org.cn/Visit.html",
+    "published_at": null,
+    "entry_type": "官网导览页（可继续到官方票务引导）",
+    "body_path": "gugong-visit-jina.txt",
+    "original_fetch_time": "2026-10-10T07:51:03+08:00",
+    "original_body_sha256": "b90af04d114ac4d3ec3aa7b4e07a3194398b38f6ec41bb8cbc9caa64b7671c3e",
+    "display_copy_normalization": "仅去除行尾空白；未规范化正文仍保存在实际模型工具载荷中"
+  },
+  {
+    "site": "上海博物馆旧观众须知",
+    "title": "上海博物馆",
+    "url": "https://www.shanghaimuseum.net/mu/frontend/pg/service/admission",
+    "published_at": "2023-05-26",
+    "entry_type": "官方观众须知网页",
+    "body_path": "shangbo-admission-jina.txt",
+    "original_fetch_time": "2026-10-10T07:51:04+08:00",
+    "original_body_sha256": "a4d964fef2d9eb6b8879d2815531d9f59106cf36747d6f8c579df3415c9c46d2",
+    "display_copy_normalization": "仅去除行尾空白；未规范化正文仍保存在实际模型工具载荷中"
+  }
+]

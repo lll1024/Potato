@@ -1,0 +1,15 @@
+{
+  "code_head": "5426cd3d40d6be930536bb6666b1e7207676cc86",
+  "tests": {
+    "command": "python -m unittest discover -s tests -v",
+    "count": 163,
+    "elapsed_seconds": 140.011,
+    "result": "OK"
+  },
+  "typecheck": {
+    "command": "pyright --pythonpath /Users/jarviliu/projects/travel/.venv/bin/python agent.py amap_mcp.py amap_http.py limits.py web.py store.py travel_dates.py tavily_mcp.py travel_tools.py query_materials.py source_http.py tests/test_travel_dates.py tests/test_travel_date_continuation.py tests/test_official_sources.py tests/test_official_date_applicability.py tests/test_source_failures.py tests/test_travel_date_corrections.py",
+    "result": "0 errors, 0 warnings, 0 informations"
+  },
+  "diff_check": "通过",
+  "frontend": "构建现有前端产物；正式入口测试包含在全量通过结果中"
+}

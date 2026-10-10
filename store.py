@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 from query_materials import summarize_query
+from travel_dates import saved_date_context
+from tavily_mcp import SOURCE_TOOLS
 from preferences import PreferenceStore
 
 SCHEMA_VERSION = 1
@@ -254,11 +256,39 @@ class Store:
         with self.db:
             for row in self.db.execute("SELECT session_id,turn_id FROM turns WHERE status IN ('running','stopping')").fetchall():
                 self.db.execute("UPDATE turns SET status='terminated',reason='service_interrupted' WHERE turn_id=?", (row["turn_id"],))
-                self.event(row["session_id"],row["turn_id"],"turn.recovered", {"status":"terminated","reason":"service_interrupted","context_excluded":True,"message":"服务中断，未结束调用的结果未知；整轮已排除后续上下文。"})
+                self.event(row["session_id"],row["turn_id"],"turn.recovered", {"status":"terminated","reason":"service_interrupted","context_excluded":True,"message":"服务中断，未结束调用的结果未知；整轮协议已排除后续上下文，已保存的成功资料仅作参考重新核对。"})
 
     def context(self, session_id):
         row = self.db.execute("SELECT messages FROM turns WHERE session_id=? AND status != 'running' AND reason IS NOT 'service_interrupted' ORDER BY ordinal DESC LIMIT 1", (session_id,)).fetchone()
         return json.loads(row["messages"]) if row else []
+
+    def date_context(self, session_id):
+        # request.started 已提交的日期依据仍可靠；中断协议排除不影响它。
+        row = self.db.execute("""SELECT p.content FROM turns t JOIN requests r USING(turn_id)
+            JOIN payloads p ON p.payload_id=r.input_payload_id WHERE t.session_id=?
+            ORDER BY t.ordinal DESC,r.ordinal LIMIT 1""", (session_id,)).fetchone()
+        return saved_date_context(json.loads(row["content"]).get("system", "")) if row else None
+
+    def source_context(self, session_id):
+        # 中断协议不重放；仅恢复已提交的成功资料载荷为独立参考。
+        references = []
+        for row in self.db.execute("""SELECT tc.data,p.content FROM turns t
+            JOIN tool_calls tc USING(turn_id) JOIN requests r USING(request_id)
+            JOIN payloads p ON p.payload_id=r.input_payload_id
+            WHERE t.session_id=? AND t.reason='service_interrupted'
+            ORDER BY t.ordinal,r.ordinal,tc.ordinal""", (session_id,)):
+            tool = json.loads(row["data"])
+            if tool["name"] not in SOURCE_TOOLS or tool["status"] != "completed":
+                continue
+            payload = self.payload(tool["result_payload_id"]) if tool.get("result_payload_id") else None
+            result = payload["content"] if payload else None
+            if payload is None or not isinstance(result, dict) or result.get("is_error") is not False:
+                continue
+            context = saved_date_context(json.loads(row["content"]).get("system", ""))
+            references.append({"name": tool["name"], "payload_id": payload["payload_id"],
+                               "travel_dates": context["travel_dates"] if context else None,
+                               "result": result["content"]})
+        return references
 
     def accept(self, text, session_id=None, *, submission_id=None, fingerprint=None, preference_now=None):
         turn_id, now = identity(), timestamp()
@@ -375,11 +405,15 @@ class Store:
             if tool["turn_id"] in interrupted and tool["status"] in ("pending","waiting","running"):
                 tool["interrupted"] = True
         for turn in turns:
+            first_request = next((request for request in requests if request["turn_id"] == turn["turn_id"]), None)
+            context_payload = self.payload(first_request["input_payload_id"]) if first_request else None
+            context = saved_date_context(context_payload["content"].get("system", "")) if context_payload else None
+            turn["travel_date_context"] = context
             turn["query_materials"] = []
             turn["unreadable_query_count"] = 0
             for tool in tool_calls:
-                if turn["status"] == "completed" and turn["answer_source"] != "application":
-                    break
+                if turn["status"] == "completed" and turn["answer_source"] != "application" and tool["name"] not in SOURCE_TOOLS:
+                    continue
                 if tool["turn_id"] != turn["turn_id"] or tool["status"] != "completed" or not tool.get("result_payload_id"):
                     continue
                 payload = self.payload(tool["result_payload_id"])
@@ -387,7 +421,7 @@ class Store:
                 if not isinstance(result, dict) or result.get("is_error") is not False:
                     continue
                 original_input = next(row["input"] for row in rows if row["turn_id"] == turn["turn_id"])
-                material = summarize_query(tool["name"], result, original_input)
+                material = summarize_query(tool["name"], result, original_input, context)
                 if material["entries"]:
                     turn["query_materials"].append({**material, "tool_call_id": tool["tool_call_id"], "payload_id": tool["result_payload_id"]})
                 else:

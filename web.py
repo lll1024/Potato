@@ -11,6 +11,7 @@ import sqlite3
 import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import urlencode
@@ -32,6 +33,7 @@ from pydantic import BaseModel, Field
 from agent import SERVICE_MESSAGE, agent_loop
 from amap_http import AmapHTTPClient
 from amap_mcp import AmapTools
+from travel_tools import TravelTools, connected_travel_tools
 from limits import TOOL_TIMEOUT
 from store import SCHEMA_VERSION, StartupError, Store
 from preferences import extract_preferences, preference_background
@@ -40,7 +42,7 @@ from preferences import extract_preferences, preference_background
 @dataclass
 class Runtime:
     client: AsyncAnthropic
-    tools: AmapTools
+    tools: AmapTools | TravelTools
     model: str
 
 
@@ -61,7 +63,8 @@ async def configured_resources():
             tools = AmapTools(map_client,api_key=api_key,http_client=http_client,secrets=tuple(
                 os.getenv(name, "") for name in ("ANTHROPIC_API_KEY","ANTHROPIC_AUTH_TOKEN")))
             await tools.discover()
-            yield Runtime(model_client,tools,os.environ["MODEL_ID"])
+            async with connected_travel_tools(tools) as travel_tools:
+                yield Runtime(model_client,travel_tools,os.environ["MODEL_ID"])
     except Exception:
         raise RuntimeError(SERVICE_MESSAGE) from None
 
@@ -85,7 +88,7 @@ class EditPreference(BaseModel):
 class RenameSession(BaseModel):
     title: str = Field(min_length=1, max_length=120)
 
-def create_app(data_dir: str | Path, *, resources=configured_resources, static_dir: str | Path | None=None, request_shutdown: Callable[[], None] | None=None,
+def create_app(data_dir: str | Path, *, resources=configured_resources, static_dir: str | Path | None=None, request_shutdown: Callable[[], None] | None=None, clock: Callable[[], datetime] | None=None,
                preference_clock=time.time, preference_wait=asyncio.sleep, preference_timeout=60.0) -> FastAPI:
     directory = Path(data_dir)
     task: asyncio.Task | None = None
@@ -240,13 +243,16 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
         try:
             try:
                 messages = store.context(identity["session_id"]) + [{"role":"user","content":text}]
+                previous_date_context = store.date_context(identity["session_id"])
+                previous_source_materials = store.source_context(identity["session_id"])
                 preference_snapshot = store.preferences.snapshot()
                 background = preference_background(preference_snapshot["preferences"], preference_snapshot["ambiguities"])
             except Exception:
                 storage_failed("完整上下文无法读取，查询未启动。",kind="turn.context",turn_id=identity["turn_id"])
                 raise TraceStorageError from None
             answer = await agent_loop(messages,runtime.client,runtime.tools,runtime.model,observer=observe,stop_requested=stop_requested,stop_reason=lambda: stop_reason,
-                                      preference_background=background)
+                                      preference_background=background, clock=clock, previous_date_context=previous_date_context,
+                                      previous_source_materials=previous_source_materials)
         except TraceStorageError:
             active = None
             changed.set()
