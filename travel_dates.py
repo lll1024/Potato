@@ -48,7 +48,7 @@ def explicit_dates(text: str, today: date) -> dict[str, Any] | None:
             "source": "explicit", "explanation": "显式日期优先；省略年份时采用本轮北京时间的年份，起始日期与天数推导结束日期。"}
 
 
-def turn_date_context(text: str, now: datetime) -> dict[str, Any]:
+def turn_date_context(text: str, now: datetime, previous: dict[str, Any] | None = None) -> dict[str, Any]:
     local = now.astimezone(BEIJING)
     today = local.date()
     dates: dict[str, Any] = explicit_dates(text, today) or {"status": "unspecified"}
@@ -79,8 +79,33 @@ def turn_date_context(text: str, now: datetime) -> dict[str, Any]:
         elif duration != (end - start).days + 1:
             dates = {"status": "needs_clarification", "source": dates["source"],
                      "explanation": f"旅行日期 {start.isoformat()} 至 {end.isoformat()} 仅有 {(end-start).days+1} 日，与 {duration} 日要求冲突，请确认日期与天数，不擅自缩短或延长。"}
-    return {"timezone": "Asia/Shanghai", "now": local.isoformat(), "today": today.isoformat(),
-            "weekday": "星期" + "一二三四五六日"[today.weekday()], "travel_dates": dates}
+    previous_dates = previous.get("travel_dates", {}) if previous else {}
+    # 已定日期的相对表达可能只是回指原旅行；只在明确提出新日期时重算。
+    date_request = bool(re.search(
+        r"(?:改|换|调整|推迟|提前|延|挪|定)(?:到|成|为|在)?\s*(?:明天|本周末|下周末)"
+        r"|(?:明天|本周末|下周末)\s*(?:去|出发|启程|开始)", text)) or text.strip() in relative
+    explicit_change = bool(re.search(
+        r"(?:日期|出行时间|出发时间)\s*(?:改|换|调整|推迟|提前|延|挪)"
+        r"|(?:改|换|调整)(?:旅行|出行|出发)?(?:日期|时间)", text))
+    date_request = date_request or explicit_change
+    if dates["status"] == "unspecified" and explicit_change:
+        dates = {"status": "needs_clarification", "source": "date_change",
+                 "explanation": "用户明确要求修改旅行日期，但新日期尚不能可靠确定；请确认具体公历日期或日期范围，不沿用旧日期。"}
+    inherit = dates["status"] == "unspecified" or (
+        previous_dates.get("status") == "resolved" and dates.get("source") != "explicit" and not date_request)
+    if inherit and previous_dates and previous:
+        dates = previous_dates.copy()
+        if dates.get("status") == "resolved":
+            dates.setdefault("reference_time", previous["now"])
+    elif dates["status"] == "resolved":
+        dates["reference_time"] = local.isoformat()
+    context = {"timezone": "Asia/Shanghai", "now": local.isoformat(), "today": today.isoformat(),
+               "weekday": "星期" + "一二三四五六日"[today.weekday()], "travel_dates": dates}
+    if (previous_dates.get("status") == dates.get("status") == "resolved"
+            and any(previous_dates.get(key) != dates.get(key) for key in ("start_date", "end_date"))):
+        context["dates_changed"] = True
+        context["previous_travel_dates"] = previous_dates.copy()
+    return context
 
 
 def model_date_context(context: dict[str, Any]) -> str:

@@ -186,10 +186,11 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
         try:
             try:
                 messages = store.context(identity["session_id"]) + [{"role":"user","content":text}]
+                previous_date_context = store.date_context(identity["session_id"])
             except Exception:
                 storage_failed("完整上下文无法读取，查询未启动。",kind="turn.context",turn_id=identity["turn_id"])
                 raise TraceStorageError from None
-            answer = await agent_loop(messages,runtime.client,runtime.tools,runtime.model,observer=observe,stop_requested=stop_requested,stop_reason=lambda: stop_reason,clock=clock)
+            answer = await agent_loop(messages,runtime.client,runtime.tools,runtime.model,observer=observe,stop_requested=stop_requested,stop_reason=lambda: stop_reason,clock=clock,previous_date_context=previous_date_context)
         except TraceStorageError:
             active = None
             changed.set()

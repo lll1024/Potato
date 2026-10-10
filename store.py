@@ -259,6 +259,13 @@ class Store:
         row = self.db.execute("SELECT messages FROM turns WHERE session_id=? AND status != 'running' AND reason IS NOT 'service_interrupted' ORDER BY ordinal DESC LIMIT 1", (session_id,)).fetchone()
         return json.loads(row["messages"]) if row else []
 
+    def date_context(self, session_id):
+        # request.started 已提交的日期依据仍可靠；中断协议排除不影响它。
+        row = self.db.execute("""SELECT p.content FROM turns t JOIN requests r USING(turn_id)
+            JOIN payloads p ON p.payload_id=r.input_payload_id WHERE t.session_id=?
+            ORDER BY t.ordinal DESC,r.ordinal LIMIT 1""", (session_id,)).fetchone()
+        return saved_date_context(json.loads(row["content"]).get("system", "")) if row else None
+
     def accept(self, text, session_id=None, *, submission_id=None, fingerprint=None):
         turn_id, now = identity(), timestamp()
         with self.db:
