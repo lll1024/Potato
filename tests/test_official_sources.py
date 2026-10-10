@@ -94,16 +94,27 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
                     body_result = model.requests[2]["messages"][-1]["content"][0]
                     self.assertEqual(body_result["tool_use_id"], "body")
                     self.assertIn("官方小程序", body_result["content"])
+                    search_envelope = json.loads(search_result["content"])
+                    body_envelope = json.loads(body_result["content"])
+                    self.assertEqual(search_envelope["document_status"], "search_clues")
+                    self.assertEqual(body_envelope["document_status"], "extraction_result")
+                    body_data = json.loads(body_envelope["text"][0])
+                    self.assertEqual(body_data["results"][0]["url"], url)
+                    self.assertNotIn("published_date", body_data["results"][0])
                     materials = turn["query_materials"]
                     self.assertEqual(len(materials), 2)
                     self.assertIn("线索", materials[0]["title"])
                     self.assertIn("正文", materials[1]["title"])
-                    self.assertIn("查询时间", str(materials[1]))
+                    self.assertIn("查询时间：" + body_envelope["retrieved_at"], str(materials[1]))
                     self.assertIn("发布时间未返回", str(materials[1]))
                     self.assertIn("适用日期未返回", str(materials[1]))
                     for material in materials:
                         raw = (await client.get("/api/payloads/" + material["payload_id"])).json()
                         self.assertIn(url, str(raw))
+                        envelope = json.loads(raw["content"]["content"])
+                        if material["payload_id"] == materials[1]["payload_id"]:
+                            self.assertEqual(envelope["retrieved_at"], body_envelope["retrieved_at"])
+                            self.assertEqual(envelope["document_status"], "extraction_result")
             self.assertTrue(source_clients[0].is_closed)
             @asynccontextmanager
             async def restored_resources():
