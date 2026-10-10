@@ -8,6 +8,7 @@ from pathlib import Path
 from uuid import uuid4
 from query_materials import summarize_query
 from travel_dates import saved_date_context
+from tavily_mcp import SOURCE_TOOLS
 
 SCHEMA_VERSION = 1
 
@@ -275,7 +276,7 @@ class Store:
             WHERE t.session_id=? AND t.reason='service_interrupted'
             ORDER BY t.ordinal,r.ordinal,tc.ordinal""", (session_id,)):
             tool = json.loads(row["data"])
-            if tool["name"] not in ("tavily-search", "tavily_search", "tavily-extract", "tavily_extract") or tool["status"] != "completed":
+            if tool["name"] not in SOURCE_TOOLS or tool["status"] != "completed":
                 continue
             payload = self.payload(tool["result_payload_id"]) if tool.get("result_payload_id") else None
             result = payload["content"] if payload else None
@@ -405,7 +406,7 @@ class Store:
             turn["query_materials"] = []
             turn["unreadable_query_count"] = 0
             for tool in tool_calls:
-                if turn["status"] == "completed" and turn["answer_source"] != "application" and tool["name"] not in ("tavily-search", "tavily_search", "tavily-extract", "tavily_extract"):
+                if turn["status"] == "completed" and turn["answer_source"] != "application" and tool["name"] not in SOURCE_TOOLS:
                     continue
                 if tool["turn_id"] != turn["turn_id"] or tool["status"] != "completed" or not tool.get("result_payload_id"):
                     continue
