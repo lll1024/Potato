@@ -86,7 +86,7 @@ def turn_date_context(text: str, now: datetime, previous: dict[str, Any] | None 
                      "explanation": f"旅行日期 {start.isoformat()} 至 {end.isoformat()} 仅有 {(end-start).days+1} 日，与 {duration} 日要求冲突，请确认日期与天数，不擅自缩短或延长。"}
     previous_dates = previous.get("travel_dates", {}) if previous else {}
     # 已定日期的相对表达可能只是回指原旅行；只在明确提出新日期时重算。
-    historical_reference = bool(re.search(r"之前|原来|已定|已确定|原定|安排不变|日期不变", text))
+    historical_reference = bool(re.search(r"(?:之前(?:已)?(?:定|确定|安排)|原来(?:定|安排)|已定|已确定|原定)(?:的)?\s*(?:明天|本周末|下周末)|安排不变|日期不变", text))
     date_request = bool(changed_relative) or (not historical_reference and bool(re.search(
         r"(?:定(?:到|成|为|在)?\s*(?:明天|本周末|下周末)|(?:明天|本周末|下周末)\s*(?:去|出发|启程|开始))", text))) or text.strip() in relative
     explicit_change = bool(re.search(
@@ -98,7 +98,7 @@ def turn_date_context(text: str, now: datetime, previous: dict[str, Any] | None 
                  "explanation": "用户明确要求修改旅行日期，但新日期尚不能可靠确定；请确认具体公历日期或日期范围，不沿用旧日期。"}
     duration_change = duration is not None and bool(re.search(r"(?:改|换|调整)(?:成|为)?\s*(?:\d+|[一二两三四五六七八九十])(?:天|日游|日旅行)", text))
     basis = previous_dates.get("date_basis", {})
-    if (dates["status"] == "unspecified" and duration_change
+    if (dates["status"] == "unspecified" and (duration_change or re.fullmatch(r"(?:\d+|[一二两三四五六七八九十])(?:天|日游|日旅行)", text.strip()))
             and previous_dates.get("status") == "needs_clarification" and basis):
         start, end = date.fromisoformat(basis["start_date"]), date.fromisoformat(basis["end_date"])
         if duration == (end - start).days + 1:
