@@ -30,6 +30,7 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
         maps = MCPServer("地图边界")
         sources = MCPServer("资料边界")
         url = "https://museum.example.test/visit"
+        body_text = "人民广场馆特展票务细则另行公告。\n东馆专项体验：预约须使用官方小程序。\nTrip.com二维码标签，地址为blob:http://localhost/qr；适用票种未载明。"
 
         @maps.tool(name="maps_text_search")
         def place(keywords: str, city: str) -> dict:
@@ -47,7 +48,7 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
         def extract(urls: list[str]) -> dict:
             if urls != [url]:
                 raise ValueError("正文地址错误")
-            return {"results": [{"url": url, "raw_content": "常规周一闭馆，门票免费；预约须使用官方小程序。"}], "failed_results": []}
+            return {"results": [{"url": url, "raw_content": body_text}], "failed_results": []}
 
         @sources.tool(name="tavily-crawl")
         def forbidden(url: str) -> dict:
@@ -57,7 +58,7 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
             response([{"type": "tool_use", "id": "map", "name": "maps_text_search", "input": {"keywords": "测试博物馆", "city": "北京"}},
                       {"type": "tool_use", "id": "search", "name": "tavily-search", "input": {"query": "测试博物馆 官方参观须知"}}], "tool_use"),
             response([{"type": "tool_use", "id": "body", "name": "tavily-extract", "input": {"urls": [url]}}], "tool_use"),
-            response([{"type": "text", "text": "官方正文提供常规规则，未来当日开放仍待核实；通过官方小程序预约，尚未预约。"}]),
+            response([{"type": "text", "text": "已取得资料，当前特展的具体入口与适用范围仍待核实。"}]),
         ])
         source_app = sources.streamable_http_app(json_response=True, stateless_http=True)
         source_clients = []
@@ -100,6 +101,7 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(body_envelope["document_status"], "extraction_result")
                     body_data = json.loads(body_envelope["text"][0])
                     self.assertEqual(body_data["results"][0]["url"], url)
+                    self.assertEqual(body_data["results"][0]["raw_content"], body_text)
                     self.assertNotIn("published_date", body_data["results"][0])
                     materials = turn["query_materials"]
                     self.assertEqual(len(materials), 2)
