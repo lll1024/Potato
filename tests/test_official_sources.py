@@ -20,7 +20,7 @@ from mcp.server import MCPServer
 from agent import run_cli
 from amap_mcp import AmapTools
 from tavily_mcp import TavilyTools
-from travel_tools import TravelTools
+from travel_tools import SourceHTTPClient, TravelTools
 from test_agent import MapService, ModelService, response
 from web import Runtime, create_app
 
@@ -209,13 +209,13 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
         def unavailable(request):
             requests.append(request)
             raise httpx2.ConnectError("资料服务连接失败", request=request)
-        real_client = httpx2.AsyncClient
+        real_client = SourceHTTPClient
         def source_http(**kwargs):
             return real_client(transport=httpx2.MockTransport(unavailable), **kwargs)
         output = io.StringIO()
         with patch.dict(os.environ, {"MODEL_ID": "test-model", "ANTHROPIC_API_KEY": "model-key", "TAVILY_API_KEY": "paid-key-must-not-be-used"}, clear=True), \
              patch("agent.Client", side_effect=lambda *args, **kwargs: Client(maps)), \
-             patch("travel_tools.httpx2.AsyncClient", side_effect=source_http), \
+             patch("travel_tools.SourceHTTPClient", side_effect=source_http), \
              patch("agent.AsyncAnthropic", return_value=ModelContext(model)), \
              patch("builtins.input", side_effect=["2026年10月10日去测试博物馆", "exit"]), \
              contextlib.redirect_stdout(output):

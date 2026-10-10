@@ -253,7 +253,7 @@ class Store:
         with self.db:
             for row in self.db.execute("SELECT session_id,turn_id FROM turns WHERE status IN ('running','stopping')").fetchall():
                 self.db.execute("UPDATE turns SET status='terminated',reason='service_interrupted' WHERE turn_id=?", (row["turn_id"],))
-                self.event(row["session_id"],row["turn_id"],"turn.recovered", {"status":"terminated","reason":"service_interrupted","context_excluded":True,"message":"服务中断，未结束调用的结果未知；整轮已排除后续上下文。"})
+                self.event(row["session_id"],row["turn_id"],"turn.recovered", {"status":"terminated","reason":"service_interrupted","context_excluded":True,"message":"服务中断，未结束调用的结果未知；整轮协议已排除后续上下文，已保存的成功资料仅作参考重新核对。"})
 
     def context(self, session_id):
         row = self.db.execute("SELECT messages FROM turns WHERE session_id=? AND status != 'running' AND reason IS NOT 'service_interrupted' ORDER BY ordinal DESC LIMIT 1", (session_id,)).fetchone()
@@ -265,6 +265,27 @@ class Store:
             JOIN payloads p ON p.payload_id=r.input_payload_id WHERE t.session_id=?
             ORDER BY t.ordinal DESC,r.ordinal LIMIT 1""", (session_id,)).fetchone()
         return saved_date_context(json.loads(row["content"]).get("system", "")) if row else None
+
+    def source_context(self, session_id):
+        # 中断协议不重放；仅恢复已提交的成功资料载荷为独立参考。
+        references = []
+        for row in self.db.execute("""SELECT tc.data,p.content FROM turns t
+            JOIN tool_calls tc USING(turn_id) JOIN requests r USING(request_id)
+            JOIN payloads p ON p.payload_id=r.input_payload_id
+            WHERE t.session_id=? AND t.reason='service_interrupted'
+            ORDER BY t.ordinal,r.ordinal,tc.ordinal""", (session_id,)):
+            tool = json.loads(row["data"])
+            if tool["name"] not in ("tavily-search", "tavily_search", "tavily-extract", "tavily_extract") or tool["status"] != "completed":
+                continue
+            payload = self.payload(tool["result_payload_id"]) if tool.get("result_payload_id") else None
+            result = payload["content"] if payload else None
+            if payload is None or not isinstance(result, dict) or result.get("is_error") is not False:
+                continue
+            context = saved_date_context(json.loads(row["content"]).get("system", ""))
+            references.append({"name": tool["name"], "payload_id": payload["payload_id"],
+                               "travel_dates": context["travel_dates"] if context else None,
+                               "result": result["content"]})
+        return references
 
     def accept(self, text, session_id=None, *, submission_id=None, fingerprint=None):
         turn_id, now = identity(), timestamp()

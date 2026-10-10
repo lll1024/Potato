@@ -3,7 +3,7 @@ import json
 import re
 from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable, NotRequired, TypedDict, cast
-from urllib.parse import quote, quote_plus
+from urllib.parse import parse_qsl, quote, quote_plus, urlsplit
 
 from anthropic.types import ToolParam
 import httpx2
@@ -255,17 +255,24 @@ class AmapTools:
                     for value in (secret, quote(secret, safe=""), quote_plus(secret, safe=""))}
         fields = {"key", "api_key", "apikey", "access_token", "token", "auth",
                   "authorization", "password", "secret", "auth_token", "cookie", "set_cookie",
-                  "client_secret", "refresh_token", "x_api_key", "anthropic_api_key", "anthropic_auth_token"}
+                  "client_secret", "refresh_token", "x_api_key", "anthropic_api_key", "anthropic_auth_token",
+                  "tavily_api_key", "tavily_api_token"}
+
+        def redact_url(match):
+            try:
+                url = urlsplit(match[0].replace("&amp;", "&"))
+                sensitive = "@" in url.netloc or any(
+                    key.lower().replace("-", "_") in fields for key, _ in parse_qsl(url.query, keep_blank_values=True))
+            except ValueError:
+                sensitive = True
+            return "[REDACTED_URL]" if sensitive else match[0]
 
         def redact_text(value: str) -> str:
             for secret in sorted(variants, key=len, reverse=True):
                 value = value.replace(secret, "[REDACTED]")
             value = re.sub(
                 r'https?://[^\s<>"\'\\]+',
-                lambda match: "[REDACTED_URL]" if re.search(
-                    r"//[^/]*@|[?&](?:key|api[_-]?key|access_token|token|auth|password)=",
-                    match[0], re.IGNORECASE,
-                ) else match[0], value,
+                redact_url, value,
             )
             # 完整 HTTP 凭据头可能包含逗号／分号分隔的多项，按行隐藏整个值。
             value = re.sub(
@@ -274,12 +281,12 @@ class AmapTools:
             )
             # 配置和 HTTP 头可用等号或冒号；认证方案后的完整凭据也须隐藏。
             value = re.sub(
-                r"\b((?:key|api[_-]?key|access_token|token|auth|authorization|password|secret|auth_token|cookie|set[_-]cookie|client_secret|refresh_token|x[_-]api[_-]key|anthropic_api_key|anthropic_auth_token)[ \t]*[=:][ \t]*)(?:(?:Bearer|Basic|Digest|Negotiate|Token)[ \t]+)?(?:\"[^\"]*\"|'[^']*'|[^\s,;&<>\"'\\]+)",
+                r"\b((?:key|api[_-]?key|access_token|token|auth|authorization|password|secret|auth_token|cookie|set[_-]cookie|client_secret|refresh_token|x[_-]api[_-]key|anthropic_api_key|anthropic_auth_token|tavily[_-]api[_-]key|tavily[_-]api[_-]token)[ \t]*[=:][ \t]*)(?:(?:Bearer|Basic|Digest|Negotiate|Token)[ \t]+)?(?:\"[^\"]*\"|'[^']*'|[^\s,;&<>\"'\\]+)",
                 lambda match: match[1] + "[REDACTED]", value, flags=re.IGNORECASE,
             )
             # 普通文字中的 JSON 凭据字段也须隐藏，例如用户粘贴配置片段。
             return re.sub(
-                r'("(?:key|api[_-]?key|access_token|token|auth|authorization|password|secret|auth_token|cookie|set[_-]cookie|client_secret|refresh_token|x[_-]api[_-]key|anthropic_api_key|anthropic_auth_token)"\s*:\s*)"(?:[^"\\]|\\.)*"',
+                r'("(?:key|api[_-]?key|access_token|token|auth|authorization|password|secret|auth_token|cookie|set[_-]cookie|client_secret|refresh_token|x[_-]api[_-]key|anthropic_api_key|anthropic_auth_token|tavily[_-]api[_-]key|tavily[_-]api[_-]token)"\s*:\s*)"(?:[^"\\]|\\.)*"',
                 lambda match: match[1] + '"[REDACTED]"', value, flags=re.IGNORECASE,
             )
 
