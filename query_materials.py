@@ -3,6 +3,8 @@ import json
 import re
 from datetime import date
 
+from tavily_mcp import SEARCH_TOOLS, SOURCE_TOOLS
+
 
 def scalar(value):
     return str(value) if isinstance(value, (str, int, float)) and not isinstance(value, bool) else None
@@ -88,8 +90,8 @@ def summarize_query(name, result, travel_input, date_context=None):
             notes.append("常规开放时间不保证春节或未来当日开放，当日是否开放仍待核实。")
         if not detail:
             notes.append("候选尚未核实详情，不代表已选定地点或符合口味偏好；同名地点可能存在歧义。")
-    elif name in ("tavily-search", "tavily_search", "tavily-extract", "tavily_extract"):
-        search = name in ("tavily-search", "tavily_search")
+    elif name in SOURCE_TOOLS:
+        search = name in SEARCH_TOOLS
         title = "官方资料搜索线索（正文尚未核实）" if search else "来源正文（身份与日期仍须核对）"
         try:
             envelope = json.loads(result["content"])
