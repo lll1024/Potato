@@ -13,14 +13,14 @@
   "secret_scan": "实际配置秘密值及URL编码值扫描零命中",
   "files": {
     "gugong-jina.txt": "ec5ba087acb22a9edec703e847c1a01c95f973ceda7d3b4ba84e8252cc84e139",
-    "gugong-visit-jina.txt": "b90af04d114ac4d3ec3aa7b4e07a3194398b38f6ec41bb8cbc9caa64b7671c3e",
-    "guobo-jina.txt": "4d9793b1cb67314b575893600e1edc9d56d0efedfd37c7ea3e3e9ca4001d6260",
+    "gugong-visit-jina.txt": "8e778c3b58e7520066bb546018db9f186a35a077aab342e492d779241c5a1e59",
+    "guobo-jina.txt": "638bafdcfae1727e4bc8392876ca1dffa218ab65bb5531fcd4dac6e49f69fb0b",
     "live-bounded-retry.json": "783766ff1977d2bbe582f5513ed04234de274c929a437a2cd294d9df8a674877",
     "live-quota-degradation.json": "538a9d048e53244b3d23e5704c78a1887771f70246db7e876d64c7ac596ec61a",
     "live-three-site-failures.json": "afdbe47393ec890fb69f5feee41fc9088bf9c6f171ab31f44407508c68f405f9",
     "live-tool-discovery.json": "ce98ef9dc0c80b5ecfbc595464143350758ac487374bc52430152ed2f5b5e418",
     "manual-free-bonus-failure.json": "9f57cb5851eb42a89be49e31496618665c5044d2db9666c266f34a03e3d9ca53",
-    "official-source-catalogue.json": "40f26b61bd3e8469c4e58238987403eec3568b339a1287ed8f331e26a6fea4d0",
+    "official-source-catalogue.json": "817c721ffb5df7f46c334c6e3f17ab43dd84a4bcc053d6b2bcb1a736ad2efe1d",
     "real-dates.json": "0e7127d7e74efe2e519784b4592e2f24757cab3df8e379fec5ca0e1e6360cf84",
     "real-official-date-policy.json": "f9ce4b638d521e65cef154b08df65d2cb9b266e77bd1765421691eb77188b852",
     "real-other-sites.json": "e056ae22918e952a4f34b95881d00d5c592de98d711235f13e49e04a8ee6a2fc",
@@ -36,5 +36,6 @@
     "shangbo-admission-jina.txt": "a4d964fef2d9eb6b8879d2815531d9f59106cf36747d6f8c579df3415c9c46d2",
     "shangbo-jina.txt": "66be28a6d9f76e7d4ccec8141d4adf10a542b3345eb50cdbe78448d2fe5b1098",
     "validation.json": "09fbdc421da9801178eec44232e2cf7034b15692a8fd9b60bad52bbd78ca4709"
-  }
+  },
+  "source_display_copies": "正文txt展示副本仅去除行尾空白；原始抓取正文的SHA256在来源目录，原始文本在真实模型工具载荷中"
 }
