@@ -1,0 +1,10 @@
+.exception-outcome { overflow-wrap: anywhere; }
+.recovery-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 8px; }
+.recovery-actions .retry-request { background: var(--accent, #315cce); color: #fff; }
+.query-materials { margin: 16px 0; }
+.query-materials summary { cursor: pointer; padding: 8px 0; font-weight: 600; }
+.query-materials summary:focus-visible { outline: 2px solid var(--accent, #315cce); outline-offset: 3px; }
+.query-materials > .hint { margin-top: 8px; }
+.query-materials section { padding: 12px 0; border-top: 1px solid var(--line, #e8e9ee); }
+.query-materials h4 { margin: 4px 0 8px; }
+.query-materials ul { padding-left: 20px; margin: 8px 0; }

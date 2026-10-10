@@ -1,0 +1,234 @@
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { createRoot } from 'react-dom/client';
+import './style.css';
+import { TraceView, type TraceLocation } from './TraceView';
+import { useReadingFollow } from './useReadingFollow';
+import { ReadingScroll } from './ReadingScroll';
+import { HistorySidebar, useConversationDraft } from './HistorySidebar';
+import { ComposerInput } from './ComposerInput';
+import { ConversationRounds, type Turn } from './ConversationRounds';
+import type { RoundActivity } from './RoundProgress';
+import { useSubmission } from './useSubmission';
+import { useServiceEvents } from './useServiceEvents';
+import { requestJson } from './api';
+import { reasonLabels } from './turnReasons';
+import { Icon } from './Icon';
+import { PreferencesView } from './PreferencesView';
+import { isExceptional, type QueryMaterial } from './ExceptionOutcome';
+
+type Snapshot = RoundActivity & { schema_version: number; session: { title: string; updated_at?: string }; turns: Turn[]; next_before: number | null; total_turns: number };
+
+function api<T>(path: string, options?: RequestInit): Promise<T> {
+  return requestJson<T>(path, '请求未成功，请检查输入或本机服务。', options);
+}
+
+function statusText(turn: Turn): string {
+  if (turn.status === 'running') return '正在执行';
+  if (turn.status === 'completed') return turn.tool_error_count ? '完成，含工具错误' : '已完成';
+  if (turn.reason === 'user_stop') return '已停止';
+  return `${turn.status === 'failed' ? '失败' : '终止'}：${reasonLabels[turn.reason ?? ''] ?? turn.reason ?? '原因未知'}`;
+}
+
+const mapPauseLabels: Record<string, string> = {
+  auth: '当前无法进行新的地图查询。仍可讨论已有资料。', quota: '查询额度或访问受限，当前无法进行新的地图查询。仍可讨论已有资料。',
+  connection: '地图连接不可用，当前无法继续查询。', service: '地图服务暂不可用，当前无法继续查询。',
+};
+
+function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(() => !window.matchMedia('(max-width: 760px)').matches);
+  const navigationToggle = useRef<HTMLButtonElement>(null);
+  const sidebarToggle = useRef<HTMLButtonElement>(null);
+  const [view, setView] = useState<'conversation' | 'trace' | 'preferences'>('conversation');
+  useEffect(() => {
+    if (view !== 'preferences') return;
+    const mobile = window.matchMedia('(max-width: 760px)');
+    const keepPreferencesVisible = () => {if (mobile.matches) setSidebarOpen(false);};
+    keepPreferencesVisible();
+    mobile.addEventListener('change', keepPreferencesVisible);
+    return () => mobile.removeEventListener('change', keepPreferencesVisible);
+  }, [view]);
+  const [traceLocation,setTraceLocation]=useState<TraceLocation | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const {draft, setDraft, removeDraft, clearSubmittedDraft} = useConversationDraft(sessionId);
+  const [earlierTurns, setEarlierTurns] = useState<Record<string, Turn[]>>({});
+  const [earlierActivity, setEarlierActivity] = useState<Record<string, RoundActivity>>({});
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
+  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [materialsExpanded, setMaterialsExpanded] = useState<Record<string, boolean>>({});
+  const {state, revision: serviceRevision, datasetRevision, deletedSession, connectionError, recoveryNotice, refresh: refreshService} = useServiceEvents();
+  const [error, setError] = useState('');
+  const [stoppingId, setStoppingId] = useState<string | null>(null);
+
+  const submission = useSubmission((accepted, submitted) => {
+    if (!submitted.preserve_draft) clearSubmittedDraft(submitted.session_id, submitted.input);
+    if (sessionId === submitted.session_id && accepted.session_id !== sessionId) setSnapshot(null);
+    setSessionId(current => current === submitted.session_id ? accepted.session_id : current);
+    void refreshService().catch(() => setError('提交已接受，但暂时无法核对服务状态。'));
+  });
+
+  useEffect(() => {
+    if (!sessionId) return;
+    let cancelled = false;
+    async function refresh() {
+      try {
+        const result = await api<Snapshot>(`/api/sessions/${sessionId}?include_messages=false`);
+        if (!cancelled) setSnapshot(result);
+      } catch (cause) {
+        if (!cancelled && cause instanceof Error && cause.message === '会话不存在。') {deletedConversation(sessionId!); return;}
+        if (!cancelled) setError(cause instanceof Error ? cause.message : '无法读取会话。');
+      }
+    }
+    void refresh();
+    const interval = window.setInterval(refresh, 500);
+    return () => { cancelled = true; window.clearInterval(interval); };
+  }, [sessionId, serviceRevision]);
+
+  async function send(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (state.active_turn_id || !state.accepting || submission.pending || !draft.trim()) return;
+    setError('');
+    await submission.send(draft, sessionId);
+  }
+
+  async function stopTurn(turnId: string) {
+    setStoppingId(turnId); setError('');
+    try {
+      await api(`/api/turns/${encodeURIComponent(turnId)}/stop`, {method: 'POST'});
+      await refreshService();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : '停止请求未能核对，可重试同一轮次。'); }
+    finally { setStoppingId(null); }
+  }
+
+  function selectConversation(id: string | null) {
+    setSessionId(id); setSnapshot(null); setTraceLocation(null); setError('');
+    if (view === 'preferences') setView('conversation');
+  }
+  function closeMobileNavigation() {
+    if (window.matchMedia('(max-width: 760px)').matches) {
+      setSidebarOpen(false);
+      requestAnimationFrame(() => navigationToggle.current?.focus());
+    }
+  }
+  function newConversation() { selectConversation(null); setView('conversation'); closeMobileNavigation(); }
+  function deletedConversation(id: string) {
+    removeDraft(id);
+    setEarlierTurns(current => { const remaining = {...current}; delete remaining[id]; return remaining; });
+    setEarlierActivity(current => { const remaining = {...current}; delete remaining[id]; return remaining; });
+    if (sessionId === id) selectConversation(null);
+  }
+  useEffect(() => {if (deletedSession) deletedConversation(deletedSession);}, [deletedSession]);
+  useEffect(() => {
+    if (datasetRevision) {setEarlierTurns({}); setEarlierActivity({}); setMaterialsExpanded({}); selectConversation(null);}
+  }, [datasetRevision]);
+  async function loadEarlier() {
+    conversationFollow.pause();
+    if (!sessionId || !snapshot) return;
+    const id = sessionId;
+    const before = earlierTurns[id]?.[0]?.ordinal ?? snapshot.next_before;
+    if (!before) return;
+    setLoadingEarlier(true);
+    try {
+      const page = await api<Snapshot>(`/api/sessions/${id}?include_messages=false&before=${before}`);
+      setEarlierTurns(current => ({...current, [id]: [...page.turns, ...(current[id] ?? [])]}));
+      setEarlierActivity(current => ({...current, [id]: {
+        requests: [...(page.requests ?? []), ...(current[id]?.requests ?? [])],
+        tool_calls: [...(page.tool_calls ?? []), ...(current[id]?.tool_calls ?? [])],
+        events: [...(page.events ?? []), ...(current[id]?.events ?? [])],
+      }}));
+    } catch (cause) { setError(cause instanceof Error ? cause.message : '无法读取更早对话。'); }
+    finally { setLoadingEarlier(false); }
+  }
+  const busy = Boolean(state.active_turn_id) || submission.submitting;
+  const turns = [...(sessionId ? earlierTurns[sessionId] ?? [] : []), ...(snapshot?.turns ?? [])]
+    .filter((turn, index, all) => all.findIndex(item => item.turn_id === turn.turn_id) === index);
+  const turn = snapshot?.turns.at(-1);
+  const storageTurnId = state.storage_error && state.unsaved_fact?.turn_id ? state.unsaved_fact.turn_id : undefined;
+  const retryBlocked = submission.pending ? '这次提交尚待核对，请先核对原提交。'
+    : busy || stoppingId ? (state.stopping || stoppingId ? '正在停止，仍占用执行名额。' : '全局忙，请等待当前请求结束。')
+    : !state.accepting ? (state.storage_error ?? '本机暂不可接收输入，请等待服务可用后再尝试。')
+    : state.map_paused ? '地图查询仍暂停，暂不能重新查询；可编辑需求，讨论已有资料。' : '';
+  async function retryTurn(failed: Turn) {
+    if (retryBlocked || !sessionId || turn?.turn_id !== failed.turn_id || !isExceptional(failed)) return;
+    setError('');
+    await submission.send(failed.input, sessionId, true);
+  }
+  const conversationFollow=useReadingFollow(sessionId, turn ? JSON.stringify([turn.turn_id,turn.status,turn.answer,snapshot?.events?.at(-1)?.event_id]) : '');
+  const activity: RoundActivity = {
+    requests: [...(sessionId ? earlierActivity[sessionId]?.requests ?? [] : []), ...(snapshot?.requests ?? [])],
+    tool_calls: [...(sessionId ? earlierActivity[sessionId]?.tool_calls ?? [] : []), ...(snapshot?.tool_calls ?? [])],
+    events: [...(sessionId ? earlierActivity[sessionId]?.events ?? [] : []), ...(snapshot?.events ?? [])],
+  };
+  function showTurnTrace(turn: Turn) {
+    conversationFollow.pause();
+    setTraceLocation({turn_id:turn.turn_id,turn_ordinal:turn.ordinal,object_type:'turn',object_id:turn.turn_id,payload_id:null,field:'turn_input',query:''});
+    setView('trace');
+  }
+  function showMaterialTrace(turn: Turn, material: QueryMaterial) {
+    conversationFollow.pause();
+    setTraceLocation({turn_id: turn.turn_id, turn_ordinal: turn.ordinal, object_type: 'tool', object_id: material.tool_call_id,
+      payload_id: material.payload_id, field: 'tool_result', query: ''});
+    setView('trace');
+  }
+  const canLoadEarlier = Boolean(snapshot && turns[0]?.ordinal > 1);
+  function toggleNavigation() {
+    setSidebarOpen(current => !current);
+    requestAnimationFrame(() => sidebarOpen ? navigationToggle.current?.focus() : sidebarToggle.current?.focus());
+  }
+  return <div className={`app ${sidebarOpen ? 'navigation-open' : 'navigation-closed'}`}>
+    <aside className="sidebar" id="session-navigation" aria-label="助手会话导航" onKeyDown={event => {if (event.key === 'Escape') {setSidebarOpen(false); requestAnimationFrame(() => navigationToggle.current?.focus());}}}>
+      <div className="sidebar-top"><button ref={sidebarToggle} className="icon-button" type="button" aria-label="收起会话导航" onClick={toggleNavigation}><Icon name="panel" /></button></div>
+      <div className="brand"><Icon name="compass" size={27} /><h1>Potato</h1></div>
+      <button className="new-conversation" onClick={newConversation}><Icon name="plus" />新会话</button>
+      <HistorySidebar sessionId={sessionId} activeTurnId={state.active_turn_id} activeSessionId={state.active_session_id} stopping={state.stopping}
+        viewingResults={view === 'conversation' && Boolean(snapshot) && turn?.status !== 'running'} viewedUpdatedAt={snapshot?.session.updated_at} resetKey={datasetRevision}
+        refreshKey={serviceRevision} onSelect={id => {selectConversation(id); closeMobileNavigation();}} onDelete={deletedConversation} />
+    </aside>
+    <main className="workspace">
+      <header className="workspace-header">
+        <div className="workspace-title"><button ref={navigationToggle} className="icon-button" type="button" aria-label={sidebarOpen ? '收起会话导航' : '打开会话导航'} aria-expanded={sidebarOpen} aria-controls="session-navigation" onClick={toggleNavigation}><Icon name="panel" /></button><h2 id="conversation-title">{snapshot?.session.title ?? (sessionId ? '正在读取会话…' : '新会话')}</h2></div>
+      <div className="global-status">
+        <p role="status" className="service-status"><span className={`status-dot ${state.active_turn_id ? 'busy' : !state.accepting ? 'unavailable' : ''}`} />{state.active_turn_id ? `${state.stopping ? '正在停止，仍占用执行名额' : '全局忙，正在执行'} · ${state.active_session_id === sessionId ? '当前会话' : '其他会话'}` : state.accepting ? '本机可接收输入' : '本机服务暂不可用'}</p>
+        {state.active_turn_id && <div>
+          <button type="button" disabled={state.stopping || stoppingId === state.active_turn_id} onClick={() => void stopTurn(state.active_turn_id!)}>{state.stopping ? '正在停止…' : stoppingId === state.active_turn_id ? '正在请求停止…' : '停止执行中的轮次'}</button>
+          <p className="hint">停止会阻止后续查询；已发起的调用会等待真实返回，期间仍占用执行名额。</p>
+        </div>}
+        {state.active_session_id && state.active_session_id !== sessionId && <button onClick={() => selectConversation(state.active_session_id)}>查看执行中的会话</button>}
+        {state.map_paused && <p>地图查询已暂停：{mapPauseLabels[state.map_pause_reason ?? ''] ?? '当前无法继续查询；仍可讨论已有资料。'}</p>}
+      </div>
+        <button className="preferences-entry" onClick={() => setView('preferences')} aria-pressed={view === 'preferences'}>旅行者偏好</button>
+      </header>
+      {view === 'preferences' ? <PreferencesView onBack={() => setView('conversation')} /> : <section className="conversation" aria-labelledby="conversation-title">
+        <nav className="view-switch" aria-label="会话视图"><button aria-pressed={view === 'conversation'} onClick={() => setView('conversation')}><Icon name="chat" />对话</button><button aria-pressed={view === 'trace'} onClick={() => setView('trace')}><Icon name="trace" />轨迹</button><p role="status" className="view-status">{turn ? turn.turn_id === storageTurnId ? '存储故障，结果未完整保存' : statusText(turn) : busy ? '其他对话正在执行' : '旅行规划与查询'}</p></nav>
+        {view === 'trace' ? <TraceView sessionId={sessionId} refreshKey={serviceRevision} location={traceLocation} /> : <>
+          <div className="reading-follow conversation-follow"><p role="status">{conversationFollow.hasNew ? '有新内容' : conversationFollow.paused ? '已暂停跟随，正在回看' : '停留底部时跟随新回答'}</p>{conversationFollow.paused && <button type="button" onClick={conversationFollow.resume}>回到最新</button>}</div>
+          <ReadingScroll className="messages" identity={sessionId} paused={conversationFollow.paused} scrollRef={conversationFollow.ref} onScroll={conversationFollow.onScroll}>
+          {sessionId && !snapshot ? <div className="empty" role="status"><h3>正在读取会话…</h3><p>正在恢复已保存的对话与执行记录。</p></div> : turn ? <>
+            {canLoadEarlier && <button className="load-earlier" disabled={loadingEarlier} onClick={() => void loadEarlier()}>加载更早对话</button>}
+            <ConversationRounds turns={turns} statusText={statusText} onTrace={showTurnTrace} activity={activity}
+              onRetry={failed => void retryTurn(failed)} retryTurnId={turn && (isExceptional(turn) || turn.turn_id === storageTurnId) ? turn.turn_id : undefined}
+              storageTurnId={storageTurnId}
+              retryBlocked={retryBlocked} onMaterialTrace={showMaterialTrace}
+              materialsExpanded={materialsExpanded} onMaterialsExpanded={(id, expanded) => setMaterialsExpanded(current => ({...current, [id]: expanded}))}
+              stoppingTurnId={state.stopping ? state.active_turn_id : stoppingId} disconnected={Boolean(connectionError)} onRead={conversationFollow.pause} />
+          </> : <div className="empty"><div className="empty-mark"><Icon name="compass" size={36} /></div><h3>下一站，去哪里？</h3><p>查询地点、比较交通路线、寻找餐饮，<br />从一条需求开始安排你的旅行。</p></div>}
+        </ReadingScroll></>}
+        <div className="composer-area"><form className="composer" onSubmit={send}>
+          <label className="visually-hidden" htmlFor="travel-input">旅行需求</label>
+          <ComposerInput value={draft} onChange={setDraft} canSend={!busy && !submission.pending && state.accepting} />
+          <div className="form-bottom"><p className="hint">{sessionId ? '继续此会话 · 切换会话保留草稿' : '发送后保存在本机'}</p><button className="send-button" type="submit" disabled={busy || Boolean(submission.pending) || !state.accepting || !draft.trim()} aria-label={submission.submitting ? '正在发送' : '发送旅行需求'}><Icon name="send" size={20} /><span>{submission.submitting ? '正在发送…' : '发送'}</span></button></div>
+          <p role="status" className="hint">{submission.submitting ? '正在发送你的消息…' : submission.pending ? '这次提交尚待核对；编辑草稿不会改变原提交，刷新页面不会自动重发。' : ''}</p>
+          {submission.pending && <div className="submission-actions">
+            <button type="button" disabled={submission.submitting} onClick={() => void submission.check()}>核对提交</button>
+            <button type="button" disabled={submission.submitting} onClick={() => void submission.retry()}>安全重试同一提交</button>
+          </div>}
+          <p className="error" role="alert">{submission.error || error}</p>
+          <p className="hint" role="status">{connectionError}</p>
+          {recoveryNotice && <p className="hint" role="status">{recoveryNotice}</p>}
+          {!state.accepting && <p className="error" role="alert">{state.storage_error ?? (connectionError ? '请等待连接恢复后再发送。' : '本机服务暂不可用，请检查后重启。')}</p>}
+        </form><p className="composer-note">最终回答在本轮结束后显示；查询结果和旅行建议请结合实际情况核对。</p></div>
+      </section>}
+    </main>
+  </div>;
+}
+
+createRoot(document.getElementById('root')!).render(<App />);

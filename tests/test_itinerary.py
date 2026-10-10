@@ -4,6 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
 import unittest
+from unittest.mock import patch
 
 from anthropic import AsyncAnthropic
 from mcp import Client
@@ -160,26 +161,32 @@ class ItineraryTests(unittest.IsolatedAsyncioTestCase):
                     "paths": [{"duration": "600", "distance": "2000"}]}))
             replies.append(response(routes, "tool_use"))
         replies.append(response([{"type": "text", "text": "组合查询完成。"}]))
-        service = ItineraryMapService(outcomes)
-        tools = AmapTools(cast(Client, service))
-        await tools.discover()
-        model = ModelService(replies)
-        history = [{"role": "user", "content": "2026年10月9日起在杭州旅行三天，"
-                    "每天从酒店高德坐标120.10,30.20出发，驾车，清淡不辣，请安排活动、餐饮及交通。"}]
+        # 实际模型可能逐条查询；同样的必要查询不能依赖模型批量发起才能完成。
+        sequential_replies = [response([block.model_dump(mode="json")], "tool_use")
+                              for reply in replies[:-1] for block in reply.content]
+        sequential_replies.append(replies[-1])
+        for scenario, model_replies in (("批量查询", replies), ("逐条查询", sequential_replies)):
+            with self.subTest(scenario=scenario), patch("amap_mcp.MAP_CALL_INTERVAL", 0):
+                service = ItineraryMapService(outcomes)
+                tools = AmapTools(cast(Client, service))
+                await tools.discover()
+                model = ModelService(model_replies)
+                history = [{"role": "user", "content": "2026年10月9日起在杭州旅行三天，"
+                            "每天从酒店高德坐标120.10,30.20出发，驾车，清淡不辣，请安排活动、餐饮及交通。"}]
 
-        answer = await agent_loop(history, cast(AsyncAnthropic, model), tools, "test-model")
+                answer = await agent_loop(history, cast(AsyncAnthropic, model), tools, "test-model")
 
-        self.assertEqual(len(service.calls), 34)
-        self.assertCountEqual(service.calls, expected_calls)
-        self.assertEqual(len(model.requests), 13)
-        self.assertNotIn("上限", answer)
-        results = [item for message in model.requests[-1]["messages"] if message["role"] == "user"
-                   and isinstance(message["content"], list) for item in message["content"]]
-        self.assertEqual(len(results), 34)
-        self.assertTrue(all(not item["is_error"] for item in results))
-        self.assertEqual(json.loads(results[3]["content"])["data"], WEATHER)
-        self.assertEqual(json.loads(results[-1]["content"])["data"]["paths"][0],
-                         {"duration": "600", "distance": "2000"})
+                self.assertEqual(answer, "组合查询完成。")
+                self.assertEqual(len(service.calls), 34)
+                self.assertCountEqual(service.calls, expected_calls)
+                self.assertEqual(len(model.requests), len(model_replies))
+                results = [item for message in model.requests[-1]["messages"] if message["role"] == "user"
+                           and isinstance(message["content"], list) for item in message["content"]]
+                self.assertEqual(len(results), 34)
+                self.assertTrue(all(not item["is_error"] for item in results))
+                self.assertEqual(json.loads(results[3]["content"])["data"], WEATHER)
+                self.assertEqual(json.loads(results[-1]["content"])["data"]["paths"][0],
+                                 {"duration": "600", "distance": "2000"})
 
     async def test_replacing_place_reuses_conditions_and_queries_changed_dining_and_routes(self):
         old_place = {"id": "test-old", "name": "测试公园", "location": "120.11,30.21",
