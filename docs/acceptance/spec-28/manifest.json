@@ -1,0 +1,40 @@
+{
+  "integration_code_head": "5426cd3d40d6be930536bb6666b1e7207676cc86",
+  "baseline": "93210c26f4f2c31e7790f62200b71e52ecf3cd62",
+  "real_model": "gemini-3.8-flash",
+  "official_policy_run": "v6",
+  "evidence_limits": [
+    "有限真实样例不能证明所有模型输出或全站覆盖",
+    "三站Tavily keyless搜索均月度额度失败，搜索/提取成功路径待额度恢复",
+    "官网原正文于2026-10-10 07:50–07:51北京时间经网页/Jina读取；回填工具retrieved_at是资料边界查询时刻",
+    "生产实连降级与上博/国博样例在最终日期边界修复前采集；涉及规则未改变，真实故宫/续聊/改期样例按最终运行记录",
+    "未读取小程序界面、未解码二维码、未访问库存、未预约或下单"
+  ],
+  "secret_scan": "实际配置秘密值及URL编码值扫描零命中",
+  "files": {
+    "gugong-jina.txt": "ec5ba087acb22a9edec703e847c1a01c95f973ceda7d3b4ba84e8252cc84e139",
+    "gugong-visit-jina.txt": "b90af04d114ac4d3ec3aa7b4e07a3194398b38f6ec41bb8cbc9caa64b7671c3e",
+    "guobo-jina.txt": "4d9793b1cb67314b575893600e1edc9d56d0efedfd37c7ea3e3e9ca4001d6260",
+    "live-bounded-retry.json": "783766ff1977d2bbe582f5513ed04234de274c929a437a2cd294d9df8a674877",
+    "live-quota-degradation.json": "538a9d048e53244b3d23e5704c78a1887771f70246db7e876d64c7ac596ec61a",
+    "live-three-site-failures.json": "afdbe47393ec890fb69f5feee41fc9088bf9c6f171ab31f44407508c68f405f9",
+    "live-tool-discovery.json": "ce98ef9dc0c80b5ecfbc595464143350758ac487374bc52430152ed2f5b5e418",
+    "manual-free-bonus-failure.json": "9f57cb5851eb42a89be49e31496618665c5044d2db9666c266f34a03e3d9ca53",
+    "official-source-catalogue.json": "40f26b61bd3e8469c4e58238987403eec3568b339a1287ed8f331e26a6fea4d0",
+    "real-dates.json": "0e7127d7e74efe2e519784b4592e2f24757cab3df8e379fec5ca0e1e6360cf84",
+    "real-official-date-policy.json": "f9ce4b638d521e65cef154b08df65d2cb9b266e77bd1765421691eb77188b852",
+    "real-other-sites.json": "e056ae22918e952a4f34b95881d00d5c592de98d711235f13e49e04a8ee6a2fc",
+    "review-date-after.json": "3042f08e4b62dd355e8192d345868d2802bd3a0ea76fb62f51533d71cf53bdac",
+    "review-date-before.json": "62782b0f838a38d79f6f037e899a1b1588279e06902a73ea6ed271b7afb9b6a6",
+    "review-date-extra-after.json": "9705d5a9c741f58c0089c825842502e2a475807acf6b1dbb5e78853ed69f9198",
+    "review-date-extra-before.json": "50383ce27a25a302fcf0627fb704535ef1c090b78f315f51a47f2de369f1b8a7",
+    "review-spec-final.md": "132eb18eb3030cd5072bfc5dd1d81af111c8d09bd4448d085cf582a82061b3b4",
+    "review-spec-initial.md": "276df47f2993cd866df1d1aaae06f648acdb8e4a5b56875918936e7a669d4c36",
+    "review-spec-intermediate.md": "1bd1975db09b95eb2e716e89d36b73693a920a81ee40eb7cbfce51f5e0f8d044",
+    "review-standards-final.md": "d0730d027afa98afaaae69bd589a25055101e0c242c8d39d89020d8ac5204240",
+    "review-standards-initial.md": "f99ac55396c68ac943b51f86e55062a34086977c80ac4956e8ec6a08ebd8f02f",
+    "shangbo-admission-jina.txt": "a4d964fef2d9eb6b8879d2815531d9f59106cf36747d6f8c579df3415c9c46d2",
+    "shangbo-jina.txt": "66be28a6d9f76e7d4ccec8141d4adf10a542b3345eb50cdbe78448d2fe5b1098",
+    "validation.json": "09fbdc421da9801178eec44232e2cf7034b15692a8fd9b60bad52bbd78ca4709"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "status": 409,
+  "data": {
+    "error": {
+      "code": "bonus_not_eligible",
+      "reason": "not_at_cap",
+      "message": "Bonus credits are only granted after reaching the monthly cap."
+    }
+  }
+}

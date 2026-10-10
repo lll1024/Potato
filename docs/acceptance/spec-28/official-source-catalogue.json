@@ -1,0 +1,47 @@
+[
+  {
+    "site": "故宫博物院",
+    "title": "故宫博物院参观须知 - 故宫博物院",
+    "url": "https://www.dpm.org.cn/singles_detail/259831.html",
+    "published_at": null,
+    "entry_type": "官方小程序名称（非可直接购票的网页URL）",
+    "body_path": "gugong-jina.txt",
+    "original_fetch_time": "2026-10-10T07:50:28+08:00"
+  },
+  {
+    "site": "中国国家博物馆",
+    "title": "服务_中国国家博物馆官方网站",
+    "url": "https://www.chnmuseum.cn/cg/",
+    "published_at": null,
+    "entry_type": "官网服务页面与扫码预约入口",
+    "body_path": "guobo-jina.txt",
+    "original_fetch_time": "2026-10-10T07:50:39+08:00"
+  },
+  {
+    "site": "上海博物馆",
+    "title": "上海博物馆参观公告",
+    "url": "https://reservation.shanghaimuseum.net/",
+    "published_at": null,
+    "entry_type": "官方参观公告网页 + 微信公众号/小程序操作路径",
+    "body_path": "shangbo-jina.txt",
+    "original_fetch_time": "2026-10-10T07:50:40+08:00"
+  },
+  {
+    "site": "故宫导览页",
+    "title": "导览 - 故宫博物院",
+    "url": "https://www.dpm.org.cn/Visit.html",
+    "published_at": null,
+    "entry_type": "官网导览页（可继续到官方票务引导）",
+    "body_path": "gugong-visit-jina.txt",
+    "original_fetch_time": "2026-10-10T07:51:03+08:00"
+  },
+  {
+    "site": "上海博物馆旧观众须知",
+    "title": "上海博物馆",
+    "url": "https://www.shanghaimuseum.net/mu/frontend/pg/service/admission",
+    "published_at": "2023-05-26",
+    "entry_type": "官方观众须知网页",
+    "body_path": "shangbo-admission-jina.txt",
+    "original_fetch_time": "2026-10-10T07:51:04+08:00"
+  }
+]

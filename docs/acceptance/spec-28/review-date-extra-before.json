@@ -1,0 +1,193 @@
+[
+  {
+    "case": "history_reference",
+    "turns": [
+      {
+        "input": "明天去杭州西湖",
+        "date_context": {
+          "timezone": "Asia/Shanghai",
+          "now": "2026-10-09T09:00:00+08:00",
+          "today": "2026-10-09",
+          "weekday": "星期五",
+          "travel_dates": {
+            "status": "resolved",
+            "start_date": "2026-10-10",
+            "end_date": "2026-10-10",
+            "source": "明天",
+            "explanation": "按本轮北京时间的次日解释。",
+            "reference_time": "2026-10-09T09:00:00+08:00"
+          }
+        }
+      },
+      {
+        "input": "之前定的明天去杭州西湖安排不变，只换午餐餐馆",
+        "date_context": {
+          "timezone": "Asia/Shanghai",
+          "now": "2026-10-10T09:00:00+08:00",
+          "today": "2026-10-10",
+          "weekday": "星期六",
+          "travel_dates": {
+            "status": "resolved",
+            "start_date": "2026-10-10",
+            "end_date": "2026-10-10",
+            "source": "明天",
+            "explanation": "按本轮北京时间的次日解释。",
+            "reference_time": "2026-10-09T09:00:00+08:00"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "case": "clarification_direct_answer",
+    "turns": [
+      {
+        "input": "本周末去北京两日游",
+        "date_context": {
+          "timezone": "Asia/Shanghai",
+          "now": "2026-10-11T09:00:00+08:00",
+          "today": "2026-10-11",
+          "weekday": "星期日",
+          "travel_dates": {
+            "status": "needs_clarification",
+            "source": "本周末",
+            "date_basis": {
+              "start_date": "2026-10-11",
+              "end_date": "2026-10-11"
+            },
+            "reference_time": "2026-10-11T09:00:00+08:00",
+            "explanation": "周六已过去，本周末只剩 2026-10-11 当天，与两日要求冲突；请确认改成一日或另选两日，不擅自延到下周。"
+          }
+        }
+      },
+      {
+        "input": "一日游",
+        "date_context": {
+          "timezone": "Asia/Shanghai",
+          "now": "2026-10-11T09:01:00+08:00",
+          "today": "2026-10-11",
+          "weekday": "星期日",
+          "travel_dates": {
+            "status": "needs_clarification",
+            "source": "本周末",
+            "date_basis": {
+              "start_date": "2026-10-11",
+              "end_date": "2026-10-11"
+            },
+            "reference_time": "2026-10-11T09:00:00+08:00",
+            "explanation": "周六已过去，本周末只剩 2026-10-11 当天，与两日要求冲突；请确认改成一日或另选两日，不擅自延到下周。"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "case": "unrelated_history",
+    "turns": [
+      {
+        "input": "明天去杭州西湖",
+        "date_context": {
+          "timezone": "Asia/Shanghai",
+          "now": "2026-10-09T09:00:00+08:00",
+          "today": "2026-10-09",
+          "weekday": "星期五",
+          "travel_dates": {
+            "status": "resolved",
+            "start_date": "2026-10-10",
+            "end_date": "2026-10-10",
+            "source": "明天",
+            "explanation": "按本轮北京时间的次日解释。",
+            "reference_time": "2026-10-09T09:00:00+08:00"
+          }
+        }
+      },
+      {
+        "input": "之前去过北京，这次下周末去杭州西湖",
+        "date_context": {
+          "timezone": "Asia/Shanghai",
+          "now": "2026-10-10T09:01:00+08:00",
+          "today": "2026-10-10",
+          "weekday": "星期六",
+          "travel_dates": {
+            "status": "resolved",
+            "start_date": "2026-10-10",
+            "end_date": "2026-10-10",
+            "source": "明天",
+            "explanation": "按本轮北京时间的次日解释。",
+            "reference_time": "2026-10-09T09:00:00+08:00"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "case": "duration_update",
+    "turns": [
+      {
+        "input": "明天去杭州西湖",
+        "date_context": {
+          "timezone": "Asia/Shanghai",
+          "now": "2026-10-09T09:00:00+08:00",
+          "today": "2026-10-09",
+          "weekday": "星期五",
+          "travel_dates": {
+            "status": "resolved",
+            "start_date": "2026-10-10",
+            "end_date": "2026-10-10",
+            "source": "明天",
+            "explanation": "按本轮北京时间的次日解释。",
+            "reference_time": "2026-10-09T09:00:00+08:00"
+          }
+        }
+      },
+      {
+        "input": "改成两日游，起始日期不变",
+        "date_context": {
+          "timezone": "Asia/Shanghai",
+          "now": "2026-10-09T09:01:00+08:00",
+          "today": "2026-10-09",
+          "weekday": "星期五",
+          "travel_dates": {
+            "status": "resolved",
+            "start_date": "2026-10-10",
+            "end_date": "2026-10-11",
+            "source": "明天",
+            "explanation": "用户明确调整旅行天数，保留原起始日期并更新结束日期。",
+            "reference_time": "2026-10-09T09:00:00+08:00"
+          },
+          "dates_changed": true,
+          "previous_travel_dates": {
+            "status": "resolved",
+            "start_date": "2026-10-10",
+            "end_date": "2026-10-10",
+            "source": "明天",
+            "explanation": "按本轮北京时间的次日解释。",
+            "reference_time": "2026-10-09T09:00:00+08:00"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "case": "explicit_calendar_day",
+    "turns": [
+      {
+        "input": "2026年10月10日游览故宫",
+        "date_context": {
+          "timezone": "Asia/Shanghai",
+          "now": "2026-10-09T09:00:00+08:00",
+          "today": "2026-10-09",
+          "weekday": "星期五",
+          "travel_dates": {
+            "status": "resolved",
+            "start_date": "2026-10-10",
+            "end_date": "2026-10-10",
+            "source": "explicit",
+            "explanation": "显式日期优先；省略年份时采用本轮北京时间的年份，起始日期与天数推导结束日期。",
+            "reference_time": "2026-10-09T09:00:00+08:00"
+          }
+        }
+      }
+    ]
+  }
+]
