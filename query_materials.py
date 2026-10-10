@@ -117,6 +117,11 @@ def summarize_query(name, result, travel_input, date_context=None):
                 if lines:
                     entries.append(lines)
         if entries:
+            dates = date_context.get("travel_dates", {}) if date_context else {}
+            if dates.get("status") == "resolved":
+                notes.append(f"本次核对的旅行日期：{dates['start_date']} 至 {dates['end_date']}；须逐项核对正文的适用日期与条件，不能据此保证当日开放。")
+            else:
+                notes.append("旅行日期尚未确定，来源规则对旅行日期的适用性仍待核实。")
             notes.append("搜索摘要仅提供线索；来源身份、官方指定渠道及正文适用日期须核对。" if search else
                          "取得正文不等于已核实官方身份或未来当天开放；常规规则、临时公告及冲突须按旅行日期核对。")
             notes.append("预订入口须遵守官方渠道限制；入口可访问不代表有票或已预约、已预订。")
