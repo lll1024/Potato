@@ -14,8 +14,8 @@ const toolActions: Record<string, string> = {
 };
 const action = (tool?: Tool) => tool ? toolActions[tool.name] ?? '执行查询' : '执行查询';
 
-export function RoundProgress({turn, activity, stopping, disconnected, statusText, onRead}: {
-  turn: Turn; activity?: RoundActivity; stopping?: boolean; disconnected?: boolean; statusText: string; onRead?: () => void;
+export function RoundProgress({turn, activity, stopping, disconnected, statusText}: {
+  turn: Turn; activity?: RoundActivity; stopping?: boolean; disconnected?: boolean; statusText: string;
 }) {
   const [now, setNow] = useState(Date.now);
   const running = turn.status === 'running';
@@ -45,35 +45,8 @@ export function RoundProgress({turn, activity, stopping, disconnected, statusTex
   const start = Date.parse(turn.created_at ?? events.find(item => item.kind === 'turn.accepted')?.timestamp ?? '');
   const duration = running ? now - start : turn.duration_ms ?? Date.parse(turn.finished_at ?? '') - start;
   const seconds = Number.isFinite(duration) ? Math.max(0, Math.floor(duration / 1000)) : null;
-  function eventText(event: Event): string | null {
-    const tool = tools.find(item => item.tool_call_id === event.tool_call_id);
-    switch (event.kind) {
-      case 'turn.accepted': return '已接收你的输入';
-      case 'request.started': return '正在请求助手';
-      case 'request.completed': return '已收到助手响应';
-      case 'request.failed': return '助手请求失败';
-      case 'tool.pending': return `准备${action(tool)}`;
-      case 'tool.waiting': return `${action(tool)}：等待调用额度`;
-      case 'tool.running': return `正在${action(tool)}`;
-      case 'tool.completed': return `${action(tool)}成功`;
-      case 'tool.failed': return `${action(tool)}失败`;
-      case 'tool.not_executed': return `${action(tool)}未执行`;
-      case 'turn.finished': return statusText;
-      case 'turn.recovered': return '服务中断，未结束调用的结果未知';
-      default: return null;
-    }
-  }
-  const records = events.flatMap(event => {
-    const text = eventText(event);
-    return text ? [{event, text}] : [];
-  });
   return <div className="round-progress" role="region" aria-label={`第 ${turn.ordinal} 轮处理进展`} data-reading-anchor={`progress:${turn.turn_id}`}>
     <div className="progress-summary"><p role="status">{running && <span className="activity-spinner" aria-hidden="true" />}{phase}</p>
       {seconds !== null && <span className="progress-duration">{running ? '已等待' : '已用时'} {seconds} 秒</span>}</div>
-    <details className="progress-details"><summary onClick={onRead}>查看处理过程</summary>
-      {records.length ? <ol>{records.map(({event, text}) => <li key={event.event_id}>
-        {event.timestamp && <time dateTime={event.timestamp}>{new Date(event.timestamp).toLocaleTimeString('zh-CN')}</time>}<span>{text}</span>
-      </li>)}</ol> : <p className="hint">暂无处理记录。</p>}
-    </details>
   </div>;
 }

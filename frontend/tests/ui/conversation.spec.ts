@@ -28,9 +28,6 @@ async function conversation(page: Page) {
       writes.push(request.postDataJSON().input);
       state.active_turn_id = 'turn'; state.active_session_id = 'trip'; sessions[0].status = 'running';
       await route.fulfill({json: {schema_version: 1, submission_id: request.postDataJSON().submission_id, session_id: 'trip', turn_id: 'turn'}});
-    } else if (url.pathname.endsWith('/stop')) {
-      state.stopping = true;
-      await route.fulfill({json: {schema_version: 1}});
     } else {
       const trip = url.pathname.includes('/trip');
       await route.fulfill({json: {schema_version: 1, session: {title: trip ? '杭州行程' : '旧会话', updated_at: sessions[trip ? 0 : 1].updated_at},
@@ -76,7 +73,8 @@ test('Enter 发送、Shift+Enter 换行，中文候选确认和空白输入不�
   expect(app.writes).toHaveLength(1);
 });
 
-test('当前阶段来自模型和并发工具事实，停止前保持执行状态', async ({page}) => {
+test('只显示真实阶段和耗时，移除停止入口与处理过程日志', async ({page}) => {
+  await page.setViewportSize({width: 1440, height: 900});
   const app = await conversation(page);
   app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
   app.activity.requests = [{request_id: 'request', turn_id: 'turn', ordinal: 1, status: 'running'}];
@@ -86,8 +84,10 @@ test('当前阶段来自模型和并发工具事实，停止前保持执行状�
   const progress = page.getByRole('region', {name: '第 1 轮处理进展'});
   await expect(progress.getByRole('status')).toContainText('正在请求助手');
   await expect(progress).toContainText(/已等待 \d+ 秒/);
-  await progress.getByText('查看处理过程', {exact: true}).click();
-  await expect(progress.getByText('已接收你的输入', {exact: true})).toBeVisible();
+  await expect(page.getByText('查看处理过程', {exact: true})).toHaveCount(0);
+  await expect(page.getByRole('button', {name: '停止执行中的轮次'})).toHaveCount(0);
+  await expect(page.locator('.global-status')).toHaveCount(0);
+  await expect(progress.getByText('已接收你的输入', {exact: true})).toHaveCount(0);
   app.activity.requests = [{request_id: 'request', turn_id: 'turn', ordinal: 1, status: 'completed'}];
   app.activity.tool_calls = [
     {tool_call_id: 'place', turn_id: 'turn', name: 'maps_text_search', status: 'running'},
@@ -102,10 +102,11 @@ test('当前阶段来自模型和并发工具事实，停止前保持执行状�
   ];
   await app.notify();
   await expect(progress.getByRole('status')).toContainText('等待调用额度');
-  await page.getByRole('button', {name: '停止执行中的轮次'}).click();
+  await page.screenshot({path: test.info().outputPath('desktop-progress.png')});
+  app.state.stopping = true;
+  await app.notify();
   await expect(progress.getByRole('status')).toContainText('正在停止');
   await expect(page.getByRole('button', {name: /杭州行程.*正在停止/}).getByRole('img', {name: '正在处理'})).toBeVisible();
-  await page.screenshot({path: test.info().outputPath('desktop-progress.png')});
 });
 
 test('后台完成仅显示静态小点，刷新保留，查看后清除', async ({page}) => {
@@ -180,7 +181,7 @@ test('已打开会话的旧快照不能清除新结果的小点', async ({page})
   await expect(page.getByRole('img', {name: '有未查看的结果'})).toHaveCount(0);
 });
 
-test('展开过程后新事件不会打断回看，工具失败仍等待整轮结束', async ({page}) => {
+test('新事件不会打断滚动回看，工具失败仍等待整轮结束', async ({page}) => {
   const app = await conversation(page);
   app.turn.input = '查询杭州的地点与路线。\n'.repeat(60);
   app.sessions[0].status = 'running'; app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip';
@@ -189,17 +190,17 @@ test('展开过程后新事件不会打断回看，工具失败仍等待整轮�
   await app.notify();
   await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
   const progress = page.getByRole('region', {name: '第 1 轮处理进展'});
-  await progress.getByText('查看处理过程', {exact: true}).click();
-  await expect(page.getByRole('button', {name: '回到最新', exact: true})).toBeVisible();
+  await expect(progress.getByRole('status')).toHaveText('正在准备请求');
   const messages = page.locator('.messages');
   await messages.evaluate(element => {element.scrollTop = 50; element.dispatchEvent(new Event('scroll'));});
+  await expect(page.getByRole('button', {name: '回到最新', exact: true})).toBeVisible();
   const position = await messages.evaluate(element => element.scrollTop);
   app.activity.events.push({event_id: 'tool-error', turn_id: 'turn', sequence: 2, kind: 'tool.failed', tool_call_id: 'place'});
   await app.notify();
   await expect(page.getByText('有新内容', {exact: true})).toBeVisible();
   expect(await messages.evaluate(element => element.scrollTop)).toBe(position);
   await page.getByRole('button', {name: '回到最新', exact: true}).click();
-  await expect(progress.getByText('查询地点失败', {exact: true})).toBeVisible();
+  await expect(progress.getByRole('status')).toHaveText('正在准备请求');
   await expect(progress.locator('.activity-spinner')).toHaveCount(1);
   expect(app.writes).toEqual([]);
 });
