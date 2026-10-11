@@ -48,6 +48,20 @@ async function conversation(page: Page) {
   }};
 }
 
+test('预订入口点击时只访问官网，不包含后续中文说明', async ({page}) => {
+  const app = await conversation(page);
+  app.turn.status = 'completed';
+  app.turn.answer = '- **预订入口**：湖北省博物馆官方微信公众号及官方网站（https://hbww.org.cn/）。官方界面正文未读取，请在放票周期内（提前5天）通过官方渠道按页面提示自行办理实名预约；余票未确认，不代为预约。';
+  await app.notify();
+  await page.getByRole('button', {name: /杭州行程.*已完成/}).click();
+  const link = page.getByRole('link', {name: 'https://hbww.org.cn/', exact: true});
+  await expect(link).toHaveAttribute('href', 'https://hbww.org.cn/');
+  await expect(page.locator('.answer-body')).toContainText('）。官方界面正文未读取');
+  await page.route('https://hbww.org.cn/**', route => route.fulfill({body: '官网入口测试'}));
+  await link.click();
+  await expect(page).toHaveURL('https://hbww.org.cn/');
+});
+
 test('Enter 发送、Shift+Enter 换行，中文候选确认和空白输入不会发送', async ({page}) => {
   const app = await conversation(page);
   const input = page.getByRole('textbox', {name: '旅行需求'});
