@@ -47,6 +47,20 @@ function statusLabel(session: Session) {
   return session.status === 'failed' ? '请求未完成' : '已终止';
 }
 
+function relativeTime(updatedAt: string, now: number) {
+  const elapsed = now - new Date(updatedAt).getTime();
+  if (!Number.isFinite(elapsed)) return '时间未知';
+  const minutes = Math.max(0, Math.floor(elapsed / 60000));
+  if (minutes < 1) return '刚刚';
+  if (minutes < 60) return `${minutes}分钟`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}小时`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}天`;
+  if (days < 365) return `${Math.floor(days / 30)}个月`;
+  return `${Math.floor(days / 365)}年`;
+}
+
 export function HistorySidebar({sessionId, activeTurnId, activeSessionId, stopping, viewingResults = true, viewedUpdatedAt, resetKey, refreshKey, onSelect, onDelete}: {
   sessionId: string | null; activeTurnId: string | null;
   activeSessionId?: string | null; stopping?: boolean;
@@ -55,6 +69,7 @@ export function HistorySidebar({sessionId, activeTurnId, activeSessionId, stoppi
   onSelect: (id: string) => void; onDelete: (id: string) => void;
 }) {
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [now, setNow] = useState(Date.now);
   const [indicators, setIndicators] = useState(savedIndicators);
   const [visible, setVisible] = useState(() => document.visibilityState === 'visible');
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -73,6 +88,11 @@ export function HistorySidebar({sessionId, activeTurnId, activeSessionId, stoppi
   const historyRegion = useRef<HTMLElement>(null);
   const visibleCount = useRef(20);
   const menuSession = sessions.find(session => session.session_id === menuId);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const change = () => setVisible(document.visibilityState === 'visible');
@@ -203,26 +223,33 @@ export function HistorySidebar({sessionId, activeTurnId, activeSessionId, stoppi
   }
 
   return <aside className="history" aria-label="历史会话" ref={historyRegion} tabIndex={-1}>
-    <ul className="history-list">{sessions.map(session => <li className="history-item" key={session.session_id}>
-      {editing !== session.session_id && <button className="history-select" aria-current={sessionId === session.session_id ? 'true' : undefined} onClick={() => onSelect(session.session_id)}>
-        <strong>{(session.status === 'running' || session.session_id === activeSessionId)
-          ? <span className="activity-spinner" role="img" aria-label="正在处理" />
-          : indicators[session.session_id]?.status === 'unread' && <span className="unread-result-dot" role="img" aria-label="有未查看的结果" />}
-          <span className="history-title">{session.title}</span></strong>
-        <time dateTime={session.updated_at}>{new Date(session.updated_at).toLocaleString('zh-CN')}</time>
-        <span>{statusLabel(session.session_id === activeSessionId ? {...session, status: stopping ? 'stopping' : 'running'} : session)}</span>
-      </button>}
-      <button className="history-menu-trigger" type="button" disabled={working} aria-label={`会话操作“${session.title}”`} aria-haspopup="menu" aria-expanded={menuId === session.session_id} aria-controls="history-menu"
-        onClick={event => {menuTrigger.current = event.currentTarget; setMenuId(current => current === session.session_id ? null : session.session_id);}}
-        onKeyDown={event => {if (['ArrowDown', 'ArrowUp'].includes(event.key)) {event.preventDefault(); menuTrigger.current = event.currentTarget; setMenuId(session.session_id);}}}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" /></svg>
-      </button>
-      {editing === session.session_id && <form className="rename-form" onSubmit={rename} onKeyDown={event => {if (event.key === 'Escape') {event.preventDefault(); event.stopPropagation(); if (!working) finishEditing();}}}>
-        <label htmlFor="session-title">会话标题</label>
-        <input id="session-title" name="session-title" value={title} onChange={event => setTitle(event.target.value)} required maxLength={120} disabled={working} autoFocus />
-        <div className="history-actions"><button type="submit" disabled={working}>保存标题</button><button type="button" disabled={working} onClick={finishEditing}>取消</button></div>
-      </form>}
-    </li>)}</ul>
+    <ul className="history-list">{sessions.map(session => {
+      const displayed = session.session_id === activeSessionId ? {...session, status: stopping ? 'stopping' : 'running'} : session;
+      const status = statusLabel(displayed);
+      const timestamp = new Date(session.updated_at).toLocaleString('zh-CN');
+      return <li className="history-item" key={session.session_id}>
+        {editing !== session.session_id && <button className="history-select" title={`${session.title}\n${timestamp}\n${status}`} aria-current={sessionId === session.session_id ? 'true' : undefined} onClick={() => onSelect(session.session_id)}>
+          <strong>{(displayed.status === 'running' || displayed.status === 'stopping')
+            ? <span className="activity-spinner" role="img" aria-label="正在处理" />
+            : indicators[session.session_id]?.status === 'unread' && <span className="unread-result-dot" role="img" aria-label="有未查看的结果" />}
+            {displayed.status !== 'running' && displayed.status !== 'stopping' && (displayed.status !== 'completed' || displayed.tool_error_count > 0) &&
+              <svg className="history-status-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v6m0 3v1" /></svg>}
+            <span className="history-title">{session.title}</span></strong>
+          <time dateTime={session.updated_at} aria-label={timestamp}>{relativeTime(session.updated_at, now)}</time>
+          <span className="visually-hidden">{status}</span>
+        </button>}
+        <button className="history-menu-trigger" type="button" disabled={working} aria-label={`会话操作“${session.title}”`} aria-haspopup="menu" aria-expanded={menuId === session.session_id} aria-controls="history-menu"
+          onClick={event => {menuTrigger.current = event.currentTarget; setMenuId(current => current === session.session_id ? null : session.session_id);}}
+          onKeyDown={event => {if (['ArrowDown', 'ArrowUp'].includes(event.key)) {event.preventDefault(); menuTrigger.current = event.currentTarget; setMenuId(session.session_id);}}}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" /></svg>
+        </button>
+        {editing === session.session_id && <form className="rename-form" onSubmit={rename} onKeyDown={event => {if (event.key === 'Escape') {event.preventDefault(); event.stopPropagation(); if (!working) finishEditing();}}}>
+          <label htmlFor="session-title">会话标题</label>
+          <input id="session-title" name="session-title" value={title} onChange={event => setTitle(event.target.value)} required maxLength={120} disabled={working} autoFocus />
+          <div className="history-actions"><button type="submit" disabled={working}>保存标题</button><button type="button" disabled={working} onClick={finishEditing}>取消</button></div>
+        </form>}
+      </li>;
+    })}</ul>
     <div id="history-menu" className="history-menu" ref={menuPanel} popover="auto" role="menu" aria-label="会话操作"
       onToggle={event => {if (event.newState === 'closed' && !event.currentTarget.matches(':popover-open')) setMenuId(null);}}
       onBlur={event => {if (!event.currentTarget.contains(event.relatedTarget)) closeMenu();}}

@@ -40,11 +40,11 @@ a { color: var(--accent); text-underline-offset: 3px; }
 .history h2 { color: var(--text-muted); font-size: 12px; font-weight: 500; margin: 0 8px 12px; }
 .history > .hint { font-size: 11px; padding: 0 8px; margin-bottom: 16px; }
 .history-list { list-style: none; margin: 0; padding: 0; }
-.history-list li { margin-bottom: 8px; }
-.history-select { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px 8px; text-align: left; padding: 10px; background: transparent; border: 0; border-radius: 7px; }
+.history-list li { margin-bottom: 2px; }
+.history-select { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; text-align: left; padding: 8px 10px; background: transparent; border: 0; border-radius: 7px; }
 .history-select[aria-current="true"] { background: #e0e3ec; color: #1f2637; }
-.history-select strong { grid-column: 1 / -1; font-size: 13px; font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.history-select time, .history-select span { color: var(--text-muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+.history-select strong { min-width: 0; font-size: 13px; font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.history-select time { color: var(--text-muted); font-size: 10px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .history-actions { display: flex; gap: 3px; margin: 3px 4px 0; }
 .history-actions button { min-height: 28px; font-size: 11px; padding: 3px 7px; border: 0; background: transparent; color: var(--text-muted); }
 .rename-form { padding: 8px; }
@@ -113,12 +113,12 @@ a { color: var(--accent); text-underline-offset: 3px; }
 .composer textarea { display: block; width: 100%; min-height: 52px; max-height: 160px; resize: vertical; padding: 5px 0; border: 0; border-radius: 0; background: transparent; color: #242732; font-size: 14px; line-height: 1.7; caret-color: var(--accent); }
 .composer textarea:focus-visible { outline: none; }
 textarea::placeholder { color: #6c7484; }
-.composer textarea::placeholder, .form-bottom .hint { color: var(--composer-hint); }
+.composer textarea::placeholder { color: #8b929e; opacity: 1; }
+.form-bottom .hint { color: var(--composer-hint); }
 .form-bottom { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 6px; }
 .form-bottom p { margin: 0; font-size: 11px; }
 .send-button { display: flex; align-items: center; justify-content: center; gap: 5px; color: white; background: var(--accent); border: 0; min-height: 35px; font-size: 12px; }
 .send-button:hover:not(:disabled) { color: white; background: #234aaf; }
-.composer-note { text-align: center; color: var(--composer-hint); font-size: 10px; margin: 9px 0 0; }
 .composer > .hint { margin: 6px 0 0; }
 .submission-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; font-size: 12px; }
 input, select { min-width: 0; min-height: 36px; padding: 7px 10px; border: 1px solid #d7dbe5; border-radius: 6px; color: #343b4b; background: white; caret-color: var(--accent); }
@@ -140,8 +140,6 @@ input::placeholder { color: #6c7484; }
   .app { grid-template-columns: minmax(0, 1fr); }
   .navigation-open .workspace { display: none; }
   .sidebar { width: 100%; border-right: 0; padding: 16px 20px; }
-  .history-select strong { grid-column: 1; }
-  .history-select span { grid-column: 1 / -1; }
   .workspace-header { padding: 10px 14px 3px; flex-wrap: wrap; gap: 0 10px; }
   .workspace-title { flex: 1; gap: 6px; }
   .workspace-title h2 { font-size: 14px; }
@@ -157,11 +155,10 @@ input::placeholder { color: #6c7484; }
   .composer-area { padding: 10px 14px max(8px, env(safe-area-inset-bottom)); }
   .composer { padding: 10px 12px; }
   .composer textarea { font-size: 16px; }
-  .composer-note { font-size: 10px; }
   .message.user { margin-left: 6%; }
   .round-heading { align-items: flex-start; }
 }
 @media (prefers-reduced-motion: reduce) { button { transition: none; } }
 
-.preferences-entry { flex-shrink: 0; white-space: nowrap; }
+.preferences-entry { flex-shrink: 0; white-space: nowrap; opacity: 0; }
 .workspace > .preferences-view { flex: 1; min-height: 0; overflow-y: auto; border: 0; border-radius: 0; }

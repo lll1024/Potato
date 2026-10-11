@@ -41,6 +41,30 @@ async function history(page: Page, initial: Session[]) {
   return writes;
 }
 
+test('历史单行显示相对时间，随时间推进更新，并保留完整时间与状态', async ({ page }) => {
+  await page.clock.install({time: new Date('2026-10-11T02:00:00Z')});
+  const title = '杭州西湖和灵隐寺的周末旅行安排以及附近餐饮推荐';
+  await history(page, [
+    {...session('recent', title), updated_at: '2026-10-11T01:59:00Z'},
+    {...session('hour', '一小时前'), updated_at: '2026-10-11T01:00:00Z'},
+    session('day', '两天前'),
+    session('failed', '未完成的会话', 'failed'),
+  ]);
+  const recent = page.getByRole('button', {name: new RegExp(`${title}.*已完成`)});
+  await expect(recent.locator('time')).toHaveText('1分钟');
+  await expect(page.getByRole('button', {name: /一小时前.*已完成/}).locator('time')).toHaveText('1小时');
+  await expect(page.getByRole('button', {name: /两天前.*已完成/}).locator('time')).toHaveText('2天');
+  await expect(recent).toHaveAttribute('title', new RegExp(`${title}\\n.*\\n已完成`));
+  const heading = (await recent.locator('strong').boundingBox())!;
+  const time = (await recent.locator('time').boundingBox())!;
+  expect(Math.abs(heading.y + heading.height / 2 - time.y - time.height / 2)).toBeLessThan(1);
+  expect(heading.x + heading.width).toBeLessThanOrEqual(time.x);
+  await expect(page.getByRole('button', {name: /未完成的会话.*请求未完成/}).locator('svg')).toHaveCount(1);
+  await page.clock.runFor(60000);
+  await expect(recent.locator('time')).toHaveText('2分钟');
+  await page.screenshot({path: test.info().outputPath('compact-history-desktop.png')});
+});
+
 test('空历史仅显示灰色的暂无已发送的会话', async ({ page }) => {
   await history(page, []);
   const sidebar = page.getByRole('complementary', { name: '历史会话' });
@@ -169,6 +193,7 @@ test('触屏始终显示三点，菜单关闭后仍能继续操作侧栏', async
     await trigger.tap();
     const rename = page.getByRole('menuitem', { name: '重命名', exact: true });
     await expect(rename).toBeVisible();
+    await expect(page.getByRole('button', {name: /杭州行程.*已完成/}).locator('time')).toBeVisible();
     await page.screenshot({ path: test.info().outputPath('mobile-menu.png') });
     await rename.press('Escape');
     await expect(page.getByRole('menu')).toBeHidden();
