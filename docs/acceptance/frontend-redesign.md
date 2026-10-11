@@ -40,3 +40,11 @@ PYTHONPATH=tests python -m unittest test_history test_search test_trace test_too
 ## 验证边界
 
 本轮未重新调用真实模型或高德服务，未进行屏幕阅读器实测，也不承诺任意规模历史或载荷的性能。自动测试及合成界面数据证明呈现和应用语义，不能证明旅行建议或地图事实正确。
+
+## 2026-10-11 展示范围调整
+
+[任务 #44](https://github.com/lll1024/Potato/issues/44) 按用户确认移除实际时间线及时间边界明细入口；上述时间线验收结果保留为历史记录。当前执行轨迹通过执行树、请求和工具详情查看真实时间与耗时，后端时间采集、持久化、搜索及阅读跟随保持不变。
+
+本次验证：`npm test --prefix frontend` 3 项通过（移除时间线专用测试），`npm run build --prefix frontend` 通过。`conversation.spec.ts`、`history.spec.ts`、`recovery.spec.ts` 浏览器回归共 25 项通过；`test_trace`、`test_tool_trace`、`test_recovery`、`test_search` 后端回归共 23 项通过。浏览器在沙箱内无法启动，改为沙箱外的隔离 Chrome 后全部通过。
+
+正式本地构建使用已有北京助手会话只读核对：1440×900 桌面与 390×844 手机均无实际时间线或时间边界入口，请求和工具详情保留开始／结束及 SDK 时间；手机收起导航后轨迹可用，无页面横向溢出或 JavaScript 页面错误。未提交新旅行需求或调用外部模型／地图。设计检测结果为 `[]`，规范与需求两路代码审查均未发现问题。

@@ -15,7 +15,6 @@ async function component(file, name) {
   return (await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`))[name];
 }
 const AnswerBody = await component('AnswerBody', 'AnswerBody');
-const TraceTimeline = await component('TraceTimeline', 'TraceTimeline');
 const answer = text => renderToStaticMarkup(createElement(AnswerBody, { text }));
 
 test('回答呈现标题、列表、表格和代码，保留长正文尾部', () => {
@@ -37,14 +36,4 @@ test('Markdown 图片显示为链接，不自动请求外部图片', () => {
   const html = answer('![地图参考](https://example.com/map.png)');
   assert.doesNotMatch(html, /<img/);
   assert.match(html, /<a href="https:\/\/example.com\/map.png">地图参考<\/a>/);
-});
-
-test('未结束调用没有伪造结束边界或区间', () => {
-  const html = renderToStaticMarkup(createElement(TraceTimeline, {
-    turns: [{turn_id: 'turn', ordinal: 1}], requests: [{request_id: 'request', turn_id: 'turn', ordinal: 1, status: 'running', started_at: '2026-10-09T02:00:00Z', finished_at: null}], tools: [], events: [], selected: null, onLocate() {},
-  }));
-  assert.match(html, /尚未结束/);
-  assert.match(html, /width:0%/);
-  assert.match(html, /请求开始/);
-  assert.doesNotMatch(html, /请求结束/);
 });

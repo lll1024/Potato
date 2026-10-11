@@ -27,8 +27,6 @@
   "selection-bg": "#dfe8ff"
   "search-hit": "#fff0a6"
   "search-hit-text": "#473400"
-  "model-timeline": "#9675b9"
-  "tool-timeline": "#d08732"
   "scrollbar": "#c5c8d2"
 "typography":
   "headline":
@@ -84,7 +82,6 @@
     "fontWeight": 400
     "lineHeight": 1.7
 "rounded":
-  "timeline": "1px"
   "badge": "3px"
   "field": "6px"
   "control": "7px"
@@ -177,14 +174,6 @@
     "padding": "9px 0"
   "trace-row-selected":
     "backgroundColor": "{colors.accent-soft}"
-  "timeline-model":
-    "backgroundColor": "{colors.model-timeline}"
-    "rounded": "{rounded.timeline}"
-    "height": "12px"
-  "timeline-tool":
-    "backgroundColor": "{colors.tool-timeline}"
-    "rounded": "{rounded.timeline}"
-    "height": "12px"
   "user-message":
     "backgroundColor": "{colors.surface}"
     "rounded": "{rounded.message}"
@@ -220,8 +209,8 @@
 
 ### Primary
 
-- **定位蓝**（`accent`）：发送、当前标签、链接、选中时间条、光标与键盘焦点；`accent-soft` 承担轨迹选中行和用户类型标签，`accent-hover` 用于发送悬停。
-- **模型紫 / 工具橙**（`model` / `tool`）：类型文字与对应浅色标签底；时间条使用各自 `model-timeline` / `tool-timeline`，定位时转为蓝色。它们是信息分类色，不新增第二套操作强调色。
+- **定位蓝**（`accent`）：发送、当前标签、链接、选中记录、光标与键盘焦点；`accent-soft` 承担轨迹选中行和用户类型标签，`accent-hover` 用于发送悬停。
+- **模型紫 / 工具橙**（`model` / `tool`）：类型文字与对应浅色标签底。它们是信息分类色，不新增第二套操作强调色。
 - **真实状态色**（`ready` / `busy` / `unavailable`）：服务状态小圆点；`error` 用于错误信息和确认删除。均配合状态文字。
 - **搜索与选区**（`search-hit` / `search-hit-text`、`selection-bg` / `selection-text`）：前者标出搜索命中，后者用于浏览器原生文本选区；均不承担按钮选中语义。
 
@@ -261,7 +250,7 @@
 
 - **至（1000px）**：导航降为（220px），主区留白收紧；执行详情移入选中记录内，轨迹成为单列，工具栏补充说明隐藏。
 - **至（760px）**：导航与工作区互斥显示，导航占满宽度；标题和状态允许换行，标签图标隐藏，正文留白（18px），轨迹留白（14px）；筛选控件换行，树缩进降为（4px）。输入字号升为（16px），底部留白兼容 `safe-area-inset-bottom`。
-- **宽内容**：回复表格最小宽度（420px），只在表格区域横向滚动；载荷区最高（400px），时间边界列表最高（240px），搜索结果最高（180px），均在自身区域滚动。
+- **宽内容**：回复表格最小宽度（420px），只在表格区域横向滚动；载荷区最高（400px），搜索结果最高（180px），均在自身区域滚动。
 
 ## Elevation & Depth
 
@@ -276,7 +265,7 @@
 
 ## Shapes
 
-轻圆角服务于可操作区域：控件采用 `control`，输入字段采用 `field`，类型标签采用 `badge`；用户输入采用 `message`，底部输入采用 `composer`。执行树与记录行保持平直边界，不套圆角卡片。时间条以 `timeline` 的微圆角区分可点击条目。
+轻圆角服务于可操作区域：控件采用 `control`，输入字段采用 `field`，类型标签采用 `badge`；用户输入采用 `message`，底部输入采用 `composer`。执行树与记录行保持平直边界，不套圆角卡片。
 
 区域及行分隔统一为（1px）细线；Markdown 引用仅使用（1px）起始边线与浅灰底。SVG 图标默认（18px），发送（20px），品牌（27px），空状态（36px）；采用（24×24）viewBox、（1.6px）描边、圆端点与圆连接，继承文字颜色。树展开箭头由细线绘制，并随原生展开状态旋转。
 
@@ -327,12 +316,12 @@
 - 对话/轨迹标签默认辅助灰，当前标签使用蓝字、权重（600）与底部（2px）蓝线；保留 `aria-pressed` 与导航名称。
 - 导航收起/展开使用按钮与 `aria-expanded`、`aria-controls`；手机打开时导航占满画面，选择会话后回到工作区，Escape 可收起并恢复焦点。
 
-### 执行树与实际时间线
+### 执行树与详情
 
 层级、类型和定位共同支撑排查。
 
 - 原生 details/summary 表达会话、对话轮次和模型请求的展开状态；摘要行细分隔线、文字省略、状态在尾部，完整内容可在详情阅读。
-- 选中摘要、工具行和时间边界使用浅蓝背景；时间条悬停或选中使用强调蓝。时间条两条泳道分别为模型和工具，高度（12px），最小宽度（5px）；位置与宽度来源于实际时间，没有伪造未结束时长。
+- 选中摘要和工具行使用浅蓝背景。请求与工具详情保留真实时间和耗时，缺失的结束时间与耗时明确显示未知；不再显示实际时间线或时间边界列表。
 - 完整载荷沿用等宽文字，保留换行、分段读取和完整复制操作；数字与状态文字保留真实未知值。搜索命中高亮在原文中显示。
 - 回看、展开或定位时暂停自动跟随，通过可见的「回到最新」恢复；从对话轮次进入轨迹后保留对应位置和焦点。
 

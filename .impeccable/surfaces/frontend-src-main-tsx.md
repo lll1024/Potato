@@ -2,7 +2,7 @@
 version: 1
 slug: "frontend-src-main-tsx"
 primary_target: "frontend/src/main.tsx"
-related_targets: ["frontend/src/style.css","frontend/src/TraceView.tsx","frontend/src/trace.css","frontend/src/ConversationRounds.tsx","frontend/src/HistorySidebar.tsx","frontend/src/TraceTimeline.tsx"]
+related_targets: ["frontend/src/style.css","frontend/src/TraceView.tsx","frontend/src/trace.css","frontend/src/ConversationRounds.tsx","frontend/src/HistorySidebar.tsx"]
 ---
 
 # 本机旅行助手工作台

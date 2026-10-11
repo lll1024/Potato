@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import './trace.css';
 import { Payload, Highlight, type TraceLocation } from './PayloadViewer';
 import { TraceSearch } from './TraceSearch';
-import { TraceTimeline } from './TraceTimeline';
 import { useReadingFollow } from './useReadingFollow';
 import { ReadingScroll } from './ReadingScroll';
 import { requestJson } from './api';
@@ -165,10 +164,6 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
     setExpanded(next);
     follow.resume();
   }
-  function timelineLocate(objectType: 'request' | 'tool', objectId: string, turnId: string) {
-    const turn=snapshot?.turns.find(item => item.turn_id===turnId);
-    if (turn) void locate({turn_id:turnId,turn_ordinal:turn.ordinal,object_type:objectType,object_id:objectId,payload_id:null,field:'',query:''});
-  }
   if (!sessionId) return <div className="trace-empty"><p>发送旅行需求后，这里显示每次模型请求的真实开始与结束。</p></div>;
   return <div className="trace-view">
     <div className="trace-toolbar"><h3>执行轨迹</h3><div><button onClick={() => expandAll(true)}>全部展开</button><button onClick={() => expandAll(false)}>全部收起</button></div><p className="hint">已收到响应 ≠ 本轮结束</p></div>
@@ -178,7 +173,6 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
     <div className="reading-follow"><p role="status">{follow.hasNew ? '有新事件' : follow.paused ? '已暂停跟随，正在阅读' : '正在跟随最新事件'}</p>{follow.paused && <button type="button" onClick={backToLatest}>回到最新</button>}</div>
     <ReadingScroll className="trace-scroll" identity={sessionId} paused={follow.paused} scrollRef={follow.ref} onScroll={follow.onScroll} onClickCapture={event => {if ((event.target as HTMLElement).closest('summary')) onInteraction();}}>
     {snapshot?.next_before && <button type="button" disabled={loadingEarlier} onClick={() => void loadEarlier()}>加载更早轨迹</button>}
-    {snapshot && <TraceTimeline turns={snapshot.turns} requests={snapshot.requests} tools={snapshot.tool_calls} events={snapshot.events} selected={selected} onLocate={timelineLocate} />}
     <div className={`trace-layout ${selected ? 'has-detail' : ''}`}>
       <div className="trace-tree">
         <details open={expanded.session ?? true} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,session:open}));}}>
