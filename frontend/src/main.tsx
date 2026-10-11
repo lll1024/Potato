@@ -29,11 +29,6 @@ function statusText(turn: Turn): string {
   return `${turn.status === 'failed' ? '失败' : '终止'}：${reasonLabels[turn.reason ?? ''] ?? turn.reason ?? '原因未知'}`;
 }
 
-const mapPauseLabels: Record<string, string> = {
-  auth: '当前无法进行新的地图查询。仍可讨论已有资料。', quota: '查询额度或访问受限，当前无法进行新的地图查询。仍可讨论已有资料。',
-  connection: '地图连接不可用，当前无法继续查询。', service: '地图服务暂不可用，当前无法继续查询。',
-};
-
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(() => !window.matchMedia('(max-width: 760px)').matches);
   const navigationToggle = useRef<HTMLButtonElement>(null);
@@ -57,7 +52,6 @@ function App() {
   const [materialsExpanded, setMaterialsExpanded] = useState<Record<string, boolean>>({});
   const {state, revision: serviceRevision, datasetRevision, deletedSession, connectionError, recoveryNotice, refresh: refreshService} = useServiceEvents();
   const [error, setError] = useState('');
-  const [stoppingId, setStoppingId] = useState<string | null>(null);
 
   const submission = useSubmission((accepted, submitted) => {
     if (!submitted.preserve_draft) clearSubmittedDraft(submitted.session_id, submitted.input);
@@ -88,15 +82,6 @@ function App() {
     if (state.active_turn_id || !state.accepting || submission.pending || !draft.trim()) return;
     setError('');
     await submission.send(draft, sessionId);
-  }
-
-  async function stopTurn(turnId: string) {
-    setStoppingId(turnId); setError('');
-    try {
-      await api(`/api/turns/${encodeURIComponent(turnId)}/stop`, {method: 'POST'});
-      await refreshService();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : '停止请求未能核对，可重试同一轮次。'); }
-    finally { setStoppingId(null); }
   }
 
   function selectConversation(id: string | null) {
@@ -144,7 +129,7 @@ function App() {
   const turn = snapshot?.turns.at(-1);
   const storageTurnId = state.storage_error && state.unsaved_fact?.turn_id ? state.unsaved_fact.turn_id : undefined;
   const retryBlocked = submission.pending ? '这次提交尚待核对，请先核对原提交。'
-    : busy || stoppingId ? (state.stopping || stoppingId ? '正在停止，仍占用执行名额。' : '全局忙，请等待当前请求结束。')
+    : busy ? (state.stopping ? '正在停止，仍占用执行名额。' : '全局忙，请等待当前请求结束。')
     : !state.accepting ? (state.storage_error ?? '本机暂不可接收输入，请等待服务可用后再尝试。')
     : state.map_paused ? '地图查询仍暂停，暂不能重新查询；可编辑需求，讨论已有资料。' : '';
   async function retryTurn(failed: Turn) {
@@ -176,8 +161,7 @@ function App() {
   }
   return <div className={`app ${sidebarOpen ? 'navigation-open' : 'navigation-closed'}`}>
     <aside className="sidebar" id="session-navigation" aria-label="助手会话导航" onKeyDown={event => {if (event.key === 'Escape') {setSidebarOpen(false); requestAnimationFrame(() => navigationToggle.current?.focus());}}}>
-      <div className="sidebar-top"><button ref={sidebarToggle} className="icon-button" type="button" aria-label="收起会话导航" onClick={toggleNavigation}><Icon name="panel" /></button></div>
-      <div className="brand"><Icon name="compass" size={27} /><h1>Potato</h1></div>
+      <div className="sidebar-top"><div className="brand"><Icon name="compass" size={22} /><h1>Potato</h1></div><button ref={sidebarToggle} className="icon-button" type="button" aria-label="收起会话导航" onClick={toggleNavigation}><Icon name="panel" /></button></div>
       <button className="new-conversation" onClick={newConversation}><Icon name="plus" />新会话</button>
       <HistorySidebar sessionId={sessionId} activeTurnId={state.active_turn_id} activeSessionId={state.active_session_id} stopping={state.stopping}
         viewingResults={view === 'conversation' && Boolean(snapshot) && turn?.status !== 'running'} viewedUpdatedAt={snapshot?.session.updated_at} resetKey={datasetRevision}
@@ -186,19 +170,10 @@ function App() {
     <main className="workspace">
       <header className="workspace-header">
         <div className="workspace-title"><button ref={navigationToggle} className="icon-button" type="button" aria-label={sidebarOpen ? '收起会话导航' : '打开会话导航'} aria-expanded={sidebarOpen} aria-controls="session-navigation" onClick={toggleNavigation}><Icon name="panel" /></button><h2 id="conversation-title">{snapshot?.session.title ?? (sessionId ? '正在读取会话…' : '新会话')}</h2></div>
-      <div className="global-status">
-        {(state.active_turn_id || !state.accepting) && <p role="status" className="service-status"><span className={`status-dot ${state.active_turn_id ? 'busy' : 'unavailable'}`} />{state.active_turn_id ? `${state.stopping ? '正在停止，仍占用执行名额' : '全局忙，正在执行'} · ${state.active_session_id === sessionId ? '当前会话' : '其他会话'}` : '本机服务暂不可用'}</p>}
-        {state.active_turn_id && <div>
-          <button type="button" disabled={state.stopping || stoppingId === state.active_turn_id} onClick={() => void stopTurn(state.active_turn_id!)}>{state.stopping ? '正在停止…' : stoppingId === state.active_turn_id ? '正在请求停止…' : '停止执行中的轮次'}</button>
-          <p className="hint">停止会阻止后续查询；已发起的调用会等待真实返回，期间仍占用执行名额。</p>
-        </div>}
-        {state.active_session_id && state.active_session_id !== sessionId && <button onClick={() => selectConversation(state.active_session_id)}>查看执行中的会话</button>}
-        {state.map_paused && <p>地图查询已暂停：{mapPauseLabels[state.map_pause_reason ?? ''] ?? '当前无法继续查询；仍可讨论已有资料。'}</p>}
-      </div>
         <button className="preferences-entry" onClick={() => setView('preferences')} aria-pressed={view === 'preferences'}>旅行者偏好</button>
       </header>
       {view === 'preferences' ? <PreferencesView onBack={() => setView('conversation')} /> : <section className="conversation" aria-labelledby="conversation-title">
-        <nav className="view-switch" aria-label="会话视图"><button aria-pressed={view === 'conversation'} onClick={() => setView('conversation')}><Icon name="chat" />对话</button><button aria-pressed={view === 'trace'} onClick={() => setView('trace')}><Icon name="trace" />轨迹</button><p role="status" className="view-status">{turn ? turn.turn_id === storageTurnId ? '存储故障，结果未完整保存' : statusText(turn) : busy ? '其他对话正在执行' : '旅行规划与查询'}</p></nav>
+        <nav className="view-switch" aria-label="会话视图"><button aria-pressed={view === 'conversation'} onClick={() => setView('conversation')}>对话</button><button aria-pressed={view === 'trace'} onClick={() => setView('trace')}>轨迹</button><p role="status" className="view-status">{turn ? turn.turn_id === storageTurnId ? '存储故障，结果未完整保存' : statusText(turn) : busy ? '其他对话正在执行' : '旅行规划与查询'}</p></nav>
         {view === 'trace' ? <TraceView sessionId={sessionId} refreshKey={serviceRevision} location={traceLocation} /> : <>
           <div className="reading-follow conversation-follow"><p role="status">{conversationFollow.hasNew ? '有新内容' : conversationFollow.paused ? '已暂停跟随，正在回看' : '停留底部时跟随新回答'}</p>{conversationFollow.paused && <button type="button" onClick={conversationFollow.resume}>回到最新</button>}</div>
           <ReadingScroll className="messages" identity={sessionId} paused={conversationFollow.paused} scrollRef={conversationFollow.ref} onScroll={conversationFollow.onScroll}>
@@ -209,7 +184,7 @@ function App() {
               storageTurnId={storageTurnId}
               retryBlocked={retryBlocked} onMaterialTrace={showMaterialTrace}
               materialsExpanded={materialsExpanded} onMaterialsExpanded={(id, expanded) => setMaterialsExpanded(current => ({...current, [id]: expanded}))}
-              stoppingTurnId={state.stopping ? state.active_turn_id : stoppingId} disconnected={Boolean(connectionError)} onRead={conversationFollow.pause} />
+              stoppingTurnId={state.stopping ? state.active_turn_id : null} disconnected={Boolean(connectionError)} onRead={conversationFollow.pause} />
           </> : <div className="empty"><div className="empty-mark"><Icon name="compass" size={36} /></div><h3>下一站，去哪里？</h3></div>}
         </ReadingScroll></>}
         <div className="composer-area"><form className="composer" onSubmit={send}>

@@ -2,7 +2,7 @@
 .history-list .history-item { position: relative; }
 .history-item .history-select { padding-right: 10px; }
 .history-item .rename-form { border: 0; padding: 10px 44px 10px 10px; border-radius: 7px; background: var(--surface, #f7f8fa); }
-.history-menu-trigger { position: absolute; top: 0; right: 4px; display: flex; align-items: center; justify-content: center; width: 28px; min-height: 36px; padding: 0; border: 0; background: transparent; color: var(--text-muted, #646a78); opacity: 0; pointer-events: none; }
+.history-menu-trigger { position: absolute; top: 0; right: 4px; display: flex; align-items: center; justify-content: center; width: 28px; min-height: 32px; padding: 0; border: 0; background: transparent; color: var(--text-muted, #646a78); opacity: 0; pointer-events: none; }
 .history-item:hover .history-menu-trigger, .history-item:focus-within .history-menu-trigger, .history-menu-trigger[aria-expanded="true"] { opacity: 1; pointer-events: auto; }
 .history-item:hover .history-select time, .history-item:focus-within .history-select time, .history-item:has([aria-expanded="true"]) .history-select time { visibility: hidden; }
 .history-menu { position: fixed; inset: auto; margin: 0; width: 144px; padding: 4px; border: 1px solid var(--line, #e8e9ee); border-radius: 7px; background: #fff; color: #242732; }
@@ -21,13 +21,7 @@
 .round-progress { padding: 10px 0 14px; color: var(--text-muted, #646a78); font-size: 12px; }
 .progress-summary { display: flex; align-items: baseline; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
 .progress-summary p { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--text, #242732); }
-.progress-duration, .progress-details time { font-variant-numeric: tabular-nums; }
-.progress-details { margin-top: 8px; }
-.progress-details summary { cursor: pointer; width: fit-content; }
-.progress-details summary:focus-visible { outline: 2px solid var(--accent, #315cce); outline-offset: 3px; }
-.progress-details ol { list-style: none; margin: 10px 0 0; padding: 0; }
-.progress-details li { display: flex; gap: 12px; padding: 4px 0; }
-.progress-details time { flex: none; }
+.progress-duration { font-variant-numeric: tabular-nums; }
 @keyframes activity-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .activity-spinner { animation: none; } }
 @media (max-width: 760px) {

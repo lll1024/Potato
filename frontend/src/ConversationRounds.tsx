@@ -20,7 +20,7 @@ export function ConversationRounds({turns, statusText, onTrace, activity, stoppi
   return <>{turns.map(turn => <section key={turn.turn_id} aria-label={`第 ${turn.ordinal} 轮对话`}>
     <div className="round-heading"><p className="round-status">第 {turn.ordinal} 轮 · {turn.turn_id === storageTurnId ? '存储故障，结果未完整保存' : statusText(turn)}</p>{onTrace && <button type="button" onClick={() => onTrace(turn)}>查看本轮轨迹</button>}</div>
     <article className="message user" data-reading-anchor={`input:${turn.turn_id}`}><h3>你的输入</h3><p>{turn.input}</p></article>
-    {turn.turn_id !== storageTurnId && <RoundProgress turn={turn} activity={activity} stopping={stoppingTurnId === turn.turn_id} disconnected={disconnected} statusText={statusText(turn)} onRead={onRead} />}
+    {turn.turn_id !== storageTurnId && <RoundProgress turn={turn} activity={activity} stopping={stoppingTurnId === turn.turn_id} disconnected={disconnected} statusText={statusText(turn)} />}
     {(turn.answer !== null || isExceptional(turn) || turn.turn_id === storageTurnId) && <article className="message answer" data-reading-anchor={`answer:${turn.turn_id}`}>
       <div className="answer-heading"><h3>旅行助手</h3><span>{turn.answer_source === 'model' ? '模型回答' : '应用说明'}</span></div>
       {(isExceptional(turn) || turn.turn_id === storageTurnId) && <ExceptionOutcome turn={turn} onTrace={onTrace} onMaterialTrace={onMaterialTrace} storageFault={turn.turn_id === storageTurnId}
