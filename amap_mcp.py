@@ -256,7 +256,7 @@ class AmapTools:
         fields = {"key", "api_key", "apikey", "access_token", "token", "auth",
                   "authorization", "password", "secret", "auth_token", "cookie", "set_cookie",
                   "client_secret", "refresh_token", "x_api_key", "anthropic_api_key", "anthropic_auth_token",
-                  "tavily_api_key", "tavily_api_token"}
+                  "tavily_api_key", "tavily_api_token", "exa_api_key"}
 
         def redact_url(match):
             try:
@@ -281,12 +281,12 @@ class AmapTools:
             )
             # 配置和 HTTP 头可用等号或冒号；认证方案后的完整凭据也须隐藏。
             value = re.sub(
-                r"\b((?:key|api[_-]?key|access_token|token|auth|authorization|password|secret|auth_token|cookie|set[_-]cookie|client_secret|refresh_token|x[_-]api[_-]key|anthropic_api_key|anthropic_auth_token|tavily[_-]api[_-]key|tavily[_-]api[_-]token)[ \t]*[=:][ \t]*)(?:(?:Bearer|Basic|Digest|Negotiate|Token)[ \t]+)?(?:\"[^\"]*\"|'[^']*'|[^\s,;&<>\"'\\]+)",
+                r"\b((?:key|api[_-]?key|access_token|token|auth|authorization|password|secret|auth_token|cookie|set[_-]cookie|client_secret|refresh_token|x[_-]api[_-]key|anthropic_api_key|anthropic_auth_token|tavily[_-]api[_-]key|tavily[_-]api[_-]token|exa[_-]api[_-]key)[ \t]*[=:][ \t]*)(?:(?:Bearer|Basic|Digest|Negotiate|Token)[ \t]+)?(?:\"[^\"]*\"|'[^']*'|[^\s,;&<>\"'\\]+)",
                 lambda match: match[1] + "[REDACTED]", value, flags=re.IGNORECASE,
             )
             # 普通文字中的 JSON 凭据字段也须隐藏，例如用户粘贴配置片段。
             return re.sub(
-                r'("(?:key|api[_-]?key|access_token|token|auth|authorization|password|secret|auth_token|cookie|set[_-]cookie|client_secret|refresh_token|x[_-]api[_-]key|anthropic_api_key|anthropic_auth_token|tavily[_-]api[_-]key|tavily[_-]api[_-]token)"\s*:\s*)"(?:[^"\\]|\\.)*"',
+                r'("(?:key|api[_-]?key|access_token|token|auth|authorization|password|secret|auth_token|cookie|set[_-]cookie|client_secret|refresh_token|x[_-]api[_-]key|anthropic_api_key|anthropic_auth_token|tavily[_-]api[_-]key|tavily[_-]api[_-]token|exa[_-]api[_-]key)"\s*:\s*)"(?:[^"\\]|\\.)*"',
                 lambda match: match[1] + '"[REDACTED]"', value, flags=re.IGNORECASE,
             )
 
