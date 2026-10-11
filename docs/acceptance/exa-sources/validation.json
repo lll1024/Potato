@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-11",
+  "timezone": "Asia/Shanghai",
+  "base": "71dadcbbf59b96f7ad364f76983a5f0d059080fe",
+  "branch": "codex/exa-keyless-sources",
+  "full_suite": {
+    "command": ".venv/bin/python -m unittest discover -s tests -v",
+    "tests": 219,
+    "seconds": 168.587,
+    "result": "passed",
+    "note": "最后一条提示词补充另经相关29项及真实Web复验验证"
+  },
+  "focused_suite": {
+    "command": "PYTHONPATH=tests:. .venv/bin/python -m unittest test_exa_sources test_legacy_sources test_official_sources test_source_failures test_official_date_applicability test_cli -v",
+    "tests": 29,
+    "seconds": 7.861,
+    "result": "passed"
+  },
+  "typecheck": {
+    "command": ".venv/bin/pyright --pythonpath .venv/bin/python agent.py amap_mcp.py amap_http.py exa_mcp.py source_http.py travel_tools.py query_materials.py limits.py web.py store.py preferences.py tests/test_exa_sources.py tests/test_legacy_sources.py tests/test_official_sources.py tests/test_source_failures.py tests/test_official_date_applicability.py tests/test_cli.py",
+    "errors": 0,
+    "warnings": 0
+  },
+  "diff_check": "passed",
+  "credential_scan_hits": 0,
+  "standards_review_findings": 0,
+  "spec_review_remaining_findings": 0,
+  "live_chain": "live-chain.json",
+  "live_before": "live-chain-before.json",
+  "live_second": "live-chain-second.json",
+  "external_limits": "匿名Exa具体额度未公开；本次未真实触发429；未核实未来当日开放、余票或小程序界面；模型样例不能保证所有未来输出"
+}

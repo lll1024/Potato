@@ -19,7 +19,7 @@ from mcp.server import MCPServer
 
 from agent import run_cli
 from amap_mcp import AmapTools
-from tavily_mcp import TavilyTools
+from exa_mcp import ExaTools
 from travel_tools import SourceHTTPClient, TravelTools
 from test_agent import MapService, ModelService, response
 from web import Runtime, create_app
@@ -38,26 +38,26 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
                 raise ValueError("地点条件错误")
             return {"pois": [{"name": "测试博物馆", "address": "北京市", "location": "116,39"}]}
 
-        @sources.tool(name="tavily-search")
-        def search(query: str) -> dict:
+        @sources.tool(name="web_search_exa")
+        def search(query: str, objective: str) -> str:
             if query != "测试博物馆 官方参观须知":
                 raise ValueError("搜索条件错误")
-            return {"results": [{"title": "官方参观须知", "url": url, "content": "周一闭馆，预约规则见正文"}]}
+            return f"Title: 官方参观须知\nURL: {url}\nPublished: N/A\nAuthor: N/A\nHighlights:\n周一闭馆，预约规则见正文"
 
-        @sources.tool(name="tavily-extract")
-        def extract(urls: list[str]) -> dict:
+        @sources.tool(name="web_fetch_exa")
+        def extract(urls: list[str], maxCharacters: int = 3000) -> str:
             if urls != [url]:
                 raise ValueError("正文地址错误")
-            return {"results": [{"url": url, "raw_content": body_text}], "failed_results": []}
+            return f"# 官方参观须知\nURL: {url}\n\n{body_text}"
 
-        @sources.tool(name="tavily-crawl")
+        @sources.tool(name="agent_run")
         def forbidden(url: str) -> dict:
             raise AssertionError("不能开放付费或爬取能力")
 
         model = ModelService([
             response([{"type": "tool_use", "id": "map", "name": "maps_text_search", "input": {"keywords": "测试博物馆", "city": "北京"}},
-                      {"type": "tool_use", "id": "search", "name": "tavily-search", "input": {"query": "测试博物馆 官方参观须知"}}], "tool_use"),
-            response([{"type": "tool_use", "id": "body", "name": "tavily-extract", "input": {"urls": [url]}}], "tool_use"),
+                      {"type": "tool_use", "id": "search", "name": "web_search_exa", "input": {"objective": "优先官方参观规则", "query": "测试博物馆 官方参观须知"}}], "tool_use"),
+            response([{"type": "tool_use", "id": "body", "name": "web_fetch_exa", "input": {"urls": [url]}}], "tool_use"),
             response([{"type": "text", "text": "已取得资料，当前特展的具体入口与适用范围仍待核实。"}]),
         ])
         source_app = sources.streamable_http_app(json_response=True, stateless_http=True)
@@ -70,9 +70,9 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
                     async with Client(streamable_http_client("http://127.0.0.1:8000/mcp", http_client=source_http)) as source_client:
                         amap = AmapTools(map_client)
                         await amap.discover()
-                        tavily = TavilyTools(source_client, redact=amap.redact)
-                        await tavily.discover()
-                        yield Runtime(cast(AsyncAnthropic, model), TravelTools(amap, tavily), "test-model")
+                        exa = ExaTools(source_client, redact=amap.redact)
+                        await exa.discover()
+                        yield Runtime(cast(AsyncAnthropic, model), TravelTools(amap, exa), "test-model")
 
         with tempfile.TemporaryDirectory() as directory:
             app = create_app(directory, resources=resources)
@@ -88,7 +88,7 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
                     turn = saved["turns"][0]
                     self.assertEqual(turn["status"], "completed")
                     names = {tool["name"] for tool in model.requests[0]["tools"]}
-                    self.assertEqual(names, {"maps_text_search", "tavily-search", "tavily-extract"})
+                    self.assertEqual(names, {"maps_text_search", "web_search_exa", "web_fetch_exa"})
                     search_result = model.requests[1]["messages"][-1]["content"][1]
                     self.assertEqual(search_result["tool_use_id"], "search")
                     self.assertIn(url, search_result["content"])
@@ -99,10 +99,10 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
                     body_envelope = json.loads(body_result["content"])
                     self.assertEqual(search_envelope["document_status"], "search_clues")
                     self.assertEqual(body_envelope["document_status"], "extraction_result")
-                    body_data = json.loads(body_envelope["text"][0])
-                    self.assertEqual(body_data["results"][0]["url"], url)
-                    self.assertEqual(body_data["results"][0]["raw_content"], body_text)
-                    self.assertNotIn("published_date", body_data["results"][0])
+                    body_data = body_envelope["sources"]
+                    self.assertEqual(body_data[0]["url"], url)
+                    self.assertEqual(body_data[0]["content"], body_text)
+                    self.assertNotIn("published_date", body_data[0])
                     materials = turn["query_materials"]
                     self.assertEqual(len(materials), 2)
                     self.assertIn("线索", materials[0]["title"])
@@ -135,15 +135,15 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
         @maps.tool(name="maps_text_search")
         def place(keywords: str, city: str) -> dict:
             return {"name": "测试博物馆", "address": "北京市"}
-        @sources.tool(name="tavily_search")
-        def search(query: str) -> dict:
-            return {"results": [{"url": "https://museum.example.test/visit", "content": "参观须知"}]}
-        @sources.tool(name="tavily_extract")
-        def extract(urls: list[str]) -> dict:
-            return {"results": [{"url": urls[0], "raw_content": "预约仅限官方小程序。"}]}
+        @sources.tool(name="web_search_exa")
+        def search(query: str, objective: str) -> str:
+            return "Title: 参观须知\nURL: https://museum.example.test/visit\nPublished: N/A\nHighlights:\n参观须知"
+        @sources.tool(name="web_fetch_exa")
+        def extract(urls: list[str], maxCharacters: int = 3000) -> str:
+            return f"# 参观须知\nURL: {urls[0]}\n\n预约仅限官方小程序。"
         model = ModelService([
-            response([{"type": "tool_use", "id": "cli-search", "name": "tavily_search", "input": {"query": "测试博物馆 官网"}}], "tool_use"),
-            response([{"type": "tool_use", "id": "cli-body", "name": "tavily_extract", "input": {"urls": ["https://museum.example.test/visit"]}}], "tool_use"),
+            response([{"type": "tool_use", "id": "cli-search", "name": "web_search_exa", "input": {"objective": "优先官方参观规则", "query": "测试博物馆 官网"}}], "tool_use"),
+            response([{"type": "tool_use", "id": "cli-body", "name": "web_fetch_exa", "input": {"urls": ["https://museum.example.test/visit"]}}], "tool_use"),
             response([{"type": "text", "text": "官方正文要求通过小程序预约，尚未完成预约。"}]),
         ])
         output = io.StringIO()
@@ -156,7 +156,7 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
             result = await run_cli("map-key")
         self.assertEqual(result, 0)
         names = {tool["name"] for tool in model.requests[0]["tools"]}
-        self.assertEqual(names, {"maps_text_search", "tavily_search", "tavily_extract"})
+        self.assertEqual(names, {"maps_text_search", "web_search_exa", "web_fetch_exa"})
         self.assertEqual(model.requests[2]["messages"][-1]["content"][0]["tool_use_id"], "cli-body")
         self.assertIn("官方小程序", model.requests[2]["messages"][-1]["content"][0]["content"])
         self.assertIn("尚未完成预约", output.getvalue())
@@ -167,16 +167,16 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
         @maps.tool(name="maps_text_search")
         def place(keywords: str, city: str) -> dict:
             return {"name": "测试博物馆", "address": "北京市"}
-        @sources.tool(name="tavily_search")
-        def search(query: str) -> dict:
-            return {"code": "monthly_cap_reached_bonus_eligible", "message": "pay via x402 or POST /keyless/bonus", "next_actions": [{"type": "agentic_payment"}]}
-        @sources.tool(name="tavily_extract")
-        def extract(urls: list[str]) -> dict:
+        @sources.tool(name="web_search_exa")
+        def search(query: str, objective: str) -> dict:
+            return {"code": "quota_exceeded", "message": "pay via x402 or POST /keyless/bonus", "next_actions": [{"type": "agentic_payment"}]}
+        @sources.tool(name="web_fetch_exa")
+        def extract(urls: list[str], maxCharacters: int = 3000) -> str:
             raise AssertionError("额度耗尽后不应启动另一资料调用")
         model = ModelService([
-            response([{"type": "tool_use", "id": "quota", "name": "tavily_search", "input": {"query": "官方规则"}},
+            response([{"type": "tool_use", "id": "quota", "name": "web_search_exa", "input": {"objective": "优先官方参观规则", "query": "官方规则"}},
                       {"type": "tool_use", "id": "map-after-quota", "name": "maps_text_search", "input": {"keywords": "测试博物馆", "city": "北京"}},
-                      {"type": "tool_use", "id": "body-after-quota", "name": "tavily_extract", "input": {"urls": ["https://museum.example.test"]}}], "tool_use"),
+                      {"type": "tool_use", "id": "body-after-quota", "name": "web_fetch_exa", "input": {"urls": ["https://museum.example.test"]}}], "tool_use"),
             response([{"type": "text", "text": "地点已查到，资料额度耗尽，开放和预约待核实。"}]),
         ])
         with patch.dict(os.environ, {"MODEL_ID": "test-model", "ANTHROPIC_API_KEY": "model-key"}, clear=True), \
@@ -213,7 +213,7 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
         def source_http(**kwargs):
             return real_client(transport=httpx2.MockTransport(unavailable), **kwargs)
         output = io.StringIO()
-        with patch.dict(os.environ, {"MODEL_ID": "test-model", "ANTHROPIC_API_KEY": "model-key", "TAVILY_API_KEY": "paid-key-must-not-be-used"}, clear=True), \
+        with patch.dict(os.environ, {"MODEL_ID": "test-model", "ANTHROPIC_API_KEY": "model-key", "TAVILY_API_KEY": "paid-key-must-not-be-used", "EXA_API_KEY": "exa-paid-key-must-not-be-used"}, clear=True), \
              patch("agent.Client", side_effect=lambda *args, **kwargs: Client(maps)), \
              patch("travel_tools.SourceHTTPClient", side_effect=source_http), \
              patch("agent.AsyncAnthropic", return_value=ModelContext(model)), \
@@ -222,7 +222,9 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
             result = await run_cli("map-key")
         self.assertEqual(result, 0)
         self.assertTrue(requests)
-        self.assertEqual(requests[0].headers["X-Tavily-Access-Mode"], "keyless")
+        self.assertEqual(str(requests[0].url), "https://mcp.exa.ai/mcp")
+        self.assertNotIn("x-tavily-access-mode", requests[0].headers)
+        self.assertNotIn("x-api-key", requests[0].headers)
         self.assertNotIn("authorization", requests[0].headers)
         self.assertNotIn("paid-key-must-not-be-used", str(requests[0].headers) + str(requests[0].url))
         self.assertIn("官方资料服务暂不可用", model.requests[0]["system"])

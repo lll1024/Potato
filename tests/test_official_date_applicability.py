@@ -12,7 +12,8 @@ from mcp import Client
 from mcp.server import MCPServer
 
 from amap_mcp import AmapTools
-from tavily_mcp import TavilyTools
+from exa_mcp import ExaTools
+from exa_fixtures import source_text
 from travel_tools import TravelTools
 from test_agent import MapService, ModelService, response
 import test_history
@@ -28,22 +29,22 @@ class OfficialDateApplicabilityTests(unittest.IsolatedAsyncioTestCase):
     async def service(self, directory, model, pages):
         sources = MCPServer("日期适用性资料边界")
 
-        @sources.tool(name="tavily_search")
-        def search(query: str) -> dict:
-            return {"results": [{"url": url, "content": "搜索摘要，仅作为线索"} for url in pages]}
+        @sources.tool(name="web_search_exa")
+        def search(query: str, objective: str) -> str:
+            return source_text({"results": [{"url": url, "content": "搜索摘要，仅作为线索"} for url in pages]}, search=True)
 
-        @sources.tool(name="tavily_extract")
-        def extract(urls: list[str]) -> dict:
-            return {"results": [{"url": url, **pages[url]} for url in urls]}
+        @sources.tool(name="web_fetch_exa")
+        def extract(urls: list[str], maxCharacters: int = 3000) -> str:
+            return source_text({"results": [{"url": url, **pages[url]} for url in urls if pages[url].get("text")], "failed_results": [{"url": url} for url in urls if not pages[url].get("text")]}, search=False)
 
         @asynccontextmanager
         async def resources():
             async with Client(sources) as source:
                 amap = AmapTools(cast(Client, MapService()))
                 await amap.discover()
-                tavily = TavilyTools(source, redact=amap.redact)
-                await tavily.discover()
-                yield Runtime(cast(AsyncAnthropic, model), TravelTools(amap, tavily), "test-model")
+                exa = ExaTools(source, redact=amap.redact)
+                await exa.discover()
+                yield Runtime(cast(AsyncAnthropic, model), TravelTools(amap, exa), "test-model")
         app = create_app(directory, resources=resources, clock=lambda: self.moment)
         async with app.router.lifespan_context(app):
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
@@ -51,15 +52,15 @@ class OfficialDateApplicabilityTests(unittest.IsolatedAsyncioTestCase):
 
     def querying_model(self, urls, query):
         return ModelService([
-            response([{"type": "tool_use", "id": "search", "name": "tavily_search", "input": {"query": query}}], "tool_use"),
-            response([{"type": "tool_use", "id": "extract", "name": "tavily_extract", "input": {"urls": urls}}], "tool_use"),
+            response([{"type": "tool_use", "id": "search", "name": "web_search_exa", "input": {"query": query, "objective": "优先官方公告，核对适用日期"}}], "tool_use"),
+            response([{"type": "tool_use", "id": "extract", "name": "web_fetch_exa", "input": {"urls": urls}}], "tool_use"),
             response([{"type": "text", "text": "协议测试占位回答，不表示官方政策已核实。"}]),
         ])
 
     async def test_weekend_materials_show_resolved_dates_and_preserve_policy_conditions(self):
         url = "https://museum.example.test/visit"
         body = "常规9:00–17:00，周一闭馆；节假日以官方通知为准。预约为提前7日内。"
-        pages = {url: {"raw_content": body}}
+        pages = {url: {"text": body}}
         model = self.querying_model([url], "测试博物馆 官方规则 2026-10-10 2026-10-11")
         with tempfile.TemporaryDirectory() as directory:
             async with self.service(directory, model, pages) as client:
@@ -76,17 +77,17 @@ class OfficialDateApplicabilityTests(unittest.IsolatedAsyncioTestCase):
         for material in materials:
             self.assertIn("2026-10-10 至 2026-10-11", str(material["notes"]))
         envelope = json.loads(payload["content"]["content"])
-        data = envelope["data"] or json.loads(envelope["text"][0])
-        self.assertEqual(data["results"][0]["raw_content"], body)
+        data = envelope["sources"]
+        self.assertEqual(data[0]["content"], body)
         self.assertEqual(context_from_request(model.requests[2]), turn["travel_date_context"])
 
     async def test_restart_and_date_change_keep_raw_announcements_and_separate_date_basis(self):
         pages = {
-            "https://museum.example.test/valid": {"raw_content": "展厅2026-10-09至2026-10-11临时闭馆。", "published_date": "2026-10-08", "applicable_dates": "2026-10-09 至 2026-10-11"},
-            "https://museum.example.test/expired": {"raw_content": "展厅2026-08-11至2026-09-14闭馆。"},
-            "https://museum.example.test/no-end": {"raw_content": "另一展厅2026-08-03开始施工封闭，未载明结束日期。"},
-            "https://museum.example.test/rule-a": {"raw_content": "测试博物馆周一闭馆，节假日以公告为准。"},
-            "https://museum.example.test/rule-b": {"raw_content": "测试博物馆周二闭馆，适用版本未载明。"},
+            "https://museum.example.test/valid": {"text": "展厅2026-10-09至2026-10-11临时闭馆。", "published_date": "2026-10-08", "applicable_dates": "2026-10-09 至 2026-10-11"},
+            "https://museum.example.test/expired": {"text": "展厅2026-08-11至2026-09-14闭馆。"},
+            "https://museum.example.test/no-end": {"text": "另一展厅2026-08-03开始施工封闭，未载明结束日期。"},
+            "https://museum.example.test/rule-a": {"text": "测试博物馆周一闭馆，节假日以公告为准。"},
+            "https://museum.example.test/rule-b": {"text": "测试博物馆周二闭馆，适用版本未载明。"},
             "https://museum.example.test/unread": {},
         }
         urls = list(pages)
@@ -117,19 +118,21 @@ class OfficialDateApplicabilityTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("2026-10-17 至 2026-10-18", str(material["notes"]))
         body_material = materials[1]
         for page in pages.values():
-            if "raw_content" in page:
-                self.assertIn(page["raw_content"], str(body_material["entries"]))
+            if "text" in page:
+                self.assertIn(page["text"], str(body_material["entries"]))
         self.assertIn("正文未取得", str(body_material["entries"]))
         envelope = json.loads(raw["content"]["content"])
-        data = envelope["data"] or json.loads(envelope["text"][0])
-        self.assertEqual(data["results"], [{"url": url, **page} for url, page in pages.items()])
+        data = envelope["sources"]
+        self.assertEqual({source["url"]: source["content"] for source in data},
+                         {url: page["text"] for url, page in pages.items() if page.get("text")})
+        self.assertEqual(envelope["failed_sources"][0]["url"], "https://museum.example.test/unread")
         self.assertEqual(context_from_request(second_model.requests[2]), turn["travel_date_context"])
 
     async def test_undated_trip_keeps_source_applicability_unconfirmed(self):
         url = "https://museum.example.test/visit"
         model = self.querying_model([url], "测试博物馆 官方")
         with tempfile.TemporaryDirectory() as directory:
-            async with self.service(directory, model, {url: {"raw_content": "常规9:00–17:00。"}}) as client:
+            async with self.service(directory, model, {url: {"text": "常规9:00–17:00。"}}) as client:
                 _, saved = await self.finish(client, "去北京测试博物馆，先看看参观规则")
         context = context_from_request(model.requests[0])
         self.assertEqual(context["travel_dates"]["status"], "unspecified")

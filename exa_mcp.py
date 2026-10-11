@@ -1,6 +1,8 @@
-"""Tavily 免费 keyless MCP 的搜索和正文提取边界。"""
+"""Exa 免费免密钥 MCP 的搜索和正文提取边界。"""
 import asyncio
 import json
+import re
+from urllib.parse import urlsplit
 from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable, cast
 
@@ -12,10 +14,9 @@ from mcp.types import CONNECTION_CLOSED, PARSE_ERROR, REQUEST_TIMEOUT
 from amap_mcp import ToolResult
 from limits import SOURCE_CALL_INTERVAL, TOOL_TIMEOUT
 
-TAVILY_URL = "https://mcp.tavily.com/mcp/"
-KEYLESS_HEADERS = {"X-Tavily-Access-Mode": "keyless"}
-SEARCH_TOOLS = {"tavily-search", "tavily_search"}
-EXTRACT_TOOLS = {"tavily-extract", "tavily_extract"}
+EXA_URL = "https://mcp.exa.ai/mcp"
+SEARCH_TOOLS = {"web_search_exa"}
+EXTRACT_TOOLS = {"web_fetch_exa"}
 SOURCE_TOOLS = SEARCH_TOOLS | EXTRACT_TOOLS
 SOURCE_FAILURES = {
     "auth": "资料鉴权失败", "rate_limit": "资料服务限流", "quota": "资料免费额度耗尽",
@@ -25,7 +26,7 @@ SOURCE_FAILURES = {
 UNAVAILABLE_MESSAGE = "官方资料服务暂不可用，开放、预约、门票和临时公告仍待核实；可继续使用地图查询，不启用付费服务。"
 
 
-class TavilyTools:
+class ExaTools:
     def __init__(self, client: Client, *, redact: Callable[[str], str], tool_timeout: float = TOOL_TIMEOUT, call_interval: float = SOURCE_CALL_INTERVAL):
         self.client = client
         self.redact = redact
@@ -60,7 +61,7 @@ class TavilyTools:
         loop = asyncio.get_running_loop()
         started = loop.time()
         facts: dict[str, Any] = {"started_at": datetime.now(timezone.utc).isoformat(),
-            "provider": "tavily", "call_started": False, "wait_duration_ms": 0.0,
+            "provider": "exa", "call_started": False, "wait_duration_ms": 0.0,
             "call_duration_ms": None, "service": None, "error": None}
 
         async def finish(output: ToolResult, category: str | None = None) -> ToolResult:
@@ -139,19 +140,80 @@ class TavilyTools:
             self.failure = "rate_limit" if any("rate_limit" in code for code in codes) else "quota"
             # 服务返回的付款、注册和奖励指令仅保留在原始轨迹，不作为模型操作要求。
             return await finish({"content": "资料免费额度耗尽或限流，开放、预约和门票仍待核实；可继续使用地图，不切换付费或领取奖励额度。", "is_error": True}, self.failure)
-        if result.is_error:
+        texts = [block.text for block in result.content if block.type == "text"]
+        error_text = "\n".join(texts)
+        if result.is_error or re.match(r"Error:", error_text, re.IGNORECASE):
+            if re.search(r"rate.?limit|too many requests|\b429\b", error_text, re.IGNORECASE):
+                self.failure = "rate_limit"
+            elif re.search(r"quota|credit.?exhaust|cap.?reached", error_text, re.IGNORECASE):
+                self.failure = "quota"
+            if self.failure:
+                return await finish({"content": self.failure_message, "is_error": True}, self.failure)
             return await finish({"content": UNAVAILABLE_MESSAGE, "is_error": True}, "sdk_error")
-        data = next((payload for payload in payloads if isinstance(payload, dict) and isinstance(payload.get("results"), list)), None)
-        if data is None:
-            return await finish({"content": "资料返回无法解析，未完成正文核实；开放、预约和门票仍待核实，可继续地图查询。", "is_error": True}, "malformed")
-        usable = [item for item in data["results"] if isinstance(item, dict) and isinstance(item.get("url"), str) and item["url"].strip()
-                  and (name in SEARCH_TOOLS or isinstance(item.get("raw_content"), str) and item["raw_content"].strip())]
-        if not usable:
-            return await finish({"content": "资料未返回可用搜索线索或正文；开放、预约和门票仍待核实，可继续地图查询。", "is_error": True}, "empty")
+        sources, failed = parse_sources(texts, search=name in SEARCH_TOOLS)
+        parsed_failure = bool(failed)
+        if name in EXTRACT_TOOLS:
+            returned_urls = {source["url"] for source in [*sources, *failed]}
+            requested_urls = arguments.get("urls", [])
+            if isinstance(requested_urls, list):
+                failed.extend({"url": url, "error": "该页面未返回可用内容，正文未取得"} for url in requested_urls
+                              if isinstance(url, str) and url not in returned_urls)
+        if not sources:
+            category = "empty" if parsed_failure or not any(text.strip() for text in texts) or any(
+                re.search(r"no (?:results|content) found", text, re.IGNORECASE) for text in texts) else "malformed"
+            return await finish({"content": "资料未返回可用搜索线索或正文，未完成正文核实；开放、预约和门票仍待核实，可继续地图查询。", "is_error": True}, category)
         content = self.redact(json.dumps({
-            "text": [block.text for block in result.content if block.type == "text"],
-            "data": result.structured_content,
+            "text": texts, "data": result.structured_content,
+            "provider": "exa", "sources": sources, "failed_sources": failed,
             "retrieved_at": retrieved_at,
-            "document_status": "search_clues" if name in SEARCH_TOOLS else "extraction_result",
+            "document_status": "search_clues" if name in SEARCH_TOOLS else "extraction_result" if any(
+                source["content_type"] == "page_body" for source in sources) else "content_excerpt",
+            "content_boundary": "正文可能受字符上限截断或条件不完整，不能由缺失内容推断规则；查询时间不是页面更新时间或服务重新抓取时间。",
+            "max_characters": arguments.get("maxCharacters", 3000) if name in EXTRACT_TOOLS else None,
         }, ensure_ascii=False))
         return await finish({"content": content, "is_error": False})
+
+
+def parse_sources(texts: list[str], *, search: bool) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+    """只识别 Exa 的来源头及内容标记，不把自由文本或生成摘要当作正文。"""
+    sources, failed = [], []
+    header = r"^Title: (?P<title>[^\n]*)\nURL: (?P<url>[^\n]+)\n" if search else r"^# (?P<title>[^\n]*)\nURL: (?P<url>[^\n]+)\n"
+    for text in texts:
+        errors = list(re.finditer(r"^Error fetching (?P<url>https?://\S+): (?P<error>[^\n]+)", text, re.MULTILINE))
+        failed.extend({"url": error["url"], "error": error["error"]} for error in errors)
+        matches = list(re.finditer(header, text, re.MULTILINE))
+        for index, match in enumerate(matches):
+            url = match["url"].strip()
+            try:
+                parsed = urlsplit(url)
+                if parsed.scheme not in ("http", "https") or not parsed.netloc:
+                    continue
+            except ValueError:
+                continue
+            end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+            end = min([end, *(error.start() for error in errors if match.end() <= error.start() < end)])
+            rest = text[match.end():end].strip()
+            source: dict[str, Any] = {"title": match["title"].strip(), "url": url}
+            if search:
+                marker = re.search(r"^(Highlights|Text|Summary):[ \t]*\n", rest, re.MULTILINE)
+                if marker is None:
+                    continue
+                published = re.search(r"^Published: (.+)$", rest[:marker.start()], re.MULTILINE)
+                if published and published[1].strip() not in ("N/A", "Unknown", ""):
+                    source["published_date"] = published[1].strip()
+                source["content_type"] = {"Highlights": "highlights", "Text": "search_text", "Summary": "generated_summary"}[marker[1]]
+                rest = rest[marker.end():].strip()
+            else:
+                source["content_type"] = "page_body"
+                marker = re.match(r"(Highlights|Summary):[ \t]*\n", rest)
+                if marker:
+                    source["content_type"] = "highlights" if marker[1] == "Highlights" else "generated_summary"
+                    rest = rest[marker.end():].strip()
+            # 服务多页分隔符不属于页面正文；内容保留原样，不从正文猜测日期。
+            rest = re.sub(r"\n---\s*$", "", rest).strip()
+            if rest:
+                source["content"] = rest
+                sources.append(source)
+            else:
+                failed.append({"url": url, "error": "来源未返回可用内容"})
+    return sources, failed

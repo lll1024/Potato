@@ -7,11 +7,11 @@ from mcp.client.streamable_http import streamable_http_client
 
 from amap_mcp import AmapTools
 from limits import TOOL_TIMEOUT
-from tavily_mcp import KEYLESS_HEADERS, SOURCE_TOOLS, TAVILY_URL, TavilyTools, UNAVAILABLE_MESSAGE
+from exa_mcp import EXA_URL, SOURCE_TOOLS, ExaTools, UNAVAILABLE_MESSAGE
 
 
 class TravelTools:
-    def __init__(self, amap: AmapTools, sources: TavilyTools | None = None):
+    def __init__(self, amap: AmapTools, sources: ExaTools | None = None):
         self.amap = amap
         self.sources = sources
         self.declarations = [*amap.declarations, *(sources.declarations if sources else [])]
@@ -40,10 +40,10 @@ async def connected_travel_tools(amap: AmapTools):
     async with AsyncExitStack() as stack:
         sources = None
         try:
-            # 固定免费 keyless 端点，不读取 API Key，也不携带 Authorization。
-            http_client = await stack.enter_async_context(SourceHTTPClient(timeout=TOOL_TIMEOUT, headers=KEYLESS_HEADERS))
-            client = await stack.enter_async_context(Client(streamable_http_client(TAVILY_URL, http_client=http_client), read_timeout_seconds=TOOL_TIMEOUT))
-            candidate = TavilyTools(client, redact=amap.redact)
+            # 固定免费免密钥端点，不读取 API Key，也不携带认证头。
+            http_client = await stack.enter_async_context(SourceHTTPClient(timeout=TOOL_TIMEOUT))
+            client = await stack.enter_async_context(Client(streamable_http_client(EXA_URL, http_client=http_client), read_timeout_seconds=TOOL_TIMEOUT))
+            candidate = ExaTools(client, redact=amap.redact)
             await candidate.discover()
             sources = candidate
         except Exception:

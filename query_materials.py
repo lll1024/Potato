@@ -3,7 +3,11 @@ import json
 import re
 from datetime import date
 
-from tavily_mcp import SEARCH_TOOLS, SOURCE_TOOLS
+from exa_mcp import SEARCH_TOOLS, SOURCE_TOOLS
+
+# 仅用于读取旧载荷，不用于声明或分派新调用。
+LEGACY_SEARCH_TOOLS = {"tavily-search", "tavily_search"}
+READABLE_SOURCE_TOOLS = SOURCE_TOOLS | LEGACY_SEARCH_TOOLS | {"tavily-extract", "tavily_extract"}
 
 
 def scalar(value):
@@ -90,28 +94,44 @@ def summarize_query(name, result, travel_input, date_context=None):
             notes.append("常规开放时间不保证春节或未来当日开放，当日是否开放仍待核实。")
         if not detail:
             notes.append("候选尚未核实详情，不代表已选定地点或符合口味偏好；同名地点可能存在歧义。")
-    elif name in SOURCE_TOOLS:
-        search = name in SEARCH_TOOLS
+    elif name in READABLE_SOURCE_TOOLS:
+        search = name in SEARCH_TOOLS | LEGACY_SEARCH_TOOLS
+        exa = name in SOURCE_TOOLS
         title = "官方资料搜索线索（正文尚未核实）" if search else "来源正文（身份与日期仍须核对）"
         try:
             envelope = json.loads(result["content"])
         except (ValueError, TypeError, KeyError):
             envelope = {}
         retrieved_at = envelope.get("retrieved_at") if isinstance(envelope, dict) else None
-        results = data.get("results", [])
+        results = envelope.get("sources", []) if exa and isinstance(envelope, dict) else data.get("results", [])
+        if exa and not search and isinstance(results, list) and not any(
+                isinstance(source, dict) and source.get("content_type") == "page_body" for source in results):
+            title = "来源摘录或生成摘要（正文尚未取得）"
         if isinstance(results, list):
             for source in results:
                 if not isinstance(source, dict):
                     continue
                 lines = fields(source, [("title", "标题"), ("url", "来源链接"),
                     ("published_date", "来源发布时间"), ("applicable_dates", "适用日期")])
-                body = scalar(source.get("content" if search else "raw_content"))
+                body = scalar(source.get("content" if search or exa else "raw_content"))
                 if body:
-                    lines.append(("搜索摘要：" if search else "取得正文：") + body)
+                    kind = source.get("content_type") if exa else None
+                    if kind == "generated_summary":
+                        label = "生成摘要（不代表正文）："
+                    elif search:
+                        label = "搜索摘录："
+                    elif kind == "highlights":
+                        label = "来源摘录（不代表正文）："
+                    else:
+                        label = "取得正文："
+                    lines.append(label + body)
                 if not search and not body:
                     lines.append("正文未取得，规则仍待核实。")
                 if retrieved_at:
                     lines.append("查询时间：" + str(retrieved_at))
+                if exa:
+                    kind_label = {"generated_summary": "生成摘要", "highlights": "摘录", "search_text": "搜索返回内容", "page_body": "页面正文"}
+                    lines.append("提供方：Exa；内容类型：" + kind_label.get(str(source.get("content_type", "")), "未返回"))
                 if not scalar(source.get("published_date")):
                     lines.append("来源发布时间未返回。")
                 if not scalar(source.get("applicable_dates")):
@@ -127,8 +147,15 @@ def summarize_query(name, result, travel_input, date_context=None):
             notes.append("搜索摘要仅提供线索；来源身份、官方指定渠道及正文适用日期须核对。" if search else
                          "取得正文不等于已核实官方身份或未来当天开放；常规规则、临时公告及冲突须按旅行日期核对。")
             notes.append("预订入口须遵守官方渠道限制；入口可访问不代表有票或已预约、已预订。")
-        if data.get("failed_results"):
+            if exa:
+                notes.append("正文可能受字符上限截断或条件不完整，缺失内容不能证明开放、预约或门票结论；信息不足仍待核实。")
+                notes.append("查询时间含时区，仅表示本次调用取得返回的时间，不是页面更新时间或服务重新抓取时间；不保证实时正文。")
+        if data.get("failed_results") or exa and isinstance(envelope, dict) and envelope.get("failed_sources"):
             notes.append("部分页面正文读取失败，对应开放、预约及门票规则仍待核实。")
+            if exa:
+                for failure in envelope["failed_sources"]:
+                    if isinstance(failure, dict):
+                        entries.append(fields(failure, [("url", "来源链接"), ("error", "正文未取得")]))
     elif name == "maps_weather":
         title = "天气资料"
         # 兼容高德原生 forecasts/casts 以及 MCP 按天返回的 forecasts。
