@@ -187,7 +187,7 @@ function App() {
       <header className="workspace-header">
         <div className="workspace-title"><button ref={navigationToggle} className="icon-button" type="button" aria-label={sidebarOpen ? '收起会话导航' : '打开会话导航'} aria-expanded={sidebarOpen} aria-controls="session-navigation" onClick={toggleNavigation}><Icon name="panel" /></button><h2 id="conversation-title">{snapshot?.session.title ?? (sessionId ? '正在读取会话…' : '新会话')}</h2></div>
       <div className="global-status">
-        <p role="status" className="service-status"><span className={`status-dot ${state.active_turn_id ? 'busy' : !state.accepting ? 'unavailable' : ''}`} />{state.active_turn_id ? `${state.stopping ? '正在停止，仍占用执行名额' : '全局忙，正在执行'} · ${state.active_session_id === sessionId ? '当前会话' : '其他会话'}` : state.accepting ? '本机可接收输入' : '本机服务暂不可用'}</p>
+        {(state.active_turn_id || !state.accepting) && <p role="status" className="service-status"><span className={`status-dot ${state.active_turn_id ? 'busy' : 'unavailable'}`} />{state.active_turn_id ? `${state.stopping ? '正在停止，仍占用执行名额' : '全局忙，正在执行'} · ${state.active_session_id === sessionId ? '当前会话' : '其他会话'}` : '本机服务暂不可用'}</p>}
         {state.active_turn_id && <div>
           <button type="button" disabled={state.stopping || stoppingId === state.active_turn_id} onClick={() => void stopTurn(state.active_turn_id!)}>{state.stopping ? '正在停止…' : stoppingId === state.active_turn_id ? '正在请求停止…' : '停止执行中的轮次'}</button>
           <p className="hint">停止会阻止后续查询；已发起的调用会等待真实返回，期间仍占用执行名额。</p>
@@ -210,7 +210,7 @@ function App() {
               retryBlocked={retryBlocked} onMaterialTrace={showMaterialTrace}
               materialsExpanded={materialsExpanded} onMaterialsExpanded={(id, expanded) => setMaterialsExpanded(current => ({...current, [id]: expanded}))}
               stoppingTurnId={state.stopping ? state.active_turn_id : stoppingId} disconnected={Boolean(connectionError)} onRead={conversationFollow.pause} />
-          </> : <div className="empty"><div className="empty-mark"><Icon name="compass" size={36} /></div><h3>下一站，去哪里？</h3><p>查询地点、比较交通路线、寻找餐饮，<br />从一条需求开始安排你的旅行。</p></div>}
+          </> : <div className="empty"><div className="empty-mark"><Icon name="compass" size={36} /></div><h3>下一站，去哪里？</h3></div>}
         </ReadingScroll></>}
         <div className="composer-area"><form className="composer" onSubmit={send}>
           <label className="visually-hidden" htmlFor="travel-input">旅行需求</label>
@@ -225,7 +225,7 @@ function App() {
           <p className="hint" role="status">{connectionError}</p>
           {recoveryNotice && <p className="hint" role="status">{recoveryNotice}</p>}
           {!state.accepting && <p className="error" role="alert">{state.storage_error ?? (connectionError ? '请等待连接恢复后再发送。' : '本机服务暂不可用，请检查后重启。')}</p>}
-        </form><p className="composer-note">最终回答在本轮结束后显示；查询结果和旅行建议请结合实际情况核对。</p></div>
+        </form></div>
       </section>}
     </main>
   </div>;
