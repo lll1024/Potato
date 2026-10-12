@@ -18,6 +18,20 @@ const AnswerBody = await component('AnswerBody', 'AnswerBody');
 const TraceTimeline = await component('TraceTimeline', 'TraceTimeline');
 const answer = text => renderToStaticMarkup(createElement(AnswerBody, { text }));
 
+test('重试等待和恢复有独立时间边界，未开始的重试不生成模型请求条', () => {
+  const html = renderToStaticMarkup(createElement(TraceTimeline, {
+    turns: [{turn_id: 'turn', ordinal: 1}], selected: null, onLocate() {}, tools: [],
+    requests: [{request_id: 'failed', turn_id: 'turn', ordinal: 1, status: 'failed',
+      started_at: '2026-10-12T02:00:00Z', finished_at: '2026-10-12T02:00:01Z'}],
+    events: [{event_id: 'retry', turn_id: 'turn', request_id: 'failed', sequence: 3,
+      kind: 'request.retry_scheduled', timestamp: '2026-10-12T02:00:01Z',
+      data: {retry_id: 'chain', retry: 1, delay_ms: 500}}],
+  }));
+  assert.match(html, /重试 1 · 等待开始/);
+  assert.equal((html.match(/class="timeline-bar model /g) ?? []).length, 1);
+  assert.match(html, /查看 3 个已采集时间边界/);
+});
+
 test('回答呈现标题、列表、表格和代码，保留长正文尾部', () => {
   const html = answer('## 旅行安排\n\n- 西湖\n- 餐饮\n\n| 日期 | 地点 |\n| --- | --- |\n| 首日 | 西湖 |\n\n```json\n{"city":"杭州"}\n```\n\n' + '完整正文'.repeat(3000) + '末尾核对标记');
   assert.match(html, /<h2>旅行安排<\/h2>/);

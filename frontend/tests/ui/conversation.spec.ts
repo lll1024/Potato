@@ -24,7 +24,10 @@ async function conversation(page: Page) {
     const url = new URL(request.url());
     if (url.pathname === '/api/snapshot') await route.fulfill({json: {schema_version: 1, state, cursor, stream_id: 'conversation-test'}});
     else if (url.pathname === '/api/sessions') await route.fulfill({json: {schema_version: 1, sessions, next_cursor: null}});
-    else if (url.pathname === '/api/turns' && request.method() === 'POST') {
+    else if (url.pathname.endsWith('/stop') && request.method() === 'POST') {
+      writes.push('stop'); state.stopping = true;
+      await route.fulfill({json: {schema_version: 1, stopping: true}});
+    } else if (url.pathname === '/api/turns' && request.method() === 'POST') {
       writes.push(request.postDataJSON().input);
       state.active_turn_id = 'turn'; state.active_session_id = 'trip'; sessions[0].status = 'running';
       await route.fulfill({json: {schema_version: 1, submission_id: request.postDataJSON().submission_id, session_id: 'trip', turn_id: 'turn'}});
@@ -47,6 +50,57 @@ async function conversation(page: Page) {
     }, {state, cursor});
   }};
 }
+
+test('模型等待重试有真实次数、延迟及可用停止入口，停止不会误记为新请求', async ({page}) => {
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  app.activity.requests = [{request_id: 'request', turn_id: 'turn', ordinal: 1, step: 1, attempt: 1,
+    status: 'failed', started_at: '2026-10-12T02:00:00Z', finished_at: '2026-10-12T02:00:01Z', duration_ms: 1000}];
+  app.activity.events = [{event_id: 'retry', turn_id: 'turn', request_id: 'request', sequence: 2,
+    kind: 'request.retry_scheduled', timestamp: '2026-10-12T02:00:01Z',
+    data: {retry_id: 'chain', step: 1, retry: 1, max_retries: 5, delay_ms: 2000, code: 'TRANSPORT', message: '连接失败'}}];
+  await app.notify();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  const progress = page.getByRole('region', {name: '第 1 轮处理进展'});
+  await expect(progress.getByRole('status')).toContainText('等待重试（1/5） · 2 秒');
+  await page.setViewportSize({width: 1440, height: 900});
+  await progress.getByText('模型重试记录 · 1 次').click();
+  await expect(progress).toContainText('连接失败');
+  await page.screenshot({path: test.info().outputPath('model-retry-desktop.png')});
+  await page.setViewportSize({width: 390, height: 844});
+  await page.getByRole('button', {name: '收起会话导航'}).first().click();
+  await expect(progress.getByRole('status')).toBeVisible();
+  await expect(page.getByRole('button', {name: '停止本轮重试'})).toBeVisible();
+  await page.screenshot({path: test.info().outputPath('model-retry-mobile.png')});
+  await page.getByRole('button', {name: '停止本轮重试'}).click();
+  await expect.poll(() => app.writes).toEqual(['stop']);
+  await expect(progress.getByRole('status')).toContainText('正在停止');
+  await expect(page.getByRole('button', {name: '停止本轮重试'})).toBeDisabled();
+});
+
+test('轨迹保留每次尝试和重试等待，耗尽后最终失败不会被重试历史遮蔽', async ({page}) => {
+  const app = await conversation(page);
+  app.sessions[0].status = 'failed'; app.turn.status = 'failed'; app.turn.reason = 'model_error'; app.turn.answer_source = 'application';
+  app.turn.answer = '模型请求未能完成';
+  app.activity.requests = [{request_id: 'failed', turn_id: 'turn', ordinal: 6, step: 1, attempt: 6,
+    status: 'failed', started_at: '2026-10-12T02:00:02Z', finished_at: '2026-10-12T02:00:03Z', duration_ms: 1000}];
+  app.activity.events = [{event_id: 'retry', turn_id: 'turn', request_id: 'failed', sequence: 2,
+    kind: 'request.retry_scheduled', timestamp: '2026-10-12T02:00:00Z',
+    data: {retry_id: 'chain', step: 1, retry: 5, max_retries: 5, delay_ms: 2000, code: 'TRANSPORT', message: '连接失败'}},
+    {event_id: 'started', turn_id: 'turn', request_id: 'failed', sequence: 3,
+      kind: 'request.retry_started', timestamp: '2026-10-12T02:00:02Z', data: {retry_id: 'chain', retry: 5}}];
+  await app.notify();
+  await page.getByRole('button', {name: /杭州行程.*请求未完成/}).click();
+  await expect(page.getByRole('region', {name: '第 1 轮处理进展'})).toContainText('失败');
+  await page.getByRole('button', {name: '轨迹', exact: true}).click();
+  await expect(page.getByText('模型步骤 1 · 实际尝试 6', {exact: true})).toBeVisible();
+  await page.getByText('模型重试记录 · 1 次').click();
+  await expect(page.getByText('退避结束，恢复尝试', {exact: true})).toBeVisible();
+  await page.getByText(/查看 \d+ 个已采集时间边界/).click();
+  await expect(page.getByRole('button', {name: /重试 5 · 等待开始/})).toBeVisible();
+  await expect(page.getByRole('button', {name: /重试 5 · 退避结束/})).toBeVisible();
+  await expect(page.getByText('请求失败', {exact: true})).toBeVisible();
+});
 
 test('预订入口点击时只访问官网，不包含后续中文说明', async ({page}) => {
   const app = await conversation(page);

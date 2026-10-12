@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { Turn } from './ConversationRounds';
 import './conversation-controls.css';
+import { ModelRetries, retryEntries, type RetryEvent } from './ModelRetries';
 
 type Request = {request_id: string; turn_id: string; status: string; interrupted?: boolean; started_at?: string};
 type Tool = {tool_call_id: string; turn_id: string; name: string; status: string; interrupted?: boolean};
-type Event = {event_id: string; turn_id: string; sequence: number; kind: string; timestamp?: string; tool_call_id?: string | null};
+type Event = RetryEvent & {tool_call_id?: string | null};
 export type RoundActivity = {requests?: Request[]; tool_calls?: Tool[]; events?: Event[]};
 const toolActions: Record<string, string> = {
   maps_text_search: '查询地点', maps_search_detail: '查询地点详情', maps_around_search: '查询周边地点',
@@ -14,8 +15,8 @@ const toolActions: Record<string, string> = {
 };
 const action = (tool?: Tool) => tool ? toolActions[tool.name] ?? '执行查询' : '执行查询';
 
-export function RoundProgress({turn, activity, stopping, disconnected, statusText}: {
-  turn: Turn; activity?: RoundActivity; stopping?: boolean; disconnected?: boolean; statusText: string;
+export function RoundProgress({turn, activity, stopping, disconnected, statusText, onStop}: {
+  turn: Turn; activity?: RoundActivity; stopping?: boolean; disconnected?: boolean; statusText: string; onStop?: () => void;
 }) {
   const [now, setNow] = useState(Date.now);
   const running = turn.status === 'running';
@@ -31,6 +32,8 @@ export function RoundProgress({turn, activity, stopping, disconnected, statusTex
   const executing = tools.filter(item => item.status === 'running' && !item.interrupted);
   const waiting = tools.filter(item => item.status === 'waiting' && !item.interrupted);
   const pending = tools.filter(item => item.status === 'pending' && !item.interrupted);
+  const retries = retryEntries(events, turn);
+  const retry = retries.at(-1);
   let phase = statusText;
   if (running) {
     if (disconnected) phase = '连接中断，后台可能仍在处理';
@@ -38,6 +41,7 @@ export function RoundProgress({turn, activity, stopping, disconnected, statusTex
     else if (executing.length) phase = executing.length === 1 ? `正在${action(executing[0])}` : `正在执行 ${executing.length} 项查询`;
     else if (waiting.length) phase = `等待调用额度 · ${waiting.length} 项查询`;
     else if (pending.length) phase = `正在准备 ${pending.length} 项查询`;
+    else if (retry?.state === 'waiting') phase = `等待重试（${retry.data?.retry ?? '未知'}/${retry.data?.max_retries ?? '未知'}） · ${retry.data?.delay_ms === undefined ? '等待时长未知' : `${Number((retry.data.delay_ms / 1000).toFixed(2))} 秒`}`;
     else if (requests.some(item => item.status === 'running' && !item.interrupted)) phase = '正在请求助手';
     else phase = requests.length ? '正在处理查询结果' : '正在准备请求';
     if (executing.length && waiting.length && !stopping && !disconnected) phase += ` · ${waiting.length} 项等待调用额度`;
@@ -48,5 +52,7 @@ export function RoundProgress({turn, activity, stopping, disconnected, statusTex
   return <div className="round-progress" role="region" aria-label={`第 ${turn.ordinal} 轮处理进展`} data-reading-anchor={`progress:${turn.turn_id}`}>
     <div className="progress-summary"><p role="status">{running && <span className="activity-spinner" aria-hidden="true" />}{phase}</p>
       {seconds !== null && <span className="progress-duration">{running ? '已等待' : '已用时'} {seconds} 秒</span>}</div>
+    {running && retries.length > 0 && onStop && <button type="button" disabled={stopping || disconnected} onClick={onStop}>停止本轮重试</button>}
+    <ModelRetries events={events} turn={turn} />
   </div>;
 }

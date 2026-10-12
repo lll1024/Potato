@@ -84,6 +84,13 @@ function App() {
     await submission.send(draft, sessionId);
   }
 
+  async function stopTurn(turn: Turn) {
+    try {
+      await api(`/api/turns/${turn.turn_id}/stop`, {method: 'POST'});
+      await refreshService();
+    } catch (cause) {setError(cause instanceof Error ? cause.message : '停止请求未成功，请重试。');}
+  }
+
   function selectConversation(id: string | null) {
     setSessionId(id); setSnapshot(null); setTraceLocation(null); setError('');
     if (view === 'preferences') setView('conversation');
@@ -174,12 +181,14 @@ function App() {
       </header>
       {view === 'preferences' ? <PreferencesView onBack={() => setView('conversation')} /> : <section className="conversation" aria-labelledby="conversation-title">
         <nav className="view-switch" aria-label="会话视图"><button aria-pressed={view === 'conversation'} onClick={() => setView('conversation')}>对话</button><button aria-pressed={view === 'trace'} onClick={() => setView('trace')}>轨迹</button><p role="status" className="view-status">{turn ? turn.turn_id === storageTurnId ? '存储故障，结果未完整保存' : statusText(turn) : busy ? '其他对话正在执行' : '旅行规划与查询'}</p></nav>
-        {view === 'trace' ? <TraceView sessionId={sessionId} refreshKey={serviceRevision} location={traceLocation} /> : <>
+        {view === 'trace' ? <TraceView sessionId={sessionId} refreshKey={serviceRevision} location={traceLocation}
+          onStop={turnId => {const turn = turns.find(item => item.turn_id === turnId); if (turn) void stopTurn(turn);}}
+          stopping={state.stopping} disconnected={Boolean(connectionError)} /> : <>
           <div className="reading-follow conversation-follow"><p role="status">{conversationFollow.hasNew ? '有新内容' : conversationFollow.paused ? '已暂停跟随，正在回看' : '停留底部时跟随新回答'}</p>{conversationFollow.paused && <button type="button" onClick={conversationFollow.resume}>回到最新</button>}</div>
           <ReadingScroll className="messages" identity={sessionId} paused={conversationFollow.paused} scrollRef={conversationFollow.ref} onScroll={conversationFollow.onScroll}>
           {sessionId && !snapshot ? <div className="empty" role="status"><h3>正在读取会话…</h3><p>正在恢复已保存的对话与执行记录。</p></div> : turn ? <>
             {canLoadEarlier && <button className="load-earlier" disabled={loadingEarlier} onClick={() => void loadEarlier()}>加载更早对话</button>}
-            <ConversationRounds turns={turns} statusText={statusText} onTrace={showTurnTrace} activity={activity}
+            <ConversationRounds turns={turns} statusText={statusText} onTrace={showTurnTrace} activity={activity} onStop={stopTurn}
               onRetry={failed => void retryTurn(failed)} retryTurnId={turn && (isExceptional(turn) || turn.turn_id === storageTurnId) ? turn.turn_id : undefined}
               storageTurnId={storageTurnId}
               retryBlocked={retryBlocked} onMaterialTrace={showMaterialTrace}

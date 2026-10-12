@@ -214,10 +214,13 @@ class Store:
 
     def observe_request(self, session_id, turn_id, kind, data):
         with self.db:
+            if kind in ("request.retry_scheduled", "request.retry_started"):
+                return self.event(session_id,turn_id,kind,data,request_id=data["request_id"])
             if kind == "request.started":
                 payload_id = self.save_payload(session_id,turn_id,"input",data["input"])
                 self.db.execute("INSERT INTO requests (request_id,session_id,turn_id,ordinal,status,started_at,input_payload_id,usage_state) VALUES (?,?,?,?,'running',?,?,'not_completed')", (data["request_id"],session_id,turn_id,data["ordinal"],data["started_at"],payload_id))
                 summary = {"ordinal":data["ordinal"],"status":"running","input_payload_id":payload_id}
+                summary.update({field:data[field] for field in ("step","attempt","retry_id") if field in data})
             else:
                 failed = kind == "request.failed"
                 field = "error" if failed else "response"
@@ -390,9 +393,12 @@ class Store:
             event["data"] = json.loads(event["data"])
             events.append(event)
         requests = []
+        starts = {event["request_id"]:event["data"] for event in events if event["kind"] == "request.started"}
         for row in self.db.execute("SELECT requests.* FROM requests JOIN turns USING(turn_id) WHERE requests.session_id=? AND turns.ordinal>=? AND turns.ordinal<=? ORDER BY turns.ordinal,requests.ordinal", (session_id,first_ordinal,last_ordinal)):
             request = dict(row)
             request["usage"] = json.loads(request["usage"]) if request["usage"] else None
+            request.update({field:starts[row["request_id"]][field] for field in ("step","attempt","retry_id")
+                            if field in starts.get(row["request_id"],{})})
             requests.append(request)
         tool_calls = [json.loads(row["data"]) | {"turn_id":row["turn_id"]} for row in self.db.execute(
             "SELECT tool_calls.data,tool_calls.turn_id FROM tool_calls JOIN turns USING(turn_id) JOIN requests USING(request_id) WHERE tool_calls.session_id=? AND turns.ordinal>=? AND turns.ordinal<=? ORDER BY turns.ordinal,requests.ordinal,tool_calls.ordinal",(session_id,first_ordinal,last_ordinal))]

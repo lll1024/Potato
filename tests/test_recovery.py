@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 import httpx
 import uvicorn
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from mcp.server import MCPServer
 
 from test_trace import wait_finished
@@ -34,6 +35,7 @@ class ExternalServices:
         self.entered = asyncio.Event()
         self.release = asyncio.Event()
         self.block: str | None = None
+        self.model_failure = False
         maps = MCPServer('恢复验收地图')
 
         @maps.tool(name='maps_text_search')
@@ -56,6 +58,9 @@ class ExternalServices:
         async def message(request: Request):
             data = await request.json()
             self.model_calls.append(data)
+            if self.model_failure:
+                return JSONResponse(status_code=429, content={"error": {"type": "rate_limit_error", "message": "slow down"}},
+                                    headers={"Retry-After": "10"})
             if preference_handler and data['system'].startswith('旅行者偏好提取'):
                 return await preference_handler(data)
             if self.block == 'model':
@@ -118,6 +123,37 @@ async def process(directory, external, *, expected_failure=False, clock_file=Non
 
 
 class RecoveryTests(unittest.IsolatedAsyncioTestCase):
+    async def test_killed_retry_wait_is_closed_without_replaying_the_timer_or_request(self):
+        external = ExternalServices()
+        external.model_failure = True
+        with tempfile.TemporaryDirectory() as directory:
+            async with external.serving() as url:
+                async with process(directory, url) as (child, client, _):
+                    accepted = (await client.post('/api/turns', json={'input': '等待重试中断'})).json()
+
+                    async def scheduled():
+                        while True:
+                            saved = (await client.get('/api/sessions/' + accepted['session_id'])).json()
+                            if any(event['kind'] == 'request.retry_scheduled' for event in saved['events']):
+                                return saved
+                            await asyncio.sleep(.01)
+
+                    before = await asyncio.wait_for(scheduled(), 3)
+                    self.assertEqual(len(before['requests']), 1)
+                    child.kill()
+                    await child.wait()
+                external.model_failure = False
+                async with process(directory, url) as (_, client, _):
+                    saved = (await client.get('/api/sessions/' + accepted['session_id'])).json()
+                    self.assertEqual(saved['turns'][0]['reason'], 'service_interrupted')
+                    self.assertEqual(len(saved['requests']), 1)
+                    self.assertEqual(len(external.model_calls), 1)
+                    self.assertFalse(any(event['kind'] == 'request.retry_started' for event in saved['events']))
+                    next_turn = (await client.post('/api/turns', json={'input': '新的提问', 'session_id': accepted['session_id']})).json()
+                    await asyncio.wait_for(wait_finished(client, accepted['session_id'], next_turn['turn_id']), 3)
+                    self.assertEqual(len(external.model_calls), 2)
+                    self.assertEqual(external.model_calls[-1]['messages'], [{'role': 'user', 'content': '新的提问'}])
+
     async def test_killed_model_is_observed_once_without_replay_or_context(self):
         external = ExternalServices()
         with tempfile.TemporaryDirectory() as directory:
