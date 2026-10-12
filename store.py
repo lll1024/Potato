@@ -311,6 +311,16 @@ class Store:
         return json.loads(row["messages"]) if row else []
 
     def date_context(self, session_id):
+        # 最近的确定性日期状态或旅行请求都可靠；摘要不会重新解释日期。
+        saved = self.db.execute("""SELECT kind,data FROM events WHERE session_id=? AND
+            (kind='context.date' OR (kind='request.started' AND COALESCE(json_extract(data,'$.purpose'),'travel')='travel'))
+            ORDER BY sequence DESC LIMIT 1""", (session_id,)).fetchone()
+        if saved:
+            data = json.loads(saved["data"])
+            if saved["kind"] == "context.date":
+                return data["date_context"]
+            payload = self.payload(data["input_payload_id"])
+            return saved_date_context(payload["content"].get("system", "")) if payload else None
         # request.started 已提交的日期依据仍可靠；中断协议排除不影响它。
         row = self.db.execute("""SELECT p.content FROM turns t JOIN requests r USING(turn_id)
             JOIN payloads p ON p.payload_id=r.input_payload_id WHERE t.session_id=?
@@ -485,6 +495,9 @@ class Store:
             first_request = next((request for request in requests if request["turn_id"] == turn["turn_id"] and request.get("purpose", "travel") == "travel"), None)
             context_payload = self.payload(first_request["input_payload_id"]) if first_request else None
             context = saved_date_context(context_payload["content"].get("system", "")) if context_payload else None
+            date_event = next((event for event in events if event["turn_id"] == turn["turn_id"] and event["kind"] == "context.date"), None)
+            if date_event:
+                context = date_event["data"]["date_context"]
             turn["travel_date_context"] = context
             turn["query_materials"] = []
             turn["unreadable_query_count"] = 0

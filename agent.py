@@ -240,6 +240,8 @@ async def agent_loop(
     latest_input = next((message["content"] for message in reversed(messages)
                          if message["role"] == "user" and isinstance(message["content"], str)), "")
     date_context = turn_date_context(str(latest_input), (clock or current_time)(), previous_date_context)
+    if observer and context_policy is not None:
+        await observer("context.date", {"date_context": copy.deepcopy(date_context)})
     system = SYSTEM + model_date_context(date_context)
     if previous_source_materials:
         references = []
@@ -274,6 +276,7 @@ async def agent_loop(
 
     request_ordinal = 0
     summary_attempts = 0
+    summary_blocked = False
     current_turn_start = len(messages) - 1
 
     def next_request_ordinal():
@@ -316,13 +319,15 @@ async def agent_loop(
                             "pressure_remaining": measurement["estimated_tokens"] >= context_policy.pressure_threshold,
                             "original_watermark": view.original_watermark, "version": view.version,
                             "record_ids": view.record_ids.copy(), "step": ordinal, "attempt": attempt})
-                if measurement["estimated_tokens"] >= context_policy.pressure_threshold and summary_attempts < 4:
-                    summary_attempts += await summarize_history(
+                if measurement["estimated_tokens"] >= context_policy.pressure_threshold and summary_attempts < 4 and not summary_blocked:
+                    summary_result = await summarize_history(
                         view=view, policy=context_policy, meter=meter, parameters=parameters,
                         client=client, tools=tools, date_context=date_context,
                         cutoff=earlier_history_cutoff(view, current_turn_start, context_policy, meter),
                         remaining_attempts=4 - summary_attempts, next_request_ordinal=next_request_ordinal,
                         observer=observer, stop_requested=stop_requested)
+                    summary_attempts += summary_result.attempts
+                    summary_blocked = summary_result.terminal_failure
                     parameters["messages"] = copy.deepcopy(view.messages)
                     measurement = meter.measure(parameters)
                 allowed = measurement["estimated_tokens"] <= context_policy.input_budget
@@ -549,7 +554,9 @@ async def run_cli(api_key: str, *, check_amap: bool = False, clock: Callable[[],
                 cli_view: ContextView | None = None
                 async def remember_date_context(kind, data):
                     nonlocal date_context
-                    if kind == "request.started" and data.get("purpose", "travel") == "travel":
+                    if kind == "context.date":
+                        date_context = data["date_context"]
+                    elif kind == "request.started" and data.get("purpose", "travel") == "travel":
                         date_context = saved_date_context(data["input"]["system"])
                     elif kind == "context.organized":
                         print(f"上下文整理：{data['before_tokens']} → {data['after_tokens']} tokens（估算）。")
