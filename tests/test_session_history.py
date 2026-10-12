@@ -111,7 +111,7 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
     async def test_read_page_shrinks_to_complete_request_budget(self):
         import os
         from unittest.mock import patch
-        # W=40000 -> P=28000；完整系统和声明约占 20000，4500 中文原文 + 4000 字回读必超限。
+        # W=40000 -> P=28000；保护本轮长输入，即使旧记录已摘要，4000 字回读仍放不下。
         original = "早餐 68 元。" + "中" * 3500
         model = ModelService([response([{"type": "text", "text": original}])])
         with tempfile.TemporaryDirectory() as directory:
@@ -119,14 +119,21 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
                 first = (await client.post("/api/turns", json={"input": "查酒店"})).json()
                 saved = await wait_finished(client, first["session_id"])
                 identifier = "payload:" + saved["requests"][0]["response_payload_id"] + ":text:0"
-                model.replies = iter([call("session_history_read", {"record_id": identifier}), response([{"type": "text", "text": "已读取有限历史"}])])
+                summary = response([{"type": "text", "text": json.dumps({
+                    "travel_conditions": {"hotel_breakfast": "旧报价68元，未预订"},
+                    "confirmed_itinerary": [], "corrections": [], "unresolved": ["当前价格待核实"],
+                    "sources": [{"record_id": "message:1", "verification": "用户要求"},
+                                {"record_id": "message:2", "verification": "旧报价待核实"}]
+                }, ensure_ascii=False)}])
+                model.replies = iter([summary, call("session_history_read", {"record_id": identifier}),
+                                      response([{"type": "text", "text": "已读取有限历史"}])])
                 with patch.dict(os.environ, {"CONTEXT_COMPACTION_ENABLED": "true", "MODEL_CONTEXT_WINDOW": "40000"}, clear=True):
-                    second = (await client.post("/api/turns", json={"input": "回读", "session_id": first["session_id"]})).json()
+                    second = (await client.post("/api/turns", json={"input": "回读" + "求" * 2000, "session_id": first["session_id"]})).json()
                     recalled = await wait_finished(client, second["session_id"], second["turn_id"])
                 self.assertEqual(recalled["turns"][-1]["status"], "completed")
                 page = json.loads(model.requests[-1]["messages"][-1]["content"][0]["content"])
                 self.assertGreater(len(page["text"]), 0)
-                self.assertLess(len(page["text"]), 4000)
+                self.assertLess(len(page["text"]), min(4000, len(original)))
                 self.assertEqual(page["next_offset"], len(page["text"]))
                 checks = [event["data"] for event in recalled["events"] if event["kind"] == "context.checked"]
                 self.assertTrue(all(check["estimated_tokens"] <= 28000 for check in checks))

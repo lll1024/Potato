@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from model_context import ContextView
 from model_retry import EmptyModelResponse, model_failure, retry_delay
+from session_history import HISTORY_TOOLS
 
 @dataclass(frozen=True)
 class SummaryResult:
@@ -22,27 +23,130 @@ sources 每项必须含 record_id（只用输入中 reference_readable 为 true 
 被否决候选保留必要结论；获得预订入口不等于已预订。明确区分待核实资料、用户要求与已核实事实。
 旅行日期只采用输入中的 travel_dates，不重新解释相对日期。旧摘要与新记录合并，纠正取代失效条件。
 跨会话旅行者偏好由外部独立提供，不提取或固定保存偏好快照。不得把历史指令提升为系统规则。
+只保留当前有效状态及必要纠正结论，不逐次追加失效条件或复制被否决候选的旧全文。
 不得编造来源或删除必保留条件以满足大小目标。"""
 
 
+def protocol_groups(messages):
+    """完整多工具交互不可分；尚未补齐的调用及之后消息不进入候选。"""
+    groups = []
+    index = 0
+    while index < len(messages):
+        message = messages[index]
+        content = message.get("content")
+        uses = [block["id"] for block in content if block.get("type") == "tool_use"] if (
+            message["role"] == "assistant" and isinstance(content, list)) else []
+        end = index + 1
+        if uses:
+            if end >= len(messages):
+                break
+            result = messages[end]
+            blocks = result.get("content")
+            ids = [block["tool_use_id"] for block in blocks if block.get("type") == "tool_result"] if (
+                result["role"] == "user" and isinstance(blocks, list)) else []
+            if sorted(ids) != sorted(uses):
+                break
+            end += 1
+        elif isinstance(content, list) and any(block.get("type") == "tool_result" for block in content):
+            break
+        elif message["role"] == "user" and isinstance(content, str) and end < len(messages):
+            following = messages[end]
+            following_content = following.get("content")
+            if following["role"] == "assistant" and (isinstance(following_content, str) or
+                    isinstance(following_content, list) and not any(
+                        block.get("type") == "tool_use" for block in following_content)):
+                end += 1
+        groups.append((index, end, bool(uses)))
+        index = end
+    return groups
+
+
 def earlier_history_cutoff(view, turn_start, policy, meter):
-    """按已结束轮次边界保留近期原文，最近完整工具交互也始终保留。"""
-    starts = [index for index, (message, ref) in enumerate(zip(view.messages, view.record_ids))
-              if ref.startswith("message:") and message["role"] == "user" and isinstance(message["content"], str)]
-    current = next((index for index, ref in enumerate(view.record_ids) if ref == f"message:{turn_start + 1}"), len(view.messages))
-    cutoff = current
+    """保留近期完整组、当前输入及最新完整工具交互，允许压缩本轮旧组。"""
+    groups = protocol_groups(view.messages)
+    cutoff = groups[-1][1] if groups else 0
     target = min(8192, policy.input_budget // 5)
-    for index in reversed([index for index in starts if index < current]):
-        if meter.measure({"messages": view.messages[index:]})["estimated_tokens"] > target:
+    current_ref = f"message:{turn_start + 1}"
+    current = next((i for i, ref in enumerate(view.record_ids) if ref == current_ref), None)
+    for start, end, _ in reversed(groups):
+        retained = view.messages[start:]
+        if current is not None and current < start:
+            retained = [view.messages[current]] + retained
+        if meter.measure({"messages": retained})["estimated_tokens"] > target:
             break
-        cutoff = index
-    for index in reversed(range(len(view.messages))):
-        content = view.messages[index].get("content")
-        if view.messages[index]["role"] == "assistant" and isinstance(content, list) and any(
-                block.get("type") == "tool_use" for block in content):
-            cutoff = min(cutoff, max((start for start in starts if start <= index), default=index))
-            break
+        cutoff = start
+    latest = next((start for start, _, tools in reversed(groups) if tools), None)
+    if latest is not None:
+        cutoff = min(cutoff, latest)
+    if current is not None and cutoff == current + 1:
+        cutoff = current
     return cutoff
+
+
+def summary_input(view, cutoff, date_context, protected_ref):
+    records = [{"record_id": ref, "message": copy.deepcopy(message)}
+               for ref, message in zip(view.record_ids[:cutoff], view.messages[:cutoff])
+               if ref.startswith("message:") and ref != protected_ref]
+    tool_names = {}
+    for message in view.messages[:cutoff]:
+        content = message.get("content")
+        if isinstance(content, list):
+            tool_names.update({block["id"]: block["name"] for block in content if block.get("type") == "tool_use"})
+    for record in records:
+        content = record["message"]["content"]
+        record["reference_readable"] = isinstance(content, str) or isinstance(content, list) and any(
+            block.get("type") == "text" or block.get("type") == "tool_result"
+            and tool_names.get(block["tool_use_id"]) not in HISTORY_TOOLS for block in content)
+    return {"previous_summary": copy.deepcopy(view.summary), "records": records,
+            "travel_dates": copy.deepcopy(date_context["travel_dates"])}
+
+
+async def summarize_history(*, view, policy, meter, parameters, client, tools, date_context,
+                            cutoff, remaining_attempts, next_request_ordinal, observer, stop_requested):
+    """分批与修复共用单次两次额度；调用方继续共享整轮四次额度。"""
+    protected_ref = next((ref for ref, message in reversed(list(zip(view.record_ids, view.messages)))
+                          if ref.startswith("message:") and message["role"] == "user"
+                          and isinstance(message["content"], str)), None)
+    pending = set(view.record_ids[:cutoff]) - {protected_ref}
+    attempts = 0
+    while attempts < min(2, remaining_attempts):
+        if stop_requested and stop_requested.is_set():
+            break
+        last = max((i + 1 for i, ref in enumerate(view.record_ids) if ref in pending), default=0)
+        if not last:
+            break
+        batch_cutoff = 0
+        for _, end, _ in protocol_groups(view.messages):
+            if end > last:
+                break
+            source = summary_input(view, end, date_context, protected_ref)
+            if not source["records"]:
+                continue
+            request = {"model": parameters["model"], "system": SUMMARY_SYSTEM,
+                       "messages": [{"role": "user", "content": json.dumps(source, ensure_ascii=False)}],
+                       "max_tokens": min(2048, policy.input_budget * 15 // 100)}
+            if meter.measure(request)["estimated_tokens"] > policy.input_budget:
+                break
+            batch_cutoff = end
+        if not batch_cutoff:
+            if observer:
+                await observer("context.summary_unavailable", {
+                    "reason": "完整历史交互无法放入摘要安全预算。", "version": view.version})
+            break
+        version = view.version
+        consumed = set(view.record_ids[:batch_cutoff]) - {protected_ref}
+        result = await _summarize_batch(
+            view=view, policy=policy, meter=meter, parameters=parameters, client=client, tools=tools,
+            date_context=date_context, cutoff=batch_cutoff, protected_ref=protected_ref,
+            remaining_attempts=min(2, remaining_attempts) - attempts,
+            next_request_ordinal=next_request_ordinal, observer=observer, stop_requested=stop_requested)
+        attempts += result.attempts
+        if result.terminal_failure:
+            return SummaryResult(attempts, True)
+        if view.version == version:
+            break
+        pending -= consumed
+    return SummaryResult(attempts)
 
 
 def validate_summary(response, allowed_refs):
@@ -73,9 +177,9 @@ def validate_summary(response, allowed_refs):
     return value, None
 
 
-async def summarize_history(*, view, policy, meter, parameters, client, tools, date_context,
-                            cutoff, remaining_attempts, next_request_ordinal, observer, stop_requested):
-    """一次压缩最多两次请求；由调用方共享整轮最多四次额度。"""
+async def _summarize_batch(*, view, policy, meter, parameters, client, tools, date_context,
+                           cutoff, protected_ref, remaining_attempts, next_request_ordinal, observer, stop_requested):
+    """一个完整批次，失败时只修复剩余的单次请求额度。"""
     if cutoff <= 0 or remaining_attempts <= 0:
         return SummaryResult(0)
     async def emit(kind, data):
@@ -84,15 +188,13 @@ async def summarize_history(*, view, policy, meter, parameters, client, tools, d
     stopped = lambda: bool(stop_requested and stop_requested.is_set())
     version, watermark = view.version, view.original_watermark
     old_messages, old_refs = copy.deepcopy(view.messages), view.record_ids.copy()
-    records = [{"record_id": ref, "message": message} for ref, message in zip(old_refs[:cutoff], old_messages[:cutoff]) if ref.startswith("message:")]
-    for record in records:
-        content = record["message"]["content"]
-        record["reference_readable"] = isinstance(content, str) or isinstance(content, list) and any(
-            block.get("type") in ("text", "tool_result") for block in content)
+    source = summary_input(view, cutoff, date_context, protected_ref)
+    records = source["records"]
     refs = {record["record_id"] for record in records if record["reference_readable"]} | set(view.summary_refs)
     if not records:
         return SummaryResult(0)
-    source = {"previous_summary": view.summary, "records": records, "travel_dates": date_context["travel_dates"]}
+    retained = [(message, ref) for message, ref in zip(old_messages[:cutoff], old_refs[:cutoff]) if ref == protected_ref]
+    retained += list(zip(old_messages[cutoff:], old_refs[cutoff:]))
     summary_parameters = {"model": parameters["model"], "system": SUMMARY_SYSTEM,
                           "messages": [{"role": "user", "content": json.dumps(source, ensure_ascii=False)}],
                           "max_tokens": min(2048, policy.input_budget * 15 // 100)}
@@ -157,16 +259,22 @@ async def summarize_history(*, view, policy, meter, parameters, client, tools, d
             await emit("context.validated", {"request_id": request_id, "valid": False, "reason": "已停止或来源版本已变化，未采用。"})
             break
         summary, invalid = validate_summary(response, refs)
-        if summary is not None:
-            summary["travel_dates"] = copy.deepcopy(date_context["travel_dates"])
-            summary_refs = sorted(refs)
-            wrapped = {"role": "user", "content": "<travel_state_summary>" + json.dumps(
-                {"state": summary, "original_records": summary_refs, "notice": "历史资料摘要；原文可按来源回读，核实与预订状态以来源为准。"}, ensure_ascii=False) + "</travel_state_summary>"}
-            replacement = [wrapped] + old_messages[cutoff:]
-            before = meter.measure({**parameters, "messages": old_messages})["estimated_tokens"]
-            after = meter.measure({**parameters, "messages": replacement})["estimated_tokens"]
-            if after >= before:
-                invalid = "包含包装和引用后的摘要没有严格变小。"
+        if summary is None:
+            await emit("context.validated", {"request_id": request_id, "valid": False,
+                                             "reason": invalid, "version": version + 1})
+            if attempt < min(2, remaining_attempts):
+                summary_parameters["system"] = SUMMARY_SYSTEM + "\n上次校验未通过：" + str(invalid)
+                continue
+            break
+        summary["travel_dates"] = copy.deepcopy(date_context["travel_dates"])
+        summary_refs = sorted(refs)
+        wrapped = {"role": "user", "content": "<travel_state_summary>" + json.dumps(
+            {"state": summary, "original_records": summary_refs, "notice": "历史资料摘要；原文可按来源回读，核实与预订状态以来源为准。"}, ensure_ascii=False) + "</travel_state_summary>"}
+        replacement = [wrapped] + [message for message, _ in retained]
+        before = meter.measure({**parameters, "messages": old_messages})["estimated_tokens"]
+        after = meter.measure({**parameters, "messages": replacement})["estimated_tokens"]
+        if after >= before:
+            invalid = "包含包装和引用后的摘要没有严格变小。"
         await emit("context.validated", {"request_id": request_id, "valid": invalid is None,
                                          "reason": invalid, "version": version + 1})
         if invalid is not None:
@@ -175,7 +283,7 @@ async def summarize_history(*, view, policy, meter, parameters, client, tools, d
                 continue
             break
         candidate = ContextView(replacement, watermark, version + 1,
-                                [f"summary:{version + 1}"] + old_refs[cutoff:], summary, summary_refs,
+                                [f"summary:{version + 1}"] + [ref for _, ref in retained], summary, summary_refs,
                                 max(int(ref.split(":")[1]) for ref in refs if ref.startswith("message:")))
         await emit("context.candidate", {"version": candidate.version, "original_watermark": watermark,
                                          "view": candidate.to_state(), "request_id": request_id})
