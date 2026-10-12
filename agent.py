@@ -20,6 +20,7 @@ from mcp.client.streamable_http import streamable_http_client
 from amap_http import AmapHTTPClient
 from amap_mcp import AmapTools, ToolResult
 from limits import MAX_ROUNDS, MAX_TOOL_CALLS, TOOL_TIMEOUT
+from model_context import ContextConfigurationError, ContextPolicy, ContextView, TokenMeter
 from model_retry import MAX_RETRIES, EmptyModelResponse, model_failure, retry_delay
 from travel_dates import current_time, model_date_context, saved_date_context, turn_date_context
 from travel_tools import TravelTools, connected_travel_tools
@@ -218,8 +219,21 @@ async def agent_loop(
     previous_date_context: dict[str, Any] | None = None,
     previous_source_materials: list[dict[str, Any]] | None = None,
     preference_background: str = "",
+    context_view: ContextView | None = None, context_policy: ContextPolicy | None = None,
 ) -> str:
     messages[:] = json.loads(tools.redact(json.dumps(messages, ensure_ascii=False)))
+    try:
+        context_policy = context_policy or ContextPolicy.from_env()
+    except ContextConfigurationError as error:
+        answer = str(error)
+        messages.append({"role": "assistant", "content": answer})
+        if observer:
+            await observer("turn.finished", {"status": "terminated", "reason": "context_configuration",
+                "answer_source": "application", "tool_error_count": 0})
+        return answer
+    view = context_view if context_view is not None else ContextView.from_history(messages)
+    view.messages = json.loads(tools.redact(json.dumps(view.messages, ensure_ascii=False)))
+    meter = TokenMeter(model, usage_semantics="anthropic" if not os.getenv("ANTHROPIC_BASE_URL") else "compatible_unknown")
     latest_input = next((message["content"] for message in reversed(messages)
                          if message["role"] == "user" and isinstance(message["content"], str)), "")
     date_context = turn_date_context(str(latest_input), (clock or current_time)(), previous_date_context)
@@ -260,11 +274,37 @@ async def agent_loop(
             stopped = "已停止本轮查询，尚未完成的信息待核实。"
             reason = requested_reason()
             break
-        parameters: dict[str, Any] = dict(model=model, system=system + preference_background + ("\n本轮资料服务状态：" + tools.source_status if isinstance(tools, TravelTools) else ""), messages=messages,
+        parameters: dict[str, Any] = dict(model=model, system=system + preference_background + ("\n本轮资料服务状态：" + tools.source_status if isinstance(tools, TravelTools) else ""), messages=copy.deepcopy(view.messages),
                           tools=tools.declarations, max_tokens=8000)
         retry_id = uuid4().hex
         attempt = 1
+        failure = None
+        response: Message | None = None
+        parsed: dict[str, Any] | None = None
+        request_id = ""
+        duration_ms: float | None = None
+        finished_at: str | None = None
         while True:
+            if stop_requested and stop_requested.is_set():
+                stopped = "已停止本轮查询，尚未完成的信息待核实。"
+                reason = requested_reason()
+                break
+            measurement = meter.measure(parameters) if context_policy else None
+            if context_policy is not None and measurement is not None:
+                allowed = measurement["estimated_tokens"] <= context_policy.input_budget
+                if observer:
+                    await observer("context.checked", {**measurement, "window": context_policy.window,
+                        "input_budget": context_policy.input_budget, "allowed": allowed,
+                        "original_watermark": view.original_watermark, "version": view.version,
+                        "record_ids": view.record_ids.copy(), "step": ordinal, "attempt": attempt})
+                if not allowed:
+                    stopped = "完整模型输入超过安全预算，已停止本轮查询；请缩小需求范围或核对 MODEL_CONTEXT_WINDOW。"
+                    reason = "context_budget"
+                    break
+            if stop_requested and stop_requested.is_set():
+                stopped = "已停止本轮查询，尚未完成的信息待核实。"
+                reason = requested_reason()
+                break
             request_ordinal += 1
             request_id = uuid4().hex
             if observer:
@@ -301,6 +341,10 @@ async def agent_loop(
                     duration_ms = max(0,(asyncio.get_running_loop().time()-started)*1000)
                     finished_at = datetime.now(timezone.utc).isoformat()
                 failure = model_failure(error, stage)
+            if measurement is not None and parsed is not None:
+                calibration = meter.observe_usage(parsed.get("usage"), measurement)
+                if observer:
+                    await observer("context.usage", {"request_id": request_id, **calibration})
             if failure is not None:
                 if observer:
                     await observer("request.failed", {
@@ -339,7 +383,7 @@ async def agent_loop(
                 attempt += 1
             else:
                 break
-        if failure is not None:
+        if stopped or failure is not None:
             break
         assert response is not None and parsed is not None
         if observer:
@@ -353,6 +397,7 @@ async def agent_loop(
             "role": "assistant",
             "content": [block.model_dump(mode="json") for block in response.content],
         }))
+        view.append(messages[-1], len(messages))
         tool_calls = [block for block in response.content if block.type == "tool_use"]
         if not tool_calls:
             status = "terminated" if response.stop_reason == "max_tokens" else "completed"
@@ -410,6 +455,7 @@ async def agent_loop(
                 "content": output["content"], "is_error": output["is_error"],
             })
         messages.append({"role": "user", "content": results})
+        view.append(messages[-1], len(messages))
         if stop_requested and stop_requested.is_set():
             stopped = "已停止本轮查询，尚未完成的信息待核实。"
             reason = requested_reason()
@@ -420,6 +466,7 @@ async def agent_loop(
         "service_shutdown": "本机服务已退出。", "storage_failure": "存储故障，只能确认最后成功保存的事实。"}
     answer = terminated_answer(descriptions.get(reason or "", stopped or BUDGET_MESSAGE), outcomes)
     messages.append({"role": "assistant", "content": answer})
+    view.append(messages[-1], len(messages))
     return await finished(answer, "application")
 
 
@@ -481,6 +528,11 @@ def main() -> int:
         print("请在 .env 或运行环境中配置 AMAP_MAPS_API_KEY（高德 Web 服务 Key）。", file=sys.stderr)
         return 1
     if not args.check_amap:
+        try:
+            ContextPolicy.from_env()
+        except ContextConfigurationError as error:
+            print(str(error), file=sys.stderr)
+            return 1
         if not os.getenv("MODEL_ID"):
             print("请配置 MODEL_ID。", file=sys.stderr)
             return 1

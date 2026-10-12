@@ -47,7 +47,7 @@ class CLITests(unittest.TestCase):
     def test_missing_amap_key_has_an_actionable_message_without_traceback(self):
         project = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as directory:
-            for name in ["agent.py", "model_retry.py", "amap_mcp.py", "amap_http.py", "limits.py", "travel_dates.py", "travel_tools.py", "exa_mcp.py", "source_http.py"]:
+            for name in ["agent.py", "model_retry.py", "model_context.py", "amap_mcp.py", "amap_http.py", "limits.py", "travel_dates.py", "travel_tools.py", "exa_mcp.py", "source_http.py"]:
                 shutil.copy(project / name, directory)
             result = subprocess.run(
                 [sys.executable, "agent.py", "--check-amap"],
@@ -59,3 +59,17 @@ class CLITests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("AMAP_MAPS_API_KEY", result.stdout + result.stderr)
         self.assertNotIn("Traceback", result.stdout + result.stderr)
+
+    def test_compaction_configuration_fails_before_cli_connects(self):
+        for capacity in (None, "0", "invalid", "10048"):
+            with self.subTest(capacity=capacity):
+                env = {"AMAP_MAPS_API_KEY": "key", "MODEL_ID": "test-model", "ANTHROPIC_API_KEY": "model-key",
+                       "CONTEXT_COMPACTION_ENABLED": "true"}
+                if capacity is not None:
+                    env["MODEL_CONTEXT_WINDOW"] = capacity
+                captured = io.StringIO()
+                with patch.dict(os.environ, env, clear=True), patch("sys.argv", ["agent.py"]), patch("agent.load_dotenv"), patch("agent.run_cli") as runner, contextlib.redirect_stderr(captured):
+                    self.assertEqual(main(), 1)
+                    runner.assert_not_called()
+                self.assertIn("MODEL_CONTEXT_WINDOW", captured.getvalue())
+                self.assertNotIn("Traceback", captured.getvalue())
