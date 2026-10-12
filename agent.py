@@ -293,6 +293,10 @@ async def agent_loop(
                           tools=[*tools.declarations, *HISTORY_DECLARATIONS], max_tokens=8000)
         retry_id = uuid4().hex
         attempt = 1
+        network_attempt = 1
+        context_recovery = False
+        recovery_pending = False
+        recovery_of = ""
         failure = None
         response: Message | None = None
         parsed: dict[str, Any] | None = None
@@ -306,7 +310,7 @@ async def agent_loop(
                 break
             measurement = meter.measure(parameters) if context_policy else None
             if context_policy is not None and measurement is not None:
-                if measurement["estimated_tokens"] >= context_policy.pressure_threshold:
+                if not context_recovery and measurement["estimated_tokens"] >= context_policy.pressure_threshold:
                     before_tokens = measurement["estimated_tokens"]
                     changed_result_count = view.organize_tool_results()
                     parameters["messages"] = copy.deepcopy(view.messages)
@@ -319,7 +323,7 @@ async def agent_loop(
                             "pressure_remaining": measurement["estimated_tokens"] >= context_policy.pressure_threshold,
                             "original_watermark": view.original_watermark, "version": view.version,
                             "record_ids": view.record_ids.copy(), "step": ordinal, "attempt": attempt})
-                if measurement["estimated_tokens"] >= context_policy.pressure_threshold and summary_attempts < 4 and not summary_blocked:
+                if not context_recovery and measurement["estimated_tokens"] >= context_policy.pressure_threshold and summary_attempts < 4 and not summary_blocked:
                     summary_result = await summarize_history(
                         view=view, policy=context_policy, meter=meter, parameters=parameters,
                         client=client, tools=tools, date_context=date_context,
@@ -352,6 +356,10 @@ async def agent_loop(
                     "started_at": datetime.now(timezone.utc).isoformat(),
                     "input": copy.deepcopy(parameters),
                 })
+            if recovery_pending and observer:
+                await observer("context.recovery_started", {"request_id": request_id, "recovery_of": recovery_of, "step": ordinal,
+                    "attempt": attempt, "version": view.version})
+            recovery_pending = False
             started = asyncio.get_running_loop().time()
             stage = "model_call"
             failure = None
@@ -392,13 +400,76 @@ async def agent_loop(
                         "usage":parsed.get("usage") if parsed is not None else None,
                         "usage_state":"returned" if parsed is not None and parsed.get("usage") is not None else "not_returned",
                     })
-                delay = retry_delay(failure, attempt)
+                if failure["code"] == "CONTEXT_WINDOW_EXCEEDED":
+                    if observer:
+                        await observer("context.exceeded", {"request_id": request_id, "step": ordinal,
+                            "attempt": attempt, "recovery_used": context_recovery})
+                    if stop_requested and stop_requested.is_set():
+                        stopped = "已停止本轮查询，尚未完成的信息待核实。"
+                        reason = requested_reason()
+                        break
+                    if context_recovery:
+                        status, reason = "failed", "context_window_exceeded"
+                        stopped = "缩减后的模型输入仍被服务判定超限，已停止本轮查询。"
+                        if observer:
+                            await observer("context.recovery_result", {"request_id": request_id,
+                                "status": "failed", "reason": reason, "step": ordinal})
+                        break
+                    recovery_of = request_id
+                    before_tokens = meter.measure(parameters)["estimated_tokens"]
+                    changed_result_count = view.organize_tool_results()
+                    parameters["messages"] = copy.deepcopy(view.messages)
+                    organized_tokens = meter.measure(parameters)["estimated_tokens"]
+                    if observer:
+                        await observer("context.organized", {"before_tokens": before_tokens,
+                            "after_tokens": organized_tokens, "changed_result_count": changed_result_count,
+                            "pressure_remaining": context_policy is None or organized_tokens >= context_policy.pressure_threshold,
+                            "original_watermark": view.original_watermark, "version": view.version,
+                            "record_ids": view.record_ids.copy(), "step": ordinal, "attempt": attempt})
+                    if (context_policy is not None and summary_attempts < 4 and not summary_blocked
+                            and (organized_tokens >= before_tokens or organized_tokens > context_policy.input_budget)):
+                        summary_result = await summarize_history(
+                            view=view, policy=context_policy, meter=meter, parameters=parameters,
+                            client=client, tools=tools, date_context=date_context,
+                            cutoff=earlier_history_cutoff(view, current_turn_start, context_policy, meter, force=True),
+                            remaining_attempts=4 - summary_attempts, next_request_ordinal=next_request_ordinal,
+                            observer=observer, stop_requested=stop_requested)
+                        summary_attempts += summary_result.attempts
+                        summary_blocked = summary_blocked or summary_result.terminal_failure
+                    parameters["messages"] = copy.deepcopy(view.messages)
+                    after_tokens = meter.measure(parameters)["estimated_tokens"]
+                    allowed = context_policy is not None and after_tokens <= context_policy.input_budget
+                    reduced = after_tokens < before_tokens
+                    if observer:
+                        await observer("context.recovery_prepared", {"request_id": request_id,
+                            "before_tokens": before_tokens, "after_tokens": after_tokens,
+                            "reduced": reduced, "allowed": allowed, "step": ordinal,
+                            "summary_attempts": summary_attempts, "version": view.version})
+                    if stop_requested and stop_requested.is_set():
+                        stopped = "已停止本轮查询，尚未完成的信息待核实。"
+                        reason = requested_reason()
+                        break
+                    if not reduced or not allowed:
+                        status, reason = "failed", "context_recovery_unavailable"
+                        stopped = "服务报告上下文超限，未获得预算内的有效输入缩减，已停止本轮查询。"
+                        if observer:
+                            await observer("context.recovery_result", {"request_id": request_id,
+                                "status": "unavailable", "reason": reason, "step": ordinal})
+                        break
+                    context_recovery = True
+                    recovery_pending = True
+                    attempt += 1
+                    continue
+                delay = retry_delay(failure, network_attempt)
                 if delay is None or (stop_requested and stop_requested.is_set()):
                     status, reason = "failed", "model_error"
                     stopped = "模型请求未能完成，已停止本次查询。"
+                    if context_recovery and observer:
+                        await observer("context.recovery_result", {"request_id": request_id,
+                            "status": "failed", "reason": reason, "step": ordinal})
                     break
                 retry_data = {"request_id": request_id, "retry_id": retry_id, "step": ordinal,
-                              "retry": attempt, "max_retries": MAX_RETRIES, "delay_ms": delay * 1000,
+                              "retry": network_attempt, "max_retries": MAX_RETRIES, "delay_ms": delay * 1000,
                               "code": failure["code"], "message": failure["message"]}
                 if observer:
                     await observer("request.retry_scheduled", retry_data)
@@ -420,6 +491,7 @@ async def agent_loop(
                     reason = requested_reason()
                     break
                 attempt += 1
+                network_attempt += 1
             else:
                 break
         if stopped or failure is not None:
@@ -432,6 +504,9 @@ async def agent_loop(
                 "usage": parsed.get("usage"),
                 "usage_state": "returned" if "usage" in parsed and parsed["usage"] is not None else "not_returned",
             })
+        if context_recovery and observer:
+            await observer("context.recovery_result", {"request_id": request_id,
+                "status": "completed", "step": ordinal})
         messages.append(cast(MessageParam, {
             "role": "assistant",
             "content": [block.model_dump(mode="json") for block in response.content],
@@ -560,6 +635,15 @@ async def run_cli(api_key: str, *, check_amap: bool = False, clock: Callable[[],
                         date_context = saved_date_context(data["input"]["system"])
                     elif kind == "context.organized":
                         print(f"上下文整理：{data['before_tokens']} → {data['after_tokens']} tokens（估算）。")
+                    elif kind == "context.exceeded":
+                        print("服务报告上下文超限，正在检查输入缩减。")
+                    elif kind == "context.recovery_prepared":
+                        print(f"超限恢复输入：{data['before_tokens']} → {data['after_tokens']} tokens（估算）；"
+                              + ("已缩小且符合预算。" if data["reduced"] and data["allowed"] else "未获得预算内的有效缩减。"))
+                    elif kind == "context.recovery_started":
+                        print("已缩小输入，正在恢复原模型步骤…")
+                    elif kind == "context.recovery_result":
+                        print("原模型步骤已返回有效响应。" if data["status"] == "completed" else "超限恢复已结束，保留已有资料。")
                     elif kind == "context.summary_started":
                         print("正在整理较早的旅行记录…")
                     elif kind == "context.adopted":

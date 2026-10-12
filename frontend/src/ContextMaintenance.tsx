@@ -1,12 +1,16 @@
 export type ContextEvent = {
   event_id: string; turn_id: string; kind: string;
-  data?: {valid?: boolean; used_in_turn?: boolean; result_unknown?: boolean; candidate_recorded?: boolean; reason?: string | null; status?: string; version?: number; before_tokens?: number; after_tokens?: number; changed_result_count?: number; pressure_remaining?: boolean};
+  data?: {valid?: boolean; used_in_turn?: boolean; result_unknown?: boolean; candidate_recorded?: boolean; reason?: string | null; status?: string; version?: number; before_tokens?: number; after_tokens?: number; changed_result_count?: number; pressure_remaining?: boolean; reduced?: boolean; allowed?: boolean};
 };
 
 export function contextEventText(event: ContextEvent): string | null {
   const data = event.data;
   switch (event.kind) {
     case 'context.organized': return `工具结果已整理 · ${data?.before_tokens ?? '未知'} → ${data?.after_tokens ?? '未知'} tokens（估算） · 整理 ${data?.changed_result_count ?? '未知'} 项 · ${data?.pressure_remaining ? '仍有上下文压力' : '上下文压力已缓解'}`;
+    case 'context.exceeded': return '服务报告上下文超限';
+    case 'context.recovery_prepared': return `超限恢复输入 · ${data?.before_tokens ?? '未知'} → ${data?.after_tokens ?? '未知'} tokens（估算） · ${data?.reduced && data?.allowed ? '已缩小且符合预算' : '未获得预算内的有效缩减'}`;
+    case 'context.recovery_started': return '已缩小输入，正在恢复原模型步骤';
+    case 'context.recovery_result': return data?.status === 'completed' ? '原模型步骤已返回有效响应' : '超限恢复已结束，保留已有资料';
     case 'context.summary_started': return '正在整理较早的旅行记录';
     case 'context.summary_result': return data?.status === 'completed' ? '摘要请求已返回，等待校验' : '摘要请求失败，保留原上下文';
     case 'context.validated': return data?.valid ? '摘要校验通过' : `摘要未采用：${data?.reason ?? '校验未通过'}`;

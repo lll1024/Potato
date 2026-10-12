@@ -124,6 +124,20 @@ test('工具结果整理展示前后估算、处理项数与剩余压力', () =>
   assert.match(html, /仍有上下文压力/);
 });
 
+test('超限恢复区分准备、实际请求和返回，不把准备状态显示为已经恢复', () => {
+  const render = events => renderToStaticMarkup(createElement(ContextMaintenance, {events,turnId:'turn'}));
+  const prepared = [
+    {event_id:'exceeded',turn_id:'turn',kind:'context.exceeded'},
+    {event_id:'prepared',turn_id:'turn',kind:'context.recovery_prepared',data:{before_tokens:20000,after_tokens:15000,reduced:true,allowed:true}},
+  ];
+  assert.match(render(prepared), /服务报告上下文超限/);
+  assert.match(render(prepared), /已缩小且符合预算/);
+  assert.doesNotMatch(render(prepared), /正在恢复原模型步骤|已返回有效响应/);
+  assert.match(render([...prepared,{event_id:'started',turn_id:'turn',kind:'context.recovery_started'}]), /正在恢复原模型步骤/);
+  assert.match(render([...prepared,{event_id:'result',turn_id:'turn',kind:'context.recovery_result',data:{status:'completed'}}]), /原模型步骤已返回有效响应/);
+  assert.match(render([{event_id:'blocked',turn_id:'turn',kind:'context.recovery_prepared',data:{reduced:false,allowed:true}}]), /未获得预算内的有效缩减/);
+});
+
 test('服务中断后整理状态区分摘要未知与曾采用但未保存，不再显示整理进行中', () => {
   for (const used of [false, true]) {
     const html = renderToStaticMarkup(createElement(ContextMaintenance, {turnId: 'turn', events: [
