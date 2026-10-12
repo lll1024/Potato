@@ -151,7 +151,7 @@ class ModelTraceTests(unittest.IsolatedAsyncioTestCase):
                 if self.requests:
                     raise APIStatusError("模型额度不足 known-secret",response=httpx2.Response(429,
                         request=httpx2.Request("POST","https://example.test"),headers={"request-id":"http-failure"}),
-                        body={"error":{"type":"rate_limit_error","message":"拒绝请求","authorization":"unknown-secret"}})
+                        body={"error":{"type":"rate_limit_error","message":"insufficient_quota","authorization":"unknown-secret"}})
                 return await super().create(**kwargs)
         with tempfile.TemporaryDirectory() as directory:
             async with serving(directory, FailedModel([first])) as client:

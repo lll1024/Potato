@@ -7,6 +7,7 @@ import { useReadingFollow } from './useReadingFollow';
 import { ReadingScroll } from './ReadingScroll';
 import { requestJson } from './api';
 import { reasonLabels } from './turnReasons';
+import { ModelRetries, retryEntries, type RetryEvent } from './ModelRetries';
 export type { TraceLocation } from './PayloadViewer';
 
 type Usage = Record<string, unknown>;
@@ -16,6 +17,7 @@ type TraceRequest = {
   started_at: string; finished_at: string | null; duration_ms: number | null;
   input_payload_id: string; response_payload_id: string | null; error_payload_id: string | null;
   usage: Usage | null; usage_state: string;
+  step?: number; attempt?: number;
 };
 type TraceTool = {
   tool_call_id: string; request_id: string; turn_id: string; ordinal: number; tool_use_id: string; name: string;
@@ -25,9 +27,10 @@ type TraceTool = {
   arguments_payload_id: string; service_payload_id?: string; result_payload_id?: string; error_payload_id?: string;
 };
 type TraceTurn = {turn_id: string; ordinal: number; input: string; input_is_summary?: boolean; input_payload_id?: string; answer_payload_id?: string; answer_source?: string | null; status: string; reason?: string | null; tool_error_count: number; usage_summary?: UsageSummary};
-type TraceEvent = {event_id: string; sequence: number; kind: string; request_id?: string | null; tool_call_id?: string | null; turn_id: string};
+type TraceEvent = RetryEvent & {tool_call_id?: string | null};
 type TraceSnapshot = {events: TraceEvent[]; session: {title: string}; turns: TraceTurn[]; requests: TraceRequest[]; tool_calls: TraceTool[]; usage_summary: UsageSummary; next_before: number | null; cursor: number; stream_id: string};
-type Props = {sessionId: string | null; refreshKey?: number; location?: TraceLocation | null; onInteraction?: () => void};
+type Props = {sessionId: string | null; refreshKey?: number; location?: TraceLocation | null; onInteraction?: () => void;
+  onStop?: (turnId: string) => void; stopping?: boolean; disconnected?: boolean};
 const toolStatuses: Record<string,string> = {pending:'已提出',waiting:'限速等待',running:'执行中',completed:'成功',failed:'失败',not_executed:'未执行'};
 const failureLabels: Record<string,string> = {auth:'鉴权失败',quota:'额度或限流',connection:'连接不可恢复',service:'地图服务暂停',arguments:'参数错误',timeout:'查询超时',business:'地图业务失败',sdk_error:'SDK 错误标志',error:'普通工具失败'};
 function turnStatus(turn: TraceTurn) { return turn.status === 'completed' ? (turn.tool_error_count ? `完成，含工具错误（${turn.tool_error_count}）` : '已完成') : turn.status === 'running' ? '正在执行' : `${turn.status === 'failed' ? '失败' : '终止'}：${reasonLabels[turn.reason ?? ''] ?? turn.reason ?? '原因未知'}`; }
@@ -46,7 +49,7 @@ function UsageTotals({summary}: {summary?: UsageSummary}) {
   </span>)}</div>;
 }
 
-export function TraceView({sessionId,refreshKey,location:externalLocation,onInteraction:onRead}: Props) {
+export function TraceView({sessionId,refreshKey,location:externalLocation,onInteraction:onRead,onStop,stopping,disconnected}: Props) {
   const sessionRef=useRef(sessionId);
   sessionRef.current=sessionId;
   const [snapshot,setSnapshot] = useState<TraceSnapshot | null>(null);
@@ -188,9 +191,13 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
             {turn.reason === 'service_interrupted' && <p className="hint">本轮已排除后续上下文；保留最后保存事实，没有自动重试或重放。</p>}
             <UsageTotals summary={turn.usage_summary} />
             {narrow && selected===turn.turn_id && <div className="trace-mobile-detail" data-reading-anchor={`detail:${turn.turn_id}`}>{turnDetail}</div>}
+            <ModelRetries events={snapshot.events} turn={turn} />
+            {turn.status === 'running' && retryEntries(snapshot.events, turn).length > 0 && onStop &&
+              <button type="button" disabled={stopping || disconnected} onClick={() => onStop(turn.turn_id)}>停止本轮重试</button>}
             {snapshot.requests.filter(item => item.turn_id === turn.turn_id).map(item => <details key={item.request_id} id={`trace-object-${item.request_id}`} className={`trace-request ${selected === item.request_id ? 'selected' : ''}`} open={expanded[item.request_id] ?? false} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,[item.request_id]:open}));}}>
               <summary data-reading-anchor={`request:${item.request_id}`}><span className="trace-badge model">模型</span><span className="trace-row-text">请求 #{item.ordinal}</span><span className="trace-row-status">{item.interrupted ? '中断，结果未知' : statuses[item.status] ?? item.status}</span></summary>
               <div className="trace-request-row"><time dateTime={item.started_at}>{new Date(item.started_at).toLocaleTimeString('zh-CN')}</time><span>{item.duration_ms === null ? (item.interrupted ? '—（中断，结束未知）' : '—（尚未结束）') : `${item.duration_ms.toFixed(1)} ms`}</span><button aria-pressed={selected === item.request_id} onClick={() => select(item.request_id)}>查看详情</button></div>
+              {item.step !== undefined && <p className="hint">模型步骤 {item.step} · 实际尝试 {item.attempt}</p>}
               {snapshot.tool_calls.filter(call => call.request_id === item.request_id).map(call => <div key={call.tool_call_id} id={`trace-object-${call.tool_call_id}`} className={`trace-tool ${selected === call.tool_call_id ? 'selected' : ''}`}>
                 <div className="trace-request-row" data-reading-anchor={`tool:${call.tool_call_id}`}><span className="trace-badge tool">工具</span><span className="trace-row-text">{call.name}</span><span className="trace-row-status">#{call.ordinal} · {call.interrupted ? '中断，结果未知' : toolStatuses[call.status] ?? call.status}</span><button aria-pressed={selected === call.tool_call_id} onClick={() => select(call.tool_call_id)}>查看工具详情</button></div>
                 {narrow && selected === call.tool_call_id && <div className="trace-mobile-detail" data-reading-anchor={`detail:${call.tool_call_id}`}><ToolDetail tool={call} {...detailProps} /></div>}

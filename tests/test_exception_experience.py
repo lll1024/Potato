@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 import httpx2
-from anthropic import APIConnectionError
+from anthropic import APIStatusError
 
 from test_agent import ModelService, response
 from test_itinerary import ItineraryMapService, map_result
@@ -21,7 +21,8 @@ class FailingAfterTools(ModelService):
     async def create(self, **kwargs):
         if len(self.requests) == 1:
             self.requests.append(kwargs)
-            raise APIConnectionError(request=httpx2.Request("POST", "https://model.example.test"))
+            raise APIStatusError("账户额度耗尽", response=httpx2.Response(402,
+                request=httpx2.Request("POST", "https://model.example.test")), body={"error": {"type": "quota_error"}})
         return await super().create(**kwargs)
 
 

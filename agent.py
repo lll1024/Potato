@@ -20,6 +20,7 @@ from mcp.client.streamable_http import streamable_http_client
 from amap_http import AmapHTTPClient
 from amap_mcp import AmapTools, ToolResult
 from limits import MAX_ROUNDS, MAX_TOOL_CALLS, TOOL_TIMEOUT
+from model_retry import MAX_RETRIES, EmptyModelResponse, model_failure, retry_delay
 from travel_dates import current_time, model_date_context, saved_date_context, turn_date_context
 from travel_tools import TravelTools, connected_travel_tools
 
@@ -250,60 +251,95 @@ async def agent_loop(
             })
         return answer
 
+    def requested_reason() -> str:
+        return cast(str, stop_reason() if callable(stop_reason) else stop_reason)
+
+    request_ordinal = 0
     for ordinal in range(1, max_rounds + 1):
         if stop_requested and stop_requested.is_set():
             stopped = "已停止本轮查询，尚未完成的信息待核实。"
-            reason = stop_reason() if callable(stop_reason) else stop_reason
+            reason = requested_reason()
             break
-        request_id = uuid4().hex
         parameters: dict[str, Any] = dict(model=model, system=system + preference_background + ("\n本轮资料服务状态：" + tools.source_status if isinstance(tools, TravelTools) else ""), messages=messages,
                           tools=tools.declarations, max_tokens=8000)
-        if observer:
-            await observer("request.started", {
-                "request_id": request_id, "ordinal": ordinal,
-                "started_at": datetime.now(timezone.utc).isoformat(),
-                "input": copy.deepcopy(parameters),
-            })
-        started = asyncio.get_running_loop().time()
-        stage = "model_call"
-        failure = None
-        response: Message | None = None
-        parsed: dict[str, Any] | None = None
-        duration_ms: float | None = None
-        finished_at: str | None = None
-        try:
-            response = cast(Message, await client.messages.create(**parameters))
-            duration_ms = max(0,(asyncio.get_running_loop().time()-started)*1000)
-            finished_at = datetime.now(timezone.utc).isoformat()
-            stage = "response_processing"
-            parsed = response.model_dump(mode="json", exclude_unset=True, warnings=False)
-            service_request_id = getattr(response, "_request_id", None)
-            if service_request_id is not None:
-                parsed["_request_id"] = service_request_id
-            # 采集先于转换，保留 SDK 字段存在性；协议上下文仅使用脱敏内容块。
-            response = response.model_copy(update={"content": [
-                type(block).model_validate_json(tools.redact(block.model_dump_json(warnings=False)))
-                for block in response.content
-            ]})
-        except Exception as error:
-            if duration_ms is None:
+        retry_id = uuid4().hex
+        attempt = 1
+        while True:
+            request_ordinal += 1
+            request_id = uuid4().hex
+            if observer:
+                await observer("request.started", {
+                    "request_id": request_id, "ordinal": request_ordinal, "step": ordinal, "attempt": attempt, "retry_id": retry_id,
+                    "started_at": datetime.now(timezone.utc).isoformat(),
+                    "input": copy.deepcopy(parameters),
+                })
+            started = asyncio.get_running_loop().time()
+            stage = "model_call"
+            failure = None
+            response: Message | None = None
+            parsed: dict[str, Any] | None = None
+            duration_ms: float | None = None
+            finished_at: str | None = None
+            try:
+                response = cast(Message, await client.messages.create(**parameters))
                 duration_ms = max(0,(asyncio.get_running_loop().time()-started)*1000)
                 finished_at = datetime.now(timezone.utc).isoformat()
-            failure = {"stage":stage,"category":type(error).__name__,"message":str(error)}
-            for field in ("status_code","request_id","body"):
-                value = getattr(error,field,None)
-                if value is not None:
-                    failure[field] = value
+                stage = "response_processing"
+                parsed = response.model_dump(mode="json", exclude_unset=True, warnings=False)
+                service_request_id = getattr(response, "_request_id", None)
+                if service_request_id is not None:
+                    parsed["_request_id"] = service_request_id
+                if not response.content:
+                    raise EmptyModelResponse("模型返回空响应。")
+                # 采集先于转换，保留 SDK 字段存在性；协议上下文仅使用脱敏内容块。
+                response = response.model_copy(update={"content": [
+                    type(block).model_validate_json(tools.redact(block.model_dump_json(warnings=False)))
+                    for block in response.content
+                ]})
+            except Exception as error:
+                if duration_ms is None:
+                    duration_ms = max(0,(asyncio.get_running_loop().time()-started)*1000)
+                    finished_at = datetime.now(timezone.utc).isoformat()
+                failure = model_failure(error, stage)
+            if failure is not None:
+                if observer:
+                    await observer("request.failed", {
+                        "request_id":request_id,"finished_at":finished_at,
+                        "duration_ms":duration_ms,"error":failure,"response":parsed,
+                        "usage":parsed.get("usage") if parsed is not None else None,
+                        "usage_state":"returned" if parsed is not None and parsed.get("usage") is not None else "not_returned",
+                    })
+                delay = retry_delay(failure, attempt)
+                if delay is None or (stop_requested and stop_requested.is_set()):
+                    status, reason = "failed", "model_error"
+                    stopped = "模型请求未能完成，已停止本次查询。"
+                    break
+                retry_data = {"request_id": request_id, "retry_id": retry_id, "step": ordinal,
+                              "retry": attempt, "max_retries": MAX_RETRIES, "delay_ms": delay * 1000,
+                              "code": failure["code"], "message": failure["message"]}
+                if observer:
+                    await observer("request.retry_scheduled", retry_data)
+                if stop_requested:
+                    try:
+                        await asyncio.wait_for(stop_requested.wait(), delay)
+                    except TimeoutError:
+                        pass
+                else:
+                    await asyncio.sleep(delay)
+                if stop_requested and stop_requested.is_set():
+                    stopped = "已停止本轮查询，尚未完成的信息待核实。"
+                    reason = requested_reason()
+                    break
+                if observer:
+                    await observer("request.retry_started", retry_data)
+                if stop_requested and stop_requested.is_set():
+                    stopped = "已停止本轮查询，尚未完成的信息待核实。"
+                    reason = requested_reason()
+                    break
+                attempt += 1
+            else:
+                break
         if failure is not None:
-            if observer:
-                await observer("request.failed", {
-                    "request_id":request_id,"finished_at":finished_at,
-                    "duration_ms":duration_ms,"error":failure,"response":parsed,
-                    "usage":parsed.get("usage") if parsed is not None else None,
-                    "usage_state":"returned" if parsed is not None and parsed.get("usage") is not None else "not_returned",
-                })
-            status, reason = "failed", "model_error"
-            stopped = "模型请求未能完成，已停止本次查询。"
             break
         assert response is not None and parsed is not None
         if observer:
@@ -335,7 +371,7 @@ async def agent_loop(
         for block, tool_id in zip(tool_calls,tool_ids):
             async def tool_observer(kind: str, data: dict[str, Any]) -> None:
                 if kind == "tool.not_executed" and stop_requested and stop_requested.is_set():
-                    data["reason"] = stop_reason() if callable(stop_reason) else stop_reason
+                    data["reason"] = requested_reason()
                 if "result" in data:
                     output_result = data["result"]
                     data["result"] = {"type":"tool_result","tool_use_id":block.id,
@@ -347,7 +383,7 @@ async def agent_loop(
             attempted = False
             if stop_requested and stop_requested.is_set() and not stopped:
                 stopped = "已停止本轮查询，尚未完成的信息待核实。"
-                reason = stop_reason() if callable(stop_reason) else stop_reason
+                reason = requested_reason()
             if stopped:
                 output = {"content": "未执行：" + stopped, "is_error": True}
             elif calls >= max_tool_calls:
@@ -360,7 +396,7 @@ async def agent_loop(
                                           stop_requested=stop_requested)
                 stopped = output.get("stop_reason")
                 if stopped:
-                    reason = (stop_reason() if callable(stop_reason) else stop_reason) if stop_requested and stop_requested.is_set() else "map_paused"
+                    reason = (requested_reason()) if stop_requested and stop_requested.is_set() else "map_paused"
                 if output["is_error"] and not output.get("not_executed") :
                     tool_errors += 1
             if not attempted:
@@ -376,13 +412,13 @@ async def agent_loop(
         messages.append({"role": "user", "content": results})
         if stop_requested and stop_requested.is_set():
             stopped = "已停止本轮查询，尚未完成的信息待核实。"
-            reason = stop_reason() if callable(stop_reason) else stop_reason
+            reason = requested_reason()
         if stopped or calls >= max_tool_calls:
             break
 
     descriptions = {"map_paused": "地图查询已暂停，查询资料不完整。", "user_stop": "已停止本轮查询。",
         "service_shutdown": "本机服务已退出。", "storage_failure": "存储故障，只能确认最后成功保存的事实。"}
-    answer = terminated_answer(descriptions.get(reason, stopped or BUDGET_MESSAGE), outcomes)
+    answer = terminated_answer(descriptions.get(reason or "", stopped or BUDGET_MESSAGE), outcomes)
     messages.append({"role": "assistant", "content": answer})
     return await finished(answer, "application")
 

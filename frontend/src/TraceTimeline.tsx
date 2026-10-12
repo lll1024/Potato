@@ -1,6 +1,7 @@
 type Request = {request_id: string; turn_id: string; ordinal: number; status: string; started_at: string; finished_at: string | null; interrupted?: boolean};
 type Tool = {tool_call_id: string; turn_id: string; request_id: string; ordinal: number; name: string; proposed_at: string; waiting_at?: string; call_started_at?: string; call_finished_at?: string; finished_at?: string; status: string; interrupted?: boolean};
-type Event = {request_id?: string | null; tool_call_id?: string | null; sequence: number; kind: string};
+type Event = {event_id?: string; turn_id?: string; timestamp?: string; request_id?: string | null; tool_call_id?: string | null; sequence: number; kind: string;
+  data?: {retry_id?: string; retry?: number; delay_ms?: number}};
 type Boundary = {identity: string; objectId: string; objectType: 'request' | 'tool'; turnId: string; turnOrdinal: number; time: string; label: string; order: number};
 
 export function TraceTimeline({turns, requests, tools, events, selected, onLocate}: {
@@ -28,6 +29,15 @@ export function TraceTimeline({turns, requests, tools, events, selected, onLocat
     add('tool', tool.tool_call_id, tool.turn_id, tool.call_finished_at, `tool.${tool.status}`, `${title} · SDK 结束`, tool.ordinal * 10 + 3);
     add('tool', tool.tool_call_id, tool.turn_id, tool.finished_at, `tool.${tool.status}.result`, `${title} · 应用回填${tool.status === 'not_executed' ? '（未调用）' : ''}`, tool.ordinal * 10 + 4);
   }
+  const retries = events.filter(event => event.kind === 'request.retry_scheduled' && event.timestamp && event.request_id);
+  for (const event of events.filter(event => event.kind === 'request.retry_scheduled' || event.kind === 'request.retry_started')) {
+    const request = requests.find(item => item.request_id === event.request_id);
+    if (!request || !event.timestamp) continue;
+    boundaries.push({identity: event.event_id ?? `${event.request_id}:${event.sequence}`, objectId: request.request_id,
+      objectType: 'request', turnId: request.turn_id, turnOrdinal: turns.find(turn => turn.turn_id === request.turn_id)?.ordinal ?? 0,
+      time: event.timestamp, order: event.sequence * 10,
+      label: `模型请求 ${request.ordinal} · 重试 ${event.data?.retry ?? '未知'} · ${event.kind === 'request.retry_scheduled' ? '等待开始' : '退避结束，恢复尝试'}`});
+  }
   boundaries.sort((a, b) => a.time.localeCompare(b.time) || a.order - b.order || a.identity.localeCompare(b.identity));
   const times = boundaries.map(item => Date.parse(item.time));
   const start = times.length ? Math.min(...times) : 0;
@@ -39,6 +49,13 @@ export function TraceTimeline({turns, requests, tools, events, selected, onLocat
     <div className="timeline-caption"><h4>实际时间线</h4><span>未结束调用仅标记开始</span></div>
     <div className="timeline-lane"><span>模型</span><div>{requests.map(item => <button type="button" key={item.request_id} className={`timeline-bar model ${selected === item.request_id ? 'selected' : ''}`} style={position(item.started_at, item.finished_at)} aria-label={`第 ${turns.find(turn => turn.turn_id === item.turn_id)?.ordinal} 轮，模型请求 ${item.ordinal}，${item.finished_at ? '已结束' : '尚未结束'}`} title={`模型请求 ${item.ordinal} · ${item.started_at}${item.finished_at ? ` → ${item.finished_at}` : ' · 结束未知'}`} onClick={() => onLocate('request', item.request_id, item.turn_id)} />)}</div></div>
     <div className="timeline-lane"><span>工具</span><div>{tools.map(item => <button type="button" key={item.tool_call_id} className={`timeline-bar tool ${selected === item.tool_call_id ? 'selected' : ''}`} style={position(item.proposed_at, item.finished_at)} aria-label={`第 ${turns.find(turn => turn.turn_id === item.turn_id)?.ordinal} 轮，工具 ${item.ordinal}，${item.name}，提出至应用回填${item.finished_at ? '' : '，尚未结束'}`} title={`${item.name} · 提出 ${item.proposed_at}${item.finished_at ? ` → 应用回填 ${item.finished_at}` : ' · 回填未知'}`} onClick={() => onLocate('tool', item.tool_call_id, item.turn_id)} />)}</div></div>
+    {retries.length > 0 && <div className="timeline-lane"><span>重试</span><div>{retries.map(item => {
+      const started = events.find(event => event.kind === 'request.retry_started' && event.data?.retry_id === item.data?.retry_id && event.data?.retry === item.data?.retry);
+      const request = requests.find(request => request.request_id === item.request_id);
+      return request && <button type="button" key={item.event_id ?? item.sequence} className="timeline-bar tool"
+        style={position(item.timestamp!, started?.timestamp)} aria-label={`模型请求 ${request.ordinal} · 重试 ${item.data?.retry} · 等待${started ? '已结束' : '结束未采集'}`}
+        onClick={() => onLocate('request', request.request_id, request.turn_id)} />;
+    })}</div></div>}
     <details className="timeline-boundaries"><summary>查看 {boundaries.length} 个已采集时间边界</summary>
     <p className="hint">模型条显示请求至结束；工具条显示提出至应用回填。SDK 与限速等待的独立边界见下方记录。</p>
     <ol>{boundaries.map(item => <li key={item.identity}>
