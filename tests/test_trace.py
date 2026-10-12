@@ -14,17 +14,24 @@ from anthropic import AsyncAnthropic
 from mcp import Client
 
 from amap_mcp import AmapTools
+from exa_mcp import ExaTools
+from travel_tools import TravelTools
 from test_agent import MapService, ModelService, response
 from web import Runtime, create_app
 
 
 @asynccontextmanager
-async def serving(directory, model):
+async def serving(directory, model, *, maps=None, sources=None):
     @asynccontextmanager
     async def resources():
-        tools = AmapTools(cast(Client, MapService()), api_key="known-secret")
+        tools = AmapTools(cast(Client, maps if maps is not None else MapService()), api_key="known-secret")
         await tools.discover()
-        yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
+        if sources is not None:
+            exa = ExaTools(cast(Client, sources), redact=tools.redact, call_interval=0)
+            await exa.discover()
+            yield Runtime(cast(AsyncAnthropic, model), TravelTools(tools, exa), "test-model")
+        else:
+            yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
     app = create_app(directory, resources=resources)
     sock = socket.socket()
     sock.bind(("127.0.0.1", 0))

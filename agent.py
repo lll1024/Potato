@@ -294,6 +294,19 @@ async def agent_loop(
                 break
             measurement = meter.measure(parameters) if context_policy else None
             if context_policy is not None and measurement is not None:
+                if measurement["estimated_tokens"] >= context_policy.pressure_threshold:
+                    before_tokens = measurement["estimated_tokens"]
+                    changed_result_count = view.organize_tool_results()
+                    parameters["messages"] = copy.deepcopy(view.messages)
+                    measurement = meter.measure(parameters)
+                    if observer:
+                        await observer("context.organized", {"before_tokens": before_tokens,
+                            "after_tokens": measurement["estimated_tokens"],
+                            "changed_result_count": changed_result_count,
+                            "pressure_threshold": context_policy.pressure_threshold,
+                            "pressure_remaining": measurement["estimated_tokens"] >= context_policy.pressure_threshold,
+                            "original_watermark": view.original_watermark, "version": view.version,
+                            "record_ids": view.record_ids.copy(), "step": ordinal, "attempt": attempt})
                 allowed = measurement["estimated_tokens"] <= context_policy.input_budget
                 if observer:
                     await observer("context.checked", {**measurement, "window": context_policy.window,
@@ -519,6 +532,8 @@ async def run_cli(api_key: str, *, check_amap: bool = False, clock: Callable[[],
                     nonlocal date_context
                     if kind == "request.started":
                         date_context = saved_date_context(data["input"]["system"])
+                    elif kind == "context.organized":
+                        print(f"上下文整理：{data['before_tokens']} → {data['after_tokens']} tokens（估算）。")
                 while True:
                     try:
                         query = input("user: >> ")
