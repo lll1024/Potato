@@ -1,0 +1,33 @@
+FF
+======================================================================
+FAIL: test_explicit_departure_and_date_clarification_still_update_with_source_questions (test_travel_date_corrections.TravelDateCorrectionTests.test_explicit_departure_and_date_clarification_still_update_with_source_questions) (reply='出发日期确定为2026年10月14日，请核对开放公告')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/tests/test_travel_date_corrections.py", line 150, in test_explicit_departure_and_date_clarification_still_update_with_source_questions
+    self.assertEqual(context["travel_dates"]["start_date"], "2026-10-14")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: '2026-10-13' != '2026-10-14'
+- 2026-10-13
+?          ^
++ 2026-10-14
+?          ^
+
+
+======================================================================
+FAIL: test_explicit_departure_and_date_clarification_still_update_with_source_questions (test_travel_date_corrections.TravelDateCorrectionTests.test_explicit_departure_and_date_clarification_still_update_with_source_questions) (reply='旅行日期是2026年10月14日，查开放情况')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/tests/test_travel_date_corrections.py", line 150, in test_explicit_departure_and_date_clarification_still_update_with_source_questions
+    self.assertEqual(context["travel_dates"]["start_date"], "2026-10-14")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: '2026-10-13' != '2026-10-14'
+- 2026-10-13
+?          ^
++ 2026-10-14
+?          ^
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.435s
+
+FAILED (failures=2)

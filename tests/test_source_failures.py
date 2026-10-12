@@ -352,7 +352,7 @@ class SourceFailureTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn("REDACTED", exposed)
 
     async def test_restart_recovers_saved_body_as_reference_without_replaying_interrupted_protocol(self):
-        data = {"results": [{"url": "https://museum.example.test/notice", "text": "10月10日至11日暂停开放。"}]}
+        data = {"results": [{"url": "https://museum.example.test/notice", "text": "正文背景资料。" * 80 + "10月10日至11日暂停开放。"}]}
         service = SourceService([data])
         first_model = ModelService([
             response([call("saved-body", "web_fetch_exa", {"urls": ["https://museum.example.test/notice"]})], "tool_use"),
@@ -369,7 +369,9 @@ class SourceFailureTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual((await client.get("/api/state")).json()["unsaved_fact"]["kind"], "turn.finished")
             with closing(sqlite3.connect(Path(directory) / "travel.sqlite3")) as database, database:
                 database.execute("DROP TRIGGER fail_finish")
-            next_model = ModelService([response([{"type": "text", "text": "按原日期继续，保存的正文仍须按日期核对。"}]),
+            record_id = "payload:" + before["tool_calls"][0]["result_payload_id"]
+            next_model = ModelService([response([call("read-saved", "session_history_read", {"record_id": record_id})], "tool_use"),
+                                       response([{"type": "text", "text": "按原日期继续，保存的正文仍须按日期核对。"}]),
                                        response([{"type": "text", "text": "已经改期，旧公告不自动适用于新日期。"}])])
             async with service.serving(directory, next_model, clock=lambda: datetime.fromisoformat("2026-10-20T08:00:00+08:00")) as client:
                 restored = (await client.get("/api/sessions/" + accepted["session_id"])).json()
@@ -379,12 +381,28 @@ class SourceFailureTests(unittest.IsolatedAsyncioTestCase):
                 later = (await client.post("/api/turns", json={"input": "按原旅行日期继续", "session_id": accepted["session_id"]})).json()
                 continued = await finished(client, later)
                 self.assertEqual(next_model.requests[0]["messages"], [{"role": "user", "content": "按原旅行日期继续"}])
-                self.assertIn("10月10日至11日暂停开放", next_model.requests[0]["system"])
-                self.assertIn('"recheck_required": false', next_model.requests[0]["system"])
+                material = json.loads(next_model.requests[0]["system"].split("<saved_source_materials>")[1].split("</saved_source_materials>")[0])[0]
+                self.assertLessEqual(len(material["excerpt"]), 200)
+                self.assertEqual(material["record_id"], record_id)
+                self.assertEqual(material["verification_status"], "historical_requires_recheck")
+                self.assertEqual(material["travel_dates"]["start_date"], "2026-10-10")
+                self.assertNotIn("10月10日至11日暂停开放", next_model.requests[0]["system"])
+                self.assertNotIn("protocol_reference", material)
+                page = json.loads(next_model.requests[1]["messages"][-1]["content"][0]["content"])
+                self.assertIn("10月10日至11日暂停开放", page["text"])
+                self.assertEqual(page["record_id"], record_id)
+                self.assertEqual(page["verification_status"], "historical_requires_recheck")
+                self.assertEqual(page["turn_reason"], "service_interrupted")
+                self.assertNotIn("protocol_reference", page)
+                self.assertNotIn("saved-body", str(next_model.requests))
+                self.assertEqual(continued["tool_calls"][-1]["name"], "session_history_read")
+                self.assertEqual(continued["tool_calls"][-1]["status"], "completed")
+                self.assertTrue(material["recheck_required"])
+                self.assertTrue(material["same_travel_dates"])
                 self.assertEqual(continued["turns"][1]["travel_date_context"]["travel_dates"]["start_date"], "2026-10-10")
                 changed = (await client.post("/api/turns", json={"input": "改成2026年10月24日", "session_id": accepted["session_id"]})).json()
                 resumed = await finished(client, changed)
-                self.assertIn('"recheck_required": true', next_model.requests[1]["system"])
+                self.assertIn('"recheck_required": true', next_model.requests[2]["system"])
                 self.assertEqual(resumed["turns"][2]["travel_date_context"]["travel_dates"]["start_date"], "2026-10-24")
                 self.assertEqual(len(service.source_calls), 1)
                 self.assertEqual(service.map_calls, [])
