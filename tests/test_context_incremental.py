@@ -113,6 +113,13 @@ class IncrementalContextTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual((await client.get("/api/preferences")).json()["preferences"], [])
 
     async def test_multiple_summary_versions_keep_original_tool_results_readable(self):
+        class ReadableMaps(LargeMaps):
+            async def call_tool(self, name, arguments):
+                result = await super().call_tool(name, arguments)
+                # 仍触发多版本摘要，给回读元数据与正文页留出完整请求余量。
+                result.content[0].text = "来源2026-10-18，价格待核实、未预订。" + "资" * 1400
+                return result
+
         class ReadModel(IncrementalModel):
             async def create(self, **kwargs):
                 if "整理旅行状态" not in kwargs["system"] and self.travel_count == self.groups:
@@ -127,7 +134,7 @@ class IncrementalContextTests(unittest.IsolatedAsyncioTestCase):
                 return await super().create(**kwargs)
         model = ReadModel()
         with patch.dict(os.environ, ENV, clear=True), tempfile.TemporaryDirectory() as directory:
-            async with serving(directory, model, maps=LargeMaps()) as client:
+            async with serving(directory, model, maps=ReadableMaps()) as client:
                 saved = await submit(client, "2026-10-18，预算3000元，保留西湖酒店，核对旧来源。")
                 self.assertEqual(saved["turns"][-1]["answer"], "保持3000元和西湖酒店，资料待核实。")
                 reads = [call for call in saved["tool_calls"] if call["name"] == "session_history_read"]
@@ -136,6 +143,17 @@ class IncrementalContextTests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(payload["is_error"])
                 self.assertIn("来源2026-10-18", payload["content"])
                 self.assertIn("historical_requires_recheck", payload["content"])
+                page = json.loads(payload["content"])
+                self.assertGreater(page["end_offset"], 0)
+                self.assertEqual(page["next_offset"], page["end_offset"])
+                original = saved["turns"][-1]["messages"][2]["content"]
+                self.assertEqual(len(original), 2)
+                for block in original:
+                    self.assertEqual(json.loads(block["content"])["text"],
+                                     ["来源2026-10-18，价格待核实、未预订。" + "资" * 1400])
+                versions = [event["data"]["version"] for event in saved["events"]
+                            if event["kind"] == "context.adopted"]
+                self.assertGreaterEqual(len(set(versions)), 2)
                 self.assertGreaterEqual(len([r for r in saved["requests"] if r["purpose"] == "context_summary"]), 2)
 
     async def test_indivisible_latest_multitool_group_ends_without_summary_or_next_travel_call(self):

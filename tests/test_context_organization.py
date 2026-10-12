@@ -12,12 +12,14 @@ from test_trace import serving, wait_finished
 
 
 class RepeatedMap(MapService):
+    body_repeats = 90
+
     async def call_tool(self, name, arguments):
         result = await super().call_tool(name, arguments)
         result.structured_content = {"pois": [
             {"id": "hotel-east", "name": "湖畔酒店", "address": "东门", "price": "早餐 80 元，仅工作日",
              "source": "酒店公告", "valid_date": "2026-10-13", "verification": "待核实",
-             "body": "价格仅适用于成人；儿童需另询。" * 90},
+             "body": "价格仅适用于成人；儿童需另询。" * self.body_repeats},
             {"id": "hotel-west", "name": "湖畔酒店", "address": "西门", "price": "早餐 100 元，仅周末"},
         ]}
         result.content[0].text = json.dumps(result.structured_content, ensure_ascii=False)
@@ -32,8 +34,12 @@ def query_response():
 
 class ContextOrganizationTests(unittest.IsolatedAsyncioTestCase):
     async def test_pressure_removes_duplicate_views_and_preserves_complete_original(self):
+        class PressureMap(RepeatedMap):
+            # 保留完整价格正文，并给新增固定系统规则留下整理后余量。
+            body_repeats = 80
+
         model = ModelService([query_response(), response([{"type": "text", "text": "两家同名酒店需要澄清，早餐价格条件待核实。"}])])
-        with patch.dict(os.environ, {"CONTEXT_COMPACTION_ENABLED": "true", "MODEL_CONTEXT_WINDOW": "40000"}, clear=True), patch("test_trace.MapService", RepeatedMap), tempfile.TemporaryDirectory() as directory:
+        with patch.dict(os.environ, {"CONTEXT_COMPACTION_ENABLED": "true", "MODEL_CONTEXT_WINDOW": "40000"}, clear=True), patch("test_trace.MapService", PressureMap), tempfile.TemporaryDirectory() as directory:
             async with serving(directory, model) as client:
                 accepted = (await client.post("/api/turns", json={"input": "查询杭州西湖附近酒店"})).json()
                 saved = await wait_finished(client, accepted["session_id"])
@@ -42,7 +48,7 @@ class ContextOrganizationTests(unittest.IsolatedAsyncioTestCase):
                 viewed = json.loads(model.requests[1]["messages"][-1]["content"][0]["content"])
                 self.assertNotIn("text", viewed)
                 self.assertEqual([poi["id"] for poi in viewed["data"]["pois"]], ["hotel-east", "hotel-west"])
-                self.assertEqual(viewed["data"]["pois"][0]["body"], "价格仅适用于成人；儿童需另询。" * 90)
+                self.assertEqual(viewed["data"]["pois"][0]["body"], "价格仅适用于成人；儿童需另询。" * 80)
                 self.assertEqual(viewed["data"]["pois"][0]["price"], "早餐 80 元，仅工作日")
                 self.assertEqual(viewed["data"]["pois"][0]["verification"], "待核实")
                 result_id = saved["tool_calls"][0]["result_payload_id"]

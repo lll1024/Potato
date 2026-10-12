@@ -101,6 +101,12 @@ def summary_input(view, cutoff, date_context, protected_ref):
             "travel_dates": copy.deepcopy(date_context["travel_dates"])}
 
 
+def summary_request(source, model, policy):
+    return {"model": model, "system": SUMMARY_SYSTEM,
+            "messages": [{"role": "user", "content": json.dumps(source, ensure_ascii=False)}],
+            "max_tokens": min(2048, policy.input_budget * 15 // 100)}
+
+
 async def summarize_history(*, view, policy, meter, parameters, client, tools, date_context,
                             cutoff, remaining_attempts, next_request_ordinal, observer, stop_requested):
     """分批与修复共用单次两次额度；调用方继续共享整轮四次额度。"""
@@ -122,9 +128,7 @@ async def summarize_history(*, view, policy, meter, parameters, client, tools, d
             source = summary_input(view, end, date_context, protected_ref)
             if not source["records"]:
                 continue
-            request = {"model": parameters["model"], "system": SUMMARY_SYSTEM,
-                       "messages": [{"role": "user", "content": json.dumps(source, ensure_ascii=False)}],
-                       "max_tokens": min(2048, policy.input_budget * 15 // 100)}
+            request = summary_request(source, parameters["model"], policy)
             if meter.measure(request)["estimated_tokens"] > policy.input_budget:
                 break
             batch_cutoff = end
@@ -195,9 +199,7 @@ async def _summarize_batch(*, view, policy, meter, parameters, client, tools, da
         return SummaryResult(0)
     retained = [(message, ref) for message, ref in zip(old_messages[:cutoff], old_refs[:cutoff]) if ref == protected_ref]
     retained += list(zip(old_messages[cutoff:], old_refs[cutoff:]))
-    summary_parameters = {"model": parameters["model"], "system": SUMMARY_SYSTEM,
-                          "messages": [{"role": "user", "content": json.dumps(source, ensure_ascii=False)}],
-                          "max_tokens": min(2048, policy.input_budget * 15 // 100)}
+    summary_parameters = summary_request(source, parameters["model"], policy)
     measurement = meter.measure(summary_parameters)
     if measurement["estimated_tokens"] > policy.input_budget or summary_parameters["max_tokens"] <= 0:
         await emit("context.summary_unavailable", {"reason": "摘要输入超过安全预算。", "version": version})
