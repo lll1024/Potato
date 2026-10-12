@@ -61,14 +61,14 @@ def protocol_groups(messages):
     return groups
 
 
-def earlier_history_cutoff(view, turn_start, policy, meter):
+def earlier_history_cutoff(view, turn_start, policy, meter, *, force=False):
     """保留近期完整组、当前输入及最新完整工具交互，允许压缩本轮旧组。"""
     groups = protocol_groups(view.messages)
     cutoff = groups[-1][1] if groups else 0
     target = min(8192, policy.input_budget // 5)
     current_ref = f"message:{turn_start + 1}"
     current = next((i for i, ref in enumerate(view.record_ids) if ref == current_ref), None)
-    for start, end, _ in reversed(groups):
+    for start, end, _ in ([] if force else reversed(groups)):
         retained = view.messages[start:]
         if current is not None and current < start:
             retained = [view.messages[current]] + retained
