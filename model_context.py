@@ -22,6 +22,10 @@ class ContextPolicy:
     def input_budget(self) -> int:
         return self.window - self.output_tokens - max(2048, (self.window + 9) // 10)
 
+    @property
+    def pressure_threshold(self) -> int:
+        return self.input_budget * 4 // 5
+
     @classmethod
     def from_env(cls):
         enabled = os.getenv("CONTEXT_COMPACTION_ENABLED", "false").strip().lower()
@@ -59,6 +63,55 @@ class ContextView:
         self.messages.append(copy.deepcopy(message))
         self.original_watermark = original_watermark
         self.record_ids.append(f"message:{original_watermark}")
+
+    def organize_tool_results(self) -> int:
+        """仅删除可证明相同的模型副本，不修改原始协议和工具载荷。"""
+        changed = 0
+        for message in self.messages:
+            content = message.get("content")
+            if not isinstance(content, list):
+                continue
+            for block in content:
+                if not isinstance(block, dict) or block.get("type") != "tool_result":
+                    continue
+                raw = block.get("content")
+                if not isinstance(raw, str):
+                    continue
+                try:
+                    payload = json.loads(raw)
+                except ValueError:
+                    continue
+                if not isinstance(payload, dict) or not isinstance(payload.get("text"), list):
+                    continue
+                texts = []
+                sources = payload.get("sources") if payload.get("provider") == "exa" else None
+                for text in payload["text"]:
+                    try:
+                        duplicate = payload.get("data") is not None and json.dumps(
+                            json.loads(text), sort_keys=True, ensure_ascii=False) == json.dumps(
+                                payload["data"], sort_keys=True, ensure_ascii=False)
+                    except (ValueError, TypeError):
+                        duplicate = False
+                    if duplicate:
+                        continue
+                    if isinstance(text, str) and isinstance(sources, list):
+                        # 正文完整保留在结构字段；头部、未知元数据及失败警示继续留在 text。
+                        for index, source in enumerate(sources):
+                            body = source.get("content") if isinstance(source, dict) else None
+                            reference = f"[完整内容见 sources[{index}].content]"
+                            if isinstance(body, str) and len(body) > len(reference):
+                                text = text.replace(body, reference)
+                    if text not in texts:
+                        texts.append(text)
+                if texts == payload["text"]:
+                    continue
+                if texts:
+                    payload["text"] = texts
+                else:
+                    del payload["text"]
+                block["content"] = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+                changed += 1
+        return changed
 
 
 class TokenMeter:
