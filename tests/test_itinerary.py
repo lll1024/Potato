@@ -101,7 +101,7 @@ class ItineraryTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(service.calls, [("maps_weather", {"city": "杭州"})])
         self.assertEqual(
-            {tool["name"]: tool["input_schema"] for tool in model.requests[0]["tools"]},
+            {tool["name"]: tool["input_schema"] for tool in model.requests[0]["tools"] if tool["name"].startswith("maps_")},
             {tool["name"]: tool["input_schema"] for tool in DECLARATIONS},
         )
         result = model.requests[1]["messages"][-1]["content"][0]

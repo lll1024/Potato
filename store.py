@@ -173,6 +173,47 @@ class Store:
         end = min(offset+limit,len(text))
         return {**result,"offset":offset,"total":len(text),"text":text[offset:end],"next_offset":end if end<len(text) else None,"encoding":"unicode_code_points"}
 
+    def history_records(self, session_id):
+        """模型专用白名单：会话输入、旅行助手文本、工具结果，各原始记录只列一次。"""
+        records = []
+        turns = {row["turn_id"]: dict(row) for row in self.db.execute(
+            "SELECT turn_id,ordinal,status,answer_source FROM turns WHERE session_id=? ORDER BY ordinal", (session_id,))}
+        def add(row, kind, text, source, status, suffix="", **metadata):
+            turn = turns[row["turn_id"]]
+            records.append({"record_id": "payload:" + row["payload_id"] + suffix,
+                "payload_id": row["payload_id"], "turn_id": row["turn_id"], "turn_ordinal": turn["ordinal"],
+                "kind": kind, "text": text, "source": source, "history_status": status,
+                "turn_status": turn["status"], **metadata})
+        for row in self.db.execute("SELECT * FROM payloads WHERE session_id=? AND kind='turn_input' ORDER BY rowid", (session_id,)):
+            add(row, "turn_input", json.loads(row["content"]), "user", turns[row["turn_id"]]["status"])
+        for row in self.db.execute("""SELECT p.*,r.status AS request_status,r.request_id FROM requests r
+                JOIN payloads p ON p.payload_id=r.response_payload_id WHERE r.session_id=? ORDER BY p.rowid""", (session_id,)):
+            # 摘要请求不属于普通助手文本；旧记录缺 purpose 时仍为旅行请求。
+            start = self.db.execute("SELECT data FROM events WHERE request_id=? AND kind='request.started'", (row["request_id"],)).fetchone()
+            if start and json.loads(start["data"]).get("purpose", "travel") != "travel":
+                continue
+            for index, block in enumerate(json.loads(row["content"]).get("content", [])):
+                if block.get("type") == "text":
+                    add(row, "assistant_text", block["text"], "assistant", row["request_status"],
+                        suffix=f":text:{index}", block_index=index, request_id=row["request_id"])
+        # 应用终止正文仅在没有同轮同文 response text 时加入，避免最终回答重复。
+        for row in self.db.execute("SELECT * FROM payloads WHERE session_id=? AND kind='turn_answer' ORDER BY rowid", (session_id,)):
+            text = json.loads(row["content"])
+            if not any(item["turn_id"] == row["turn_id"] and item["kind"] == "assistant_text" and
+                    (item["text"] == text or turns[row["turn_id"]]["answer_source"] == "model") for item in records):
+                add(row, "assistant_text", text, "assistant", turns[row["turn_id"]]["status"])
+        for row in self.db.execute("SELECT data,turn_id FROM tool_calls WHERE session_id=? ORDER BY rowid", (session_id,)):
+            data = json.loads(row["data"])
+            if data.get("name") in {"session_history_search", "session_history_read"} or not data.get("result_payload_id"):
+                continue
+            payload = self.db.execute("SELECT * FROM payloads WHERE payload_id=? AND session_id=? AND kind='tool_result'", (data["result_payload_id"], session_id)).fetchone()
+            if payload:
+                content = json.loads(payload["content"]).get("content", "")
+                add(payload, "tool_result", content if isinstance(content, str) else json.dumps(content, ensure_ascii=False),
+                    data["name"], data["status"], tool_call_id=data["tool_call_id"], request_id=data["request_id"])
+        records.sort(key=lambda item: item["turn_ordinal"])
+        return records
+
     def search(self, session_id, query, scope="full"):
         if not self.db.execute("SELECT 1 FROM sessions WHERE session_id=?",(session_id,)).fetchone():
             return None

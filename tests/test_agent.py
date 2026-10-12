@@ -133,7 +133,7 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(
-            [tool["name"] for tool in model.requests[0]["tools"]], ["maps_text_search"]
+            [tool["name"] for tool in model.requests[0]["tools"]], ["maps_text_search", "session_history_search", "session_history_read"]
         )
         result = model.requests[1]["messages"][-1]["content"][0]
         self.assertEqual(result["tool_use_id"], "forbidden")
@@ -214,7 +214,7 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
 
         declarations = model.requests[0]["tools"]
         self.assertEqual(
-            [tool["name"] for tool in declarations], ["maps_text_search", "maps_search_detail"]
+            [tool["name"] for tool in declarations], ["maps_text_search", "maps_search_detail", "session_history_search", "session_history_read"]
         )
         self.assertEqual(declarations[1]["input_schema"]["required"], ["id"])
 

@@ -51,7 +51,7 @@ class LegacySourceTests(unittest.IsolatedAsyncioTestCase):
                         await finished(client, accepted)
                     request = model.requests[0]
                     self.assertIn("旧资料唯一标记", str(request))
-                    self.assertEqual({tool["name"] for tool in request["tools"]}, {"maps_text_search", "web_search_exa", "web_fetch_exa"})
+                    self.assertEqual({tool["name"] for tool in request["tools"]}, {"maps_text_search", "web_search_exa", "web_fetch_exa", "session_history_search", "session_history_read"})
                     if interrupted:
                         self.assertEqual(request["messages"], [{"role": "user", "content": "继续原来的旅行"}])
                         self.assertIn("<saved_source_materials>", request["system"])
