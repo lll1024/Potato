@@ -257,7 +257,8 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                 raise TraceStorageError from None
             answer = await agent_loop(messages,runtime.client,runtime.tools,runtime.model,observer=observe,stop_requested=stop_requested,stop_reason=lambda: stop_reason,
                                       preference_background=background, clock=clock, previous_date_context=previous_date_context,
-                                      previous_source_materials=previous_source_materials)
+                                      previous_source_materials=previous_source_materials,
+                                      history_records=lambda: store.history_records(identity["session_id"]))
         except TraceStorageError:
             active = None
             changed.set()
