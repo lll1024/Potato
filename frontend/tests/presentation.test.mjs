@@ -123,3 +123,16 @@ test('工具结果整理展示前后估算、处理项数与剩余压力', () =>
   assert.match(html, /整理 2 项/);
   assert.match(html, /仍有上下文压力/);
 });
+
+test('服务中断后整理状态区分摘要未知与曾采用但未保存，不再显示整理进行中', () => {
+  for (const used of [false, true]) {
+    const html = renderToStaticMarkup(createElement(ContextMaintenance, {turnId: 'turn', events: [
+      {event_id: 'started', turn_id: 'turn', kind: 'context.summary_started'},
+      {event_id: 'recovered', turn_id: 'turn', kind: 'context.discarded', data: {used_in_turn: used, result_unknown: !used}},
+    ]}));
+    if (used) assert.match(html, /已弃用/);
+    assert.doesNotMatch(html, /<details[^>]*open/);
+    assert.match(html, used ? /曾用于本轮，未保存供续聊/ : /摘要请求结果未知/);
+    assert.doesNotMatch(html, /摘要已保存供续聊/);
+  }
+});
