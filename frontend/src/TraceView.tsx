@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import './trace.css';
+import { ContextMaintenance } from './ContextMaintenance';
 import { Payload, Highlight, type TraceLocation } from './PayloadViewer';
 import { TraceSearch } from './TraceSearch';
 import { TraceTimeline } from './TraceTimeline';
@@ -17,7 +18,7 @@ type TraceRequest = {
   started_at: string; finished_at: string | null; duration_ms: number | null;
   input_payload_id: string; response_payload_id: string | null; error_payload_id: string | null;
   usage: Usage | null; usage_state: string;
-  step?: number; attempt?: number;
+  step?: number; attempt?: number; purpose?: string;
 };
 type TraceTool = {
   tool_call_id: string; request_id: string; turn_id: string; ordinal: number; tool_use_id: string; name: string;
@@ -27,7 +28,7 @@ type TraceTool = {
   arguments_payload_id: string; service_payload_id?: string; result_payload_id?: string; error_payload_id?: string;
 };
 type TraceTurn = {turn_id: string; ordinal: number; input: string; input_is_summary?: boolean; input_payload_id?: string; answer_payload_id?: string; answer_source?: string | null; status: string; reason?: string | null; tool_error_count: number; usage_summary?: UsageSummary};
-type TraceEvent = RetryEvent & {tool_call_id?: string | null; data?: RetryEvent["data"] & {estimated_tokens?: number; input_budget?: number; allowed?: boolean}};
+type TraceEvent = RetryEvent & {tool_call_id?: string | null; data?: RetryEvent["data"] & {estimated_tokens?: number; input_budget?: number; allowed?: boolean; valid?: boolean; reason?: string | null; status?: string; version?: number; before_tokens?: number; after_tokens?: number; changed_result_count?: number; pressure_remaining?: boolean}};
 type TraceSnapshot = {events: TraceEvent[]; session: {title: string}; turns: TraceTurn[]; requests: TraceRequest[]; tool_calls: TraceTool[]; usage_summary: UsageSummary; next_before: number | null; cursor: number; stream_id: string};
 type Props = {sessionId: string | null; refreshKey?: number; location?: TraceLocation | null; onInteraction?: () => void;
   onStop?: (turnId: string) => void; stopping?: boolean; disconnected?: boolean};
@@ -192,11 +193,12 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
             <UsageTotals summary={turn.usage_summary} />
             {narrow && selected===turn.turn_id && <div className="trace-mobile-detail" data-reading-anchor={`detail:${turn.turn_id}`}>{turnDetail}</div>}
             {snapshot.events.filter(event => event.turn_id === turn.turn_id && event.kind === 'context.checked').map(event => <p className="hint" key={event.event_id}>上下文输入估算 {String(event.data?.estimated_tokens)} tokens / 安全预算 {String(event.data?.input_budget)} tokens（近似计量）：{event.data?.allowed ? '可发送' : '超限，未发送'}</p>)}
+            <ContextMaintenance events={snapshot.events} turnId={turn.turn_id} />
             <ModelRetries events={snapshot.events} turn={turn} />
             {turn.status === 'running' && retryEntries(snapshot.events, turn).length > 0 && onStop &&
               <button type="button" disabled={stopping || disconnected} onClick={() => onStop(turn.turn_id)}>停止本轮重试</button>}
             {snapshot.requests.filter(item => item.turn_id === turn.turn_id).map(item => <details key={item.request_id} id={`trace-object-${item.request_id}`} className={`trace-request ${selected === item.request_id ? 'selected' : ''}`} open={expanded[item.request_id] ?? false} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,[item.request_id]:open}));}}>
-              <summary data-reading-anchor={`request:${item.request_id}`}><span className="trace-badge model">模型</span><span className="trace-row-text">请求 #{item.ordinal}</span><span className="trace-row-status">{item.interrupted ? '中断，结果未知' : statuses[item.status] ?? item.status}</span></summary>
+              <summary data-reading-anchor={`request:${item.request_id}`}><span className="trace-badge model">{item.purpose === 'context_summary' ? '摘要' : '模型'}</span><span className="trace-row-text">请求 #{item.ordinal}</span><span className="trace-row-status">{item.interrupted ? '中断，结果未知' : statuses[item.status] ?? item.status}</span></summary>
               <div className="trace-request-row"><time dateTime={item.started_at}>{new Date(item.started_at).toLocaleTimeString('zh-CN')}</time><span>{item.duration_ms === null ? (item.interrupted ? '—（中断，结束未知）' : '—（尚未结束）') : `${item.duration_ms.toFixed(1)} ms`}</span><button aria-pressed={selected === item.request_id} onClick={() => select(item.request_id)}>查看详情</button></div>
               {item.step !== undefined && <p className="hint">模型步骤 {item.step} · 实际尝试 {item.attempt}</p>}
               {snapshot.tool_calls.filter(call => call.request_id === item.request_id).map(call => <div key={call.tool_call_id} id={`trace-object-${call.tool_call_id}`} className={`trace-tool ${selected === call.tool_call_id ? 'selected' : ''}`}>
@@ -221,7 +223,7 @@ function RequestDetail({request,location,onInteraction}: {request: TraceRequest;
   const missing = request.interrupted ? '未采集／结果未知' : request.usage_state === 'not_completed' ? '未采集／尚未完成' : '未返回';
   return <div onFocus={onInteraction} onWheel={onInteraction}>
     {location && !location.payload_id && <p><Highlight text={location.excerpt ?? ''} query={location.query} /></p>}
-    <h3>模型请求 {request.ordinal} · {request.interrupted ? '中断，结果未知' : statuses[request.status] ?? request.status}</h3>
+    <h3>{request.purpose === 'context_summary' ? '摘要请求' : '模型请求'} {request.ordinal} · {request.interrupted ? '中断，结果未知' : statuses[request.status] ?? request.status}</h3>
     {request.interrupted && <p className="hint">保留上次保存的开始事实；结束、耗时与用量未知，没有重试或重放。</p>}
     <dl className="request-facts"><dt>应用请求身份</dt><dd>{request.request_id}</dd><dt>开始时间</dt><dd>{new Date(request.started_at).toLocaleString('zh-CN')}</dd><dt>结束时间</dt><dd>{request.finished_at ? new Date(request.finished_at).toLocaleString('zh-CN') : request.interrupted ? '—（中断，结束未知）' : '—（尚未结束）'}</dd><dt>SDK 调用耗时</dt><dd>{request.duration_ms === null ? (request.interrupted ? '—（中断，耗时未知）' : '—（尚未完成）') : `${request.duration_ms.toFixed(1)} ms`}</dd></dl>
     <h4>实际 token 用量</h4>

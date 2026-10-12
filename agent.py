@@ -21,6 +21,7 @@ from amap_http import AmapHTTPClient
 from amap_mcp import AmapTools, ToolResult
 from limits import MAX_ROUNDS, MAX_TOOL_CALLS, TOOL_TIMEOUT
 from model_context import ContextConfigurationError, ContextPolicy, ContextView, TokenMeter
+from context_summary import earlier_history_cutoff, summarize_history
 from model_retry import MAX_RETRIES, EmptyModelResponse, model_failure, retry_delay
 from travel_dates import current_time, model_date_context, saved_date_context, turn_date_context
 from travel_tools import TravelTools, connected_travel_tools
@@ -239,6 +240,8 @@ async def agent_loop(
     latest_input = next((message["content"] for message in reversed(messages)
                          if message["role"] == "user" and isinstance(message["content"], str)), "")
     date_context = turn_date_context(str(latest_input), (clock or current_time)(), previous_date_context)
+    if observer and context_policy is not None:
+        await observer("context.date", {"date_context": copy.deepcopy(date_context)})
     system = SYSTEM + model_date_context(date_context)
     if previous_source_materials:
         references = []
@@ -272,6 +275,15 @@ async def agent_loop(
         return cast(str, stop_reason() if callable(stop_reason) else stop_reason)
 
     request_ordinal = 0
+    summary_attempts = 0
+    summary_blocked = False
+    current_turn_start = len(messages) - 1
+
+    def next_request_ordinal():
+        nonlocal request_ordinal
+        request_ordinal += 1
+        return request_ordinal
+
     for ordinal in range(1, max_rounds + 1):
         if stop_requested and stop_requested.is_set():
             stopped = "已停止本轮查询，尚未完成的信息待核实。"
@@ -307,6 +319,17 @@ async def agent_loop(
                             "pressure_remaining": measurement["estimated_tokens"] >= context_policy.pressure_threshold,
                             "original_watermark": view.original_watermark, "version": view.version,
                             "record_ids": view.record_ids.copy(), "step": ordinal, "attempt": attempt})
+                if measurement["estimated_tokens"] >= context_policy.pressure_threshold and summary_attempts < 4 and not summary_blocked:
+                    summary_result = await summarize_history(
+                        view=view, policy=context_policy, meter=meter, parameters=parameters,
+                        client=client, tools=tools, date_context=date_context,
+                        cutoff=earlier_history_cutoff(view, current_turn_start, context_policy, meter),
+                        remaining_attempts=4 - summary_attempts, next_request_ordinal=next_request_ordinal,
+                        observer=observer, stop_requested=stop_requested)
+                    summary_attempts += summary_result.attempts
+                    summary_blocked = summary_result.terminal_failure
+                    parameters["messages"] = copy.deepcopy(view.messages)
+                    measurement = meter.measure(parameters)
                 allowed = measurement["estimated_tokens"] <= context_policy.input_budget
                 if observer:
                     await observer("context.checked", {**measurement, "window": context_policy.window,
@@ -325,7 +348,7 @@ async def agent_loop(
             request_id = uuid4().hex
             if observer:
                 await observer("request.started", {
-                    "request_id": request_id, "ordinal": request_ordinal, "step": ordinal, "attempt": attempt, "retry_id": retry_id,
+                    "request_id": request_id, "purpose": "travel", "ordinal": request_ordinal, "step": ordinal, "attempt": attempt, "retry_id": retry_id,
                     "started_at": datetime.now(timezone.utc).isoformat(),
                     "input": copy.deepcopy(parameters),
                 })
@@ -528,12 +551,21 @@ async def run_cli(api_key: str, *, check_amap: bool = False, clock: Callable[[],
             ) as model_client:
                 history: list[MessageParam] = []
                 date_context: dict[str, Any] | None = None
+                cli_view: ContextView | None = None
                 async def remember_date_context(kind, data):
                     nonlocal date_context
-                    if kind == "request.started":
+                    if kind == "context.date":
+                        date_context = data["date_context"]
+                    elif kind == "request.started" and data.get("purpose", "travel") == "travel":
                         date_context = saved_date_context(data["input"]["system"])
                     elif kind == "context.organized":
                         print(f"上下文整理：{data['before_tokens']} → {data['after_tokens']} tokens（估算）。")
+                    elif kind == "context.summary_started":
+                        print("正在整理较早的旅行记录…")
+                    elif kind == "context.adopted":
+                        print("旅行状态摘要已用于本轮；原文仍保留。")
+                    elif kind == "context.validated" and not data["valid"]:
+                        print("摘要校验未通过，保留原上下文。")
                 while True:
                     try:
                         query = input("user: >> ")
@@ -542,8 +574,12 @@ async def run_cli(api_key: str, *, check_amap: bool = False, clock: Callable[[],
                     if query.strip().lower() in ("q", "exit", ""):
                         return 0
                     history.append({"role": "user", "content": query})
+                    if cli_view is None:
+                        cli_view = ContextView.from_history(history)
+                    else:
+                        cli_view.append(history[-1], len(history))
                     answer = await agent_loop(history, model_client, travel_tools, os.environ["MODEL_ID"], clock=clock,
-                                              previous_date_context=date_context, observer=remember_date_context)
+                                              previous_date_context=date_context, observer=remember_date_context, context_view=cli_view)
                     print(answer)
                     if tools.failure == "connection":
                         return 1
