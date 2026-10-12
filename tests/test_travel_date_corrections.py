@@ -138,6 +138,20 @@ class TravelDateCorrectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(changed["travel_dates"]["end_date"], "2026-10-20")
         self.assertTrue(changed["dates_changed"])
 
+    async def test_new_travel_date_with_opening_question_updates_after_restart(self):
+        for activity in ("游览", "游玩", "旅行", "旅游", "出行"):
+            with self.subTest(activity=activity):
+                saved, model = await self.conversation([
+                    ("2026-10-12T23:50:00+08:00", "明天去杭州"),
+                    ("2026-10-14T00:10:00+08:00", f"我们2026年10月18日在杭州{activity}，请查景区开放时间"),
+                ])
+                context = context_from_request(model.requests[-1])
+                self.assertEqual((context["travel_dates"]["start_date"], context["travel_dates"]["end_date"]),
+                                 ("2026-10-18", "2026-10-18"))
+                self.assertTrue(context["dates_changed"])
+                self.assertEqual(context["previous_travel_dates"]["start_date"], "2026-10-13")
+                self.assertEqual(saved["turns"][-1]["travel_date_context"], context)
+
     async def test_explicit_departure_and_date_clarification_still_update_with_source_questions(self):
         for reply in ("改成2026年10月14日，核对来源公告", "2026年10月14日出发，核对开放公告",
                       "出发日期确定为2026年10月14日，请核对开放公告", "旅行日期是2026年10月14日，查开放情况",

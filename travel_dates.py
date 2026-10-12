@@ -111,7 +111,8 @@ def turn_date_context(text: str, now: datetime, previous: dict[str, Any] | None 
     explicit_departure = bool(re.search(
         r"(?:改|换|调整|推迟|提前|延|挪)(?:到|成|为|在)?\s*(?:\d{4}[年/-])?\d{1,2}[月/-]\d{1,2}"
         r"|(?:旅行日期|出发日期|出行日期|出发时间|出行时间)\s*(?:确定为?|定为?|为|是)\s*(?:\d{4}[年/-])?\d{1,2}[月/-]\d{1,2}"
-        r"|(?:\d{4}[年/-])?\d{1,2}[月/-]\d{1,2}(?:日|号)?\s*(?:去|出发|启程|开始旅行)", text))
+        r"|(?:\d{4}[年/-])?\d{1,2}[月/-]\d{1,2}(?:日|号)?\s*(?:去|出发|启程|开始旅行)"
+        r"|(?:\d{4}[年/-])?\d{1,2}[月/-]\d{1,2}(?:日|号)?\s*(?:在[^，。；！？\n]{1,30})?(?:游览|游玩|旅行|旅游|出行)", text))
     inherit = dates["status"] == "unspecified" or (
         previous_dates.get("status") == "resolved" and not date_request and (
             dates.get("source") != "explicit" or source_date_reference and not explicit_departure))
