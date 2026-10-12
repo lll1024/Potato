@@ -96,6 +96,11 @@ class Store:
                 request_id TEXT NOT NULL REFERENCES requests ON DELETE CASCADE, ordinal INTEGER NOT NULL,
                 data TEXT NOT NULL);
 
+            CREATE TABLE IF NOT EXISTS context_versions (
+                session_id TEXT NOT NULL REFERENCES sessions ON DELETE CASCADE,
+                turn_id TEXT NOT NULL REFERENCES turns ON DELETE CASCADE,
+                version INTEGER NOT NULL, status TEXT NOT NULL, data TEXT NOT NULL,
+                PRIMARY KEY (turn_id,version));
             PRAGMA user_version=1;
         """)
 
@@ -220,7 +225,7 @@ class Store:
                 payload_id = self.save_payload(session_id,turn_id,"input",data["input"])
                 self.db.execute("INSERT INTO requests (request_id,session_id,turn_id,ordinal,status,started_at,input_payload_id,usage_state) VALUES (?,?,?,?,'running',?,?,'not_completed')", (data["request_id"],session_id,turn_id,data["ordinal"],data["started_at"],payload_id))
                 summary = {"ordinal":data["ordinal"],"status":"running","input_payload_id":payload_id}
-                summary.update({field:data[field] for field in ("step","attempt","retry_id") if field in data})
+                summary.update({field:data[field] for field in ("step","attempt","retry_id","purpose") if field in data})
             else:
                 failed = kind == "request.failed"
                 field = "error" if failed else "response"
@@ -268,8 +273,26 @@ class Store:
         # request.started 已提交的日期依据仍可靠；中断协议排除不影响它。
         row = self.db.execute("""SELECT p.content FROM turns t JOIN requests r USING(turn_id)
             JOIN payloads p ON p.payload_id=r.input_payload_id WHERE t.session_id=?
+            AND r.request_id NOT IN (SELECT request_id FROM events WHERE kind='request.started' AND json_extract(data,'$.purpose')='context_summary')
             ORDER BY t.ordinal DESC,r.ordinal LIMIT 1""", (session_id,)).fetchone()
         return saved_date_context(json.loads(row["content"]).get("system", "")) if row else None
+
+    def context_state(self, session_id):
+        row = self.db.execute("""SELECT c.data FROM context_versions c JOIN turns t USING(turn_id)
+            WHERE c.session_id=? AND c.status='saved' ORDER BY t.ordinal DESC,c.version DESC LIMIT 1""", (session_id,)).fetchone()
+        return json.loads(row["data"]) if row else None
+
+    def observe_context(self, session_id, turn_id, kind, data):
+        with self.db:
+            summary = dict(data)
+            if kind == "context.candidate":
+                view = summary.pop("view")
+                self.db.execute("INSERT INTO context_versions VALUES (?,?,?,?,?)",
+                                (session_id,turn_id,data["version"],"candidate",json.dumps(view,ensure_ascii=False)))
+            elif kind == "context.adopted":
+                self.db.execute("UPDATE context_versions SET status='used' WHERE turn_id=? AND version=?",
+                                (turn_id,data["version"]))
+            return self.event(session_id,turn_id,kind,summary,request_id=data.get("request_id"))
 
     def source_context(self, session_id):
         # 中断协议不重放；仅恢复已提交的成功资料载荷为独立参考。
@@ -320,7 +343,7 @@ class Store:
         row = self.db.execute("SELECT turn_id,status FROM turns WHERE turn_id=?", (turn_id,)).fetchone()
         return dict(row) if row else None
 
-    def finish(self, session_id, turn_id, answer, messages, outcome, duration_ms, *, preference_now=None):
+    def finish(self, session_id, turn_id, answer, messages, outcome, duration_ms, *, preference_now=None, context_view=None):
         now = timestamp()
         with self.db:
             self.db.execute("UPDATE turns SET status=?,reason=?,answer=?,answer_source=?,tool_error_count=?,finished_at=?,duration_ms=?,messages=? WHERE turn_id=?", (outcome["status"],outcome["reason"],answer,outcome["answer_source"],outcome["tool_error_count"],now,duration_ms,json.dumps(messages,ensure_ascii=False),turn_id))
@@ -328,6 +351,14 @@ class Store:
             if preference_now is not None:
                 self.preferences.finish(turn_id, preference_now)
             self.save_payload(session_id,turn_id,"turn_answer",answer)
+            if context_view is not None:
+                row = self.db.execute("SELECT version FROM context_versions WHERE turn_id=? AND version=? AND status='used'",
+                                      (turn_id,context_view.version)).fetchone()
+                if row:
+                    self.db.execute("UPDATE context_versions SET status='saved',data=? WHERE turn_id=? AND version=?",
+                                    (json.dumps(context_view.to_state(),ensure_ascii=False),turn_id,context_view.version))
+                    self.event(session_id,turn_id,"context.saved",{"version":context_view.version,
+                               "original_watermark":context_view.original_watermark})
             self.event(session_id,turn_id,"turn.finished",{**outcome,"answer_summary":answer[:120]})
 
     def rename(self, session_id, title):
@@ -397,7 +428,7 @@ class Store:
         for row in self.db.execute("SELECT requests.* FROM requests JOIN turns USING(turn_id) WHERE requests.session_id=? AND turns.ordinal>=? AND turns.ordinal<=? ORDER BY turns.ordinal,requests.ordinal", (session_id,first_ordinal,last_ordinal)):
             request = dict(row)
             request["usage"] = json.loads(request["usage"]) if request["usage"] else None
-            request.update({field:starts[row["request_id"]][field] for field in ("step","attempt","retry_id")
+            request.update({field:starts[row["request_id"]][field] for field in ("step","attempt","retry_id","purpose")
                             if field in starts.get(row["request_id"],{})})
             requests.append(request)
         tool_calls = [json.loads(row["data"]) | {"turn_id":row["turn_id"]} for row in self.db.execute(
@@ -410,7 +441,7 @@ class Store:
             if tool["turn_id"] in interrupted and tool["status"] in ("pending","waiting","running"):
                 tool["interrupted"] = True
         for turn in turns:
-            first_request = next((request for request in requests if request["turn_id"] == turn["turn_id"]), None)
+            first_request = next((request for request in requests if request["turn_id"] == turn["turn_id"] and request.get("purpose", "travel") == "travel"), None)
             context_payload = self.payload(first_request["input_payload_id"]) if first_request else None
             context = saved_date_context(context_payload["content"].get("system", "")) if context_payload else None
             turn["travel_date_context"] = context

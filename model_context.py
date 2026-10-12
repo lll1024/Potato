@@ -55,6 +55,21 @@ class ContextView:
     version: int = 0
     record_ids: list[str] = field(default_factory=list)
 
+    summary: dict[str, Any] | None = None
+    summary_refs: list[str] = field(default_factory=list)
+    summary_watermark: int = 0
+
+    def to_state(self):
+        return {name: copy.deepcopy(getattr(self, name)) for name in
+                ("messages", "original_watermark", "version", "record_ids", "summary", "summary_refs", "summary_watermark")}
+
+    @classmethod
+    def from_state(cls, state, history):
+        view = cls(**copy.deepcopy(state))
+        for index in range(view.original_watermark, len(history)):
+            view.append(history[index], index + 1)
+        return view
+
     @classmethod
     def from_history(cls, messages):
         return cls(copy.deepcopy(messages), len(messages), record_ids=[f"message:{index}" for index in range(1, len(messages) + 1)])
