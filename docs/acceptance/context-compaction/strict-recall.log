@@ -1,0 +1,13 @@
+{"actual_request": 1, "purpose": "travel", "stop_reason": "end_turn", "error_type": null}
+{"actual_request": 2, "purpose": "travel", "stop_reason": "end_turn", "error_type": null}
+{"actual_request": 3, "purpose": "travel", "stop_reason": "end_turn", "error_type": null}
+{"actual_request": 4, "purpose": "travel", "stop_reason": "end_turn", "error_type": null}
+{"actual_request": 5, "purpose": "travel", "stop_reason": "end_turn", "error_type": null}
+{"actual_request": 1, "purpose": "context_summary", "stop_reason": "end_turn", "error_type": null}
+{"actual_request": 2, "purpose": "travel", "stop_reason": "tool_use", "error_type": null}
+{"actual_request": 3, "purpose": "travel", "stop_reason": "tool_use", "error_type": null}
+{"actual_request": 4, "purpose": "travel", "stop_reason": "end_turn", "error_type": null}
+{"actual_request": 1, "purpose": "travel", "stop_reason": "tool_use", "error_type": null}
+{"actual_request": 2, "purpose": "travel", "stop_reason": "tool_use", "error_type": null}
+{"actual_request": 3, "purpose": "travel", "stop_reason": "end_turn", "error_type": null}
+{"case": "recall", "group": "same_original_protocol", "error": null, "checks": null, "metrics": {"request_count": 5, "summary_count": 0, "total_model_duration_ms": 72069.53841727227, "summary_duration_ms": 0, "returned_input_tokens": 51025, "returned_output_tokens": 2876, "missing_usage_request_count": 0, "cache_semantics": "兼容服务的实际字段仅原样保留，缺失未知，不按Anthropic缓存计费假设推算", "cost": {"value": null, "status": "不可计算：未提供此部署服务的输入/输出/缓存单价"}}}

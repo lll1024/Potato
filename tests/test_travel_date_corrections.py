@@ -119,3 +119,41 @@ class TravelDateCorrectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(context["dates_changed"])
         self.assertEqual(context["previous_travel_dates"]["end_date"], "2026-10-10")
         self.assertEqual(saved["turns"][-1]["travel_date_context"], context)
+
+    async def test_source_dates_and_opening_question_do_not_reschedule_after_restart(self):
+        saved, model = await self.conversation([
+            ("2026-10-12T23:50:00+08:00", "明天去杭州"),
+            ("2026-10-13T00:10:00+08:00", "来源A检索2026-10-12，发布日期未知；来源B正文发布2026-10-10，仅适用2026-10-13。旅行安排不变。"),
+            ("2026-10-14T00:10:00+08:00", "请回述已确定的旅行日期。来源B能保证10月14日开放吗？"),
+            ("2026-10-14T00:15:00+08:00", "旅行日期改到2026年10月18日至20日，核对公告"),
+        ])
+        for request, turn in zip(model.requests[:3], saved["turns"][:3]):
+            context = context_from_request(request)
+            self.assertEqual(context["travel_dates"]["start_date"], "2026-10-13")
+            self.assertEqual(context["travel_dates"]["end_date"], "2026-10-13")
+            self.assertNotIn("dates_changed", context)
+            self.assertEqual(turn["travel_date_context"], context)
+        changed = context_from_request(model.requests[-1])
+        self.assertEqual(changed["travel_dates"]["start_date"], "2026-10-18")
+        self.assertEqual(changed["travel_dates"]["end_date"], "2026-10-20")
+        self.assertTrue(changed["dates_changed"])
+
+    async def test_explicit_departure_and_date_clarification_still_update_with_source_questions(self):
+        for reply in ("改成2026年10月14日，核对来源公告", "2026年10月14日出发，核对开放公告",
+                      "出发日期确定为2026年10月14日，请核对开放公告", "旅行日期是2026年10月14日，查开放情况",
+                      "出发日期确定为2026/10/14，请核对开放公告"):
+            with self.subTest(reply=reply):
+                saved, model = await self.conversation([
+                    ("2026-10-12T23:50:00+08:00", "明天去杭州"),
+                    ("2026-10-14T00:10:00+08:00", reply),
+                ])
+                context = context_from_request(model.requests[-1])
+                self.assertEqual(context["travel_dates"]["start_date"], "2026-10-14")
+                self.assertTrue(context["dates_changed"])
+                self.assertEqual(saved["turns"][-1]["travel_date_context"], context)
+        saved, model = await self.conversation([
+            ("2026-10-12T23:50:00+08:00", "2026年10月13日或2026年10月14日去杭州"),
+            ("2026-10-14T00:10:00+08:00", "2026年10月14日"),
+        ])
+        self.assertEqual(saved["turns"][0]["travel_date_context"]["travel_dates"]["status"], "needs_clarification")
+        self.assertEqual(context_from_request(model.requests[-1])["travel_dates"]["start_date"], "2026-10-14")

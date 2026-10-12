@@ -71,7 +71,7 @@ flowchart TD
 
 ## 失败、停止与重启
 
-摘要失败保留旧压缩状态；旧输入仍在安全预算内才继续，否则结束当前轮次并保留已有查询资料。服务明确报告上下文超限时，允许一次压缩恢复，只有输入确实缩小后才重试原模型步骤，不重新执行已完成工具，也不交给普通网络重试循环；仍失败就结束，停止操作始终优先。此处是对 [ADR 0004](0004-bounded-model-request-retries.md) 中上下文超限直接结束规则的明确例外；本方案已获设计确认，压缩恢复行为尚待实施。
+摘要失败保留旧压缩状态；旧输入仍在安全预算内才继续，否则结束当前轮次并保留已有查询资料。服务明确报告上下文超限时，允许一次压缩恢复，只有输入确实缩小后才重试原模型步骤，不重新执行已完成工具，也不交给普通网络重试循环；仍失败就结束，停止操作始终优先。此处是对 [ADR 0004](0004-bounded-model-request-retries.md) 中上下文超限直接结束规则的明确例外；本方案已按 [Issue #56](https://github.com/lll1024/Potato/issues/56) 实施，恢复条件与验证见[上下文压缩验收](../acceptance/context-compaction.md)。
 
 一次压缩最多 2 次实际模型请求，整个用户轮次最多 4 次，包括分批摘要和超限恢复。只对临时请求故障或可修复的摘要校验失败追加一次尝试；认证、配额、停止等情况直接结束尝试。沿用当前客户端的 60 秒请求超时配置，不套用普通模型步骤的 5 次重试，不将其描述为严格的整轮时间上限。
 
@@ -91,4 +91,4 @@ flowchart TD
 
 参考 deepseek-harness 提交 `d743267388641bc76f17c45ce8b4c231aed1d32c` 的[上下文压缩说明](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/packages/compaction/compaction-basic/README.md)。参考实现采用可选工具结果裁剪、较早消息摘要与近期原文保留，并把压缩结果作为模型可见历史的替换视图，保留原始日志；其[可回读压缩方案](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/.agents/notes/proposed/feature/2026-07-06-recallable-compaction.md)仍是提案，本项目选择首版回读不意味着参考项目已经实现该能力。参考默认值不视为本项目已接受的决策。
 
-用户于 2026-10-12 逐项确认设计分支并最终确认完整方案，本记录状态为 accepted。实施规格已发布为 [Issue #56](https://github.com/lll1024/Potato/issues/56)，测试边界已确认，分诊状态为 ready-for-agent。当前仅有领域文档改动，尚未进入实施，也没有代码、模型运行验证或性能实测结果。
+用户于 2026-10-12 逐项确认设计分支并最终确认完整方案，本记录状态为 accepted。实施规格为 [Issue #56](https://github.com/lll1024/Potato/issues/56)，功能已按任务 #57–#64 实施；公开机制、真实模型质量、实际用量及耗时和修前失败记录见[上下文压缩验收](../acceptance/context-compaction.md)。最终集成审查、回归和合并授权另行处理，不以本文替代这些步骤。

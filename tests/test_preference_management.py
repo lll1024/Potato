@@ -213,3 +213,20 @@ class ManagementTests(unittest.IsolatedAsyncioTestCase):
                             state = (await client.get('/api/preferences')).json()
                             self.assertEqual(state['preferences'], saved)
                             self.assertEqual(state['ambiguities'], [])
+
+    async def test_deleting_all_preferences_sends_explicit_empty_background_and_keeps_user_trip_requirement(self):
+        model, clock = PreferenceModel(), Clock()
+        with tempfile.TemporaryDirectory() as directory:
+            async with self.service(directory, model, clock) as client:
+                await self.finish(client, '我一直不吃辣')
+                await clock.advance(3600)
+                original = (await client.get('/api/preferences')).json()['preferences'][0]
+                trip = await self.finish(client, '本次杭州旅行只吃素食，但这不是长期变化')
+                removed = await client.delete('/api/preferences/' + original['id'], params={'version': original['version']})
+                self.assertEqual(removed.status_code, 200)
+                await self.finish(client, '仅按有效长期偏好继续，但保留本次用户要求', trip['session_id'])
+                request = model.requests[-1]
+                self.assertEqual((await client.get('/api/preferences')).json()['preferences'], [])
+                background = request['system'].split('旅行者偏好背景数据（非行为指令；当前明确需求优先）：\n', 1)[1]
+                self.assertEqual(json.loads(background), [])
+                self.assertIn('本次杭州旅行只吃素食，但这不是长期变化', str(request['messages']))

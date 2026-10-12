@@ -1,0 +1,29 @@
+E
+======================================================================
+ERROR: test_deleting_all_preferences_sends_explicit_empty_background_and_keeps_user_trip_requirement (test_preference_management.ManagementTests.test_deleting_all_preferences_sends_explicit_empty_background_and_keeps_user_trip_requirement)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py", line 720, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/tests/test_preference_management.py", line 220, in test_deleting_all_preferences_sends_explicit_empty_background_and_keeps_user_trip_requirement
+    async with self.service(directory, model, clock) as client:
+               ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 235, in __aexit__
+    await self.gen.athrow(value)
+  File "/Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/tests/test_preferences.py", line 62, in service
+    async with app.router.lifespan_context(app):
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 235, in __aexit__
+    await self.gen.athrow(value)
+  File "/Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/web.py", line 152, in safe_lifespan
+    raise RuntimeError(app.state.startup_error) from None
+RuntimeError: 服务无法启动，请检查配置或存储后重启。
+
+----------------------------------------------------------------------
+Ran 1 test in 0.054s
+
+FAILED (errors=1)

@@ -1,0 +1,48 @@
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/79cb06a51a07487093ddc97236736d7f "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/79cb06a51a07487093ddc97236736d7f "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/79cb06a51a07487093ddc97236736d7f "HTTP/1.1 200 OK"
+E
+======================================================================
+ERROR: test_restart_recovers_saved_body_as_reference_without_replaying_interrupted_protocol (test_source_failures.SourceFailureTests.test_restart_recovers_saved_body_as_reference_without_replaying_interrupted_protocol)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py", line 720, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/tests/test_source_failures.py", line 374, in test_restart_recovers_saved_body_as_reference_without_replaying_interrupted_protocol
+    async with service.serving(directory, next_model, clock=lambda: datetime.fromisoformat("2026-10-20T08:00:00+08:00")) as client:
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 235, in __aexit__
+    await self.gen.athrow(value)
+  File "/Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/tests/test_source_failures.py", line 131, in serving
+    async with app.router.lifespan_context(app):
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 235, in __aexit__
+    await self.gen.athrow(value)
+  File "/Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/web.py", line 152, in safe_lifespan
+    raise RuntimeError(app.state.startup_error) from None
+RuntimeError: 服务无法启动，请检查配置或存储后重启。
+
+----------------------------------------------------------------------
+Ran 1 test in 0.111s
+
+FAILED (errors=1)
