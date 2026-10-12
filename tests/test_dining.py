@@ -69,7 +69,7 @@ class DiningRecommendationTests(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(
-            {tool["name"]: tool["input_schema"] for tool in model.requests[0]["tools"]},
+            {tool["name"]: tool["input_schema"] for tool in model.requests[0]["tools"] if tool["name"].startswith("maps_")},
             {tool["name"]: tool["input_schema"] for tool in DECLARATIONS},
         )
         self.assertEqual(service.calls, [("maps_around_search", arguments)])

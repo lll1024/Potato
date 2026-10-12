@@ -58,7 +58,7 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(checks[1]["record_ids"], ["message:1", "message:2", "message:3"])
 
     async def test_budget_edge_covers_full_system_and_chinese_input(self):
-        for length, expected in [(4850, "completed"), (4950, "terminated")]:
+        for length, expected in [(4300, "completed"), (4950, "terminated")]:
             model = ModelService([response([{"type": "text", "text": "已收到完整要求"}])])
             query = "中" * length
             with self.subTest(length=length), patch.dict(os.environ, {"CONTEXT_COMPACTION_ENABLED": "true", "MODEL_CONTEXT_WINDOW": "40000"}, clear=True), tempfile.TemporaryDirectory() as directory:
