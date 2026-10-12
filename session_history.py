@@ -54,6 +54,8 @@ def bind_protocol_references(records, messages):
     """将白名单 payload 身份关联完整协议位置；压缩视图位置不可用于此映射。"""
     available = protocol_records(messages)
     for record in records:
+        if record.get("context_excluded"):
+            continue
         for position, candidate in enumerate(available):
             if candidate["kind"] == record["kind"] and candidate["text"] == record["text"]:
                 record["protocol_reference"] = candidate["protocol_reference"]

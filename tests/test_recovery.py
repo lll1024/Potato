@@ -29,7 +29,7 @@ def free_port():
 
 
 class ExternalServices:
-    def __init__(self, preference_handler=None):
+    def __init__(self, preference_handler=None, *, model_handler=None, map_result="西湖位于杭州。"):
         self.model_calls = []
         self.map_calls = []
         self.entered = asyncio.Event()
@@ -44,7 +44,7 @@ class ExternalServices:
             if self.block == 'tool':
                 self.entered.set()
                 await self.release.wait()
-            return '西湖位于杭州。'
+            return map_result
 
         mcp_app = maps.streamable_http_app(json_response=True, stateless_http=True)
         @asynccontextmanager
@@ -58,6 +58,8 @@ class ExternalServices:
         async def message(request: Request):
             data = await request.json()
             self.model_calls.append(data)
+            if model_handler:
+                return await model_handler(data)
             if self.model_failure:
                 return JSONResponse(status_code=429, content={"error": {"type": "rate_limit_error", "message": "slow down"}},
                                     headers={"Retry-After": "10"})
