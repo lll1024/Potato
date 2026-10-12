@@ -1,0 +1,721 @@
+test_actual_retry_is_checked_again_after_returned_usage_calibrates_upwards (test_context_budget.ContextBudgetTests.test_actual_retry_is_checked_again_after_returned_usage_calibrates_upwards) ... ok
+test_budget_edge_covers_full_system_and_chinese_input (test_context_budget.ContextBudgetTests.test_budget_edge_covers_full_system_and_chinese_input) ... ok
+test_enabled_missing_capacity_ends_without_sending_and_keeps_input (test_context_budget.ContextBudgetTests.test_enabled_missing_capacity_ends_without_sending_and_keeps_input) ... ok
+test_invalid_or_nonpositive_capacity_has_the_same_diagnosis (test_context_budget.ContextBudgetTests.test_invalid_or_nonpositive_capacity_has_the_same_diagnosis) ... ok
+test_large_tool_result_stops_before_next_request_and_keeps_complete_pair (test_context_budget.ContextBudgetTests.test_large_tool_result_stops_before_next_request_and_keeps_complete_pair) ... ok
+test_low_pressure_preserves_protocol_and_missing_usage_is_unknown (test_context_budget.ContextBudgetTests.test_low_pressure_preserves_protocol_and_missing_usage_is_unknown) ... ok
+test_model_view_replacement_does_not_change_original_history (test_context_budget.ContextBudgetTests.test_model_view_replacement_does_not_change_original_history) ... ok
+test_oversized_chinese_json_is_not_sent_or_truncated (test_context_budget.ContextBudgetTests.test_oversized_chinese_json_is_not_sent_or_truncated) ... ok
+test_preferences_tool_declarations_and_saved_materials_are_in_budget (test_context_budget.ContextBudgetTests.test_preferences_tool_declarations_and_saved_materials_are_in_budget) ... Executing <Task finished name='Task-256' coro=<ContextBudgetTests.test_preferences_tool_declarations_and_saved_materials_are_in_budget() done, defined at /Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/tests/test_context_budget.py:165> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py:110> took 0.103 seconds
+ok
+test_usage_calibration_counts_official_cache_but_not_ambiguous_compatibility_cache (test_context_budget.ContextBudgetTests.test_usage_calibration_counts_official_cache_but_not_ambiguous_compatibility_cache) ... ok
+test_web_startup_configuration_error_is_actionable (test_context_budget.ContextBudgetTests.test_web_startup_configuration_error_is_actionable) ... ok
+test_growing_tool_history_exhausts_shared_four_summary_calls_and_preserves_results (test_context_incremental.IncrementalContextTests.test_growing_tool_history_exhausts_shared_four_summary_calls_and_preserves_results) ... ok
+test_indivisible_latest_multitool_group_ends_without_summary_or_next_travel_call (test_context_incremental.IncrementalContextTests.test_indivisible_latest_multitool_group_ends_without_summary_or_next_travel_call) ... ok
+test_multiple_summary_versions_keep_original_tool_results_readable (test_context_incremental.IncrementalContextTests.test_multiple_summary_versions_keep_original_tool_results_readable) ... Executing <Task finished name='Task-368' coro=<create_app.<locals>.execute() done, defined at /Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/web.py:223> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.120 seconds
+ok
+test_oversized_history_batches_merge_correction_and_keep_deterministic_dates (test_context_incremental.IncrementalContextTests.test_oversized_history_batches_merge_correction_and_keep_deterministic_dates) ... ok
+test_second_batch_failure_keeps_first_version_and_shares_two_request_limit (test_context_incremental.IncrementalContextTests.test_second_batch_failure_keeps_first_version_and_shares_two_request_limit) ... ok
+test_single_turn_repeated_compaction_keeps_current_input_and_latest_multitool_group (test_context_incremental.IncrementalContextTests.test_single_turn_repeated_compaction_keeps_current_input_and_latest_multitool_group) ... ok
+test_cli_distinguishes_exceeded_prepared_started_and_returned_without_summary_body (test_context_limit_recovery.ContextRecoveryTests.test_cli_distinguishes_exceeded_prepared_started_and_returned_without_summary_body) ... Executing <Task finished name='Task-594' coro=<ContextRecoveryTests.test_cli_distinguishes_exceeded_prepared_started_and_returned_without_summary_body() done, defined at /Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/tests/test_context_limit_recovery.py:176> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py:110> took 0.104 seconds
+ok
+test_deterministic_tool_organization_can_recover_without_a_summary_request (test_context_limit_recovery.ContextRecoveryTests.test_deterministic_tool_organization_can_recover_without_a_summary_request) ... Executing <Task finished name='Task-605' coro=<create_app.<locals>.execute() done, defined at /Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/web.py:223> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.107 seconds
+ok
+test_no_history_cannot_shrink_and_repeated_exceeded_is_terminal (test_context_limit_recovery.ContextRecoveryTests.test_no_history_cannot_shrink_and_repeated_exceeded_is_terminal) ... ok
+test_non_context_errors_never_start_compaction_recovery (test_context_limit_recovery.ContextRecoveryTests.test_non_context_errors_never_start_compaction_recovery) ... ok
+test_pressure_and_recovery_share_four_summary_calls_and_auth_blocks_whole_turn (test_context_limit_recovery.ContextRecoveryTests.test_pressure_and_recovery_share_four_summary_calls_and_auth_blocks_whole_turn) ... ok
+test_recovery_does_not_repeat_completed_map_queries (test_context_limit_recovery.ContextRecoveryTests.test_recovery_does_not_repeat_completed_map_queries) ... ok
+test_recovery_network_failures_keep_all_five_normal_retries (test_context_limit_recovery.ContextRecoveryTests.test_recovery_network_failures_keep_all_five_normal_retries) ... ok
+test_stop_inflight_recovery_summary_preserves_real_usage_and_skips_retry (test_context_limit_recovery.ContextRecoveryTests.test_stop_inflight_recovery_summary_preserves_real_usage_and_skips_retry) ... ok
+test_underestimated_input_is_shrunk_before_one_same_step_recovery (test_context_limit_recovery.ContextRecoveryTests.test_underestimated_input_is_shrunk_before_one_same_step_recovery) ... ok
+test_failure_warning_and_different_json_value_types_are_preserved (test_context_organization.ContextOrganizationTests.test_failure_warning_and_different_json_value_types_are_preserved) ... ok
+test_low_pressure_keeps_duplicate_tool_result_unchanged (test_context_organization.ContextOrganizationTests.test_low_pressure_keeps_duplicate_tool_result_unchanged) ... ok
+test_pressure_removes_duplicate_views_and_preserves_complete_original (test_context_organization.ContextOrganizationTests.test_pressure_removes_duplicate_views_and_preserves_complete_original) ... ok
+test_source_body_duplicates_use_references_without_losing_conditions_or_failures (test_context_organization.ContextOrganizationTests.test_source_body_duplicates_use_references_without_losing_conditions_or_failures) ... ok
+test_cli_cancelled_summary_exits_and_new_run_has_no_previous_context (test_context_recovery.ContextRecoveryTests.test_cli_cancelled_summary_exits_and_new_run_has_no_previous_context) ... ok
+test_history_storage_read_failure_stops_without_saved_completion (test_context_recovery.ContextRecoveryTests.test_history_storage_read_failure_stops_without_saved_completion) ... ok
+test_interrupted_material_is_short_index_and_readable_by_payload_identity (test_context_recovery.ContextRecoveryTests.test_interrupted_material_is_short_index_and_readable_by_payload_identity) ... StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 60826)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=41311 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:60827/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:60827/api/turns "HTTP/1.1 202 Accepted"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=41311 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=41312 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:60852/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:60852/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:60852/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:60852/api/sessions/1d1289403f7b42a4b90c07346565b00d "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=41312 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+StreamableHTTP session manager shutting down
+ok
+test_killed_summary_or_adopted_candidate_restores_previous_saved_version (test_context_recovery.ContextRecoveryTests.test_killed_summary_or_adopted_candidate_restores_previous_saved_version) ... StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 60879)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=41313 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:60880/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:60880/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:60880/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:60880/api/sessions/dd5f249c9d5c4429ae3ab63d7617d0ed "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:60880/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:60880/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:60880/api/sessions/dd5f249c9d5c4429ae3ab63d7617d0ed "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:60880/api/turns "HTTP/1.1 202 Accepted"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=41313 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=41318 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:60922/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:60922/api/sessions/dd5f249c9d5c4429ae3ab63d7617d0ed "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:60922/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:60922/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:60922/api/sessions/dd5f249c9d5c4429ae3ab63d7617d0ed "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=41318 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+StreamableHTTP session manager shutting down
+StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 60966)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=41340 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:60967/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:60967/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:60967/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:60967/api/sessions/dfae5b58291e4e518d922348fa7a4295 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:60967/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:60967/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:60967/api/sessions/dfae5b58291e4e518d922348fa7a4295 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:60967/api/turns "HTTP/1.1 202 Accepted"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=41340 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=41356 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:61007/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61007/api/sessions/dfae5b58291e4e518d922348fa7a4295 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61007/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61007/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61007/api/sessions/dfae5b58291e4e518d922348fa7a4295 "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=41356 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+StreamableHTTP session manager shutting down
+ok
+test_same_text_from_interrupted_turn_does_not_bind_completed_protocol (test_context_recovery.ContextRecoveryTests.test_same_text_from_interrupted_turn_does_not_bind_completed_protocol) ... StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 61032)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=41357 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:61033/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61033/api/turns "HTTP/1.1 202 Accepted"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=41357 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=41358 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:61058/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61058/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61058/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61058/api/sessions/d62e765be8b4433dadc09ddc24a2419e "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61058/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61058/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61058/api/sessions/d62e765be8b4433dadc09ddc24a2419e "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=41358 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+StreamableHTTP session manager shutting down
+ok
+test_storage_boundaries_then_process_exit_do_not_promote_candidate (test_context_recovery.ContextRecoveryTests.test_storage_boundaries_then_process_exit_do_not_promote_candidate) ... StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 61097)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=41360 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:61098/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61098/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61098/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61098/api/sessions/383ad05ce8924fd6ad720b168e361cde "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61098/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61098/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61098/api/sessions/383ad05ce8924fd6ad720b168e361cde "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61098/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61098/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61098/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61098/api/sessions/383ad05ce8924fd6ad720b168e361cde "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=41360 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=41361 running stdout=<_UnixReadPipeTransport fd=8 polling>>
+HTTP Request: GET http://127.0.0.1:61142/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61142/api/sessions/383ad05ce8924fd6ad720b168e361cde "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61142/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61142/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61142/api/sessions/383ad05ce8924fd6ad720b168e361cde "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=8 polling> was closed by peer
+<_UnixSubprocessTransport pid=41361 running stdout=<_UnixReadPipeTransport closing fd=8 idle>> exited with return code -9
+StreamableHTTP session manager shutting down
+StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 61170)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=41362 running stdout=<_UnixReadPipeTransport fd=8 polling>>
+HTTP Request: GET http://127.0.0.1:61171/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61171/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61171/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61171/api/sessions/81d188fe5e9a4d0c83120da8d6628a6e "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61171/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61171/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61171/api/sessions/81d188fe5e9a4d0c83120da8d6628a6e "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61171/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61171/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61171/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61171/api/sessions/81d188fe5e9a4d0c83120da8d6628a6e "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=8 polling> was closed by peer
+<_UnixSubprocessTransport pid=41362 running stdout=<_UnixReadPipeTransport closing fd=8 idle>> exited with return code -9
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=41364 running stdout=<_UnixReadPipeTransport fd=9 polling>>
+HTTP Request: GET http://127.0.0.1:61213/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61213/api/sessions/81d188fe5e9a4d0c83120da8d6628a6e "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61213/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61213/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61213/api/sessions/81d188fe5e9a4d0c83120da8d6628a6e "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=9 polling> was closed by peer
+<_UnixSubprocessTransport pid=41364 running stdout=<_UnixReadPipeTransport closing fd=9 idle>> exited with return code -9
+StreamableHTTP session manager shutting down
+StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 61237)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=41365 running stdout=<_UnixReadPipeTransport fd=9 polling>>
+HTTP Request: GET http://127.0.0.1:61238/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61238/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61238/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61238/api/sessions/653373b0eca64c1f8e49b2b714907300 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61238/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61238/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61238/api/sessions/653373b0eca64c1f8e49b2b714907300 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61238/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61238/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61238/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61238/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61238/api/sessions/653373b0eca64c1f8e49b2b714907300 "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=9 polling> was closed by peer
+<_UnixSubprocessTransport pid=41365 running stdout=<_UnixReadPipeTransport closed fd=9 closed>> exited with return code -9
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=41366 running stdout=<_UnixReadPipeTransport fd=10 polling>>
+HTTP Request: GET http://127.0.0.1:61328/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61328/api/sessions/653373b0eca64c1f8e49b2b714907300 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61328/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61328/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61328/api/sessions/653373b0eca64c1f8e49b2b714907300 "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=10 polling> was closed by peer
+<_UnixSubprocessTransport pid=41366 running stdout=<_UnixReadPipeTransport closing fd=10 idle>> exited with return code -9
+StreamableHTTP session manager shutting down
+StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 61355)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=41367 running stdout=<_UnixReadPipeTransport fd=10 polling>>
+HTTP Request: GET http://127.0.0.1:61356/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61356/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61356/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61356/api/sessions/46b57b3fbe4d4b74ac92d1d00798746c "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61356/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61356/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61356/api/sessions/46b57b3fbe4d4b74ac92d1d00798746c "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61356/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61356/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61356/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61356/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61356/api/sessions/46b57b3fbe4d4b74ac92d1d00798746c "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=10 polling> was closed by peer
+<_UnixSubprocessTransport pid=41367 running stdout=<_UnixReadPipeTransport closing fd=10 idle>> exited with return code -9
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=41368 running stdout=<_UnixReadPipeTransport fd=11 polling>>
+HTTP Request: GET http://127.0.0.1:61402/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61402/api/sessions/46b57b3fbe4d4b74ac92d1d00798746c "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61402/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61402/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61402/api/sessions/46b57b3fbe4d4b74ac92d1d00798746c "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=11 polling> was closed by peer
+<_UnixSubprocessTransport pid=41368 running stdout=<_UnixReadPipeTransport closing fd=11 idle>> exited with return code -9
+StreamableHTTP session manager shutting down
+ok
+test_auth_and_quota_do_not_retry_summary (test_context_summary.ContextSummaryTests.test_auth_and_quota_do_not_retry_summary) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61440)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61440/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61440/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61440/api/sessions/c81367787bf845ebabbd3ac59d4ae456 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61440/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61440/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61440/api/sessions/c81367787bf845ebabbd3ac59d4ae456 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61454)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61454/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61454/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61454/api/sessions/67e398902d484f1fb3f9ec7bb3bb3ed4 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61454/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61454/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61454/api/sessions/67e398902d484f1fb3f9ec7bb3bb3ed4 "HTTP/1.1 200 OK"
+ok
+test_candidate_storage_failure_stops_before_next_request (test_context_summary.ContextSummaryTests.test_candidate_storage_failure_stops_before_next_request) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61467)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61467/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61467/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61467/api/sessions/9c654fec0993449c80cd4e558ac4e709 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61467/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61467/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61467/api/sessions/9c654fec0993449c80cd4e558ac4e709 "HTTP/1.1 200 OK"
+ok
+test_changed_dates_survive_stopped_summary_before_any_travel_request (test_context_summary.ContextSummaryTests.test_changed_dates_survive_stopped_summary_before_any_travel_request) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61480)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61480/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61480/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61480/api/sessions/2f3aef00bc234b1aae654984f78fec14 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61480/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://127.0.0.1:61480/api/turns/f90979a04f7e4da38b3fe877a67a2e21/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61480/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61480/api/sessions/2f3aef00bc234b1aae654984f78fec14 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61495)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61495/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61495/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61495/api/sessions/2f3aef00bc234b1aae654984f78fec14 "HTTP/1.1 200 OK"
+ok
+test_cli_keeps_summary_within_process_and_prints_short_status (test_context_summary.ContextSummaryTests.test_cli_keeps_summary_within_process_and_prints_short_status) ... ok
+test_finish_failure_does_not_promote_unsaved_version (test_context_summary.ContextSummaryTests.test_finish_failure_does_not_promote_unsaved_version) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61502)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61502/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61502/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61502/api/sessions/87fc32de645c4b82a496d4cba7bbd66d "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61502/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61502/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61502/api/sessions/87fc32de645c4b82a496d4cba7bbd66d "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61502/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61502/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61502/api/sessions/87fc32de645c4b82a496d4cba7bbd66d "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61521)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61521/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61521/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61521/api/sessions/87fc32de645c4b82a496d4cba7bbd66d "HTTP/1.1 200 OK"
+ok
+test_invalid_candidate_retried_once_then_original_input_answers (test_context_summary.ContextSummaryTests.test_invalid_candidate_retried_once_then_original_input_answers) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61528)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61528/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61528/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61528/api/sessions/604cfcc70b5d4e93a33f77d8614a7f5b "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61528/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61528/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61528/api/sessions/604cfcc70b5d4e93a33f77d8614a7f5b "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61541)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61541/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61541/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61541/api/sessions/1ba93fffc07d4f59b7227ca07717efff "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61541/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61541/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61541/api/sessions/1ba93fffc07d4f59b7227ca07717efff "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61554)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61554/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61554/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61554/api/sessions/56467150bffe48259d8876cace934ab1 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61554/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61554/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61554/api/sessions/56467150bffe48259d8876cace934ab1 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61567)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61567/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61567/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61567/api/sessions/85abc8e290104369a51526f3faccb0ac "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61567/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61567/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61567/api/sessions/85abc8e290104369a51526f3faccb0ac "HTTP/1.1 200 OK"
+ok
+test_invalid_summary_over_budget_ends_without_travel_request (test_context_summary.ContextSummaryTests.test_invalid_summary_over_budget_ends_without_travel_request) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61580)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61580/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61580/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61580/api/sessions/8cee6a011ce74c1f8f67535a438fabe3 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61580/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61580/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61580/api/sessions/8cee6a011ce74c1f8f67535a438fabe3 "HTTP/1.1 200 OK"
+ok
+test_low_pressure_never_summarizes (test_context_summary.ContextSummaryTests.test_low_pressure_never_summarizes) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61593)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61593/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61593/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61593/api/sessions/5c4177c2e4f944fcaac027ddd9ca4c2e "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61593/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61593/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61593/api/sessions/5c4177c2e4f944fcaac027ddd9ca4c2e "HTTP/1.1 200 OK"
+ok
+test_old_history_summary_answers_preserves_original_and_restarts (test_context_summary.ContextSummaryTests.test_old_history_summary_answers_preserves_original_and_restarts) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61606)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61606/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61606/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61606/api/sessions/c1a91c5012a045cfa3c0e362884a628e "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61606/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61606/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61606/api/sessions/c1a91c5012a045cfa3c0e362884a628e "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61621)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61621/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61621/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61621/api/sessions/c1a91c5012a045cfa3c0e362884a628e "HTTP/1.1 200 OK"
+ok
+test_stop_inflight_summary_records_return_without_adoption_or_next_call (test_context_summary.ContextSummaryTests.test_stop_inflight_summary_records_return_without_adoption_or_next_call) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61628)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61628/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61628/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61628/api/sessions/a4cbfa1c1e2d40cbbbca06d47f1824d1 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61628/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://127.0.0.1:61628/api/turns/bd7f64a4ca3943608e000691a9a40bfe/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61628/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61628/api/sessions/a4cbfa1c1e2d40cbbbca06d47f1824d1 "HTTP/1.1 200 OK"
+ok
+test_summary_requests_have_a_four_call_turn_limit_without_using_travel_steps (test_context_summary.ContextSummaryTests.test_summary_requests_have_a_four_call_turn_limit_without_using_travel_steps) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61643)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61643/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61643/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61643/api/sessions/3e1aa77fbc2b477d9af3ce4678782cb0 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61643/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61643/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61643/api/sessions/3e1aa77fbc2b477d9af3ce4678782cb0 "HTTP/1.1 200 OK"
+ok
+test_summary_transport_failure_has_only_two_attempts (test_context_summary.ContextSummaryTests.test_summary_transport_failure_has_only_two_attempts) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61656)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61656/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61656/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61656/api/sessions/1883e806648a4da0baa34272b32a5062 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61656/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61656/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61656/api/sessions/1883e806648a4da0baa34272b32a5062 "HTTP/1.1 200 OK"
+ok
+test_terminal_summary_error_is_not_retried_on_later_travel_steps (test_context_summary.ContextSummaryTests.test_terminal_summary_error_is_not_retried_on_later_travel_steps) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61669)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61669/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61669/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61669/api/sessions/a3a6c458d62c4859bafb3cb6b4e5e772 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61669/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61669/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61669/api/sessions/a3a6c458d62c4859bafb3cb6b4e5e772 "HTTP/1.1 200 OK"
+ok
+test_changed_dates_and_failed_weather_materials_use_the_same_full_range (test_travel_date_continuation.TravelDateContinuationTests.test_changed_dates_and_failed_weather_materials_use_the_same_full_range) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/a2d7715d1c894974937d74cd0cd7bebb "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/a2d7715d1c894974937d74cd0cd7bebb "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/a2d7715d1c894974937d74cd0cd7bebb "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/a2d7715d1c894974937d74cd0cd7bebb "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/e4f610aa13154b95954e65f374120ac3 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/e4f610aa13154b95954e65f374120ac3 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/e4f610aa13154b95954e65f374120ac3 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/e4f610aa13154b95954e65f374120ac3 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/d67a576d550f415fa6c6378641cda256 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/d67a576d550f415fa6c6378641cda256 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/d67a576d550f415fa6c6378641cda256 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/d67a576d550f415fa6c6378641cda256 "HTTP/1.1 200 OK"
+ok
+test_cli_continuation_retains_trip_dates_when_time_advances (test_travel_date_continuation.TravelDateContinuationTests.test_cli_continuation_retains_trip_dates_when_time_advances) ... ok
+test_legacy_record_without_date_basis_does_not_infer_dates_from_history (test_travel_date_continuation.TravelDateContinuationTests.test_legacy_record_without_date_basis_does_not_infer_dates_from_history) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/6f612055f328472898915c910b853cc6 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/6f612055f328472898915c910b853cc6 "HTTP/1.1 200 OK"
+ok
+test_new_session_does_not_inherit_another_trips_dates (test_travel_date_continuation.TravelDateContinuationTests.test_new_session_does_not_inherit_another_trips_dates) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/65505c7228ee4ba784b43d69039417c7 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/65505c7228ee4ba784b43d69039417c7 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/05fe9807184b4a2b866f9785dbfc56a5 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/05fe9807184b4a2b866f9785dbfc56a5 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/65505c7228ee4ba784b43d69039417c7 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/65505c7228ee4ba784b43d69039417c7 "HTTP/1.1 200 OK"
+ok
+test_reference_to_original_weekend_preserves_dates_until_explicit_change (test_travel_date_continuation.TravelDateContinuationTests.test_reference_to_original_weekend_preserves_dates_until_explicit_change) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/28387e92fc2349b1bfb4f0b39fa6951b "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/28387e92fc2349b1bfb4f0b39fa6951b "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/28387e92fc2349b1bfb4f0b39fa6951b "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/28387e92fc2349b1bfb4f0b39fa6951b "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/28387e92fc2349b1bfb4f0b39fa6951b "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/28387e92fc2349b1bfb4f0b39fa6951b "HTTP/1.1 200 OK"
+ok
+test_saved_date_change_survives_interruption_while_protocol_history_is_excluded (test_travel_date_continuation.TravelDateContinuationTests.test_saved_date_change_survives_interruption_while_protocol_history_is_excluded) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/366bd963fb3c414e9d75c88e484184c7 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/366bd963fb3c414e9d75c88e484184c7 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/366bd963fb3c414e9d75c88e484184c7 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/366bd963fb3c414e9d75c88e484184c7 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/366bd963fb3c414e9d75c88e484184c7 "HTTP/1.1 200 OK"
+ok
+test_trip_dates_survive_midnight_and_restart_without_reinterpreting_history (test_travel_date_continuation.TravelDateContinuationTests.test_trip_dates_survive_midnight_and_restart_without_reinterpreting_history) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/a4ea8511d09f436585c92322d8afe4a4 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/a4ea8511d09f436585c92322d8afe4a4 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/a4ea8511d09f436585c92322d8afe4a4 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/a4ea8511d09f436585c92322d8afe4a4 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/a4ea8511d09f436585c92322d8afe4a4 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/a4ea8511d09f436585c92322d8afe4a4 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/a4ea8511d09f436585c92322d8afe4a4 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/a4ea8511d09f436585c92322d8afe4a4 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/620ed27bc7df4538a5c722246ccda9c4 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/620ed27bc7df4538a5c722246ccda9c4 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/620ed27bc7df4538a5c722246ccda9c4 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/620ed27bc7df4538a5c722246ccda9c4 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/620ed27bc7df4538a5c722246ccda9c4 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/620ed27bc7df4538a5c722246ccda9c4 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/620ed27bc7df4538a5c722246ccda9c4 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/620ed27bc7df4538a5c722246ccda9c4 "HTTP/1.1 200 OK"
+ok
+test_unclear_date_change_requires_clarification_instead_of_reusing_old_dates (test_travel_date_continuation.TravelDateContinuationTests.test_unclear_date_change_requires_clarification_instead_of_reusing_old_dates) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/23f805eb78de40238d95718215ed8f72 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/23f805eb78de40238d95718215ed8f72 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/23f805eb78de40238d95718215ed8f72 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/23f805eb78de40238d95718215ed8f72 "HTTP/1.1 200 OK"
+ok
+test_unsaved_date_change_does_not_replace_last_reliable_dates (test_travel_date_continuation.TravelDateContinuationTests.test_unsaved_date_change_does_not_replace_last_reliable_dates) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/713e538721434be697f56364ce89dc7c "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/713e538721434be697f56364ce89dc7c "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/713e538721434be697f56364ce89dc7c "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/713e538721434be697f56364ce89dc7c "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/713e538721434be697f56364ce89dc7c "HTTP/1.1 200 OK"
+ok
+test_calendar_day_followed_by_touring_is_one_day_not_ten_days (test_travel_date_corrections.TravelDateCorrectionTests.test_calendar_day_followed_by_touring_is_one_day_not_ten_days) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/d717234a80ce41618ef3c50af62c6933 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/d717234a80ce41618ef3c50af62c6933 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/3199d860a7c247bcb33a7e603480f208 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/3199d860a7c247bcb33a7e603480f208 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/e4da6e57d9a1498480ebba1143d98a9c "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/e4da6e57d9a1498480ebba1143d98a9c "HTTP/1.1 200 OK"
+ok
+test_duration_change_updates_end_date_and_weather_range_after_restart (test_travel_date_corrections.TravelDateCorrectionTests.test_duration_change_updates_end_date_and_weather_range_after_restart) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/6a4ab60865654bd2aa4b402fc64d803a "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/6a4ab60865654bd2aa4b402fc64d803a "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/6a4ab60865654bd2aa4b402fc64d803a "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/6a4ab60865654bd2aa4b402fc64d803a "HTTP/1.1 200 OK"
+ok
+test_explicit_departure_and_date_clarification_still_update_with_source_questions (test_travel_date_corrections.TravelDateCorrectionTests.test_explicit_departure_and_date_clarification_still_update_with_source_questions) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/e52751eabb5b48c0915e2dd30c1fe18e "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/e52751eabb5b48c0915e2dd30c1fe18e "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/e52751eabb5b48c0915e2dd30c1fe18e "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/e52751eabb5b48c0915e2dd30c1fe18e "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/2fbcd1dd152a4259b7a5ad5e3996323f "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/2fbcd1dd152a4259b7a5ad5e3996323f "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/2fbcd1dd152a4259b7a5ad5e3996323f "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/2fbcd1dd152a4259b7a5ad5e3996323f "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/47bc772f83fe48d6a70bc058a66b6673 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/47bc772f83fe48d6a70bc058a66b6673 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/47bc772f83fe48d6a70bc058a66b6673 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/47bc772f83fe48d6a70bc058a66b6673 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/b5318ec6e643449cb6735716f0d96c6e "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/b5318ec6e643449cb6735716f0d96c6e "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/b5318ec6e643449cb6735716f0d96c6e "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/b5318ec6e643449cb6735716f0d96c6e "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/1d03f73459fc4894803cab0ea12d6b8f "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/1d03f73459fc4894803cab0ea12d6b8f "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/1d03f73459fc4894803cab0ea12d6b8f "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/1d03f73459fc4894803cab0ea12d6b8f "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/f57417906a70419ea5554d2f25b58111 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/f57417906a70419ea5554d2f25b58111 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/f57417906a70419ea5554d2f25b58111 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/f57417906a70419ea5554d2f25b58111 "HTTP/1.1 200 OK"
+ok
+test_explicit_rescheduling_takes_priority_over_historical_relative_reference (test_travel_date_corrections.TravelDateCorrectionTests.test_explicit_rescheduling_takes_priority_over_historical_relative_reference) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/5718f20b033e4951a5133086a7639549 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/5718f20b033e4951a5133086a7639549 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/5718f20b033e4951a5133086a7639549 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/5718f20b033e4951a5133086a7639549 "HTTP/1.1 200 OK"
+ok
+test_new_travel_date_with_opening_question_updates_after_restart (test_travel_date_corrections.TravelDateCorrectionTests.test_new_travel_date_with_opening_question_updates_after_restart) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/88ce3b34d1a9429d947b323ecf106345 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/88ce3b34d1a9429d947b323ecf106345 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/88ce3b34d1a9429d947b323ecf106345 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/88ce3b34d1a9429d947b323ecf106345 "HTTP/1.1 200 OK"
+ok
+test_one_day_clarification_resolves_original_sunday_after_restart (test_travel_date_corrections.TravelDateCorrectionTests.test_one_day_clarification_resolves_original_sunday_after_restart) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/e69e4677923e467097ad7bd225cb599d "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/e69e4677923e467097ad7bd225cb599d "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/e69e4677923e467097ad7bd225cb599d "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/e69e4677923e467097ad7bd225cb599d "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/eced790cf3ac42fe878abe68f2ed81b2 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/eced790cf3ac42fe878abe68f2ed81b2 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/eced790cf3ac42fe878abe68f2ed81b2 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/eced790cf3ac42fe878abe68f2ed81b2 "HTTP/1.1 200 OK"
+ok
+test_reference_to_previously_planned_tomorrow_does_not_move_trip_after_restart (test_travel_date_corrections.TravelDateCorrectionTests.test_reference_to_previously_planned_tomorrow_does_not_move_trip_after_restart) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/7fe7ad5940af4c8693f5a7c3e2592db9 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/7fe7ad5940af4c8693f5a7c3e2592db9 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/7fe7ad5940af4c8693f5a7c3e2592db9 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/7fe7ad5940af4c8693f5a7c3e2592db9 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/e17d1442521d480f913e4eb06ca7b3df "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/e17d1442521d480f913e4eb06ca7b3df "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/e17d1442521d480f913e4eb06ca7b3df "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/e17d1442521d480f913e4eb06ca7b3df "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/2790a6483e4440e8a1e86cf1876474ef "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/2790a6483e4440e8a1e86cf1876474ef "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/2790a6483e4440e8a1e86cf1876474ef "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/2790a6483e4440e8a1e86cf1876474ef "HTTP/1.1 200 OK"
+ok
+test_source_dates_and_opening_question_do_not_reschedule_after_restart (test_travel_date_corrections.TravelDateCorrectionTests.test_source_dates_and_opening_question_do_not_reschedule_after_restart) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/718f403e1fcf4bd3b9b687704f51e09a "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/718f403e1fcf4bd3b9b687704f51e09a "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/718f403e1fcf4bd3b9b687704f51e09a "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/718f403e1fcf4bd3b9b687704f51e09a "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/718f403e1fcf4bd3b9b687704f51e09a "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/718f403e1fcf4bd3b9b687704f51e09a "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/718f403e1fcf4bd3b9b687704f51e09a "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/718f403e1fcf4bd3b9b687704f51e09a "HTTP/1.1 200 OK"
+ok
+test_unrelated_past_trip_does_not_hide_this_trips_new_departure (test_travel_date_corrections.TravelDateCorrectionTests.test_unrelated_past_trip_does_not_hide_this_trips_new_departure) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/d659e58cf92b406e98ddba32b6927653 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/d659e58cf92b406e98ddba32b6927653 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/d659e58cf92b406e98ddba32b6927653 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/d659e58cf92b406e98ddba32b6927653 "HTTP/1.1 200 OK"
+ok
+test_cli_entry_supplies_same_date_context_as_web (test_travel_dates.TravelDatesTests.test_cli_entry_supplies_same_date_context_as_web) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/e71bc7132632409d945629846feba93b "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/e71bc7132632409d945629846feba93b "HTTP/1.1 200 OK"
+ok
+test_clock_times_and_number_ranges_do_not_override_weekend (test_travel_dates.TravelDatesTests.test_clock_times_and_number_ranges_do_not_override_weekend) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/2b4c213867e54febabf52f7ca98ae8cf "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/2b4c213867e54febabf52f7ca98ae8cf "HTTP/1.1 200 OK"
+ok
+test_explicit_dates_override_relative_default_and_infer_duration (test_travel_dates.TravelDatesTests.test_explicit_dates_override_relative_default_and_infer_duration) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/b30b601d4fda4a84b392e382fc5d2d32 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/b30b601d4fda4a84b392e382fc5d2d32 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/660fb79fe459450bb53157ed9e025b00 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/660fb79fe459450bb53157ed9e025b00 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/e2ee858a48424cf385c0e489ba021f6f "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/e2ee858a48424cf385c0e489ba021f6f "HTTP/1.1 200 OK"
+ok
+test_failed_answer_weather_uses_resolved_relative_date_range (test_travel_dates.TravelDatesTests.test_failed_answer_weather_uses_resolved_relative_date_range) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/95f3f60683674ca88f122d3afa7c4c50 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/95f3f60683674ca88f122d3afa7c4c50 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/3daae5534932407587a0bf5ce61899d3 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/3daae5534932407587a0bf5ce61899d3 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/c086f935578942b086bea243e67b67f5 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/c086f935578942b086bea243e67b67f5 "HTTP/1.1 200 OK"
+ok
+test_invalid_ranges_and_ambiguous_dates_do_not_choose_a_date (test_travel_dates.TravelDatesTests.test_invalid_ranges_and_ambiguous_dates_do_not_choose_a_date) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/fdf07b61162b47a9a1bb18491755010b "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/fdf07b61162b47a9a1bb18491755010b "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/ed0421d33583499b9a8badad58cd2613 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/ed0421d33583499b9a8badad58cd2613 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/f0e9d4f5688d47b6a44e822446048172 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/f0e9d4f5688d47b6a44e822446048172 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/41b945d19a544aff8f9181111a6c4edf "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/41b945d19a544aff8f9181111a6c4edf "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/ffcd01a00f80474e8e686a065e91ac3b "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/ffcd01a00f80474e8e686a065e91ac3b "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/3adf0f37242e43ad8438ec1758e356e6 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/3adf0f37242e43ad8438ec1758e356e6 "HTTP/1.1 200 OK"
+ok
+test_same_round_keeps_snapshot_across_midnight_and_next_round_refreshes (test_travel_dates.TravelDatesTests.test_same_round_keeps_snapshot_across_midnight_and_next_round_refreshes) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/7b0f486f769f4283aecc5f424df70b0b "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/7b0f486f769f4283aecc5f424df70b0b "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/5b85a61240c14402a57376e8bbb20493 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/5b85a61240c14402a57376e8bbb20493 "HTTP/1.1 200 OK"
+ok
+test_sunday_two_day_request_requires_targeted_clarification (test_travel_dates.TravelDatesTests.test_sunday_two_day_request_requires_targeted_clarification) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/0f6e2b9106b44307b9dd425c938dfd15 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/0f6e2b9106b44307b9dd425c938dfd15 "HTTP/1.1 200 OK"
+ok
+test_this_weekend_uses_beijing_date_and_supplies_concrete_dates (test_travel_dates.TravelDatesTests.test_this_weekend_uses_beijing_date_and_supplies_concrete_dates) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/d807b5e9b1d04d0782fae0b0673bca4b "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/d807b5e9b1d04d0782fae0b0673bca4b "HTTP/1.1 200 OK"
+ok
+test_weekend_rules_and_year_boundary_are_concrete (test_travel_dates.TravelDatesTests.test_weekend_rules_and_year_boundary_are_concrete) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/fc379403f6c4448493dd32ce9f8e31a9 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/fc379403f6c4448493dd32ce9f8e31a9 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/e6dca73feb9d4903a4eae47c24a89845 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/e6dca73feb9d4903a4eae47c24a89845 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/3035c009510047e19479e58f0d54b4b3 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/3035c009510047e19479e58f0d54b4b3 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/sessions/5b13be0828a0409fb52b70b2d8effa1f "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/5b13be0828a0409fb52b70b2d8effa1f "HTTP/1.1 200 OK"
+ok
+test_cli_recalls_original_text_only_in_current_process (test_session_history.SessionHistoryTests.test_cli_recalls_original_text_only_in_current_process) ... ok
+test_eight_recall_calls_share_budget_and_record_unexecuted_proposals (test_session_history.SessionHistoryTests.test_eight_recall_calls_share_budget_and_record_unexecuted_proposals) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61683)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61683/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61683/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61683/api/sessions/e156de1395484f18b657b01877e21642 "HTTP/1.1 200 OK"
+ok
+test_history_and_map_proposals_share_total_tool_budget (test_session_history.SessionHistoryTests.test_history_and_map_proposals_share_total_tool_budget) ... ok
+test_pages_limits_errors_and_current_session_isolation (test_session_history.SessionHistoryTests.test_pages_limits_errors_and_current_session_isolation) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61701)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61701/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61701/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61701/api/sessions/76c8ab0fe50e4cf28f3dd98b3a62ccee "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61701/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61701/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61701/api/sessions/76c8ab0fe50e4cf28f3dd98b3a62ccee "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61701/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61701/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61701/api/sessions/8c8e96046eec4c5eb62eb43f93664ad2 "HTTP/1.1 200 OK"
+ok
+test_partial_source_read_preserves_original_date_and_verification_boundary (test_session_history.SessionHistoryTests.test_partial_source_read_preserves_original_date_and_verification_boundary) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/0962994eb10f40569f1e40511bcdb3c1 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/0962994eb10f40569f1e40511bcdb3c1 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/payloads/efc5dbdb0d2943309fc086af8554b6bd "HTTP/1.1 200 OK"
+ok
+test_read_page_shrinks_to_complete_request_budget (test_session_history.SessionHistoryTests.test_read_page_shrinks_to_complete_request_budget) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61723)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61723/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61723/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61723/api/sessions/ba081370ca6f422f9421ed6067d8ecc9 "HTTP/1.1 200 OK"
+Executing <Task finished name='Task-2754' coro=<create_app.<locals>.execute() done, defined at /Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/web.py:223> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.103 seconds
+HTTP Request: POST http://127.0.0.1:61723/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61723/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61723/api/sessions/ba081370ca6f422f9421ed6067d8ecc9 "HTTP/1.1 200 OK"
+ok
+test_recall_quota_rejections_do_not_spend_unexecuted_total_calls (test_session_history.SessionHistoryTests.test_recall_quota_rejections_do_not_spend_unexecuted_total_calls) ... ok
+test_saved_hotel_detail_can_be_searched_and_read_after_restart (test_session_history.SessionHistoryTests.test_saved_hotel_detail_can_be_searched_and_read_after_restart) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61742)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61742/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61742/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61742/api/sessions/0d26ddb4d2af4735b6a6d80c2b63b50d "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61749)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61749/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61749/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61749/api/sessions/0d26ddb4d2af4735b6a6d80c2b63b50d "HTTP/1.1 200 OK"
+ok
+test_search_caps_unique_originals_and_excludes_system_snapshots (test_session_history.SessionHistoryTests.test_search_caps_unique_originals_and_excludes_system_snapshots) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61756)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61756/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61756/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61756/api/sessions/86dac87a84e948b09766ab1152ff4d89 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61756/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61756/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61756/api/sessions/86dac87a84e948b09766ab1152ff4d89 "HTTP/1.1 200 OK"
+ok
+test_tool_result_can_be_read_by_full_protocol_reference (test_session_history.SessionHistoryTests.test_tool_result_can_be_read_by_full_protocol_reference) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 61769)>,)> is serving
+HTTP Request: POST http://127.0.0.1:61769/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61769/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61769/api/sessions/9b473a4c33d046028f5c03efaa6acfc6 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:61769/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:61769/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:61769/api/sessions/9b473a4c33d046028f5c03efaa6acfc6 "HTTP/1.1 200 OK"
+ok
+test_compaction_configuration_fails_before_cli_connects (test_cli.CLITests.test_compaction_configuration_fails_before_cli_connects) ... ok
+test_grouped_interrupt_and_errors_exit_without_credentials_or_traceback (test_cli.CLITests.test_grouped_interrupt_and_errors_exit_without_credentials_or_traceback) ... ok
+test_missing_amap_key_has_an_actionable_message_without_traceback (test_cli.CLITests.test_missing_amap_key_has_an_actionable_message_without_traceback) ... ok
+
+----------------------------------------------------------------------
+Ran 89 tests in 56.993s
+
+OK

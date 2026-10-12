@@ -1,0 +1,14 @@
+test_calendar_day_followed_by_touring_is_one_day_not_ten_days (test_travel_date_corrections.TravelDateCorrectionTests.test_calendar_day_followed_by_touring_is_one_day_not_ten_days) ... ok
+test_duration_change_updates_end_date_and_weather_range_after_restart (test_travel_date_corrections.TravelDateCorrectionTests.test_duration_change_updates_end_date_and_weather_range_after_restart) ... ok
+test_explicit_departure_and_date_clarification_still_update_with_source_questions (test_travel_date_corrections.TravelDateCorrectionTests.test_explicit_departure_and_date_clarification_still_update_with_source_questions) ... ok
+test_explicit_rescheduling_takes_priority_over_historical_relative_reference (test_travel_date_corrections.TravelDateCorrectionTests.test_explicit_rescheduling_takes_priority_over_historical_relative_reference) ... ok
+test_new_travel_date_with_opening_question_updates_after_restart (test_travel_date_corrections.TravelDateCorrectionTests.test_new_travel_date_with_opening_question_updates_after_restart) ... ok
+test_one_day_clarification_resolves_original_sunday_after_restart (test_travel_date_corrections.TravelDateCorrectionTests.test_one_day_clarification_resolves_original_sunday_after_restart) ... ok
+test_reference_to_previously_planned_tomorrow_does_not_move_trip_after_restart (test_travel_date_corrections.TravelDateCorrectionTests.test_reference_to_previously_planned_tomorrow_does_not_move_trip_after_restart) ... ok
+test_source_dates_and_opening_question_do_not_reschedule_after_restart (test_travel_date_corrections.TravelDateCorrectionTests.test_source_dates_and_opening_question_do_not_reschedule_after_restart) ... ok
+test_unrelated_past_trip_does_not_hide_this_trips_new_departure (test_travel_date_corrections.TravelDateCorrectionTests.test_unrelated_past_trip_does_not_hide_this_trips_new_departure) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 1.206s
+
+OK

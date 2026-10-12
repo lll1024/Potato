@@ -1,0 +1,9 @@
+test_failure_warning_and_different_json_value_types_are_preserved (test_context_organization.ContextOrganizationTests.test_failure_warning_and_different_json_value_types_are_preserved) ... ok
+test_low_pressure_keeps_duplicate_tool_result_unchanged (test_context_organization.ContextOrganizationTests.test_low_pressure_keeps_duplicate_tool_result_unchanged) ... ok
+test_pressure_removes_duplicate_views_and_preserves_complete_original (test_context_organization.ContextOrganizationTests.test_pressure_removes_duplicate_views_and_preserves_complete_original) ... ok
+test_source_body_duplicates_use_references_without_losing_conditions_or_failures (test_context_organization.ContextOrganizationTests.test_source_body_duplicates_use_references_without_losing_conditions_or_failures) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.926s
+
+OK
