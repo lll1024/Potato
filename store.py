@@ -7,8 +7,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 from query_materials import READABLE_SOURCE_TOOLS, summarize_query
+from amap_mcp import PLACE_TOOLS, DINING_TOOLS, WEATHER_TOOLS, ROUTE_TOOLS
 from travel_dates import saved_date_context
 from preferences import PreferenceStore
+from session_history import source_metadata
 
 SCHEMA_VERSION = 1
 
@@ -182,13 +184,14 @@ class Store:
         """模型专用白名单：会话输入、旅行助手文本、工具结果，各原始记录只列一次。"""
         records = []
         turns = {row["turn_id"]: dict(row) for row in self.db.execute(
-            "SELECT turn_id,ordinal,status,answer_source FROM turns WHERE session_id=? ORDER BY ordinal", (session_id,))}
+            "SELECT turn_id,ordinal,status,reason,answer_source FROM turns WHERE session_id=? ORDER BY ordinal", (session_id,))}
         def add(row, kind, text, source, status, suffix="", **metadata):
             turn = turns[row["turn_id"]]
             records.append({"record_id": "payload:" + row["payload_id"] + suffix,
                 "payload_id": row["payload_id"], "turn_id": row["turn_id"], "turn_ordinal": turn["ordinal"],
                 "kind": kind, "text": text, "source": source, "history_status": status,
-                "turn_status": turn["status"], **metadata})
+                "turn_status": turn["status"],
+                **({"turn_reason": turn["reason"], "context_excluded": True} if turn["reason"] == "service_interrupted" else {}), **metadata})
         for row in self.db.execute("SELECT * FROM payloads WHERE session_id=? AND kind='turn_input' ORDER BY rowid", (session_id,)):
             add(row, "turn_input", json.loads(row["content"]), "user", turns[row["turn_id"]]["status"])
         for row in self.db.execute("""SELECT p.*,r.status AS request_status,r.request_id FROM requests r
@@ -303,6 +306,18 @@ class Store:
         # 新观察只终止遗留轮次，调用事实仍是上次成功提交的原样。
         with self.db:
             for row in self.db.execute("SELECT session_id,turn_id FROM turns WHERE status IN ('running','stopping')").fetchall():
+                maintenance = self.db.execute("SELECT 1 FROM events WHERE turn_id=? AND kind='context.summary_started'", (row["turn_id"],)).fetchone()
+                if maintenance:
+                    used = self.db.execute("SELECT 1 FROM context_versions WHERE turn_id=? AND status='used'", (row["turn_id"],)).fetchone()
+                    candidate = self.db.execute("SELECT 1 FROM context_versions WHERE turn_id=? AND status IN ('candidate','used')", (row["turn_id"],)).fetchone()
+                    unknown = self.db.execute("""SELECT 1 FROM requests r JOIN events e USING(request_id)
+                        WHERE r.turn_id=? AND r.status='running' AND e.kind='request.started'
+                        AND json_extract(e.data,'$.purpose')='context_summary'""", (row["turn_id"],)).fetchone()
+                    self.db.execute("UPDATE context_versions SET status='discarded' WHERE turn_id=? AND status IN ('candidate','used')", (row["turn_id"],))
+                    self.event(row["session_id"], row["turn_id"], "context.discarded", {
+                        "reason": "service_interrupted", "used_in_turn": bool(used), "result_unknown": bool(unknown),
+                        "candidate_recorded": bool(candidate),
+                        "message": "服务中断，本轮未晋升的摘要已弃用；续聊恢复上一有效版本。"})
                 self.db.execute("UPDATE turns SET status='terminated',reason='service_interrupted' WHERE turn_id=?", (row["turn_id"],))
                 self.event(row["session_id"],row["turn_id"],"turn.recovered", {"status":"terminated","reason":"service_interrupted","context_excluded":True,"message":"服务中断，未结束调用的结果未知；整轮协议已排除后续上下文，已保存的成功资料仅作参考重新核对。"})
 
@@ -354,7 +369,7 @@ class Store:
             WHERE t.session_id=? AND t.reason='service_interrupted'
             ORDER BY t.ordinal,r.ordinal,tc.ordinal""", (session_id,)):
             tool = json.loads(row["data"])
-            if tool["name"] not in READABLE_SOURCE_TOOLS or tool["status"] != "completed":
+            if tool["name"] not in READABLE_SOURCE_TOOLS | PLACE_TOOLS | DINING_TOOLS | WEATHER_TOOLS | ROUTE_TOOLS or tool["status"] != "completed":
                 continue
             payload = self.payload(tool["result_payload_id"]) if tool.get("result_payload_id") else None
             result = payload["content"] if payload else None
@@ -363,7 +378,11 @@ class Store:
             context = saved_date_context(json.loads(row["content"]).get("system", ""))
             references.append({"name": tool["name"], "payload_id": payload["payload_id"],
                                "travel_dates": context["travel_dates"] if context else None,
-                               "result": result["content"]})
+                               "record_id": "payload:" + payload["payload_id"],
+                               "excerpt": str(result["content"])[:200],
+                               "verification_status": "historical_requires_recheck",
+                               "history_status": tool["status"], "retrieved_at": tool.get("finished_at"),
+                               **source_metadata(result["content"])})
         return references
 
     def accept(self, text, session_id=None, *, submission_id=None, fingerprint=None, preference_now=None):

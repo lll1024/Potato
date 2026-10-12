@@ -245,6 +245,13 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                     storage_failed(message,kind=kind,turn_id=identity["turn_id"])
                     raise TraceStorageError(message) from None
                 changed.set()
+        def history_records():
+            try:
+                return store.history_records(identity["session_id"])
+            except Exception:
+                message = "历史原文无法可靠读取，已停止后续查询；仅保留最后成功提交的事实。"
+                storage_failed(message, kind="tool.history_read", turn_id=identity["turn_id"])
+                raise TraceStorageError(message) from None
         try:
             try:
                 messages = store.context(identity["session_id"]) + [{"role":"user","content":text}]
@@ -260,7 +267,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             answer = await agent_loop(messages,runtime.client,runtime.tools,runtime.model,observer=observe,stop_requested=stop_requested,stop_reason=lambda: stop_reason,
                                       preference_background=background, clock=clock, previous_date_context=previous_date_context,
                                       previous_source_materials=previous_source_materials, context_view=context_view,
-                                      history_records=lambda: store.history_records(identity["session_id"]))
+                                      history_records=history_records)
         except TraceStorageError:
             active = None
             changed.set()

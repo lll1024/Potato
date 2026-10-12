@@ -137,3 +137,16 @@ test('超限恢复区分准备、实际请求和返回，不把准备状态显�
   assert.match(render([...prepared,{event_id:'result',turn_id:'turn',kind:'context.recovery_result',data:{status:'completed'}}]), /原模型步骤已返回有效响应/);
   assert.match(render([{event_id:'blocked',turn_id:'turn',kind:'context.recovery_prepared',data:{reduced:false,allowed:true}}]), /未获得预算内的有效缩减/);
 });
+
+test('服务中断后整理状态区分摘要未知与曾采用但未保存，不再显示整理进行中', () => {
+  for (const used of [false, true]) {
+    const html = renderToStaticMarkup(createElement(ContextMaintenance, {turnId: 'turn', events: [
+      {event_id: 'started', turn_id: 'turn', kind: 'context.summary_started'},
+      {event_id: 'recovered', turn_id: 'turn', kind: 'context.discarded', data: {used_in_turn: used, result_unknown: !used}},
+    ]}));
+    if (used) assert.match(html, /已弃用/);
+    assert.doesNotMatch(html, /<details[^>]*open/);
+    assert.match(html, used ? /曾用于本轮，未保存供续聊/ : /摘要请求结果未知/);
+    assert.doesNotMatch(html, /摘要已保存供续聊/);
+  }
+});
