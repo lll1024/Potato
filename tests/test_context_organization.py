@@ -17,7 +17,7 @@ class RepeatedMap(MapService):
         result.structured_content = {"pois": [
             {"id": "hotel-east", "name": "湖畔酒店", "address": "东门", "price": "早餐 80 元，仅工作日",
              "source": "酒店公告", "valid_date": "2026-10-13", "verification": "待核实",
-             "body": "价格仅适用于成人；儿童需另询。" * 100},
+             "body": "价格仅适用于成人；儿童需另询。" * 90},
             {"id": "hotel-west", "name": "湖畔酒店", "address": "西门", "price": "早餐 100 元，仅周末"},
         ]}
         result.content[0].text = json.dumps(result.structured_content, ensure_ascii=False)
@@ -42,7 +42,7 @@ class ContextOrganizationTests(unittest.IsolatedAsyncioTestCase):
                 viewed = json.loads(model.requests[1]["messages"][-1]["content"][0]["content"])
                 self.assertNotIn("text", viewed)
                 self.assertEqual([poi["id"] for poi in viewed["data"]["pois"]], ["hotel-east", "hotel-west"])
-                self.assertEqual(viewed["data"]["pois"][0]["body"], "价格仅适用于成人；儿童需另询。" * 100)
+                self.assertEqual(viewed["data"]["pois"][0]["body"], "价格仅适用于成人；儿童需另询。" * 90)
                 self.assertEqual(viewed["data"]["pois"][0]["price"], "早餐 80 元，仅工作日")
                 self.assertEqual(viewed["data"]["pois"][0]["verification"], "待核实")
                 result_id = saved["tool_calls"][0]["result_payload_id"]
