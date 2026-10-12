@@ -31,10 +31,10 @@
     },
     {
       "file": "failures-before-fixes.json.gz",
-      "json_bytes": 11271193,
-      "compressed_bytes": 1489407,
-      "json_sha256": "bd40284b46e14efb8043fa0fcf630a4ff9fb98f637688aeb4a72d91cb05c438e",
-      "gzip_sha256": "d8948b74b8274e4b0d645e12736a1bdcd934c0d104188831cc5c29d9a373859f"
+      "json_bytes": 9108367,
+      "compressed_bytes": 1193002,
+      "json_sha256": "e293dfa7827975aaf0594c1f67056f788391977bf766101d5ed283e0f97f19c1",
+      "gzip_sha256": "be20d049fbc69f0f1df8ac7266499b93f954cac4f9d97fa7170af7c4d30ef4ac"
     },
     {
       "file": "context-browser-1440.json.gz",
