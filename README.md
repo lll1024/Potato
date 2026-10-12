@@ -32,9 +32,13 @@ python -m pip install -r requirements.txt
 | 变量 | 用途 |
 | --- | --- |
 | `MODEL_ID` | 模型服务支持的模型名称 |
+| `CONTEXT_COMPACTION_ENABLED` | 是否启用上下文维护，默认 `false`；启用须显式配置容量 |
+| `MODEL_CONTEXT_WINDOW` | 当前模型服务实际支持的正整数 token 容量；开启上下文维护时必填 |
 | `ANTHROPIC_API_KEY` | 模型服务 API Key；官方服务也支持 `ANTHROPIC_AUTH_TOKEN` |
 | `ANTHROPIC_BASE_URL` | Anthropic Messages 兼容服务地址；官方服务留空 |
 | `AMAP_MAPS_API_KEY` | 高德“Web 服务”类型 Key |
+
+启用上下文维护后，每次请求按完整系统规则、日期、偏好、工具声明与消息计量。输入预算为模型容量减去 8,000 tokens 回答额度和至少 2,048 tokens（或容量 10%）安全余量；无法容纳时明确结束，已有查询资料仍可回看。可用的匹配 `tiktoken` 词表优先使用，否则按中文保守估算并用返回用量向上校准；处理记录明确标注近似计量。兼容服务的缓存字段口径不明确时，不将其与输入用量盲目相加。
 
 高德 Key 的申请方式见[官方接入指南](https://lbs.amap.com/api/mcp-server/create-project-and-key)。Exa 使用免费免密钥 MCP，无需配置 Exa 或 Tavily Key，不自动切换付费服务。
 

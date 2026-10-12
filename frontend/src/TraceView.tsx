@@ -27,7 +27,7 @@ type TraceTool = {
   arguments_payload_id: string; service_payload_id?: string; result_payload_id?: string; error_payload_id?: string;
 };
 type TraceTurn = {turn_id: string; ordinal: number; input: string; input_is_summary?: boolean; input_payload_id?: string; answer_payload_id?: string; answer_source?: string | null; status: string; reason?: string | null; tool_error_count: number; usage_summary?: UsageSummary};
-type TraceEvent = RetryEvent & {tool_call_id?: string | null};
+type TraceEvent = RetryEvent & {tool_call_id?: string | null; data?: RetryEvent["data"] & {estimated_tokens?: number; input_budget?: number; allowed?: boolean}};
 type TraceSnapshot = {events: TraceEvent[]; session: {title: string}; turns: TraceTurn[]; requests: TraceRequest[]; tool_calls: TraceTool[]; usage_summary: UsageSummary; next_before: number | null; cursor: number; stream_id: string};
 type Props = {sessionId: string | null; refreshKey?: number; location?: TraceLocation | null; onInteraction?: () => void;
   onStop?: (turnId: string) => void; stopping?: boolean; disconnected?: boolean};
@@ -191,6 +191,7 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
             {turn.reason === 'service_interrupted' && <p className="hint">本轮已排除后续上下文；保留最后保存事实，没有自动重试或重放。</p>}
             <UsageTotals summary={turn.usage_summary} />
             {narrow && selected===turn.turn_id && <div className="trace-mobile-detail" data-reading-anchor={`detail:${turn.turn_id}`}>{turnDetail}</div>}
+            {snapshot.events.filter(event => event.turn_id === turn.turn_id && event.kind === 'context.checked').map(event => <p className="hint" key={event.event_id}>上下文输入估算 {String(event.data?.estimated_tokens)} tokens / 安全预算 {String(event.data?.input_budget)} tokens（近似计量）：{event.data?.allowed ? '可发送' : '超限，未发送'}</p>)}
             <ModelRetries events={snapshot.events} turn={turn} />
             {turn.status === 'running' && retryEntries(snapshot.events, turn).length > 0 && onStop &&
               <button type="button" disabled={stopping || disconnected} onClick={() => onStop(turn.turn_id)}>停止本轮重试</button>}

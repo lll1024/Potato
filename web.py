@@ -31,6 +31,7 @@ from mcp.client.streamable_http import streamable_http_client
 from pydantic import BaseModel, Field
 
 from agent import SERVICE_MESSAGE, agent_loop
+from model_context import ContextConfigurationError, ContextPolicy
 from amap_http import AmapHTTPClient
 from amap_mcp import AmapTools
 from travel_tools import TravelTools, connected_travel_tools
@@ -48,6 +49,7 @@ class Runtime:
 
 @asynccontextmanager
 async def configured_resources():
+    ContextPolicy.from_env()
     api_key = os.getenv("AMAP_MAPS_API_KEY", "").strip()
     if not api_key or not os.getenv("MODEL_ID"):
         raise RuntimeError("请配置 AMAP_MAPS_API_KEY 和 MODEL_ID。")
@@ -146,7 +148,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             async with lifespan(app):
                 yield
         except Exception as error:
-            app.state.startup_error = str(error) if isinstance(error,StartupError) else "服务无法启动，请检查配置或存储后重启。"
+            app.state.startup_error = str(error) if isinstance(error,(StartupError,ContextConfigurationError)) else "服务无法启动，请检查配置或存储后重启。"
             raise RuntimeError(app.state.startup_error) from None
 
     app = FastAPI(lifespan=safe_lifespan)
@@ -226,11 +228,14 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
         async def observe(kind, data):
             if kind == "turn.finished":
                 outcome.update(data)
-            elif kind.startswith(("request.","tool.")):
+            elif kind.startswith(("request.","tool.","context.")):
                 safe = json.loads(runtime.tools.redact(json.dumps(data,ensure_ascii=False)))
                 try:
                     if kind.startswith("request."):
                         store.observe_request(identity["session_id"],identity["turn_id"],kind,safe)
+                    elif kind.startswith("context."):
+                        with store.db:
+                            store.event(identity["session_id"],identity["turn_id"],kind,safe)
                     else:
                         store.observe_tool(identity["session_id"],identity["turn_id"],kind,safe)
                 except Exception:
