@@ -259,7 +259,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
     async def test_cli_cancelled_summary_exits_and_new_run_has_no_previous_context(self):
         import io
         from contextlib import asynccontextmanager, redirect_stdout
-        from agent import run_cli
+        from travel_app.agent import run_cli
         from test_agent import MapService, ModelService, response
         from test_context_summary import ENV, OLD
         entered = asyncio.Event()
@@ -278,7 +278,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
         async def external_maps(*args, **kwargs):
             yield MapService()
         output = io.StringIO()
-        with patch.dict(os.environ, {**ENV, 'MODEL_ID': 'test-model'}, clear=True), patch('agent.Client', side_effect=external_maps), patch('travel_tools.Client', side_effect=RuntimeError('资料服务不可用')), patch('agent.AsyncAnthropic', side_effect=external_model), patch('agent.streamable_http_client', return_value=None), patch('builtins.input', side_effect=[OLD, '继续']), redirect_stdout(output):
+        with patch.dict(os.environ, {**ENV, 'MODEL_ID': 'test-model'}, clear=True), patch('travel_app.agent.Client', side_effect=external_maps), patch('travel_app.travel_tools.Client', side_effect=RuntimeError('资料服务不可用')), patch('travel_app.agent.AsyncAnthropic', side_effect=external_model), patch('travel_app.agent.streamable_http_client', return_value=None), patch('builtins.input', side_effect=[OLD, '继续']), redirect_stdout(output):
             task = asyncio.create_task(run_cli('test-key'))
             await asyncio.wait_for(entered.wait(), 2)
             task.cancel()
@@ -288,6 +288,6 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('正在整理', output.getvalue())
         self.assertNotIn('摘要已用于本轮', output.getvalue())
         model = ModelService([response([{'type': 'text', 'text': '新会话建议'}])])
-        with patch.dict(os.environ, {**ENV, 'MODEL_ID': 'test-model'}, clear=True), patch('agent.Client', side_effect=external_maps), patch('travel_tools.Client', side_effect=RuntimeError('资料服务不可用')), patch('agent.AsyncAnthropic', side_effect=external_model), patch('agent.streamable_http_client', return_value=None), patch('builtins.input', side_effect=['新会话', 'exit']), redirect_stdout(io.StringIO()):
+        with patch.dict(os.environ, {**ENV, 'MODEL_ID': 'test-model'}, clear=True), patch('travel_app.agent.Client', side_effect=external_maps), patch('travel_app.travel_tools.Client', side_effect=RuntimeError('资料服务不可用')), patch('travel_app.agent.AsyncAnthropic', side_effect=external_model), patch('travel_app.agent.streamable_http_client', return_value=None), patch('builtins.input', side_effect=['新会话', 'exit']), redirect_stdout(io.StringIO()):
             self.assertEqual(await run_cli('test-key'), 0)
         self.assertEqual(model.requests[0]['messages'], [{'role': 'user', 'content': '新会话'}])

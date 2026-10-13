@@ -10,11 +10,11 @@ import httpx
 from anthropic import AsyncAnthropic, AnthropicError
 from mcp import Client
 
-from amap_mcp import AmapTools
+from travel_app.amap_mcp import AmapTools
 from test_agent import MapService, ModelService, response
 from test_trace import wait_finished
 from test_tool_trace import serving_tools, tool_reply
-from web import Runtime, create_app
+from travel_app.web import Runtime, create_app
 
 
 @asynccontextmanager

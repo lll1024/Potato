@@ -11,8 +11,8 @@ from mcp import Client
 from mcp.shared.exceptions import MCPError
 from mcp.types import CONNECTION_CLOSED, INVALID_PARAMS, REQUEST_TIMEOUT
 
-from limits import MAP_CALL_INTERVAL, TOOL_TIMEOUT
-from amap_http import AmapHTTPClient
+from travel_app.limits import MAP_CALL_INTERVAL, TOOL_TIMEOUT
+from travel_app.amap_http import AmapHTTPClient
 
 PLACE_TOOLS = {"maps_text_search", "maps_search_detail"}
 DINING_TOOLS = {"maps_around_search"}

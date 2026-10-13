@@ -19,10 +19,10 @@ import httpx
 from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
 from mcp import Client
-from amap_mcp import AmapTools
+from travel_app.amap_mcp import AmapTools
 from test_agent import MapService
 from test_preferences import Clock
-from web import Runtime, create_app
+from travel_app.web import Runtime, create_app
 
 
 class Evaluation:

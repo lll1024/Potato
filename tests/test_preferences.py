@@ -11,9 +11,9 @@ import httpx
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from amap_mcp import AmapTools
+from travel_app.amap_mcp import AmapTools
 from test_agent import MapService, response
-from web import Runtime, create_app
+from travel_app.web import Runtime, create_app
 
 
 class Clock:
@@ -211,7 +211,7 @@ class PreferenceTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_upgrade_preserves_old_conversation_and_does_not_extract_old_inputs(self):
         from pathlib import Path
-        from store import Store
+        from travel_app.store import Store
         model, clock = PreferenceModel(), Clock()
         with tempfile.TemporaryDirectory() as directory:
             # 创建原版本已有的聊天事实；没有启用后的偏好待处理身份。

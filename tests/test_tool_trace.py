@@ -13,10 +13,10 @@ import uvicorn
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from amap_mcp import AmapTools
+from travel_app.amap_mcp import AmapTools
 from test_agent import MapService, ModelService, response
 from test_trace import wait_finished
-from web import Runtime, create_app
+from travel_app.web import Runtime, create_app
 
 
 @asynccontextmanager

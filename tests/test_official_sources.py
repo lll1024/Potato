@@ -17,12 +17,12 @@ from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 from mcp.server import MCPServer
 
-from agent import run_cli
-from amap_mcp import AmapTools
-from exa_mcp import ExaTools
-from travel_tools import SourceHTTPClient, TravelTools
+from travel_app.agent import run_cli
+from travel_app.amap_mcp import AmapTools
+from travel_app.exa_mcp import ExaTools
+from travel_app.travel_tools import SourceHTTPClient, TravelTools
 from test_agent import MapService, ModelService, response
-from web import Runtime, create_app
+from travel_app.web import Runtime, create_app
 
 
 class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
@@ -148,9 +148,9 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
         ])
         output = io.StringIO()
         with patch.dict(os.environ, {"MODEL_ID": "test-model", "ANTHROPIC_API_KEY": "model-key"}, clear=True), \
-             patch("agent.Client", side_effect=lambda *args, **kwargs: Client(maps)), \
-             patch("travel_tools.Client", side_effect=lambda *args, **kwargs: Client(sources)), \
-             patch("agent.AsyncAnthropic", return_value=ModelContext(model)), \
+             patch("travel_app.agent.Client", side_effect=lambda *args, **kwargs: Client(maps)), \
+             patch("travel_app.travel_tools.Client", side_effect=lambda *args, **kwargs: Client(sources)), \
+             patch("travel_app.agent.AsyncAnthropic", return_value=ModelContext(model)), \
              patch("builtins.input", side_effect=["2026年10月10日去测试博物馆", "exit"]), \
              contextlib.redirect_stdout(output):
             result = await run_cli("map-key")
@@ -180,9 +180,9 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
             response([{"type": "text", "text": "地点已查到，资料额度耗尽，开放和预约待核实。"}]),
         ])
         with patch.dict(os.environ, {"MODEL_ID": "test-model", "ANTHROPIC_API_KEY": "model-key"}, clear=True), \
-             patch("agent.Client", side_effect=lambda *args, **kwargs: Client(maps)), \
-             patch("travel_tools.Client", side_effect=lambda *args, **kwargs: Client(sources)), \
-             patch("agent.AsyncAnthropic", return_value=ModelContext(model)), \
+             patch("travel_app.agent.Client", side_effect=lambda *args, **kwargs: Client(maps)), \
+             patch("travel_app.travel_tools.Client", side_effect=lambda *args, **kwargs: Client(sources)), \
+             patch("travel_app.agent.AsyncAnthropic", return_value=ModelContext(model)), \
              patch("builtins.input", side_effect=["2026年10月10日去测试博物馆", "exit"]), \
              contextlib.redirect_stdout(io.StringIO()):
             result = await run_cli("map-key")
@@ -214,9 +214,9 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
             return real_client(transport=httpx2.MockTransport(unavailable), **kwargs)
         output = io.StringIO()
         with patch.dict(os.environ, {"MODEL_ID": "test-model", "ANTHROPIC_API_KEY": "model-key", "TAVILY_API_KEY": "paid-key-must-not-be-used", "EXA_API_KEY": "exa-paid-key-must-not-be-used"}, clear=True), \
-             patch("agent.Client", side_effect=lambda *args, **kwargs: Client(maps)), \
-             patch("travel_tools.SourceHTTPClient", side_effect=source_http), \
-             patch("agent.AsyncAnthropic", return_value=ModelContext(model)), \
+             patch("travel_app.agent.Client", side_effect=lambda *args, **kwargs: Client(maps)), \
+             patch("travel_app.travel_tools.SourceHTTPClient", side_effect=source_http), \
+             patch("travel_app.agent.AsyncAnthropic", return_value=ModelContext(model)), \
              patch("builtins.input", side_effect=["2026年10月10日去测试博物馆", "exit"]), \
              contextlib.redirect_stdout(output):
             result = await run_cli("map-key")
