@@ -32,7 +32,7 @@ type TraceEvent = RetryEvent & {tool_call_id?: string | null; data?: RetryEvent[
 type TraceSnapshot = {events: TraceEvent[]; session: {title: string}; turns: TraceTurn[]; requests: TraceRequest[]; tool_calls: TraceTool[]; usage_summary: UsageSummary; next_before: number | null; cursor: number; stream_id: string};
 type Props = {sessionId: string | null; refreshKey?: number; location?: TraceLocation | null; onInteraction?: () => void;
   onStop?: (turnId: string) => void; stopping?: boolean; disconnected?: boolean};
-const toolStatuses: Record<string,string> = {pending:'已提出',waiting:'限速等待',running:'执行中',completed:'成功',failed:'失败',not_executed:'未执行'};
+const toolStatuses: Record<string,string> = {pending:'已提出',waiting:'等待查询',running:'执行中',completed:'成功',failed:'失败',not_executed:'未执行'};
 const failureLabels: Record<string,string> = {auth:'鉴权失败',quota:'额度或限流',connection:'连接不可恢复',service:'地图服务暂停',arguments:'参数错误',timeout:'查询超时',business:'地图业务失败',sdk_error:'SDK 错误标志',error:'普通工具失败'};
 function turnStatus(turn: TraceTurn) { return turn.status === 'completed' ? (turn.tool_error_count ? `完成，含工具错误（${turn.tool_error_count}）` : '已完成') : turn.status === 'running' ? '正在执行' : `${turn.status === 'failed' ? '失败' : '终止'}：${reasonLabels[turn.reason ?? ''] ?? turn.reason ?? '原因未知'}`; }
 const statuses: Record<string,string> = {running:'正在请求',completed:'已收到响应',failed:'请求失败'};
@@ -247,7 +247,7 @@ function ToolDetail({tool,location,onInteraction}: {tool: TraceTool; location?: 
       <dt>模型提出时间</dt><dd>{time(tool.proposed_at)}</dd><dt>应用处理开始</dt><dd>{time(tool.started_at)}</dd>
       <dt>进入底层 SDK</dt><dd>{tool.call_started ? '是' : '否（未调用）'}</dd><dt>SDK 开始时间</dt><dd>{tool.call_started ? time(tool.call_started_at) : '—（未调用）'}</dd>
       <dt>SDK 结束时间</dt><dd>{tool.call_started ? time(tool.call_finished_at) : '—（未调用）'}</dd>
-      <dt>限速等待耗时</dt><dd>{duration(tool.wait_duration_ms,'—（未采集／尚未完成）')}</dd>
+      <dt>启动前等待耗时</dt><dd>{duration(tool.wait_duration_ms,'—（未采集／尚未完成）')}</dd>
       <dt>实际调用耗时</dt><dd>{duration(tool.call_duration_ms,tool.call_started ? '—（尚未完成）' : '—（未调用）')}</dd>
       <dt>应用总耗时</dt><dd>{duration(tool.total_duration_ms,'—（未采集／尚未完成）')}</dd>
       <dt>SDK is_error</dt><dd>{typeof tool.sdk_is_error === 'boolean' ? String(tool.sdk_is_error) : '未取得服务返回'}</dd>

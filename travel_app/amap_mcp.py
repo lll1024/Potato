@@ -32,10 +32,10 @@ class ToolResult(TypedDict):
 
 
 FAILURE_MESSAGES = {
-    "auth": "地图鉴权失败，已停止查询。请检查 AMAP_MAPS_API_KEY 是否为有效的 Web 服务 Key、权限及白名单，修正后重启。",
-    "quota": "地图额度耗尽或访问受限，已停止查询。请在高德控制台检查额度及限流，恢复后重启。",
-    "connection": "地图连接不可用，已停止查询并结束运行。请检查网络及高德服务状态后重新运行。",
-    "service": "地图服务暂不可用，已停止查询。请检查高德服务状态，恢复后重启。",
+    "auth": "地图鉴权失败，已暂停地图查询；保留已取得资料。请检查 AMAP_MAPS_API_KEY 是否为有效的 Web 服务 Key、权限及白名单，修正后重启。",
+    "quota": "地图额度耗尽或访问受限，已暂停地图查询；保留已取得资料。请在高德控制台检查额度及限流，恢复后重启。",
+    "connection": "地图连接不可用，已暂停地图查询；保留已取得资料。请检查网络及高德服务状态后重新运行。",
+    "service": "地图服务暂不可用，已暂停地图查询；保留已取得资料。请检查高德服务状态，恢复后重启。",
 }
 # 高德 Web 服务错误码：README 中附官方来源。
 AUTH_CODES = {"10001", "10002", "10005", "10006", "10007", "10008", "10009",
@@ -114,6 +114,7 @@ class AmapTools:
         self.declarations: list[ToolParam] = []
         self.failure: str | None = None
         self._next_call_at = 0.0
+        self._slots = asyncio.Semaphore(1)
 
     async def discover(self) -> None:
         self.declarations = []
@@ -141,8 +142,22 @@ class AmapTools:
                    observer: Callable[[str, dict[str, Any]], Awaitable[None]] | None = None,
                    stop_requested: asyncio.Event | None = None) -> ToolResult:
         loop = asyncio.get_running_loop()
-        started = loop.time()
-        facts: dict[str, Any] = {"started_at":datetime.now(timezone.utc).isoformat(),"call_started":False,"wait_duration_ms":0.0,
+        queued_at = loop.time()
+        started_at = datetime.now(timezone.utc).isoformat()
+        if self._slots.locked() and observer:
+            await observer("tool.waiting", {"status": "waiting", "call_started": False,
+                "started_at": started_at, "waiting_at": started_at})
+        async with self._slots:
+            return await self._call(name, arguments, observer=observer, stop_requested=stop_requested,
+                                    queued_at=queued_at, started_at=started_at)
+
+    async def _call(self, name: str, arguments: dict[str, Any], *,
+                   observer: Callable[[str, dict[str, Any]], Awaitable[None]] | None = None,
+                   stop_requested: asyncio.Event | None = None,
+                   queued_at: float, started_at: str) -> ToolResult:
+        loop = asyncio.get_running_loop()
+        started = queued_at
+        facts: dict[str, Any] = {"started_at":started_at,"call_started":False,"wait_duration_ms":max(0,(loop.time()-started)*1000),
                                  "call_duration_ms":None,"service":None,"error":None}
 
         async def finish(output: ToolResult, category: str | None = None) -> ToolResult:
@@ -174,7 +189,9 @@ class AmapTools:
                     pass
             else:
                 await asyncio.sleep(delay)
-            facts["wait_duration_ms"] = max(0,(loop.time()-waiting)*1000)
+            facts["wait_duration_ms"] += max(0,(loop.time()-waiting)*1000)
+        if self.failure:
+            return await finish(self._stop(self.failure), self.failure)
         if stop_requested and stop_requested.is_set():
             if observer:
                 await observer("tool.not_executed",{**facts,"finished_at":datetime.now(timezone.utc).isoformat(),
@@ -248,7 +265,7 @@ class AmapTools:
     def _stop(self, failure: str) -> ToolResult:
         self.failure = failure
         message = FAILURE_MESSAGES[failure]
-        return {"content": message, "is_error": True, "stop_reason": message}
+        return {"content": message, "is_error": True}
 
     def redact(self, text: str) -> str:
         variants = {value for secret in self._secrets if secret

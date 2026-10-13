@@ -6,8 +6,9 @@
 
 | 要修改的行为 | 实现入口与主要调用关系 | 验证入口 |
 | --- | --- | --- |
-| CLI 启动、地图连接检查、退出诊断 | [agent.main / run_cli](../travel_app/agent.py) → 地图连接与旅行模型；`--check-amap` 只检查地图 | [CLI](../tests/test_cli.py)、[真实 MCP](../tests/test_mcp_integration.py) |
+| CLI 启动、地图连接检查、退出诊断 | [agent.main / run_cli](../travel_app/agent.py) → 地图连接与旅行模型；地图故障仅暂停地图，CLI 可继续接收输入；`--check-amap` 只检查地图 | [CLI](../tests/test_cli.py)、[真实 MCP](../tests/test_mcp_integration.py) |
 | Web 启动、资源装配、HTTP/SSE | [web.main / create_app](../travel_app/web.py) → Store、Runtime、TurnRuntime；资源与时间注入保持，路由负责协议和持久化事件续接 | [正式入口](../tests/test_web_entrypoint.py)、[Web](../tests/test_web.py)、[事件续接](../tests/test_reconnect.py) |
+| 批次查询与供应商名额 | [agent_loop](../travel_app/agent.py) 按提出顺序预留预算，以历史回读为串行边界，收齐前段真实结果；[AmapTools](../travel_app/amap_mcp.py) 保持地图串行，[ExaTools](../travel_app/exa_mcp.py) 共用十个网页名额并独立协调启动间隔；失败仅暂停对应供应商，保存异常传播前等待全部在途调用 | [分服务调度](../tests/test_tool_concurrency.py)、[网页故障](../tests/test_source_failures.py) |
 | 提交身份、全局运行名额、停止、保存故障与退出 | [TurnRuntime](../travel_app/turn_runtime.py) 的 `submit` / `stop` / `snapshot` / `storage_failed` / `shutdown`；集中持有活动身份、任务、接受状态、停止原因、未保存事实和变化通知，调用 agent_loop，实际收束后释放名额；Store 保留事务职责 | [提交](../tests/test_submissions.py)、[停止](../tests/test_stop.py)、[保存故障](../tests/test_storage.py)、[真实进程恢复](../tests/test_recovery.py) |
 | 对话轮次、旅行模型步骤、工具执行与观察事实 | [agent_loop](../travel_app/agent.py) → 重试、上下文维护、旅行日期、历史回读和查询工具 | [助手循环](../tests/test_agent.py)、[模型轨迹](../tests/test_trace.py)、[工具轨迹](../tests/test_tool_trace.py) |
 | 普通模型网络重试 | [model_retry](../travel_app/model_retry.py) 判别故障与等待；agent_loop 负责调用及停止边界 | [模型重试](../tests/test_model_retry.py)、[ADR 0004](adr/0004-bounded-model-request-retries.md) |

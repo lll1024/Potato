@@ -121,10 +121,6 @@ class TurnRuntime:
         finally:
             # 已发起调用与保存尝试真正收束后才释放全局名额。
             self._active = None
-            if self.runtime.tools.failure == 'connection':
-                self._accepting = False
-                if self.request_shutdown:
-                    self.request_shutdown()
             self.changed.set()
 
     async def _execute(self, identity, text):

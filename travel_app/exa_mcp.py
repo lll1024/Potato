@@ -23,7 +23,7 @@ SOURCE_FAILURES = {
     "connection": "资料连接不可用", "timeout": "资料查询超时", "service": "资料服务暂不可用",
 }
 
-UNAVAILABLE_MESSAGE = "网页资料服务暂不可用，未取得的信息不能作为规划依据；可继续使用地图查询，不启用付费服务。"
+UNAVAILABLE_MESSAGE = "网页资料服务暂不可用，未取得的信息不能作为规划依据；其他服务按可用状态使用，不启用付费服务。"
 
 
 class ExaTools:
@@ -33,12 +33,14 @@ class ExaTools:
         self.tool_timeout = tool_timeout
         self.call_interval = call_interval
         self._next_call_at = 0.0
+        self._slots = asyncio.Semaphore(10)
+        self._start_lock = asyncio.Lock()
         self.declarations: list[ToolParam] = []
         self.failure: str | None = None
 
     @property
     def failure_message(self) -> str:
-        return SOURCE_FAILURES.get(self.failure or "", "资料查询失败") + "，当前运行暂停资料查询；保留已取得资料，可继续地图查询，不启用付费服务。"
+        return SOURCE_FAILURES.get(self.failure or "", "资料查询失败") + "，当前运行暂停资料查询；保留已取得资料，其他服务按可用状态使用，不启用付费服务。"
 
     async def discover(self) -> None:
         self.declarations = []
@@ -59,9 +61,23 @@ class ExaTools:
                    observer: Callable[[str, dict[str, Any]], Awaitable[None]] | None = None,
                    stop_requested: asyncio.Event | None = None) -> ToolResult:
         loop = asyncio.get_running_loop()
-        started = loop.time()
-        facts: dict[str, Any] = {"started_at": datetime.now(timezone.utc).isoformat(),
-            "provider": "exa", "call_started": False, "wait_duration_ms": 0.0,
+        queued_at = loop.time()
+        started_at = datetime.now(timezone.utc).isoformat()
+        if self._slots.locked() and observer:
+            await observer("tool.waiting", {"status": "waiting", "call_started": False,
+                "started_at": started_at, "waiting_at": started_at})
+        async with self._slots:
+            return await self._call(name, arguments, observer=observer, stop_requested=stop_requested,
+                                    queued_at=queued_at, started_at=started_at)
+
+    async def _call(self, name: str, arguments: dict[str, Any], *,
+                   observer: Callable[[str, dict[str, Any]], Awaitable[None]] | None = None,
+                   stop_requested: asyncio.Event | None = None,
+                   queued_at: float, started_at: str) -> ToolResult:
+        loop = asyncio.get_running_loop()
+        started = queued_at
+        facts: dict[str, Any] = {"started_at": started_at,
+            "provider": "exa", "call_started": False, "wait_duration_ms": max(0,(loop.time()-started)*1000),
             "call_duration_ms": None, "service": None, "error": None}
 
         async def finish(output: ToolResult, category: str | None = None) -> ToolResult:
@@ -80,27 +96,34 @@ class ExaTools:
             return await finish({"content": "资料工具未开放，仅可使用已发现的搜索与正文提取工具。", "is_error": True}, "arguments")
         if self.failure:
             return await finish({"content": self.failure_message, "is_error": True, "not_executed": True}, self.failure)
-        if delay := max(0.0, self._next_call_at - loop.time()):
-            waiting = loop.time()
+        if self._start_lock.locked() and observer:
+            await observer("tool.waiting", {**facts, "status": "waiting",
+                "waiting_at": datetime.now(timezone.utc).isoformat()})
+        async with self._start_lock:
+            if delay := max(0.0, self._next_call_at - loop.time()):
+                waiting = loop.time()
+                if observer:
+                    await observer("tool.waiting", {**facts, "status": "waiting", "waiting_at": datetime.now(timezone.utc).isoformat()})
+                if stop_requested:
+                    try:
+                        await asyncio.wait_for(stop_requested.wait(), delay)
+                    except asyncio.TimeoutError:
+                        pass
+                else:
+                    await asyncio.sleep(delay)
+                facts["wait_duration_ms"] += max(0, (loop.time() - waiting) * 1000)
+            if stop_requested and stop_requested.is_set():
+                return await finish({"content": "未执行：已停止本轮查询。", "is_error": True,
+                    "not_executed": True, "stop_reason": "已停止本轮查询。"}, "user_stop")
+            if self.failure:
+                return await finish({"content": self.failure_message, "is_error": True, "not_executed": True}, self.failure)
+            facts["wait_duration_ms"] = max(0, (loop.time() - started) * 1000)
             if observer:
-                await observer("tool.waiting", {**facts, "status": "waiting", "waiting_at": datetime.now(timezone.utc).isoformat()})
-            if stop_requested:
-                try:
-                    await asyncio.wait_for(stop_requested.wait(), delay)
-                except asyncio.TimeoutError:
-                    pass
-            else:
-                await asyncio.sleep(delay)
-            facts["wait_duration_ms"] = max(0, (loop.time() - waiting) * 1000)
-        if stop_requested and stop_requested.is_set():
-            return await finish({"content": "未执行：已停止本轮查询。", "is_error": True,
-                "not_executed": True, "stop_reason": "已停止本轮查询。"}, "user_stop")
-        if observer:
-            await observer("tool.running", {**facts, "status": "running", "call_started": True,
-                "call_started_at": datetime.now(timezone.utc).isoformat()})
-        facts["call_started"] = True
-        call_start = loop.time()
-        self._next_call_at = call_start + self.call_interval
+                await observer("tool.running", {**facts, "status": "running", "call_started": True,
+                    "call_started_at": datetime.now(timezone.utc).isoformat()})
+            facts["call_started"] = True
+            call_start = loop.time()
+            self._next_call_at = call_start + self.call_interval
         try:
             # 一次预算仅发送一次 MCP 请求，不采用 Client 的自动重试。
             result = await asyncio.wait_for(self.client.session.call_tool(name, arguments), self.tool_timeout)
@@ -139,7 +162,7 @@ class ExaTools:
         if any(any(marker in code for marker in ("cap_reached", "rate_limit", "quota", "credit")) for code in codes):
             self.failure = "rate_limit" if any("rate_limit" in code for code in codes) else "quota"
             # 服务返回的付款、注册和奖励指令仅保留在原始轨迹，不作为模型操作要求。
-            return await finish({"content": "资料免费额度耗尽或限流，未取得的信息不能作为规划依据；可继续使用地图，不切换付费或领取奖励额度。", "is_error": True}, self.failure)
+            return await finish({"content": "资料免费额度耗尽或限流，未取得的信息不能作为规划依据；其他服务按可用状态使用，不切换付费或领取奖励额度。", "is_error": True}, self.failure)
         texts = [block.text for block in result.content if block.type == "text"]
         error_text = "\n".join(texts)
         if result.is_error or re.match(r"Error:", error_text, re.IGNORECASE):
@@ -161,7 +184,7 @@ class ExaTools:
         if not sources:
             category = "empty" if parsed_failure or not any(text.strip() for text in texts) or any(
                 re.search(r"no (?:results|content) found", text, re.IGNORECASE) for text in texts) else "malformed"
-            return await finish({"content": "资料未返回可用搜索内容或正文，未取得的信息不能作为规划依据；可继续地图查询。", "is_error": True}, category)
+            return await finish({"content": "资料未返回可用搜索内容或正文，未取得的信息不能作为规划依据；其他服务按可用状态使用。", "is_error": True}, category)
         content = self.redact(json.dumps({
             "text": texts, "data": result.structured_content,
             "provider": "exa", "sources": sources, "failed_sources": failed,

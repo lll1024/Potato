@@ -69,7 +69,7 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(results[0]["tool_use_id"], "ok")
         self.assertFalse(results[0]["is_error"])
 
-    async def test_auth_quota_and_connection_stop_remaining_calls_and_retries(self):
+    async def test_auth_quota_and_connection_pause_maps_and_inform_next_model(self):
         request = httpx2.Request("POST", "https://mcp.example.test/mcp?key=secret")
         faults = [
             (map_result({"status": "0", "infocode": "10001", "info": "INVALID_USER_KEY"}), "Key"),
@@ -94,18 +94,19 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
                 await tools.discover()
                 model = ModelService([response([
                     query("ok"), query("fault"), query("unexecuted")
-                ], "tool_use")])
+                ], "tool_use"), response([{"type": "text", "text": "地图查询已暂停，已有资料保留，缺失资料待核实。"}])])
                 history = [{"role": "user", "content": "查询杭州的地点"}]
 
                 answer = await agent_loop(history, cast(AsyncAnthropic, model), tools, "test-model")
 
                 self.assertEqual(len(service.calls), 2)
-                self.assertEqual(len(model.requests), 1)
+                self.assertEqual(len(model.requests), 2)
                 self.assertIn("地图查询已暂停", answer)
                 self.assertNotIn("杭州市西湖区", answer)
                 self.assertIn("杭州市西湖区", str(history))
                 self.assertIn("待核实", answer)
-                results = history[-2]["content"]
+                self.assertIn("已暂停地图查询", model.requests[1]["system"])
+                results = model.requests[1]["messages"][-1]["content"]
                 self.assertEqual([item["tool_use_id"] for item in results], ["ok", "fault", "unexecuted"])
                 self.assertEqual([item["is_error"] for item in results], [False, True, True])
                 history.append({"role": "user", "content": "再试一次"})

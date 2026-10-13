@@ -277,9 +277,9 @@ class SourceFailureTests(unittest.IsolatedAsyncioTestCase):
                 await client.post("/api/turns/" + accepted["turn_id"] + "/stop")
                 snapshot = await finished(client, accepted)
                 self.assertEqual(snapshot["turns"][0]["reason"], "user_stop")
-                self.assertEqual([tool["status"] for tool in snapshot["tool_calls"]], ["completed", "not_executed", "not_executed"])
+                self.assertEqual([tool["status"] for tool in snapshot["tool_calls"]], ["completed", "not_executed", "completed"])
                 self.assertEqual(len(service.source_calls), 1)
-                self.assertEqual(service.map_calls, [])
+                self.assertEqual(len(service.map_calls), 1)
                 self.assertIn("官方预约须知", str(snapshot["turns"][0]["query_materials"]))
                 self.assertEqual(snapshot["turns"][0]["travel_date_context"]["travel_dates"]["start_date"], "2026-10-17")
                 self.assertEqual(len(model.requests), 1)
@@ -299,9 +299,9 @@ class SourceFailureTests(unittest.IsolatedAsyncioTestCase):
                 service.release.set()
                 snapshot = await finished(client, accepted)
                 self.assertEqual(snapshot["turns"][0]["reason"], "user_stop")
-                self.assertEqual([tool["status"] for tool in snapshot["tool_calls"]], ["completed", "not_executed"])
+                self.assertEqual([tool["status"] for tool in snapshot["tool_calls"]], ["completed", "completed"])
                 self.assertIn("官方预约须知", str(snapshot["turns"][0]["query_materials"]))
-                self.assertEqual(service.map_calls, [])
+                self.assertEqual(len(service.map_calls), 1)
 
     async def test_mixed_services_share_the_total_budget(self):
         data = {"results": [{"url": "https://museum.example.test/visit", "content": "官方线索"}]}
@@ -423,7 +423,7 @@ class SourceFailureTests(unittest.IsolatedAsyncioTestCase):
                 self.assertNotIn("result_payload_id", before["tool_calls"][0])
                 self.assertEqual(before["turns"][0]["query_materials"], [])
                 self.assertEqual((await client.get("/api/state")).json()["unsaved_fact"]["kind"], "tool.completed")
-                self.assertEqual(service.map_calls, [])
+                self.assertEqual(len(service.map_calls), 1)
             with closing(sqlite3.connect(Path(directory) / "travel.sqlite3")) as database, database:
                 database.execute("DROP TRIGGER fail_result")
             next_model = ModelService([response([{"type": "text", "text": "没有已保存正文，规则待核实。"}])])

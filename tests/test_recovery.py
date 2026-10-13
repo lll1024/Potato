@@ -208,7 +208,7 @@ class RecoveryTests(unittest.IsolatedAsyncioTestCase):
                     accepted = (await client.post('/api/turns', json={'input':'地图查询'})).json()
                     await asyncio.wait_for(external.entered.wait(), 3)
                     before = (await client.get('/api/sessions/'+accepted['session_id'])).json()
-                    self.assertEqual([t['status'] for t in before['tool_calls']], ['running','pending'])
+                    self.assertEqual([t['status'] for t in before['tool_calls']], ['running','waiting'])
                     self.assertEqual(before['requests'][0]['status'], 'completed')
                     child.kill()
                     await child.wait()
@@ -346,9 +346,15 @@ class RecoveryTests(unittest.IsolatedAsyncioTestCase):
             async with external.serving() as url:
                 async with process(directory, url) as (child, client, _):
                     accepted = (await client.post('/api/turns', json={'input':'地图查询'})).json()
+                    completed = False
                     async with client.stream('GET', '/api/events?after=0') as stream:
                         async for line in stream.aiter_lines():
-                            if line.startswith('data:') and json.loads(line[5:]).get('kind') == 'tool.waiting':
+                            if not line.startswith('data:'):
+                                continue
+                            kind = json.loads(line[5:]).get('kind')
+                            if kind == 'tool.completed':
+                                completed = True
+                            if kind == 'tool.waiting' and completed:
                                 child.kill()
                                 await child.wait()
                                 break

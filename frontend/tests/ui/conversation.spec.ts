@@ -304,3 +304,41 @@ test('提交尚未返回时立即反馈，重复提交不重复发送，编辑�
     expect(app.writes).toHaveLength(1);
   } finally {release();}
 });
+
+test('并发查询乱序完成时状态及时更新，工具列表保持提出顺序', async ({page}) => {
+  const app = await conversation(page);
+  app.sessions[0].status = 'running'; app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip';
+  app.activity.requests = [{request_id: 'batch', turn_id: 'turn', ordinal: 1, status: 'completed',
+    started_at: '2026-10-13T02:00:00Z', finished_at: '2026-10-13T02:00:01Z', duration_ms: 1000}];
+  const tools = ['maps_text_search', 'web_search_exa', 'web_fetch_exa', 'web_search_exa'].map((name, index) => ({
+    tool_call_id: `tool-${index}`, request_id: 'batch', turn_id: 'turn', ordinal: index + 1, name,
+    status: index === 3 ? 'waiting' : 'running', call_started: index !== 3,
+    proposed_at: '2026-10-13T02:00:01Z', started_at: '2026-10-13T02:00:01Z',
+    waiting_at: index === 3 ? '2026-10-13T02:00:01Z' : undefined,
+    call_started_at: index !== 3 ? `2026-10-13T02:00:0${index + 1}Z` : undefined,
+    finished_at: undefined as string | undefined, call_finished_at: undefined as string | undefined,
+    call_duration_ms: null as number | null, total_duration_ms: null as number | null,
+  }));
+  app.activity.tool_calls = tools;
+  await app.notify();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  await page.getByRole('button', {name: '轨迹', exact: true}).click();
+  const request = page.locator('.trace-request').filter({hasText: '请求 #1'});
+  await request.locator('summary').click();
+  const rows = request.locator('.trace-tool');
+  await expect(rows.locator('.trace-row-status')).toHaveText(['#1 · 执行中', '#2 · 执行中', '#3 · 执行中', '#4 · 等待查询']);
+  tools[2].status = 'completed'; tools[2].finished_at = '2026-10-13T02:00:04Z';
+  tools[2].call_finished_at = tools[2].finished_at; tools[2].call_duration_ms = 1000; tools[2].total_duration_ms = 3000;
+  await app.notify();
+  await expect(rows.locator('.trace-row-status')).toHaveText(['#1 · 执行中', '#2 · 执行中', '#3 · 成功', '#4 · 等待查询']);
+  await expect(rows.locator('.trace-row-text')).toHaveText(['maps_text_search', 'web_search_exa', 'web_fetch_exa', 'web_search_exa']);
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({width, height: 900});
+    if (width === 390) await page.getByRole('button', {name: '收起会话导航'}).first().click();
+    if (!await rows.nth(2).isVisible()) await request.locator('summary').click();
+    await expect(rows.nth(2)).toBeVisible();
+    await expect(rows.nth(2)).toContainText('#3 · 成功');
+    await page.screenshot({path: test.info().outputPath(`concurrent-tools-${width}.png`)});
+  }
+  expect(app.writes).toEqual([]);
+});

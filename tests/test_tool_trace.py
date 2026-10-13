@@ -64,7 +64,7 @@ class ToolTraceTests(unittest.IsolatedAsyncioTestCase):
                 try:
                     snapshot=(await client.get("/api/sessions/"+accepted["session_id"])).json()
                     one,two=snapshot["tool_calls"]
-                    self.assertEqual([one["status"],two["status"]],["running","pending"])
+                    self.assertEqual([one["status"],two["status"]],["running","waiting"])
                     self.assertTrue(one["call_started"])
                     self.assertFalse(two["call_started"])
                     self.assertIsNone(one["call_duration_ms"])
@@ -135,7 +135,8 @@ class ToolTraceTests(unittest.IsolatedAsyncioTestCase):
                                 structured_content={'status':'0','infocode':code,'Authorization':'unknown-secret'},is_error=False)
                         return await super().call_tool(name,arguments)
                 maps=FaultMaps()
-                model=ModelService([tool_reply(3),tool_reply(1) if fault in ('auth','quota') else response([{'type':'text','text':'保留西湖成功结果，其余待核实'}])])
+                model=ModelService([tool_reply(3),response([{'type':'text','text':'保留西湖成功结果，其余待核实'}]),
+                    tool_reply(1),response([{'type':'text','text':'地图仍暂停，资料缺失。'}])])
                 with tempfile.TemporaryDirectory() as directory:
                     async with serving_tools(directory,model,maps,timeout=0.05) as client:
                         accepted=(await client.post('/api/turns',json={'input':'混合查询'})).json()
@@ -155,7 +156,7 @@ class ToolTraceTests(unittest.IsolatedAsyncioTestCase):
                             self.assertNotIn('service_payload_id',last)
                             self.assertTrue(state['map_paused'])
                             self.assertEqual(state['map_pause_reason'],fault)
-                            self.assertEqual(snapshot['turns'][0]['status'],'terminated')
+                            self.assertEqual(snapshot['turns'][0]['status'],'completed')
                             self.assertEqual(maps.calls,2)
                             again=(await client.post('/api/turns',json={'input':'换个会话查询'})).json()
                             await asyncio.wait_for(wait_finished(client,again['session_id']),3)
@@ -175,19 +176,21 @@ class ToolTraceTests(unittest.IsolatedAsyncioTestCase):
                             err=(await client.get('/api/payloads/'+bad['error_payload_id'])).json()['content']
                             self.assertNotIn('known-secret',str(err))
 
-    async def test_unrecoverable_connection_finishes_saved_trace_and_releases_runtime(self):
+    async def test_map_connection_failure_keeps_http_available_until_real_shutdown(self):
         released=asyncio.Event()
         class DisconnectedMaps(MapService):
             async def call_tool(self,name,arguments):
                 raise ConnectionError("连接中断 known-secret")
         with tempfile.TemporaryDirectory() as directory:
-            async with serving_tools(directory,ModelService([tool_reply()]),DisconnectedMaps(),released=released) as client:
+            async with serving_tools(directory,ModelService([tool_reply(),response([{'type':'text','text':'地图连接失败，资料待核实。'}])]),DisconnectedMaps(),released=released) as client:
                 accepted=(await client.post('/api/turns',json={'input':'连接查询'})).json()
                 snapshot=await asyncio.wait_for(wait_finished(client,accepted['session_id']),2)
-                self.assertEqual(snapshot['turns'][0]['reason'],'map_paused')
+                self.assertEqual(snapshot['turns'][0]['status'],'completed')
                 self.assertEqual([call['status'] for call in snapshot['tool_calls']],['failed','not_executed'])
-                await asyncio.wait_for(released.wait(),2)
+                self.assertFalse(released.is_set())
+                self.assertTrue((await client.get('/api/state')).json()['accepting'])
+            self.assertTrue(released.is_set())
             async with serving_tools(directory,ModelService([]),MapService()) as restored:
                 saved=(await restored.get('/api/sessions/'+accepted['session_id'])).json()
                 self.assertEqual(saved['tool_calls'],snapshot['tool_calls'])
-                self.assertEqual(saved['turns'][0]['status'],'terminated')
+                self.assertEqual(saved['turns'][0]['status'],'completed')
