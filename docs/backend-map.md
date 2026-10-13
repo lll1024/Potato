@@ -29,6 +29,6 @@
 
 ## 实施阶段与依据
 
-[Issue #67](https://github.com/lll1024/Potato/issues/67) 负责目录与导航；[Issue #68](https://github.com/lll1024/Potato/issues/68) 集中上下文维护职责，验证见[上下文维护验收](acceptance/context-maintenance.md)；[Issue #69](https://github.com/lll1024/Potato/issues/69) 集中 Web 运行职责，验证见[运行职责验收](acceptance/turn-runtime.md)。父规格 [#66](https://github.com/lll1024/Potato/issues/66) 的整体职责集中验收由 #70 后续处理。
+[Issue #67](https://github.com/lll1024/Potato/issues/67) 负责目录与导航；[Issue #68](https://github.com/lll1024/Potato/issues/68) 集中上下文维护职责，验证见[上下文维护验收](acceptance/context-maintenance.md)；[Issue #69](https://github.com/lll1024/Potato/issues/69) 集中 Web 运行职责，验证见[运行职责验收](acceptance/turn-runtime.md)。父规格 [#66](https://github.com/lll1024/Potato/issues/66) 的最终范围映射、整体回归、职责集中审查及基线限制见 [#70 整体验收](acceptance/backend-organization.md)。阶段记录只说明各自运行范围，不代替最终验收或合并授权。
 
 领域词汇见[术语表](../GLOSSARY.md)，兼容与职责决策见 [ADR 0006](adr/0006-backend-package-and-execution-responsibilities.md)。验证结论从[验收索引](acceptance/README.md)进入，旧任务从[历史档案说明](../.scratch/README.md)进入。
