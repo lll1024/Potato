@@ -105,11 +105,11 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
                     self.assertNotIn("published_date", body_data[0])
                     materials = turn["query_materials"]
                     self.assertEqual(len(materials), 2)
-                    self.assertIn("线索", materials[0]["title"])
+                    self.assertIn("搜索资料", materials[0]["title"])
                     self.assertIn("正文", materials[1]["title"])
                     self.assertIn("查询时间：" + body_envelope["retrieved_at"], str(materials[1]))
-                    self.assertIn("发布时间未返回", str(materials[1]))
-                    self.assertIn("适用日期未返回", str(materials[1]))
+                    self.assertNotIn("发布时间未返回", str(materials[1]))
+                    self.assertNotIn("适用日期未返回", str(materials[1]))
                     for material in materials:
                         raw = (await client.get("/api/payloads/" + material["payload_id"])).json()
                         self.assertIn(url, str(raw))
@@ -227,7 +227,7 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("x-api-key", requests[0].headers)
         self.assertNotIn("authorization", requests[0].headers)
         self.assertNotIn("paid-key-must-not-be-used", str(requests[0].headers) + str(requests[0].url))
-        self.assertIn("官方资料服务暂不可用", model.requests[0]["system"])
+        self.assertIn("网页资料服务暂不可用", model.requests[0]["system"])
         self.assertEqual({tool["name"] for tool in model.requests[0]["tools"]}, {"maps_text_search", "session_history_search", "session_history_read"})
         self.assertIn("北京市", model.requests[1]["messages"][-1]["content"][0]["content"])
 
