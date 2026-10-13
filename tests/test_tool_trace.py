@@ -94,7 +94,7 @@ class ToolTraceTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(snapshot["turns"][0]["tool_error_count"],0)
 
     async def test_budget_keeps_proposed_parameters_and_no_invented_service_result(self):
-        model=ModelService([tool_reply(65)])
+        model=ModelService([tool_reply(129),response([{"type":"text","text":"已整理取得的地点，其余查询未完成。"}])])
         class QuickMaps(MapService):
             calls=0
             async def call_tool(self,name,arguments):
@@ -104,8 +104,10 @@ class ToolTraceTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as directory:
             async with serving_tools(directory,model,maps) as client:
                 accepted=(await client.post("/api/turns",json={"input":"预算查询"})).json()
-                snapshot=await asyncio.wait_for(wait_finished(client,accepted["session_id"]),30)
-                self.assertEqual(maps.calls,64)
+                snapshot=await asyncio.wait_for(wait_finished(client,accepted["session_id"]),60)
+                self.assertEqual(maps.calls,128)
+                self.assertEqual(len(model.requests),2)
+                self.assertNotIn("tools",model.requests[-1])
                 skipped=snapshot["tool_calls"][-1]
                 self.assertEqual(skipped["status"],"not_executed")
                 self.assertEqual(skipped["reason"],"budget")

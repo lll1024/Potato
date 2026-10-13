@@ -1,0 +1,21 @@
+[WebServer] (node:5881) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 12 tests using 1 worker
+
+(node:5882) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/ui/recovery.spec.ts:37:1 › 旧异常会话隐藏诊断，折叠资料，重试保留草稿并只提交一次 (1.0s)
+  ✓   2 tests/ui/recovery.spec.ts:60:1 › 预算终止仍展示收尾回答与未完成限制，刷新不会自动重放 (534ms)
+  ✓   3 tests/ui/recovery.spec.ts:78:3 › 异常终局 execution_error 按真实原因说明 (374ms)
+  ✓   4 tests/ui/recovery.spec.ts:78:3 › 异常终局 budget 按真实原因说明 (353ms)
+  ✓   5 tests/ui/recovery.spec.ts:78:3 › 异常终局 user_stop 按真实原因说明 (367ms)
+  ✓   6 tests/ui/recovery.spec.ts:78:3 › 异常终局 map_paused 按真实原因说明 (359ms)
+  ✓   7 tests/ui/recovery.spec.ts:78:3 › 异常终局 service_shutdown 按真实原因说明 (329ms)
+  ✓   8 tests/ui/recovery.spec.ts:78:3 › 异常终局 service_interrupted 按真实原因说明 (363ms)
+  ✓   9 tests/ui/recovery.spec.ts:78:3 › 异常终局 output_limit 按真实原因说明 (364ms)
+  ✓  10 tests/ui/recovery.spec.ts:78:3 › 异常终局 storage_failure 按真实原因说明 (372ms)
+  ✓  11 tests/ui/recovery.spec.ts:95:1 › 提交响应丢失后核对沿用身份，忙和停止期间禁止新重试 (498ms)
+  ✓  12 tests/ui/recovery.spec.ts:123:1 › 真实存储故障保持上次保存的运行状态，不冒充已保存终局或继续执行 (360ms)
+
+  12 passed (10.0s)

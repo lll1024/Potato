@@ -19,7 +19,7 @@ from mcp.client.streamable_http import streamable_http_client
 
 from travel_app.amap_http import AmapHTTPClient
 from travel_app.amap_mcp import AmapTools, ToolResult
-from travel_app.limits import MAX_ROUNDS, MAX_TOOL_CALLS, TOOL_TIMEOUT
+from travel_app.limits import MAX_MODEL_REQUESTS, MAX_ROUNDS, MAX_TOOL_CALLS, TOOL_TIMEOUT
 from travel_app.model_context import ContextConfigurationError, ContextPolicy, ContextView
 from travel_app.context_maintenance import ContextMaintenance
 from travel_app.model_retry import MAX_RETRIES, EmptyModelResponse, model_failure, retry_delay
@@ -298,16 +298,23 @@ async def agent_loop(
     request_ordinal = 0
     current_turn_start = len(messages) - 1
 
-    def next_request_ordinal():
+    def next_request_ordinal(*, final=False):
+        """按实际请求扣账；普通请求和摘要共用前 63 次，收尾占用预留额度。"""
         nonlocal request_ordinal
+        limit = MAX_MODEL_REQUESTS if final else MAX_MODEL_REQUESTS - 1
+        if request_ordinal >= limit:
+            raise RuntimeError("本轮模型请求额度已耗尽。")
         request_ordinal += 1
         return request_ordinal
 
     context = ContextMaintenance(
         view=view, policy=context_policy, model=model, client=client, tools=tools,
         date_context=date_context, turn_start=current_turn_start,
-        next_request_ordinal=next_request_ordinal, observer=observer, stop_requested=stop_requested)
+        next_request_ordinal=next_request_ordinal,
+        remaining_requests=lambda: max(0, MAX_MODEL_REQUESTS - 1 - request_ordinal),
+        observer=observer, stop_requested=stop_requested)
 
+    finalizing = False
     for ordinal in range(1, max_rounds + 1):
         if stop_requested and stop_requested.is_set():
             stopped = "已停止本轮查询，尚未完成的信息待核实。"
@@ -315,6 +322,11 @@ async def agent_loop(
             break
         parameters: dict[str, Any] = dict(model=model, system=system + preference_background + ("\n本轮资料服务状态：" + tools.source_status if isinstance(tools, TravelTools) else ""), messages=copy.deepcopy(view.messages),
                           tools=[*tools.declarations, *HISTORY_DECLARATIONS], max_tokens=8000)
+        finalizing = finalizing or request_ordinal >= MAX_MODEL_REQUESTS - 1 or calls >= max_tool_calls
+        if finalizing:
+            parameters.pop("tools")
+            parameters["system"] += ("\n已达到本轮调用预算，禁止新增查询。只根据已有成功资料整理回答，"
+                "明确列出缺失资料与未完成事项，不能报告旅行行程完整成功，不能编造缺失事实。")
         retry_id = uuid4().hex
         attempt = 1
         network_attempt = 1
@@ -332,7 +344,14 @@ async def agent_loop(
                 stopped = "已停止本轮查询，尚未完成的信息待核实。"
                 reason = requested_reason()
                 break
-            blocked = await context.prepare_request(parameters, step=ordinal, attempt=attempt, recovering=context_recovery)
+            blocked = await context.prepare_request(parameters, step=ordinal, attempt=attempt, recovering=context_recovery, final=finalizing)
+            if not finalizing and request_ordinal >= MAX_MODEL_REQUESTS - 1:
+                if context.summary_blocked:
+                    stopped = "摘要服务不可用，已停止本轮查询。"
+                    status, reason = "failed", "model_error"
+                else:
+                    finalizing = True
+                break
             if blocked:
                 stopped = "完整模型输入超过安全预算，已停止本轮查询；请缩小需求范围或核对 MODEL_CONTEXT_WINDOW。"
                 reason = blocked
@@ -341,11 +360,11 @@ async def agent_loop(
                 stopped = "已停止本轮查询，尚未完成的信息待核实。"
                 reason = requested_reason()
                 break
-            request_ordinal += 1
+            next_request_ordinal(final=finalizing)
             request_id = uuid4().hex
             if observer:
                 await observer("request.started", {
-                    "request_id": request_id, "purpose": "travel", "ordinal": request_ordinal, "step": ordinal, "attempt": attempt, "retry_id": retry_id,
+                    "request_id": request_id, "purpose": "travel_final" if finalizing else "travel", "ordinal": request_ordinal, "step": ordinal, "attempt": attempt, "retry_id": retry_id,
                     "started_at": datetime.now(timezone.utc).isoformat(),
                     "input": copy.deepcopy(parameters),
                 })
@@ -371,6 +390,9 @@ async def agent_loop(
                     parsed["_request_id"] = service_request_id
                 if not response.content:
                     raise EmptyModelResponse("模型返回空响应。")
+                if finalizing and (response.stop_reason != "end_turn" or any(block.type != "text" for block in response.content)
+                                   or not any(block.text.strip() for block in response.content if block.type == "text")):
+                    raise ValueError("最终回答未完整结束或包含无效内容。")
                 # 采集先于转换，保留 SDK 字段存在性；协议上下文仅使用脱敏内容块。
                 response = response.model_copy(update={"content": [
                     type(block).model_validate_json(tools.redact(block.model_dump_json(warnings=False)))
@@ -391,6 +413,17 @@ async def agent_loop(
                         "usage":parsed.get("usage") if parsed is not None else None,
                         "usage_state":"returned" if parsed is not None and parsed.get("usage") is not None else "not_returned",
                     })
+                if finalizing:
+                    if stop_requested and stop_requested.is_set():
+                        reason = requested_reason()
+                        stopped = "已停止本轮查询，尚未完成的信息待核实。"
+                    else:
+                        reason = "budget"
+                        stopped = BUDGET_MESSAGE + "\n调用预算内的最终回答失败，已停止本轮查询。"
+                    break
+                if request_ordinal >= MAX_MODEL_REQUESTS - 1 and (failure["code"] == "CONTEXT_WINDOW_EXCEEDED" or retry_delay(failure, 1) is not None):
+                    finalizing = True
+                    break
                 if failure["code"] == "CONTEXT_WINDOW_EXCEEDED":
                     if observer:
                         await observer("context.exceeded", {"request_id": request_id, "step": ordinal,
@@ -411,6 +444,9 @@ async def agent_loop(
                     if stop_requested and stop_requested.is_set():
                         stopped = "已停止本轮查询，尚未完成的信息待核实。"
                         reason = requested_reason()
+                        break
+                    if request_ordinal >= MAX_MODEL_REQUESTS - 1 and not context.summary_blocked:
+                        finalizing = True
                         break
                     if blocked:
                         status, reason = "failed", blocked
@@ -458,7 +494,11 @@ async def agent_loop(
             else:
                 break
         if stopped or failure is not None:
+            if finalizing and not stopped:
+                continue
             break
+        if finalizing and response is None:
+            continue
         assert response is not None and parsed is not None
         if observer:
             await observer("request.completed", {
@@ -470,11 +510,22 @@ async def agent_loop(
         if context_recovery and observer:
             await observer("context.recovery_result", {"request_id": request_id,
                 "status": "completed", "step": ordinal})
+        if finalizing and stop_requested and stop_requested.is_set():
+            stopped = "已停止本轮查询，尚未完成的信息待核实。"
+            reason = requested_reason()
+            break
         messages.append(cast(MessageParam, {
             "role": "assistant",
             "content": [block.model_dump(mode="json") for block in response.content],
         }))
         view.append(messages[-1], len(messages))
+        if finalizing:
+            status, reason = "terminated", "budget"
+            answer = BUDGET_MESSAGE + "\n旅行行程尚未完成。\n" + "\n".join(block.text for block in response.content if block.type == "text")
+            final_message = {"role": "assistant", "content": answer}
+            messages[-1] = cast(MessageParam, final_message)
+            view.messages[-1] = copy.deepcopy(final_message)
+            return await finished(answer, "model")
         tool_calls = [block for block in response.content if block.type == "tool_use"]
         if not tool_calls:
             status = "terminated" if response.stop_reason == "max_tokens" else "completed"
@@ -508,7 +559,8 @@ async def agent_loop(
                 reason = requested_reason()
             if stopped:
                 output = {"content": "未执行：" + stopped, "is_error": True}
-            elif calls >= max_tool_calls:
+            elif calls >= max_tool_calls or request_ordinal >= MAX_MODEL_REQUESTS - 1:
+                reason = "budget"
                 output = {"content": BUDGET_MESSAGE, "is_error": True}
             else:
                 calls += 1
@@ -546,7 +598,7 @@ async def agent_loop(
         if stop_requested and stop_requested.is_set():
             stopped = "已停止本轮查询，尚未完成的信息待核实。"
             reason = requested_reason()
-        if stopped or calls >= max_tool_calls:
+        if stopped:
             break
 
     descriptions = {"map_paused": "地图查询已暂停，查询资料不完整。", "user_stop": "已停止本轮查询。",

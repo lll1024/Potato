@@ -27,7 +27,7 @@ export function ConversationRounds({turns, statusText, onTrace, activity, stoppi
       {(isExceptional(turn) || turn.turn_id === storageTurnId) && <ExceptionOutcome turn={turn} onTrace={onTrace} onMaterialTrace={onMaterialTrace} storageFault={turn.turn_id === storageTurnId}
         materialsExpanded={materialsExpanded?.[turn.turn_id]} onMaterialsExpanded={onMaterialsExpanded}
         onRetry={turn.turn_id === retryTurnId ? onRetry : undefined} retryBlocked={retryBlocked} onRead={onRead} />}
-      {(!isExceptional(turn) || (turn.reason === 'output_limit' && turn.answer_source === 'model')) && turn.answer !== null && <AnswerBody text={turn.answer} />}
+      {(!isExceptional(turn) || (['output_limit', 'budget'].includes(turn.reason ?? '') && turn.answer_source === 'model')) && turn.answer !== null && <AnswerBody text={turn.answer} />}
     </article>}
   </section>)}</>;
 }

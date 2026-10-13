@@ -305,21 +305,22 @@ class SourceFailureTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_mixed_services_share_the_total_budget(self):
         data = {"results": [{"url": "https://museum.example.test/visit", "content": "官方线索"}]}
-        service = SourceService([data] * 62)
+        service = SourceService([data] * 126)
         proposals = [call("map-first", "maps_text_search", {"keywords": "博物馆", "city": "北京"})]
-        proposals += [call("source-" + str(i), "web_search_exa", {"query": "官方线索 " + str(i)}) for i in range(62)]
+        proposals += [call("source-" + str(i), "web_search_exa", {"query": "官方线索 " + str(i)}) for i in range(126)]
         proposals += [call("map-last", "maps_text_search", {"keywords": "博物馆", "city": "北京"}),
                       call("over-budget", "web_search_exa", {"query": "不可再查询"})]
-        model = ModelService([response(proposals, "tool_use")])
+        model = ModelService([response(proposals, "tool_use"), response([{"type": "text", "text": "只整理已取得资料，仍有查询未完成。"}])])
         with tempfile.TemporaryDirectory() as directory:
             async with service.serving(directory, model, interval=0) as client:
                 accepted = (await client.post("/api/turns", json={"input": "2026年10月17日去北京博物馆"})).json()
                 snapshot = await finished(client, accepted)
                 self.assertEqual(snapshot["turns"][0]["reason"], "budget")
-                self.assertEqual(len(service.source_calls), 62)
+                self.assertEqual(len(service.source_calls), 126)
                 self.assertEqual(len(service.map_calls), 2)
                 self.assertEqual(snapshot["tool_calls"][-1]["status"], "not_executed")
-                self.assertEqual(len(model.requests), 1)
+                self.assertEqual(len(model.requests), 2)
+                self.assertNotIn("tools", model.requests[-1])
                 self.assertIn("上限", snapshot["turns"][0]["answer"])
 
     async def test_source_credentials_and_sensitive_url_parameters_are_redacted_everywhere(self):
