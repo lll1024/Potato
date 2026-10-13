@@ -1,0 +1,33 @@
+{
+  "backend_tests": 296,
+  "backend_seconds": 246.441,
+  "baseline_related_tests": 79,
+  "targeted_tests": 97,
+  "recovery_tests": 9,
+  "type_errors": 0,
+  "type_warnings": 0,
+  "frontend_tests": 13,
+  "frontend_build": true,
+  "browser_recovery_passed": 2,
+  "browser_context_adjusted_passed": 2,
+  "browser_context_original_failed": 2,
+  "original_failure": "与 #67 基线一致，第一轮输入超过预算",
+  "equivalence": {
+    "baseline": "7563199",
+    "tests": 20,
+    "http_cases": 19,
+    "events": 499,
+    "requests": 106,
+    "equal": true,
+    "changed_cases": [],
+    "normalized_sha256": {
+      "before": "66f5f3c82e20b27389a43e98a43563940e40287a9e7bedd807e88b83a74803bf",
+      "after": "66f5f3c82e20b27389a43e98a43563940e40287a9e7bedd807e88b83a74803bf"
+    }
+  },
+  "review": {
+    "standards": 0,
+    "spec": 0
+  },
+  "missing_navigation_links": []
+}

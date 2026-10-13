@@ -11,11 +11,11 @@ import httpx
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from amap_mcp import AmapTools
+from travel_app.amap_mcp import AmapTools
 from test_agent import MapService, ModelService, response
 import test_history
 from test_travel_dates import context_from_request
-from web import Runtime, create_app
+from travel_app.web import Runtime, create_app
 
 
 class TravelDateContinuationTests(unittest.IsolatedAsyncioTestCase):
@@ -136,7 +136,7 @@ class TravelDateContinuationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_legacy_record_without_date_basis_does_not_infer_dates_from_history(self):
         from pathlib import Path
-        from store import Store
+        from travel_app.store import Store
 
         with tempfile.TemporaryDirectory() as directory:
             legacy = Store(Path(directory))
@@ -230,7 +230,7 @@ class TravelDateContinuationTests(unittest.IsolatedAsyncioTestCase):
         import os
         from contextlib import redirect_stdout
         from unittest.mock import patch
-        from agent import run_cli
+        from travel_app.agent import run_cli
 
         before = datetime.fromisoformat("2026-10-09T23:59:59+08:00")
         after = datetime.fromisoformat("2026-10-10T00:00:01+08:00")
@@ -250,10 +250,10 @@ class TravelDateContinuationTests(unittest.IsolatedAsyncioTestCase):
         async def external_maps(*args, **kwargs):
             yield MapService()
         with (
-            patch("agent.Client", side_effect=external_maps),
-            patch("travel_tools.Client", side_effect=RuntimeError("外部资料服务不可用")),
-            patch("agent.AsyncAnthropic", side_effect=external_model),
-            patch("agent.streamable_http_client", return_value=None),
+            patch("travel_app.agent.Client", side_effect=external_maps),
+            patch("travel_app.travel_tools.Client", side_effect=RuntimeError("外部资料服务不可用")),
+            patch("travel_app.agent.AsyncAnthropic", side_effect=external_model),
+            patch("travel_app.agent.streamable_http_client", return_value=None),
             patch("builtins.input", side_effect=user_input),
             patch.dict(os.environ, {"MODEL_ID": "test-model"}),
             redirect_stdout(io.StringIO()),

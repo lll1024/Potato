@@ -10,11 +10,11 @@ import httpx
 from anthropic import AnthropicError, AsyncAnthropic
 from mcp import Client
 
-from amap_mcp import AmapTools
+from travel_app.amap_mcp import AmapTools
 from test_agent import MapService, response
 from test_preferences import Clock, PreferenceModel
 import test_preferences as preference_helpers
-from web import Runtime, create_app
+from travel_app.web import Runtime, create_app
 
 
 class ActivityModel(PreferenceModel):

@@ -14,11 +14,11 @@ import uvicorn
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from amap_mcp import AmapTools
+from travel_app.amap_mcp import AmapTools
 from test_agent import response
 from test_exception_experience import FailingAfterTools, call
 from test_itinerary import ItineraryMapService, map_result
-from web import Runtime, create_app
+from travel_app.web import Runtime, create_app
 
 
 async def main():

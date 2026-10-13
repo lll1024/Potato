@@ -1,0 +1,10 @@
+.........Executing <Task pending name='Task-503' coro=<BaseSelectorEventLoop._accept_connection2() running at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/selector_events.py:239> wait_for=<Future pending cb=[Task.task_wakeup()] created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py:460> created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/selector_events.py:215> took 0.165 seconds
+Executing <Task finished name='Task-505' coro=<TurnRuntime._run_turn() done, defined at /Users/jarviliu/projects/travel/travel_app/turn_runtime.py:118> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.108 seconds
+..Executing <Task finished name='Task-555' coro=<TurnRuntime._run_turn() done, defined at /Users/jarviliu/projects/travel/travel_app/turn_runtime.py:118> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.386 seconds
+...Executing <Task pending name='Task-762' coro=<TurnRuntime._run_turn() running at /Users/jarviliu/projects/travel/travel_app/turn_runtime.py:120> wait_for=<Future pending cb=[Task.task_wakeup()] created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py:460> created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.167 seconds
+Executing <Task finished name='Task-762' coro=<TurnRuntime._run_turn() done, defined at /Users/jarviliu/projects/travel/travel_app/turn_runtime.py:118> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.234 seconds
+......
+----------------------------------------------------------------------
+Ran 20 tests in 20.806s
+
+OK

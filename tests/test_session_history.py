@@ -89,7 +89,7 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
         import os
         from contextlib import asynccontextmanager, redirect_stdout
         from unittest.mock import patch
-        from agent import run_cli
+        from travel_app.agent import run_cli
         from test_agent import MapService
         model = ModelService([response([{"type": "text", "text": "第二家酒店早餐 68 元，尚未预订。"}]),
             call("session_history_search", {"query": "早餐 68"}),
@@ -101,7 +101,7 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
         @asynccontextmanager
         async def external_maps(*args, **kwargs):
             yield MapService()
-        with patch("agent.Client", side_effect=external_maps), patch("travel_tools.Client", side_effect=RuntimeError("资料服务不可用")), patch("agent.AsyncAnthropic", side_effect=external_model), patch("agent.streamable_http_client", return_value=None), patch("builtins.input", side_effect=["查酒店", "之前早餐多少钱", "exit"]), patch.dict(os.environ, {"MODEL_ID": "test-model"}, clear=True), redirect_stdout(io.StringIO()) as output:
+        with patch("travel_app.agent.Client", side_effect=external_maps), patch("travel_app.travel_tools.Client", side_effect=RuntimeError("资料服务不可用")), patch("travel_app.agent.AsyncAnthropic", side_effect=external_model), patch("travel_app.agent.streamable_http_client", return_value=None), patch("builtins.input", side_effect=["查酒店", "之前早餐多少钱", "exit"]), patch.dict(os.environ, {"MODEL_ID": "test-model"}, clear=True), redirect_stdout(io.StringIO()) as output:
             self.assertEqual(await run_cli("test-key"), 0)
         page = json.loads(model.requests[3]["messages"][-1]["content"][0]["content"])
         self.assertIn("早餐 68 元", page["text"])
@@ -179,8 +179,8 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
         from typing import cast
         from anthropic import AsyncAnthropic
         from mcp import Client
-        from amap_mcp import AmapTools
-        from agent import agent_loop
+        from travel_app.amap_mcp import AmapTools
+        from travel_app.agent import agent_loop
         from test_agent import MapService
         class CountingMap(MapService):
             def __init__(self):
@@ -211,12 +211,12 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
         from anthropic import AsyncAnthropic
         from mcp import Client
         from mcp.server import MCPServer
-        from amap_mcp import AmapTools
-        from exa_mcp import ExaTools
+        from travel_app.amap_mcp import AmapTools
+        from travel_app.exa_mcp import ExaTools
         from test_agent import MapService
         from test_source_failures import finished
-        from travel_tools import TravelTools
-        from web import Runtime, create_app
+        from travel_app.travel_tools import TravelTools
+        from travel_app.web import Runtime, create_app
         sources = MCPServer("历史资料边界")
         @sources.tool(name="web_search_exa")
         def search(query: str, objective: str) -> str:
@@ -258,8 +258,8 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
         from typing import cast
         from anthropic import AsyncAnthropic
         from mcp import Client
-        from amap_mcp import AmapTools
-        from agent import agent_loop
+        from travel_app.amap_mcp import AmapTools
+        from travel_app.agent import agent_loop
         from test_agent import MapService
         class CountingMap(MapService):
             def __init__(self):

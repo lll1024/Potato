@@ -2,7 +2,7 @@
 import os
 import sys
 
-import web
+from travel_app import web
 
 
 if __name__ == '__main__':

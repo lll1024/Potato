@@ -1,0 +1,26 @@
+{
+  "base": "4fff3d2",
+  "modules": [
+    "agent",
+    "amap_http",
+    "amap_mcp",
+    "context_summary",
+    "exa_mcp",
+    "limits",
+    "model_context",
+    "model_retry",
+    "preferences",
+    "query_materials",
+    "session_history",
+    "source_http",
+    "store",
+    "travel_dates",
+    "travel_tools",
+    "web"
+  ],
+  "allowed_changes": [
+    "内部导入前缀 travel_app",
+    "包内入口按项目根定位 .env 与 frontend/dist"
+  ],
+  "exact_expected_content": true
+}

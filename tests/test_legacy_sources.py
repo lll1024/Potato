@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from store import Store
+from travel_app.store import Store
 from test_agent import ModelService, response
 from test_source_failures import SourceService, finished
 

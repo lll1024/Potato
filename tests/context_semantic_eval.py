@@ -28,10 +28,10 @@ import uvicorn
 from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
 from mcp import Client
-from amap_mcp import AmapTools
+from travel_app.amap_mcp import AmapTools
 from test_agent import MapService
 from test_preferences import Clock
-from web import Runtime, create_app
+from travel_app.web import Runtime, create_app
 
 FILLER = ('以下是已取消的资料阅读记录，仅作为历史背景，不是新增要求，不改变日期预算酒店人数。' * 110)
 BASE = '这是控制事实验收，不需要外网或地图查询。只按提供的资料讨论，不推测新的地点或已完成订单。'
@@ -287,7 +287,7 @@ async def evaluate_empty_preferences(model):
 
 
 async def evaluate_cli(model):
-    from agent import run_cli
+    from travel_app.agent import run_cli
     run = Evaluation(model, 1000000, True)
     result = {'case': 'cli_low_pressure', 'group': 'compressed', 'actual_service_window_confirmed': 1000000, 'explicit_test_window': 1000000, 'error': None, 'requests': run.calls, 'runs': []}
     @asynccontextmanager
@@ -307,7 +307,7 @@ async def evaluate_cli(model):
                 for queries in sequences:
                     output = io.StringIO()
                     first = len(run.calls)
-                    with patch('agent.Client', side_effect=maps), patch('travel_tools.Client', side_effect=RuntimeError('控制资料服务不可用')), patch('agent.AsyncAnthropic', side_effect=observed), patch('agent.streamable_http_client', return_value=None), patch('builtins.input', side_effect=queries), redirect_stdout(output):
+                    with patch('travel_app.agent.Client', side_effect=maps), patch('travel_app.travel_tools.Client', side_effect=RuntimeError('控制资料服务不可用')), patch('travel_app.agent.AsyncAnthropic', side_effect=observed), patch('travel_app.agent.streamable_http_client', return_value=None), patch('builtins.input', side_effect=queries), redirect_stdout(output):
                         status = await run_cli('controlled-map-key', clock=lambda: run.now)
                     result['runs'].append({'exit_code': status, 'stdout': output.getvalue(), 'request_start': first, 'request_end': len(run.calls)})
         except Exception as error:

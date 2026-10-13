@@ -67,7 +67,7 @@ python web.py
 - **偏好保存**：会话结束并连续闲置满一小时后，后台提取新输入中的稳定喜好；当前要求优先，单次日期、预算和酒店安排仅用于当前会话。删除聊天与删除偏好相互独立。偏好管理入口目前为顶部原位置的透明调试按钮，详见[偏好设计约定](docs/adr/0002-cross-session-traveler-preferences.md)及[验收记录](docs/acceptance/traveler-preferences.md)。
 - **本机数据**：服务仅监听 `127.0.0.1`，面向单一旅行者、单进程，每次最多执行一轮。历史和偏好保存在默认 `.travel-data` 目录的 SQLite 中，重启保留；同一目录只允许一个服务实例。自定义数据目录也应放在 Git 之外，目前没有内置备份或导出。
 - **中断与恢复**：关闭或刷新页面不取消任务。模型连接、超时、临时限流、服务端错误或空响应会在当前步骤最多追加 5 次重试，保留已完成工具结果；重试期间可停止本轮。认证、配额和参数等永久错误直接结束。正常 Ctrl+C 会在调用边界停止并释放连接；强制退出后，未完成轮次显示“中断，结果未知”，不会自动重放。重试耗尽后可手动“重新尝试”，会创建新轮次，可能再次查询。详细策略见[模型重试验收](docs/acceptance/model-retries.md)。
-- **服务故障**：地图鉴权、额度或连接等故障会暂停当前进程的地图查询，修复后重启并按实际返回核对恢复情况；资料服务失败时保留可用地图能力。调用预算和超时见 [limits.py](limits.py)，详细故障行为见[异常体验验收](docs/acceptance/exception-experience.md)与[Exa 接入验收](docs/acceptance/exa-sources.md)。CLI 与 Web 的进程内限速独立，同账号并行运行会叠加外部调用。
+- **服务故障**：地图鉴权、额度或连接等故障会暂停当前进程的地图查询，修复后重启并按实际返回核对恢复情况；资料服务失败时保留可用地图能力。调用预算和超时见 [limits.py](travel_app/limits.py)，详细故障行为见[异常体验验收](docs/acceptance/exception-experience.md)与[Exa 接入验收](docs/acceptance/exa-sources.md)。CLI 与 Web 的进程内限速独立，同账号并行运行会叠加外部调用。
 
 ## 开发与验证
 
@@ -78,14 +78,18 @@ python web.py
 ```sh
 python -m pip install -r requirements-dev.txt
 python -m unittest discover -s tests -v
-pyright --pythonpath .venv/bin/python agent.py model_retry.py amap_mcp.py amap_http.py exa_mcp.py source_http.py travel_tools.py query_materials.py limits.py web.py store.py preferences.py
+pyright --pythonpath .venv/bin/python agent.py web.py travel_app
 npm test --prefix frontend
 npm run build --prefix frontend
 ```
 
 真实高德连接检查：`python agent.py --check-amap`。它不调用模型，会消耗一次“杭州的西湖”地点查询，不替代完整旅行规划验收。
 
+后端实现位于单个浅层 `travel_app/` 包，根目录保留 `agent.py` 与 `web.py` 启动入口；仓库内部使用 `travel_app.*` 导入。
+
 按工作范围查阅：
+
+- 代码与验证：[后端职责地图](docs/backend-map.md)、[验收索引](docs/acceptance/README.md)、[历史档案说明](.scratch/README.md)。
 
 - 页面与交互：[本机页面验收](docs/acceptance/local-web.md)、[前端重设计验收](docs/acceptance/frontend-redesign.md)、[设计规则](DESIGN.md)。
 - 偏好与恢复：[旅行者偏好验收](docs/acceptance/traveler-preferences.md)、[偏好恢复验收](docs/acceptance/preferences-recovery.md)。

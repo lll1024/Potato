@@ -1,0 +1,9 @@
+{
+  "baseline": "4fff3d26ef43a18a4a19263d50240a5ff4d130ae",
+  "implementation": "1170aa2d57f6e455f468b7d1579e4ccb62993438",
+  "tests": 20,
+  "http_scenarios": 19,
+  "requests": 106,
+  "events": 499,
+  "equal": true
+}

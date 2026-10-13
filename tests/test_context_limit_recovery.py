@@ -176,7 +176,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
     async def test_cli_distinguishes_exceeded_prepared_started_and_returned_without_summary_body(self):
         import io
         from contextlib import asynccontextmanager, redirect_stdout
-        from agent import run_cli
+        from travel_app.agent import run_cli
         from test_agent import MapService
         model = RetryModel([response([{"type": "text", "text": "酒店未预订。"}]), exceeded(), summary_response(),
                             response([{"type": "text", "text": "继续安排交通。"}])])
@@ -187,7 +187,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
         async def external_maps(*args, **kwargs):
             yield MapService()
         output = io.StringIO()
-        with patch.dict(os.environ, {**ENV, "MODEL_ID": "test-model"}, clear=True), patch("agent.Client", side_effect=external_maps), patch("travel_tools.Client", side_effect=RuntimeError("资料服务不可用")), patch("agent.AsyncAnthropic", side_effect=external_model), patch("agent.streamable_http_client", return_value=None), patch("builtins.input", side_effect=[OLD, "继续安排交通", "exit"]), redirect_stdout(output):
+        with patch.dict(os.environ, {**ENV, "MODEL_ID": "test-model"}, clear=True), patch("travel_app.agent.Client", side_effect=external_maps), patch("travel_app.travel_tools.Client", side_effect=RuntimeError("资料服务不可用")), patch("travel_app.agent.AsyncAnthropic", side_effect=external_model), patch("travel_app.agent.streamable_http_client", return_value=None), patch("builtins.input", side_effect=[OLD, "继续安排交通", "exit"]), redirect_stdout(output):
             self.assertEqual(await run_cli("test-key"), 0)
         self.assertIn("服务报告上下文超限", output.getvalue())
         self.assertIn("已缩小且符合预算", output.getvalue())

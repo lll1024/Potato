@@ -17,13 +17,13 @@ from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 from mcp.server import MCPServer
 
-from amap_mcp import AmapTools
-from exa_mcp import ExaTools
-from source_http import SourceHTTPClient
+from travel_app.amap_mcp import AmapTools
+from travel_app.exa_mcp import ExaTools
+from travel_app.source_http import SourceHTTPClient
 from exa_fixtures import source_text
-from travel_tools import TravelTools
+from travel_app.travel_tools import TravelTools
 from test_agent import ModelService, response
-from web import Runtime, create_app
+from travel_app.web import Runtime, create_app
 
 
 def call(identity, name, arguments):

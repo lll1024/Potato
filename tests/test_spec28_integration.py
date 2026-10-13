@@ -9,13 +9,13 @@ import httpx
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from amap_mcp import AmapTools
+from travel_app.amap_mcp import AmapTools
 from test_agent import MapService
 import test_preferences
 from test_preferences import Clock, PreferenceModel
 from test_travel_dates import context_from_request
-from travel_tools import TravelTools
-from web import Runtime, create_app
+from travel_app.travel_tools import TravelTools
+from travel_app.web import Runtime, create_app
 
 
 class IntegratedTravelContextTests(unittest.IsolatedAsyncioTestCase):

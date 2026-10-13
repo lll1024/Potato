@@ -166,7 +166,7 @@ class ContextSummaryTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(len([request for request in saved["requests"] if request.get("purpose") == "context_summary"]), 1)
 
     async def test_changed_dates_survive_stopped_summary_before_any_travel_request(self):
-        from travel_dates import saved_date_context
+        from travel_app.travel_dates import saved_date_context
         entered, release = asyncio.Event(), asyncio.Event()
         class WaitingModel(ModelService):
             async def create(self, **kwargs):
@@ -193,7 +193,7 @@ class ContextSummaryTests(unittest.IsolatedAsyncioTestCase):
     async def test_cli_keeps_summary_within_process_and_prints_short_status(self):
         import io
         from contextlib import asynccontextmanager, redirect_stdout
-        from agent import run_cli
+        from travel_app.agent import run_cli
         from test_agent import MapService
         model = ModelService([response([{"type": "text", "text": "酒店未预订。"}]), summary_response(),
                               response([{"type": "text", "text": "继续保留酒店。"}]), response([{"type": "text", "text": "继续规划。"}])])
@@ -204,7 +204,7 @@ class ContextSummaryTests(unittest.IsolatedAsyncioTestCase):
         async def external_maps(*args, **kwargs):
             yield MapService()
         output = io.StringIO()
-        with patch.dict(os.environ, {**ENV, "MODEL_ID": "test-model"}, clear=True), patch("agent.Client", side_effect=external_maps), patch("travel_tools.Client", side_effect=RuntimeError("资料服务不可用")), patch("agent.AsyncAnthropic", side_effect=external_model), patch("agent.streamable_http_client", return_value=None), patch("builtins.input", side_effect=[OLD, "继续", "再继续", "exit"]), redirect_stdout(output):
+        with patch.dict(os.environ, {**ENV, "MODEL_ID": "test-model"}, clear=True), patch("travel_app.agent.Client", side_effect=external_maps), patch("travel_app.travel_tools.Client", side_effect=RuntimeError("资料服务不可用")), patch("travel_app.agent.AsyncAnthropic", side_effect=external_model), patch("travel_app.agent.streamable_http_client", return_value=None), patch("builtins.input", side_effect=[OLD, "继续", "再继续", "exit"]), redirect_stdout(output):
             self.assertEqual(await run_cli("test-key"), 0)
         self.assertIn("摘要已用于本轮", output.getvalue())
         self.assertNotIn('"travel_conditions"', output.getvalue())

@@ -1,0 +1,14 @@
+
+> travel-local-ui@0.1.0 test:ui
+> playwright test --config /var/folders/gt/8qx7txk930n09zc4s5l0wfqh0000gn/T/backend-organization-browser-udopgbs1/playwright.config.ts recovery-live.spec.ts preferences-recovery-live.spec.ts
+
+
+Running 3 tests using 1 worker
+
+(node:68763) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/ui/preferences-recovery-live.spec.ts:7:1 › 正式页面区分闲置等待、提取、有限重试和失败，已有偏好及普通回答仍可用 (3.5s)
+  ✓  2 tests/ui/recovery-live.spec.ts:6:3 › 正式页面 1280px：失败、摘要、轨迹与新轮次重试贯通 (3.4s)
+  ✓  3 tests/ui/recovery-live.spec.ts:6:3 › 正式页面 390px：失败、摘要、轨迹与新轮次重试贯通 (3.6s)
+
+  3 passed (12.2s)

@@ -10,9 +10,9 @@ import httpx
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from amap_mcp import AmapTools
+from travel_app.amap_mcp import AmapTools
 from test_agent import MapService, ModelService, response
-from web import Runtime, create_app
+from travel_app.web import Runtime, create_app
 
 
 class SubmissionTests(unittest.IsolatedAsyncioTestCase):

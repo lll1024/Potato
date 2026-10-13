@@ -1,0 +1,6 @@
+...........Executing <Task finished name='Task-555' coro=<create_app.<locals>.execute() done, defined at /var/folders/gt/8qx7txk930n09zc4s5l0wfqh0000gn/T/issue69-web-baseline.py:223> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.110 seconds
+.........
+----------------------------------------------------------------------
+Ran 20 tests in 19.067s
+
+OK

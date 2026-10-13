@@ -12,8 +12,8 @@ import httpx2
 from anthropic import APIConnectionError, APIStatusError, APITimeoutError, AsyncAnthropic
 from mcp import Client
 
-from agent import agent_loop
-from amap_mcp import AmapTools
+from travel_app.agent import agent_loop
+from travel_app.amap_mcp import AmapTools
 from test_agent import MapService, ModelService, response
 from test_trace import serving, wait_finished
 from test_storage import fail_event, wait_state
@@ -90,7 +90,7 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
                 async def observe(kind, data):
                     events.append((kind, data))
 
-                with patch("agent.asyncio.sleep", new_callable=AsyncMock):
+                with patch("travel_app.agent.asyncio.sleep", new_callable=AsyncMock):
                     await agent_loop([{"role": "user", "content": "查地点"}],
                         cast(AsyncAnthropic, model), tools, "test", observer=observe)
                 failure = next(data["error"] for kind, data in events if kind == "request.failed")
@@ -107,9 +107,9 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(header=header):
                 model = RetryModel([status_error(429, headers={"Retry-After": header}),
                                     response([{"type": "text", "text": "已恢复"}])])
-                with patch("model_retry.time.time", return_value=2000), \
-                     patch("model_retry.random.random", return_value=0.5), \
-                     patch("agent.asyncio.sleep", new_callable=AsyncMock) as sleep:
+                with patch("travel_app.model_retry.time.time", return_value=2000), \
+                     patch("travel_app.model_retry.random.random", return_value=0.5), \
+                     patch("travel_app.agent.asyncio.sleep", new_callable=AsyncMock) as sleep:
                     await agent_loop([{"role": "user", "content": "查地点"}],
                                      cast(AsyncAnthropic, model), tools, "test")
                 self.assertEqual([call.args[0] for call in sleep.await_args_list], [] if delay is None else [delay])
@@ -119,7 +119,7 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
         model = RetryModel([response([]), response([{"type": "text", "text": "已恢复"}])])
         tools = AmapTools(cast(Client, MapService()))
         await tools.discover()
-        with patch("agent.asyncio.sleep", new_callable=AsyncMock):
+        with patch("travel_app.agent.asyncio.sleep", new_callable=AsyncMock):
             answer = await agent_loop([{"role": "user", "content": "查地点"}],
                                      cast(AsyncAnthropic, model), tools, "test")
         self.assertEqual(answer, "已恢复")
@@ -161,8 +161,8 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
             async def observe(kind, data):
                 events.append((kind, data))
 
-            with patch("model_retry.random.random", return_value=random_value), \
-                 patch("agent.asyncio.sleep", new_callable=AsyncMock) as sleep:
+            with patch("travel_app.model_retry.random.random", return_value=random_value), \
+                 patch("travel_app.agent.asyncio.sleep", new_callable=AsyncMock) as sleep:
                 await agent_loop([{"role": "user", "content": "查地点"}],
                     cast(AsyncAnthropic, model), tools, "test", max_rounds=1, observer=observe)
             self.assertEqual(len(model.requests), 6)
@@ -183,7 +183,7 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
             dates.append("read")
             return datetime.fromisoformat("2026-10-12T23:59:59+08:00")
 
-        with patch("agent.asyncio.sleep", new_callable=AsyncMock):
+        with patch("travel_app.agent.asyncio.sleep", new_callable=AsyncMock):
             answer = await agent_loop([{"role": "user", "content": "明天查杭州西湖"}],
                 cast(AsyncAnthropic, model), tools, "test", max_rounds=2, max_tool_calls=2,
                 clock=clock, preference_background="住宿喜好：经济型酒店")

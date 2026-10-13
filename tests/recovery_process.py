@@ -9,9 +9,9 @@ from anthropic import AsyncAnthropic
 from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 
-from amap_http import AmapHTTPClient
-from amap_mcp import AmapTools
-from web import Runtime, create_app
+from travel_app.amap_http import AmapHTTPClient
+from travel_app.amap_mcp import AmapTools
+from travel_app.web import Runtime, create_app
 
 
 @asynccontextmanager

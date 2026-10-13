@@ -11,7 +11,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from agent import main
+from travel_app.agent import main
 
 
 class CLITests(unittest.TestCase):
@@ -34,8 +34,8 @@ class CLITests(unittest.TestCase):
                         patch.dict(os.environ, {"AMAP_MAPS_API_KEY": "test-secret", "MODEL_ID": "test-model",
                                                "ANTHROPIC_API_KEY": "test-model-key"}, clear=True),
                         patch("sys.argv", ["agent.py"]),
-                        patch("agent.load_dotenv"),
-                        patch("agent.run_cli", side_effect=fail),
+                        patch("travel_app.agent.load_dotenv"),
+                        patch("travel_app.agent.run_cli", side_effect=fail),
                         contextlib.redirect_stdout(captured), contextlib.redirect_stderr(captured),
                     ):
                         self.assertEqual(main(), expected)
@@ -47,8 +47,9 @@ class CLITests(unittest.TestCase):
     def test_missing_amap_key_has_an_actionable_message_without_traceback(self):
         project = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as directory:
-            for name in ["agent.py", "model_retry.py", "model_context.py", "context_summary.py", "session_history.py", "amap_mcp.py", "amap_http.py", "limits.py", "travel_dates.py", "travel_tools.py", "exa_mcp.py", "source_http.py"]:
-                shutil.copy(project / name, directory)
+            shutil.copy(project / "agent.py", directory)
+            shutil.copytree(project / "travel_app", Path(directory) / "travel_app",
+                            ignore=shutil.ignore_patterns("__pycache__"))
             result = subprocess.run(
                 [sys.executable, "agent.py", "--check-amap"],
                 cwd=directory,
@@ -68,7 +69,7 @@ class CLITests(unittest.TestCase):
                 if capacity is not None:
                     env["MODEL_CONTEXT_WINDOW"] = capacity
                 captured = io.StringIO()
-                with patch.dict(os.environ, env, clear=True), patch("sys.argv", ["agent.py"]), patch("agent.load_dotenv"), patch("agent.run_cli") as runner, contextlib.redirect_stderr(captured):
+                with patch.dict(os.environ, env, clear=True), patch("sys.argv", ["agent.py"]), patch("travel_app.agent.load_dotenv"), patch("travel_app.agent.run_cli") as runner, contextlib.redirect_stderr(captured):
                     self.assertEqual(main(), 1)
                     runner.assert_not_called()
                 self.assertIn("MODEL_CONTEXT_WINDOW", captured.getvalue())

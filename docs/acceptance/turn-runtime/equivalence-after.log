@@ -1,0 +1,6 @@
+...........Executing <Task finished name='Task-555' coro=<TurnRuntime._run_turn() done, defined at /Users/jarviliu/projects/travel/travel_app/turn_runtime.py:118> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.106 seconds
+.........
+----------------------------------------------------------------------
+Ran 20 tests in 19.144s
+
+OK

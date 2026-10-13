@@ -1,0 +1,8 @@
+test_compaction_configuration_fails_before_cli_connects (test_cli.CLITests.test_compaction_configuration_fails_before_cli_connects) ... ok
+test_grouped_interrupt_and_errors_exit_without_credentials_or_traceback (test_cli.CLITests.test_grouped_interrupt_and_errors_exit_without_credentials_or_traceback) ... ok
+test_missing_amap_key_has_an_actionable_message_without_traceback (test_cli.CLITests.test_missing_amap_key_has_an_actionable_message_without_traceback) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.842s
+
+OK

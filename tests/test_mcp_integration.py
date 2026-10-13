@@ -16,9 +16,9 @@ from mcp.types import CallToolResult, CONNECTION_CLOSED, HEADER_MISMATCH, TextCo
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
-from agent import agent_loop, run_cli
-from amap_http import AmapHTTPClient
-from amap_mcp import AmapTools
+from travel_app.agent import agent_loop, run_cli
+from travel_app.amap_http import AmapHTTPClient
+from travel_app.amap_mcp import AmapTools
 from test_agent import ModelService, response
 
 
@@ -142,9 +142,9 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
                 client = Client(streamable_http_client("http://127.0.0.1:8000/mcp", http_client=map_http))
                 with (
                     patch.dict(os.environ, {"MODEL_ID": "test-model", "ANTHROPIC_API_KEY": "test-key"}, clear=True),
-                    patch("agent.Client", return_value=client),
-                    patch("travel_tools.Client", side_effect=ConnectionError("资料服务不可用")),
-                    patch("agent.AsyncAnthropic", side_effect=lambda **kwargs: AsyncAnthropic(http_client=model_http, **kwargs)),
+                    patch("travel_app.agent.Client", return_value=client),
+                    patch("travel_app.travel_tools.Client", side_effect=ConnectionError("资料服务不可用")),
+                    patch("travel_app.agent.AsyncAnthropic", side_effect=lambda **kwargs: AsyncAnthropic(http_client=model_http, **kwargs)),
                     patch("builtins.input", side_effect=["查询杭州西湖"]) as user_input,
                     contextlib.redirect_stdout(captured),
                 ):
@@ -223,9 +223,9 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
 
                 with (
                     patch.dict(os.environ, {"MODEL_ID": "test-model", "ANTHROPIC_API_KEY": "test-key"}, clear=True),
-                    patch("agent.Client", side_effect=map_client),
-                    patch("travel_tools.Client", side_effect=ConnectionError("资料服务不可用")),
-                    patch("agent.AsyncAnthropic", side_effect=model_client),
+                    patch("travel_app.agent.Client", side_effect=map_client),
+                    patch("travel_app.travel_tools.Client", side_effect=ConnectionError("资料服务不可用")),
+                    patch("travel_app.agent.AsyncAnthropic", side_effect=model_client),
                     patch("builtins.input", side_effect=[user_input]),
                 ):
                     if isinstance(user_input, (KeyboardInterrupt, asyncio.CancelledError, RuntimeError)):
@@ -318,9 +318,9 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
 
                     with (
                         patch.dict(os.environ, {"MODEL_ID": "test-model", **environment}, clear=True),
-                        patch("agent.Client", side_effect=lambda *args, **kwargs: Client(server)),
-                        patch("travel_tools.Client", side_effect=ConnectionError("资料服务不可用")),
-                        patch("agent.AsyncAnthropic", side_effect=model_client),
+                        patch("travel_app.agent.Client", side_effect=lambda *args, **kwargs: Client(server)),
+                        patch("travel_app.travel_tools.Client", side_effect=ConnectionError("资料服务不可用")),
+                        patch("travel_app.agent.AsyncAnthropic", side_effect=model_client),
                         patch("builtins.input", side_effect=["查询杭州西湖", "exit"]),
                         contextlib.redirect_stdout(io.StringIO()),
                     ):
