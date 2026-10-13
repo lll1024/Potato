@@ -319,7 +319,7 @@ class Store:
                         "candidate_recorded": bool(candidate),
                         "message": "服务中断，本轮未晋升的摘要已弃用；续聊恢复上一有效版本。"})
                 self.db.execute("UPDATE turns SET status='terminated',reason='service_interrupted' WHERE turn_id=?", (row["turn_id"],))
-                self.event(row["session_id"],row["turn_id"],"turn.recovered", {"status":"terminated","reason":"service_interrupted","context_excluded":True,"message":"服务中断，未结束调用的结果未知；整轮协议已排除后续上下文，已保存的成功资料仅作参考重新核对。"})
+                self.event(row["session_id"],row["turn_id"],"turn.recovered", {"status":"terminated","reason":"service_interrupted","context_excluded":True,"message":"服务中断，未结束调用的结果未知；整轮协议已排除后续上下文，已保存的成功资料仅作参考，信息核实按当前明确要求进行。"})
 
     def context(self, session_id):
         row = self.db.execute("SELECT messages FROM turns WHERE session_id=? AND status != 'running' AND reason IS NOT 'service_interrupted' ORDER BY ordinal DESC LIMIT 1", (session_id,)).fetchone()

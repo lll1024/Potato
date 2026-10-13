@@ -18,7 +18,7 @@
 | 跨会话旅行者偏好与后台提取 | [preferences](../travel_app/preferences.py) 管理保存、闲置、版本及模型提取；TurnRuntime 管理后台任务、统一接受状态和存储故障，停止时取消当前输入的提取资格 | [偏好](../tests/test_preferences.py)、[管理](../tests/test_preference_management.py)、[活动轮次](../tests/test_preference_activity.py)、[重启恢复](../tests/test_preference_recovery.py) |
 | 当前时间、旅行日期与跨日续聊 | [travel_dates](../travel_app/travel_dates.py) → agent_loop 本轮系统上下文；Store 恢复确定日期 | [日期](../tests/test_travel_dates.py)、[续聊](../tests/test_travel_date_continuation.py)、[纠正](../tests/test_travel_date_corrections.py) |
 | 高德地点、餐饮、交通路线、天气 | [amap_mcp](../travel_app/amap_mcp.py) → [amap_http](../travel_app/amap_http.py)；[limits](../travel_app/limits.py) 保存额度、限速与超时 | [地点](../tests/test_search.py)、[餐饮](../tests/test_dining.py)、[交通路线](../tests/test_routes.py)、[故障](../tests/test_failures.py) |
-| 官方资料搜索与正文读取 | [travel_tools](../travel_app/travel_tools.py) 组合地图与 [exa_mcp](../travel_app/exa_mcp.py)，经 [source_http](../travel_app/source_http.py) 接入资料服务 | [Exa](../tests/test_exa_sources.py)、[官方来源](../tests/test_official_sources.py)、[日期适用性](../tests/test_official_date_applicability.py) |
+| 网页资料获取与按需信息核实 | [travel_tools](../travel_app/travel_tools.py) 组合地图与 [exa_mcp](../travel_app/exa_mcp.py)，经 [source_http](../travel_app/source_http.py) 接入资料服务 | [公开资料展示](../tests/test_information_retrieval.py)、[Exa](../tests/test_exa_sources.py)、[专项来源](../tests/test_official_sources.py)、[日期适用性](../tests/test_official_date_applicability.py) |
 | 已保存查询资料的摘要与参考索引 | [query_materials](../travel_app/query_materials.py) → Store；完整原文仍供回读 | [旧来源](../tests/test_legacy_sources.py)、[上下文整理](../tests/test_context_organization.py) |
 
 ## 启动与资源

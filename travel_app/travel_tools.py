@@ -1,4 +1,4 @@
-"""共享地图与官方资料的工具声明、分派及连接生命周期。"""
+"""共享地图与网页资料的工具声明、分派及连接生命周期。"""
 from contextlib import AsyncExitStack, asynccontextmanager
 
 from travel_app.source_http import SourceHTTPClient
@@ -20,7 +20,7 @@ class TravelTools:
     def source_status(self):
         if self.sources and self.sources.failure:
             return self.sources.failure_message
-        return "官方资料搜索与正文提取可用。" if self.sources else UNAVAILABLE_MESSAGE
+        return "网页资料搜索与正文提取可用，可按规划需要获取资料；仅在用户明确要求时专项核实。" if self.sources else UNAVAILABLE_MESSAGE
 
     @property
     def failure(self):

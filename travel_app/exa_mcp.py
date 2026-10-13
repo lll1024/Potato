@@ -23,7 +23,7 @@ SOURCE_FAILURES = {
     "connection": "资料连接不可用", "timeout": "资料查询超时", "service": "资料服务暂不可用",
 }
 
-UNAVAILABLE_MESSAGE = "官方资料服务暂不可用，开放、预约、门票和临时公告仍待核实；可继续使用地图查询，不启用付费服务。"
+UNAVAILABLE_MESSAGE = "网页资料服务暂不可用，未取得的信息不能作为规划依据；可继续使用地图查询，不启用付费服务。"
 
 
 class ExaTools:
@@ -38,7 +38,7 @@ class ExaTools:
 
     @property
     def failure_message(self) -> str:
-        return SOURCE_FAILURES.get(self.failure or "", "资料查询失败") + "，当前运行暂停资料查询；开放、预约和门票仍待核实，可继续地图查询，不启用付费服务。"
+        return SOURCE_FAILURES.get(self.failure or "", "资料查询失败") + "，当前运行暂停资料查询；保留已取得资料，可继续地图查询，不启用付费服务。"
 
     async def discover(self) -> None:
         self.declarations = []
@@ -53,7 +53,7 @@ class ExaTools:
             cursor = page.next_cursor
         names = {tool["name"] for tool in self.declarations}
         if not names & SEARCH_TOOLS or not names & EXTRACT_TOOLS:
-            raise RuntimeError("官方资料服务未提供搜索与正文提取工具。")
+            raise RuntimeError("网页资料服务未提供搜索与正文提取工具。")
 
     async def call(self, name: str, arguments: dict[str, Any], *,
                    observer: Callable[[str, dict[str, Any]], Awaitable[None]] | None = None,
@@ -139,7 +139,7 @@ class ExaTools:
         if any(any(marker in code for marker in ("cap_reached", "rate_limit", "quota", "credit")) for code in codes):
             self.failure = "rate_limit" if any("rate_limit" in code for code in codes) else "quota"
             # 服务返回的付款、注册和奖励指令仅保留在原始轨迹，不作为模型操作要求。
-            return await finish({"content": "资料免费额度耗尽或限流，开放、预约和门票仍待核实；可继续使用地图，不切换付费或领取奖励额度。", "is_error": True}, self.failure)
+            return await finish({"content": "资料免费额度耗尽或限流，未取得的信息不能作为规划依据；可继续使用地图，不切换付费或领取奖励额度。", "is_error": True}, self.failure)
         texts = [block.text for block in result.content if block.type == "text"]
         error_text = "\n".join(texts)
         if result.is_error or re.match(r"Error:", error_text, re.IGNORECASE):
@@ -161,7 +161,7 @@ class ExaTools:
         if not sources:
             category = "empty" if parsed_failure or not any(text.strip() for text in texts) or any(
                 re.search(r"no (?:results|content) found", text, re.IGNORECASE) for text in texts) else "malformed"
-            return await finish({"content": "资料未返回可用搜索线索或正文，未完成正文核实；开放、预约和门票仍待核实，可继续地图查询。", "is_error": True}, category)
+            return await finish({"content": "资料未返回可用搜索内容或正文，未取得的信息不能作为规划依据；可继续地图查询。", "is_error": True}, category)
         content = self.redact(json.dumps({
             "text": texts, "data": result.structured_content,
             "provider": "exa", "sources": sources, "failed_sources": failed,

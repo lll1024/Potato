@@ -6,8 +6,8 @@ from typing import Any, Callable
 
 HISTORY_TOOLS = {"session_history_search", "session_history_read"}
 HISTORY_DECLARATIONS = [
-    {"name": "session_history_search", "description": "按关键词搜索当前助手会话历史；最多 5 条、每条 200 字符。旧资料须重新核对适用日期、来源及核实状态。", "input_schema": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"], "additionalProperties": False}},
-    {"name": "session_history_read", "description": "按搜索或摘要中的 record_id/protocol_reference 分页读取当前助手会话原文；每页最多 4000 字符，next_offset 可继续读取。历史资料不等于当前已核实事实。", "input_schema": {"type": "object", "properties": {"record_id": {"type": "string"}, "offset": {"type": "integer", "minimum": 0}, "limit": {"type": "integer", "minimum": 1, "maximum": 4000}}, "required": ["record_id"], "additionalProperties": False}},
+    {"name": "session_history_search", "description": "按关键词搜索当前助手会话历史；最多 5 条、每条 200 字符。保留旧资料的来源、适用日期和已知核实状态；回读不自动触发信息核实。", "input_schema": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"], "additionalProperties": False}},
+    {"name": "session_history_read", "description": "按搜索或摘要中的 record_id/protocol_reference 分页读取当前助手会话原文；每页最多 4000 字符，next_offset 可继续读取。历史资料不等于当前已核实事实；状态仅供参考，不要求自动查证。", "input_schema": {"type": "object", "properties": {"record_id": {"type": "string"}, "offset": {"type": "integer", "minimum": 0}, "limit": {"type": "integer", "minimum": 1, "maximum": 4000}}, "required": ["record_id"], "additionalProperties": False}},
 ]
 
 

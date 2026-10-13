@@ -1,0 +1,315 @@
+{
+  "date": "2026-10-13",
+  "fixed_base": "4fff3d26ef43a18a4a19263d50240a5ff4d130ae",
+  "model": "现有MODEL_ID配置的真实模型，未另行选型",
+  "fixtures": "地图和网页为固定MCP返回，resume为持久化未完成轮次夹具；不作为真实场馆政策依据",
+  "context_compaction": "真实模型采样显式关闭，机制另由自动回归覆盖",
+  "method": "脚本收集真实回答与公开工具轨迹；退出码只表示执行是否完成，语义由人工逐条判读",
+  "cost": "记录模型返回用量，未取得部署单价，不计算费用",
+  "samples": {
+    "verification-failed.json.gz": {
+      "requests": 8,
+      "source_calls": 3,
+      "input_tokens": 80305,
+      "output_tokens": 7604,
+      "steps": [
+        {
+          "input": "帮我确认首都博物馆2026年10月20日是否开放。",
+          "duration_ms": 32967,
+          "status": "completed",
+          "source_calls": 3
+        },
+        {
+          "input": "那10月21日呢？",
+          "duration_ms": 19049,
+          "status": "completed",
+          "source_calls": 0
+        },
+        {
+          "input": "2026年10月17日北京一日游，上午首都博物馆，下午玉渊潭公园，不安排餐饮，只坐公交。给活动顺序和两地之间的交通耗时。",
+          "duration_ms": 30147,
+          "status": "completed",
+          "source_calls": 0
+        },
+        {
+          "input": "日期改成2026年10月18日，其他安排不变。",
+          "duration_ms": 12621,
+          "status": "completed",
+          "source_calls": 0
+        }
+      ]
+    },
+    "resume.json.gz": {
+      "requests": 3,
+      "source_calls": 0,
+      "input_tokens": 26084,
+      "output_tokens": 1440,
+      "steps": [
+        {
+          "input": "2026年10月17日北京一日游，上午首都博物馆，下午玉渊潭公园，不安排餐饮，只坐公交。给活动顺序和两地之间的交通耗时。",
+          "duration_ms": 30480,
+          "status": "completed",
+          "source_calls": 0
+        }
+      ]
+    },
+    "opening.json.gz": {
+      "requests": 2,
+      "source_calls": 1,
+      "input_tokens": 15008,
+      "output_tokens": 697,
+      "steps": [
+        {
+          "input": "首都博物馆几点开门？",
+          "duration_ms": 16910,
+          "status": "completed",
+          "source_calls": 1
+        }
+      ]
+    },
+    "verification-final.json.gz": {
+      "requests": 11,
+      "source_calls": 3,
+      "input_tokens": 121025,
+      "output_tokens": 9439,
+      "steps": [
+        {
+          "input": "帮我确认首都博物馆2026年10月20日是否开放。",
+          "duration_ms": 43204,
+          "status": "completed",
+          "source_calls": 3
+        },
+        {
+          "input": "那10月21日呢？",
+          "duration_ms": 15368,
+          "status": "completed",
+          "source_calls": 0
+        },
+        {
+          "input": "2026年10月17日北京一日游，上午首都博物馆，下午玉渊潭公园，不安排餐饮，只坐公交。给活动顺序和两地之间的交通耗时。",
+          "duration_ms": 31375,
+          "status": "completed",
+          "source_calls": 0
+        },
+        {
+          "input": "日期改成2026年10月18日，其他安排不变。",
+          "duration_ms": 9601,
+          "status": "completed",
+          "source_calls": 0
+        }
+      ]
+    },
+    "booking.json.gz": {
+      "requests": 7,
+      "source_calls": 1,
+      "input_tokens": 58451,
+      "output_tokens": 5379,
+      "steps": [
+        {
+          "input": "找首都博物馆预约入口。",
+          "duration_ms": 21277,
+          "status": "completed",
+          "source_calls": 1,
+          "booking_link_present": true
+        },
+        {
+          "input": "2026年10月17日北京一日游，上午首都博物馆，下午玉渊潭公园，不安排餐饮，只坐公交。给活动顺序和两地之间的交通耗时。",
+          "duration_ms": 30334,
+          "status": "completed",
+          "source_calls": 0,
+          "booking_link_present": true
+        },
+        {
+          "input": "日期改成2026年10月18日，其他安排不变。",
+          "duration_ms": 15794,
+          "status": "completed",
+          "source_calls": 0,
+          "booking_link_present": true
+        }
+      ]
+    },
+    "default-before.json.gz": {
+      "requests": 6,
+      "source_calls": 5,
+      "input_tokens": 50444,
+      "output_tokens": 3885,
+      "steps": [
+        {
+          "input": "2026年10月17日北京一日游，上午首都博物馆，下午玉渊潭公园，不安排餐饮，只坐公交。给活动顺序和两地之间的交通耗时。",
+          "duration_ms": 55428,
+          "status": "completed",
+          "source_calls": 5
+        }
+      ]
+    },
+    "guide.json.gz": {
+      "requests": 4,
+      "source_calls": 3,
+      "input_tokens": 32521,
+      "output_tokens": 1277,
+      "steps": [
+        {
+          "input": "搜一下北京博物馆周末有什么玩法，推荐一个玩法并注明资料来源。",
+          "duration_ms": 28865,
+          "status": "completed",
+          "source_calls": 3
+        }
+      ]
+    },
+    "default-final.json.gz": {
+      "requests": 3,
+      "source_calls": 0,
+      "input_tokens": 22279,
+      "output_tokens": 1742,
+      "steps": [
+        {
+          "input": "2026年10月17日北京一日游，上午首都博物馆，下午玉渊潭公园，不安排餐饮，只坐公交。给活动顺序和两地之间的交通耗时。",
+          "duration_ms": 23037,
+          "status": "completed",
+          "source_calls": 0
+        }
+      ]
+    },
+    "cli.json.gz": {
+      "requests": 4,
+      "source_calls": 0,
+      "input_tokens": 32851,
+      "output_tokens": 2161,
+      "steps": []
+    },
+    "restart.json.gz": {
+      "requests": 6,
+      "source_calls": 3,
+      "input_tokens": 49190,
+      "output_tokens": 3025,
+      "steps": [
+        {
+          "input": "帮我确认首都博物馆2026年10月20日是否开放。",
+          "duration_ms": 31150,
+          "status": "completed",
+          "source_calls": 3
+        },
+        {
+          "input": "2026年10月17日北京一日游，上午首都博物馆，下午玉渊潭公园，不安排餐饮，只坐公交。给活动顺序和两地之间的交通耗时。",
+          "duration_ms": 35773,
+          "status": "completed",
+          "source_calls": 0
+        }
+      ]
+    },
+    "conflict-final.json.gz": {
+      "requests": 3,
+      "source_calls": 0,
+      "input_tokens": 25689,
+      "output_tokens": 2550,
+      "steps": [
+        {
+          "input": "已有资料写首都博物馆常规周一闭馆，另一个来源说周一开放，两份资料矛盾。我打算2026年10月19日周一上午去，不替换地点，请给参观安排建议。",
+          "duration_ms": 28394,
+          "status": "completed",
+          "source_calls": 0
+        }
+      ]
+    },
+    "conflict-failed.json.gz": {
+      "requests": 3,
+      "source_calls": 0,
+      "input_tokens": 24786,
+      "output_tokens": 2361,
+      "steps": [
+        {
+          "input": "已有资料写首都博物馆常规周一闭馆，另一个来源说周一开放，两份资料矛盾。我打算2026年10月19日周一上午去，不替换地点，请给参观安排建议。",
+          "duration_ms": 27890,
+          "status": "completed",
+          "source_calls": 0
+        }
+      ]
+    },
+    "entry-omission.json.gz": {
+      "requests": 5,
+      "source_calls": 1,
+      "input_tokens": 42998,
+      "output_tokens": 2659,
+      "steps": [
+        {
+          "input": "找首都博物馆预约入口。",
+          "duration_ms": 15627,
+          "status": "completed",
+          "source_calls": 1,
+          "booking_link_present": true
+        },
+        {
+          "input": "2026年10月17日北京一日游，上午首都博物馆，下午玉渊潭公园，不安排餐饮，只坐公交。给活动顺序和两地之间的交通耗时。",
+          "duration_ms": 22451,
+          "status": "completed",
+          "source_calls": 0,
+          "booking_link_present": false
+        }
+      ]
+    }
+  },
+  "validation": {
+    "backend": {
+      "tests": 298,
+      "duration_seconds": 250.811,
+      "failures": 0,
+      "errors": 0
+    },
+    "frontend": {
+      "tests": 13,
+      "failures": 0,
+      "build": "passed"
+    },
+    "pyright": {
+      "errors": 0,
+      "warnings": 0
+    },
+    "diff_check": "passed",
+    "review": {
+      "standards_unresolved": 0,
+      "spec_unresolved": 0,
+      "spec_initial_p2": 1,
+      "spec_fixed_p2": 2
+    },
+    "final_entry_regression": {
+      "tests": 26,
+      "failures": 0,
+      "errors": 0
+    }
+  },
+  "system_characters": {
+    "baseline": 8874,
+    "after_compacting": 8802,
+    "final": 8845
+  },
+  "integration": {
+    "base": "1d8915624a7cad177ad4da6b8396e64c1a94a93a",
+    "system_matches_reviewed_f9ba5a9": true,
+    "system_characters": 8845,
+    "pyright_errors": 0,
+    "standards_unresolved": 0,
+    "spec_unresolved": 0,
+    "cli": {
+      "exit_code": 0,
+      "web_calls": 0
+    },
+    "booking": {
+      "web_calls_by_turn": [
+        1,
+        0,
+        0
+      ],
+      "existing_link_preserved": [
+        true,
+        true,
+        true
+      ]
+    },
+    "backend": {
+      "tests": 298,
+      "duration_seconds": 247.091,
+      "failures": 0,
+      "errors": 0
+    }
+  }
+}

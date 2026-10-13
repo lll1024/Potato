@@ -233,8 +233,8 @@ class SourceFailureTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(snapshot["tool_calls"][1]["status"], "failed")
                         materials = snapshot["turns"][0]["query_materials"]
                         self.assertEqual(len(materials), 1)
-                        self.assertIn("搜索线索", materials[0]["title"])
-                        self.assertIn("正文尚未核实", materials[0]["title"])
+                        self.assertIn("搜索资料", materials[0]["title"])
+                        self.assertIn("摘录", materials[0]["title"])
                         self.assertEqual(len(service.map_calls), 1)
                         self.assertTrue(model.requests[1]["messages"][-1]["content"][1]["is_error"])
 
@@ -461,7 +461,7 @@ class SourceFailureTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual([tool["status"] for tool in before["tool_calls"]], ["completed", "failed"])
                 materials = before["turns"][0]["query_materials"]
                 self.assertEqual(len(materials), 1)
-                self.assertIn("正文尚未核实", materials[0]["title"])
+                self.assertIn("摘录", materials[0]["title"])
                 error_payload = (await client.get("/api/payloads/" + before["requests"][1]["error_payload_id"])).json()
                 self.assertNotIn("model-error-secret", str(error_payload))
                 retry = (await client.post("/api/turns", json={"input": "继续查地点", "session_id": accepted["session_id"]})).json()

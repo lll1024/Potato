@@ -97,7 +97,7 @@ def summarize_query(name, result, travel_input, date_context=None):
     elif name in READABLE_SOURCE_TOOLS:
         search = name in SEARCH_TOOLS | LEGACY_SEARCH_TOOLS
         exa = name in SOURCE_TOOLS
-        title = "官方资料搜索线索（正文尚未核实）" if search else "来源正文（身份与日期仍须核对）"
+        title = "网页搜索资料（摘录）" if search else "网页资料（正文）"
         try:
             envelope = json.loads(result["content"])
         except (ValueError, TypeError, KeyError):
@@ -126,32 +126,27 @@ def summarize_query(name, result, travel_input, date_context=None):
                         label = "取得正文："
                     lines.append(label + body)
                 if not search and not body:
-                    lines.append("正文未取得，规则仍待核实。")
+                    lines.append("正文未取得。")
                 if retrieved_at:
                     lines.append("查询时间：" + str(retrieved_at))
                 if exa:
                     kind_label = {"generated_summary": "生成摘要", "highlights": "摘录", "search_text": "搜索返回内容", "page_body": "页面正文"}
                     lines.append("提供方：Exa；内容类型：" + kind_label.get(str(source.get("content_type", "")), "未返回"))
-                if not scalar(source.get("published_date")):
-                    lines.append("来源发布时间未返回。")
-                if not scalar(source.get("applicable_dates")):
-                    lines.append("适用日期未返回，须核对正文与旅行日期。")
                 if lines:
                     entries.append(lines)
         if entries:
             dates = date_context.get("travel_dates", {}) if date_context else {}
             if dates.get("status") == "resolved":
-                notes.append(f"本次核对的旅行日期：{dates['start_date']} 至 {dates['end_date']}；须逐项核对正文的适用日期与条件，不能据此保证当日开放。")
+                notes.append(f"当前旅行日期：{dates['start_date']} 至 {dates['end_date']}。")
             else:
-                notes.append("旅行日期尚未确定，来源规则对旅行日期的适用性仍待核实。")
-            notes.append("搜索摘要仅提供线索；来源身份、官方指定渠道及正文适用日期须核对。" if search else
-                         "取得正文不等于已核实官方身份或未来当天开放；常规规则、临时公告及冲突须按旅行日期核对。")
-            notes.append("预订入口须遵守官方渠道限制；入口可访问不代表有票或已预约、已预订。")
+                notes.append("旅行日期尚未确定，资料的日期适用性未知。")
+            notes.append("资料获取不代表完成信息核实；开放、预约和门票等信息由旅行者出行前自行核实。")
+            notes.append("预订入口不代表有票或已预约、已预订。")
             if exa:
-                notes.append("正文可能受字符上限截断或条件不完整，缺失内容不能证明开放、预约或门票结论；信息不足仍待核实。")
+                notes.append("正文或摘录可能受字符上限截断，缺失内容不能证明不存在限制。")
                 notes.append("查询时间含时区，仅表示本次调用取得返回的时间，不是页面更新时间或服务重新抓取时间；不保证实时正文。")
         if data.get("failed_results") or exa and isinstance(envelope, dict) and envelope.get("failed_sources"):
-            notes.append("部分页面正文读取失败，对应开放、预约及门票规则仍待核实。")
+            notes.append("部分页面内容未取得，保留已取得的查询资料。")
             if exa:
                 for failure in envelope["failed_sources"]:
                     if isinstance(failure, dict):
