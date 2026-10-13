@@ -1,0 +1,621 @@
+{
+  "before": {
+    "full_log": "/tmp/potato-spec56/full-backend-final.log",
+    "window": 40000,
+    "input_budget": 28000,
+    "pressure_threshold": 22400,
+    "organization": {
+      "before_tokens": 29109,
+      "after_tokens": 22546,
+      "changed_result_count": 1,
+      "pressure_remaining": true
+    },
+    "incremental_read": {
+      "adopted_versions": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "travel_input_before_read": 27025,
+      "is_error": true,
+      "content": "当前完整模型上下文余量不足以读取原文，请先压缩历史。"
+    },
+    "date": {
+      "input": "我们2026年10月18日在杭州游览，请查景区开放时间",
+      "observed_start_date": "2026-10-13",
+      "expected_start_date": "2026-10-18",
+      "dates_changed_missing": true
+    }
+  },
+  "after": [
+    {
+      "events": [
+        {
+          "kind": "context.date",
+          "data": {}
+        },
+        {
+          "kind": "context.checked",
+          "data": {
+            "estimated_tokens": 19202,
+            "input_budget": 28000,
+            "version": 0,
+            "record_ids": [
+              "message:1"
+            ]
+          }
+        },
+        {
+          "kind": "context.usage",
+          "data": {}
+        },
+        {
+          "kind": "context.organized",
+          "data": {
+            "before_tokens": 28149,
+            "after_tokens": 22226,
+            "changed_result_count": 1,
+            "pressure_threshold": 22400,
+            "pressure_remaining": false,
+            "version": 0,
+            "record_ids": [
+              "message:1",
+              "message:2",
+              "message:3"
+            ]
+          }
+        },
+        {
+          "kind": "context.checked",
+          "data": {
+            "estimated_tokens": 22226,
+            "input_budget": 28000,
+            "version": 0,
+            "record_ids": [
+              "message:1",
+              "message:2",
+              "message:3"
+            ]
+          }
+        },
+        {
+          "kind": "context.usage",
+          "data": {}
+        }
+      ],
+      "requests": [
+        {
+          "purpose": "travel",
+          "status": "completed",
+          "ordinal": 1
+        },
+        {
+          "purpose": "travel",
+          "status": "completed",
+          "ordinal": 2
+        }
+      ]
+    },
+    {
+      "events": [
+        {
+          "kind": "context.date",
+          "data": {}
+        },
+        {
+          "kind": "context.checked",
+          "data": {
+            "estimated_tokens": 19419,
+            "input_budget": 28000,
+            "version": 0,
+            "record_ids": [
+              "message:1"
+            ]
+          }
+        },
+        {
+          "kind": "context.usage",
+          "data": {}
+        },
+        {
+          "kind": "context.organized",
+          "data": {
+            "before_tokens": 25478,
+            "after_tokens": 25478,
+            "changed_result_count": 0,
+            "pressure_threshold": 22400,
+            "pressure_remaining": true,
+            "version": 0,
+            "record_ids": [
+              "message:1",
+              "message:2",
+              "message:3"
+            ]
+          }
+        },
+        {
+          "kind": "context.checked",
+          "data": {
+            "estimated_tokens": 25478,
+            "input_budget": 28000,
+            "version": 0,
+            "record_ids": [
+              "message:1",
+              "message:2",
+              "message:3"
+            ]
+          }
+        },
+        {
+          "kind": "context.usage",
+          "data": {}
+        },
+        {
+          "kind": "context.organized",
+          "data": {
+            "before_tokens": 31537,
+            "after_tokens": 31537,
+            "changed_result_count": 0,
+            "pressure_threshold": 22400,
+            "pressure_remaining": true,
+            "version": 0,
+            "record_ids": [
+              "message:1",
+              "message:2",
+              "message:3",
+              "message:4",
+              "message:5"
+            ]
+          }
+        },
+        {
+          "kind": "context.summary_started",
+          "data": {
+            "version": 0
+          }
+        },
+        {
+          "kind": "context.usage",
+          "data": {}
+        },
+        {
+          "kind": "context.summary_result",
+          "data": {
+            "version": 0
+          }
+        },
+        {
+          "kind": "context.validated",
+          "data": {
+            "valid": true,
+            "reason": null,
+            "version": 1
+          }
+        },
+        {
+          "kind": "context.candidate",
+          "data": {
+            "version": 1
+          }
+        },
+        {
+          "kind": "context.adopted",
+          "data": {
+            "version": 1,
+            "before_tokens": 31537,
+            "after_tokens": 26060
+          }
+        },
+        {
+          "kind": "context.checked",
+          "data": {
+            "estimated_tokens": 26060,
+            "input_budget": 28000,
+            "version": 1,
+            "record_ids": [
+              "summary:1",
+              "message:1",
+              "message:4",
+              "message:5"
+            ]
+          }
+        },
+        {
+          "kind": "context.usage",
+          "data": {}
+        },
+        {
+          "kind": "context.organized",
+          "data": {
+            "before_tokens": 32119,
+            "after_tokens": 32119,
+            "changed_result_count": 0,
+            "pressure_threshold": 22400,
+            "pressure_remaining": true,
+            "version": 1,
+            "record_ids": [
+              "summary:1",
+              "message:1",
+              "message:4",
+              "message:5",
+              "message:6",
+              "message:7"
+            ]
+          }
+        },
+        {
+          "kind": "context.summary_started",
+          "data": {
+            "version": 1
+          }
+        },
+        {
+          "kind": "context.usage",
+          "data": {}
+        },
+        {
+          "kind": "context.summary_result",
+          "data": {
+            "version": 1
+          }
+        },
+        {
+          "kind": "context.validated",
+          "data": {
+            "valid": true,
+            "reason": null,
+            "version": 2
+          }
+        },
+        {
+          "kind": "context.candidate",
+          "data": {
+            "version": 2
+          }
+        },
+        {
+          "kind": "context.adopted",
+          "data": {
+            "version": 2,
+            "before_tokens": 32119,
+            "after_tokens": 26115
+          }
+        },
+        {
+          "kind": "context.checked",
+          "data": {
+            "estimated_tokens": 26115,
+            "input_budget": 28000,
+            "version": 2,
+            "record_ids": [
+              "summary:2",
+              "message:1",
+              "message:6",
+              "message:7"
+            ]
+          }
+        },
+        {
+          "kind": "context.usage",
+          "data": {}
+        },
+        {
+          "kind": "context.organized",
+          "data": {
+            "before_tokens": 32174,
+            "after_tokens": 32174,
+            "changed_result_count": 0,
+            "pressure_threshold": 22400,
+            "pressure_remaining": true,
+            "version": 2,
+            "record_ids": [
+              "summary:2",
+              "message:1",
+              "message:6",
+              "message:7",
+              "message:8",
+              "message:9"
+            ]
+          }
+        },
+        {
+          "kind": "context.summary_started",
+          "data": {
+            "version": 2
+          }
+        },
+        {
+          "kind": "context.usage",
+          "data": {}
+        },
+        {
+          "kind": "context.summary_result",
+          "data": {
+            "version": 2
+          }
+        },
+        {
+          "kind": "context.validated",
+          "data": {
+            "valid": true,
+            "reason": null,
+            "version": 3
+          }
+        },
+        {
+          "kind": "context.candidate",
+          "data": {
+            "version": 3
+          }
+        },
+        {
+          "kind": "context.adopted",
+          "data": {
+            "version": 3,
+            "before_tokens": 32174,
+            "after_tokens": 26170
+          }
+        },
+        {
+          "kind": "context.checked",
+          "data": {
+            "estimated_tokens": 26170,
+            "input_budget": 28000,
+            "version": 3,
+            "record_ids": [
+              "summary:3",
+              "message:1",
+              "message:8",
+              "message:9"
+            ]
+          }
+        },
+        {
+          "kind": "context.usage",
+          "data": {}
+        },
+        {
+          "kind": "context.organized",
+          "data": {
+            "before_tokens": 32229,
+            "after_tokens": 32229,
+            "changed_result_count": 0,
+            "pressure_threshold": 22400,
+            "pressure_remaining": true,
+            "version": 3,
+            "record_ids": [
+              "summary:3",
+              "message:1",
+              "message:8",
+              "message:9",
+              "message:10",
+              "message:11"
+            ]
+          }
+        },
+        {
+          "kind": "context.summary_started",
+          "data": {
+            "version": 3
+          }
+        },
+        {
+          "kind": "context.usage",
+          "data": {}
+        },
+        {
+          "kind": "context.summary_result",
+          "data": {
+            "version": 3
+          }
+        },
+        {
+          "kind": "context.validated",
+          "data": {
+            "valid": true,
+            "reason": null,
+            "version": 4
+          }
+        },
+        {
+          "kind": "context.candidate",
+          "data": {
+            "version": 4
+          }
+        },
+        {
+          "kind": "context.adopted",
+          "data": {
+            "version": 4,
+            "before_tokens": 32229,
+            "after_tokens": 26225
+          }
+        },
+        {
+          "kind": "context.checked",
+          "data": {
+            "estimated_tokens": 26225,
+            "input_budget": 28000,
+            "version": 4,
+            "record_ids": [
+              "summary:4",
+              "message:1",
+              "message:10",
+              "message:11"
+            ]
+          }
+        },
+        {
+          "kind": "context.usage",
+          "data": {}
+        },
+        {
+          "kind": "context.organized",
+          "data": {
+            "before_tokens": 27999,
+            "after_tokens": 27999,
+            "changed_result_count": 0,
+            "pressure_threshold": 22400,
+            "pressure_remaining": true,
+            "version": 4,
+            "record_ids": [
+              "summary:4",
+              "message:1",
+              "message:10",
+              "message:11",
+              "message:12",
+              "message:13"
+            ]
+          }
+        },
+        {
+          "kind": "context.checked",
+          "data": {
+            "estimated_tokens": 27999,
+            "input_budget": 28000,
+            "version": 4,
+            "record_ids": [
+              "summary:4",
+              "message:1",
+              "message:10",
+              "message:11",
+              "message:12",
+              "message:13"
+            ]
+          }
+        },
+        {
+          "kind": "context.usage",
+          "data": {}
+        },
+        {
+          "kind": "context.saved",
+          "data": {
+            "version": 4
+          }
+        }
+      ],
+      "requests": [
+        {
+          "purpose": "travel",
+          "status": "completed",
+          "ordinal": 1
+        },
+        {
+          "purpose": "travel",
+          "status": "completed",
+          "ordinal": 2
+        },
+        {
+          "purpose": "context_summary",
+          "status": "completed",
+          "ordinal": 3
+        },
+        {
+          "purpose": "travel",
+          "status": "completed",
+          "ordinal": 4
+        },
+        {
+          "purpose": "context_summary",
+          "status": "completed",
+          "ordinal": 5
+        },
+        {
+          "purpose": "travel",
+          "status": "completed",
+          "ordinal": 6
+        },
+        {
+          "purpose": "context_summary",
+          "status": "completed",
+          "ordinal": 7
+        },
+        {
+          "purpose": "travel",
+          "status": "completed",
+          "ordinal": 8
+        },
+        {
+          "purpose": "context_summary",
+          "status": "completed",
+          "ordinal": 9
+        },
+        {
+          "purpose": "travel",
+          "status": "completed",
+          "ordinal": 10
+        },
+        {
+          "purpose": "travel",
+          "status": "completed",
+          "ordinal": 11
+        }
+      ],
+      "read": {
+        "is_error": false,
+        "page": {
+          "record_id": "message:3",
+          "protocol_reference": "message:3",
+          "kind": "protocol_message",
+          "turn_ordinal": 1,
+          "source": "history",
+          "history_status": "recorded",
+          "records": [
+            {
+              "record_id": "payload:19f4c612577d4938bc6526f0ef54b385",
+              "payload_id": "19f4c612577d4938bc6526f0ef54b385",
+              "turn_id": "2f2b9a767d3246d18c247ebde29b3dfc",
+              "turn_ordinal": 1,
+              "kind": "tool_result",
+              "source": "maps_text_search",
+              "history_status": "completed",
+              "turn_status": "running",
+              "tool_call_id": "9a5c4799b4314bc9b8ecb4e941652a57",
+              "request_id": "0971468b31de41ed8dc0461364e749ad",
+              "protocol_reference": "message:3:block:0",
+              "verification_status": "historical_requires_recheck"
+            },
+            {
+              "record_id": "payload:1a94940254c04a8b8f19948a4a934007",
+              "payload_id": "1a94940254c04a8b8f19948a4a934007",
+              "turn_id": "2f2b9a767d3246d18c247ebde29b3dfc",
+              "turn_ordinal": 1,
+              "kind": "tool_result",
+              "source": "maps_text_search",
+              "history_status": "completed",
+              "turn_status": "running",
+              "tool_call_id": "1e0c1d1bcb914829a05a16128dd1671f",
+              "request_id": "0971468b31de41ed8dc0461364e749ad",
+              "protocol_reference": "message:3:block:1",
+              "verification_status": "historical_requires_recheck"
+            }
+          ],
+          "verification_status": "historical_requires_recheck",
+          "offset": 0,
+          "end_offset": 393,
+          "total": 2904,
+          "next_offset": 393,
+          "encoding": "unicode_code_points"
+        },
+        "source_prefix_preserved": true
+      },
+      "original_tool_results": [
+        {
+          "type": "tool_result",
+          "full_text_characters": 1423,
+          "full_text_preserved": true
+        },
+        {
+          "type": "tool_result",
+          "full_text_characters": 1423,
+          "full_text_preserved": true
+        }
+      ]
+    }
+  ],
+  "passed": true,
+  "cause": "最终质量验证新增固定系统规则及独立偏好空背景增加了请求开销。两个测试场景的无语义填充量需留出整理和回读余量；生产容量、阈值与原文保存未变。",
+  "organization_fixture_body_repeats": 80
+}

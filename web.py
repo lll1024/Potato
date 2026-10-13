@@ -31,6 +31,7 @@ from mcp.client.streamable_http import streamable_http_client
 from pydantic import BaseModel, Field
 
 from agent import SERVICE_MESSAGE, agent_loop
+from model_context import ContextView, ContextConfigurationError, ContextPolicy
 from amap_http import AmapHTTPClient
 from amap_mcp import AmapTools
 from travel_tools import TravelTools, connected_travel_tools
@@ -48,6 +49,7 @@ class Runtime:
 
 @asynccontextmanager
 async def configured_resources():
+    ContextPolicy.from_env()
     api_key = os.getenv("AMAP_MAPS_API_KEY", "").strip()
     if not api_key or not os.getenv("MODEL_ID"):
         raise RuntimeError("请配置 AMAP_MAPS_API_KEY 和 MODEL_ID。")
@@ -146,7 +148,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             async with lifespan(app):
                 yield
         except Exception as error:
-            app.state.startup_error = str(error) if isinstance(error,StartupError) else "服务无法启动，请检查配置或存储后重启。"
+            app.state.startup_error = str(error) if isinstance(error,(StartupError,ContextConfigurationError)) else "服务无法启动，请检查配置或存储后重启。"
             raise RuntimeError(app.state.startup_error) from None
 
     app = FastAPI(lifespan=safe_lifespan)
@@ -222,15 +224,18 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
         nonlocal active,accepting
         messages: list[MessageParam] = []
         outcome: dict[str, Any] = {}
+        context_view = None
         started = asyncio.get_running_loop().time()
         async def observe(kind, data):
             if kind == "turn.finished":
                 outcome.update(data)
-            elif kind.startswith(("request.","tool.")):
+            elif kind.startswith(("request.","tool.","context.")):
                 safe = json.loads(runtime.tools.redact(json.dumps(data,ensure_ascii=False)))
                 try:
                     if kind.startswith("request."):
                         store.observe_request(identity["session_id"],identity["turn_id"],kind,safe)
+                    elif kind.startswith("context."):
+                        store.observe_context(identity["session_id"],identity["turn_id"],kind,safe)
                     else:
                         store.observe_tool(identity["session_id"],identity["turn_id"],kind,safe)
                 except Exception:
@@ -240,9 +245,18 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                     storage_failed(message,kind=kind,turn_id=identity["turn_id"])
                     raise TraceStorageError(message) from None
                 changed.set()
+        def history_records():
+            try:
+                return store.history_records(identity["session_id"])
+            except Exception:
+                message = "历史原文无法可靠读取，已停止后续查询；仅保留最后成功提交的事实。"
+                storage_failed(message, kind="tool.history_read", turn_id=identity["turn_id"])
+                raise TraceStorageError(message) from None
         try:
             try:
                 messages = store.context(identity["session_id"]) + [{"role":"user","content":text}]
+                state = store.context_state(identity["session_id"])
+                context_view = ContextView.from_state(state, messages) if state else ContextView.from_history(messages)
                 previous_date_context = store.date_context(identity["session_id"])
                 previous_source_materials = store.source_context(identity["session_id"])
                 preference_snapshot = store.preferences.snapshot()
@@ -252,7 +266,8 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                 raise TraceStorageError from None
             answer = await agent_loop(messages,runtime.client,runtime.tools,runtime.model,observer=observe,stop_requested=stop_requested,stop_reason=lambda: stop_reason,
                                       preference_background=background, clock=clock, previous_date_context=previous_date_context,
-                                      previous_source_materials=previous_source_materials)
+                                      previous_source_materials=previous_source_materials, context_view=context_view,
+                                      history_records=history_records)
         except TraceStorageError:
             active = None
             changed.set()
@@ -266,7 +281,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
             answer = runtime.tools.redact(answer)
             messages = json.loads(runtime.tools.redact(json.dumps(messages,ensure_ascii=False)))
             store.finish(identity["session_id"],identity["turn_id"],answer,messages,outcome,
-                         max(0,(asyncio.get_running_loop().time()-started)*1000), preference_now=preference_clock())
+                         max(0,(asyncio.get_running_loop().time()-started)*1000), preference_now=preference_clock(), context_view=context_view)
         except Exception:
             # 保存失败时停止接受输入，保留最后提交事实，不能伪报终局已保存。
             storage_failed("轮次结果未保存；仅保留最后成功提交的事实。",kind="turn.finished",turn_id=identity["turn_id"])

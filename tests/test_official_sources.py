@@ -88,7 +88,7 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
                     turn = saved["turns"][0]
                     self.assertEqual(turn["status"], "completed")
                     names = {tool["name"] for tool in model.requests[0]["tools"]}
-                    self.assertEqual(names, {"maps_text_search", "web_search_exa", "web_fetch_exa"})
+                    self.assertEqual(names, {"maps_text_search", "web_search_exa", "web_fetch_exa", "session_history_search", "session_history_read"})
                     search_result = model.requests[1]["messages"][-1]["content"][1]
                     self.assertEqual(search_result["tool_use_id"], "search")
                     self.assertIn(url, search_result["content"])
@@ -156,7 +156,7 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
             result = await run_cli("map-key")
         self.assertEqual(result, 0)
         names = {tool["name"] for tool in model.requests[0]["tools"]}
-        self.assertEqual(names, {"maps_text_search", "web_search_exa", "web_fetch_exa"})
+        self.assertEqual(names, {"maps_text_search", "web_search_exa", "web_fetch_exa", "session_history_search", "session_history_read"})
         self.assertEqual(model.requests[2]["messages"][-1]["content"][0]["tool_use_id"], "cli-body")
         self.assertIn("官方小程序", model.requests[2]["messages"][-1]["content"][0]["content"])
         self.assertIn("尚未完成预约", output.getvalue())
@@ -228,7 +228,7 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("authorization", requests[0].headers)
         self.assertNotIn("paid-key-must-not-be-used", str(requests[0].headers) + str(requests[0].url))
         self.assertIn("官方资料服务暂不可用", model.requests[0]["system"])
-        self.assertEqual({tool["name"] for tool in model.requests[0]["tools"]}, {"maps_text_search"})
+        self.assertEqual({tool["name"] for tool in model.requests[0]["tools"]}, {"maps_text_search", "session_history_search", "session_history_read"})
         self.assertIn("北京市", model.requests[1]["messages"][-1]["content"][0]["content"])
 
 

@@ -1,0 +1,29 @@
+...............Executing <Task finished name='Task-753' coro=<create_app.<locals>.execute() done, defined at /Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/web.py:223> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.134 seconds
+...................HTTP Request: POST http://sources.test/mcp "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/efe0bfe585074a1dbd9b1f507cb542b0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/efe0bfe585074a1dbd9b1f507cb542b0 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/efe0bfe585074a1dbd9b1f507cb542b0 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/efe0bfe585074a1dbd9b1f507cb542b0 "HTTP/1.1 200 OK"
+.
+----------------------------------------------------------------------
+Ran 35 tests in 22.035s
+
+OK

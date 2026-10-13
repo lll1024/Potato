@@ -376,7 +376,7 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("杭州市西湖区", answer)
         self.assertEqual(
             {tool["name"] for tool in model.requests[0]["tools"]},
-            {"maps_text_search", "maps_search_detail"},
+            {"maps_text_search", "maps_search_detail", "session_history_search", "session_history_read"},
         )
         search_result = model.requests[1]["messages"][-1]["content"][0]
         self.assertEqual(json.loads(search_result["content"])["data"]["pois"][0]["id"], "west-lake")

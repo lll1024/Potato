@@ -96,3 +96,57 @@ test('未结束调用没有伪造结束边界或区间', () => {
   assert.match(html, /请求开始/);
   assert.doesNotMatch(html, /请求结束/);
 });
+
+const ContextMaintenance = await component('ContextMaintenance', 'ContextMaintenance');
+test('摘要结果、校验、轮内采用和保存供续聊分别显示，状态不泄露摘要正文', () => {
+  const events = [
+    {event_id:'1',turn_id:'turn',kind:'context.summary_started',data:{}},
+    {event_id:'2',turn_id:'turn',kind:'context.summary_result',data:{status:'completed'}},
+    {event_id:'3',turn_id:'turn',kind:'context.validated',data:{valid:true}},
+    {event_id:'4',turn_id:'turn',kind:'context.adopted',data:{before_tokens:25000,after_tokens:19000}},
+  ];
+  const render = events => renderToStaticMarkup(createElement(ContextMaintenance, {events,turnId:'turn'}));
+  assert.match(render(events), /摘要请求已返回，等待校验/);
+  assert.match(render(events), /摘要校验通过/);
+  assert.match(render(events), /摘要已用于本轮/);
+  assert.doesNotMatch(render(events), /已保存供续聊/);
+  const saved = render([...events,{event_id:'5',turn_id:'turn',kind:'context.saved',data:{version:1}}]);
+  assert.match(saved, /摘要已保存供续聊/);
+  assert.equal(render([{event_id:'other',turn_id:'other',kind:'context.saved'}]), '');
+});
+
+test('工具结果整理展示前后估算、处理项数与剩余压力', () => {
+  const html = renderToStaticMarkup(createElement(ContextMaintenance, {turnId:'turn',events:[
+    {event_id:'organized',turn_id:'turn',kind:'context.organized',data:{before_tokens:25000,after_tokens:23000,changed_result_count:2,pressure_remaining:true}}
+  ]}));
+  assert.match(html, /25000 → 23000 tokens/);
+  assert.match(html, /整理 2 项/);
+  assert.match(html, /仍有上下文压力/);
+});
+
+test('超限恢复区分准备、实际请求和返回，不把准备状态显示为已经恢复', () => {
+  const render = events => renderToStaticMarkup(createElement(ContextMaintenance, {events,turnId:'turn'}));
+  const prepared = [
+    {event_id:'exceeded',turn_id:'turn',kind:'context.exceeded'},
+    {event_id:'prepared',turn_id:'turn',kind:'context.recovery_prepared',data:{before_tokens:20000,after_tokens:15000,reduced:true,allowed:true}},
+  ];
+  assert.match(render(prepared), /服务报告上下文超限/);
+  assert.match(render(prepared), /已缩小且符合预算/);
+  assert.doesNotMatch(render(prepared), /正在恢复原模型步骤|已返回有效响应/);
+  assert.match(render([...prepared,{event_id:'started',turn_id:'turn',kind:'context.recovery_started'}]), /正在恢复原模型步骤/);
+  assert.match(render([...prepared,{event_id:'result',turn_id:'turn',kind:'context.recovery_result',data:{status:'completed'}}]), /原模型步骤已返回有效响应/);
+  assert.match(render([{event_id:'blocked',turn_id:'turn',kind:'context.recovery_prepared',data:{reduced:false,allowed:true}}]), /未获得预算内的有效缩减/);
+});
+
+test('服务中断后整理状态区分摘要未知与曾采用但未保存，不再显示整理进行中', () => {
+  for (const used of [false, true]) {
+    const html = renderToStaticMarkup(createElement(ContextMaintenance, {turnId: 'turn', events: [
+      {event_id: 'started', turn_id: 'turn', kind: 'context.summary_started'},
+      {event_id: 'recovered', turn_id: 'turn', kind: 'context.discarded', data: {used_in_turn: used, result_unknown: !used}},
+    ]}));
+    if (used) assert.match(html, /已弃用/);
+    assert.doesNotMatch(html, /<details[^>]*open/);
+    assert.match(html, used ? /曾用于本轮，未保存供续聊/ : /摘要请求结果未知/);
+    assert.doesNotMatch(html, /摘要已保存供续聊/);
+  }
+});

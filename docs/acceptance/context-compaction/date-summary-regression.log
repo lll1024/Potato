@@ -1,0 +1,38 @@
+Executing <Task pending name='Task-2' coro=<TravelDateCorrectionTests.test_calendar_day_followed_by_touring_is_one_day_not_ten_days() running at /Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/tests/test_travel_date_corrections.py:51> wait_for=<Future pending cb=[Task.task_wakeup()] created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py:460> cb=[_run_until_complete_cb() at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py:181] created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py:110> took 0.187 seconds
+Executing <Task pending name='Task-2' coro=<TravelDateCorrectionTests.test_calendar_day_followed_by_touring_is_one_day_not_ten_days() running at /Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/tests/test_travel_date_corrections.py:51> wait_for=<Future pending cb=[Task.task_wakeup()] created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py:460> cb=[_run_until_complete_cb() at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py:181] created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py:110> took 0.107 seconds
+..........................Executing <Task finished name='Task-335' coro=<create_app.<locals>.execute() done, defined at /Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/web.py:223> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.107 seconds
+.Executing <Task finished name='Task-377' coro=<create_app.<locals>.execute() done, defined at /Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/web.py:223> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.102 seconds
+.Executing <Task finished name='Task-429' coro=<create_app.<locals>.execute() done, defined at /Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/web.py:223> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.127 seconds
+.Executing <Task finished name='Task-448' coro=<ContextSummaryTests.test_cli_keeps_summary_within_process_and_prints_short_status() done, defined at /Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/tests/test_context_summary.py:193> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py:110> took 0.119 seconds
+..Executing <Task finished name='Task-647' coro=<create_app.<locals>.execute() done, defined at /Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/web.py:223> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.224 seconds
+.Executing <Task pending name='Task-668' coro=<LifespanOn.main() running at /Users/jarviliu/projects/travel/.venv/lib/python3.14/site-packages/uvicorn/lifespan/on.py:86> wait_for=<Future pending cb=[Task.task_wakeup()] created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py:460> created at /Users/jarviliu/projects/travel/.venv/lib/python3.14/site-packages/uvicorn/lifespan/on.py:51> took 0.130 seconds
+Executing <Task finished name='Task-672' coro=<create_app.<locals>.execute() done, defined at /Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/web.py:223> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.217 seconds
+....Executing <Task pending name='Task-874' coro=<create_app.<locals>.execute() running at /Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/web.py:267> wait_for=<Future pending cb=[Task.task_wakeup()] created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py:460> created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.158 seconds
+...HTTP Request: POST http://sources.test/mcp "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/3cfebcad1c4145e48f1b46c498cd1f29 "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/3cfebcad1c4145e48f1b46c498cd1f29 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/3cfebcad1c4145e48f1b46c498cd1f29 "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/3cfebcad1c4145e48f1b46c498cd1f29 "HTTP/1.1 200 OK"
+.
+----------------------------------------------------------------------
+Ran 40 tests in 15.003s
+
+OK

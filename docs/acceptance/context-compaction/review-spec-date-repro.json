@@ -1,0 +1,55 @@
+{
+  "input": "我们2026年10月18日在杭州游览，请查景区开放时间",
+  "baseline_date_context": {
+    "timezone": "Asia/Shanghai",
+    "now": "2026-10-14T10:00:00+08:00",
+    "today": "2026-10-14",
+    "weekday": "星期三",
+    "travel_dates": {
+      "status": "resolved",
+      "start_date": "2026-10-18",
+      "end_date": "2026-10-18",
+      "source": "explicit",
+      "explanation": "显式日期优先；省略年份时采用本轮北京时间的年份，起始日期与天数推导结束日期。",
+      "reference_time": "2026-10-14T10:00:00+08:00"
+    },
+    "dates_changed": true,
+    "previous_travel_dates": {
+      "status": "resolved",
+      "start_date": "2026-10-13",
+      "end_date": "2026-10-13",
+      "source": "明天",
+      "explanation": "按本轮北京时间的次日解释。",
+      "reference_time": "2026-10-12T10:00:00+08:00"
+    }
+  },
+  "model_date_context": {
+    "timezone": "Asia/Shanghai",
+    "now": "2026-10-14T10:00:00+08:00",
+    "today": "2026-10-14",
+    "weekday": "星期三",
+    "travel_dates": {
+      "status": "resolved",
+      "start_date": "2026-10-13",
+      "end_date": "2026-10-13",
+      "source": "明天",
+      "explanation": "按本轮北京时间的次日解释。",
+      "reference_time": "2026-10-12T10:00:00+08:00"
+    }
+  },
+  "public_date_context": {
+    "timezone": "Asia/Shanghai",
+    "now": "2026-10-14T10:00:00+08:00",
+    "today": "2026-10-14",
+    "weekday": "星期三",
+    "travel_dates": {
+      "status": "resolved",
+      "start_date": "2026-10-13",
+      "end_date": "2026-10-13",
+      "source": "明天",
+      "explanation": "按本轮北京时间的次日解释。",
+      "reference_time": "2026-10-12T10:00:00+08:00"
+    }
+  },
+  "requests": 2
+}

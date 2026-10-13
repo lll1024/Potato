@@ -1,0 +1,47 @@
+{
+  "production_commit": "be001c2d9c6f691bc0089f2c16e663ceacf026fe",
+  "backend": {
+    "tests": 296,
+    "seconds": 236.78,
+    "status": "passed",
+    "log": "backend-after-review.log.gz"
+  },
+  "python_types": {
+    "modules": 16,
+    "errors": 0,
+    "warnings": 0,
+    "log": "pyright-after-review.log"
+  },
+  "frontend": {
+    "tests": 13,
+    "production_build": "passed",
+    "note": "前端代码在后续确定性日期/请求构造修复中未变，使用已有通过记录"
+  },
+  "browser": {
+    "cases": 2,
+    "seconds": 47.2,
+    "widths": [
+      1440,
+      390
+    ],
+    "screenshots": 6,
+    "status": "passed"
+  },
+  "review": {
+    "standards_unresolved": 0,
+    "spec_unresolved": 0,
+    "report": "review.md"
+  },
+  "previous_failures": [
+    {
+      "tests": 292,
+      "errors": 1,
+      "log": "backend-first-failure.log.gz"
+    },
+    {
+      "tests": 295,
+      "failures": 2,
+      "log": "backend-before-review-fixes.log.gz"
+    }
+  ]
+}

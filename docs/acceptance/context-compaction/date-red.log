@@ -1,0 +1,20 @@
+E
+======================================================================
+ERROR: test_source_dates_and_opening_question_do_not_reschedule_after_restart (test_travel_date_corrections.TravelDateCorrectionTests.test_source_dates_and_opening_question_do_not_reschedule_after_restart)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py", line 720, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/Users/jarviliu/.codex/worktrees/spec56-acceptance/travel/tests/test_travel_date_corrections.py", line 132, in test_source_dates_and_opening_question_do_not_reschedule_after_restart
+    self.assertEqual(context["travel_dates"]["start_date"], "2026-10-13")
+                     ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+KeyError: 'start_date'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.111s
+
+FAILED (errors=1)
