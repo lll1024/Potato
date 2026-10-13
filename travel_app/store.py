@@ -6,11 +6,11 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
-from query_materials import READABLE_SOURCE_TOOLS, summarize_query
-from amap_mcp import PLACE_TOOLS, DINING_TOOLS, WEATHER_TOOLS, ROUTE_TOOLS
-from travel_dates import saved_date_context
-from preferences import PreferenceStore
-from session_history import source_metadata
+from travel_app.query_materials import READABLE_SOURCE_TOOLS, summarize_query
+from travel_app.amap_mcp import PLACE_TOOLS, DINING_TOOLS, WEATHER_TOOLS, ROUTE_TOOLS
+from travel_app.travel_dates import saved_date_context
+from travel_app.preferences import PreferenceStore
+from travel_app.session_history import source_metadata
 
 SCHEMA_VERSION = 1
 

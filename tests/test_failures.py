@@ -12,9 +12,9 @@ from mcp import Client
 from mcp.shared.exceptions import MCPError
 from mcp.types import CONNECTION_CLOSED, INVALID_PARAMS, REQUEST_TIMEOUT
 
-from agent import agent_loop
-from amap_mcp import AmapTools
-from limits import MAX_ROUNDS
+from travel_app.agent import agent_loop
+from travel_app.amap_mcp import AmapTools
+from travel_app.limits import MAX_ROUNDS
 from test_agent import MapService, ModelService, response
 
 
@@ -271,7 +271,7 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
                               for index in range(MAX_ROUNDS + 1)])
         history = [{"role": "user", "content": "持续查询西湖"}]
         # 放宽工具预算以单独触发默认模型预算；不消耗真实额度和限速等待。
-        with patch("amap_mcp.MAP_CALL_INTERVAL", 0):
+        with patch("travel_app.amap_mcp.MAP_CALL_INTERVAL", 0):
             answer = await agent_loop(history, cast(AsyncAnthropic, model), tools,
                                       "test-model", max_tool_calls=MAX_ROUNDS + 1)
             self.assertEqual(len(model.requests), MAX_ROUNDS)

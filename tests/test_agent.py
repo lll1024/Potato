@@ -9,8 +9,8 @@ from anthropic import AsyncAnthropic
 from anthropic.types import Message
 from mcp import Client
 
-from amap_mcp import AmapTools
-from agent import agent_loop
+from travel_app.amap_mcp import AmapTools
+from travel_app.agent import agent_loop
 
 
 def response(content, stop_reason="end_turn"):

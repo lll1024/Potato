@@ -6,9 +6,9 @@ from dataclasses import dataclass
 import json
 from uuid import uuid4
 
-from model_context import ContextView
-from model_retry import EmptyModelResponse, model_failure, retry_delay
-from session_history import HISTORY_TOOLS
+from travel_app.model_context import ContextView
+from travel_app.model_retry import EmptyModelResponse, model_failure, retry_delay
+from travel_app.session_history import HISTORY_TOOLS
 
 @dataclass(frozen=True)
 class SummaryResult:

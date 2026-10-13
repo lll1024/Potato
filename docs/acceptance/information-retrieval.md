@@ -1,6 +1,6 @@
 # 默认资料获取与按需信息核实验收
 
-2026-10-13 按已接受的 [ADR 0007](../adr/0007-information-retrieval-with-opt-in-verification.md) 实施。功能基于远程主分支 `4fff3d26ef43a18a4a19263d50240a5ff4d130ae`，不包含尚未合入主分支的后端目录重组。
+2026-10-13 按已接受的 [ADR 0007](../adr/0007-information-retrieval-with-opt-in-verification.md) 实施。初次开发基于远程主分支 `4fff3d26ef43a18a4a19263d50240a5ff4d130ae`；用户授权合并后，同步已合入后端目录重组的主分支 `1d8915624a7cad177ad4da6b8396e64c1a94a93a`，运行实现与验收脚本适配 `travel_app/` 包布局。
 
 ## 行为与范围
 
@@ -60,6 +60,12 @@ CLI/Web 共用系统指令。历史回读、摘要与中断资料索引保留来
 共发现并修复 2 个 P2：缺失馆内资料时编写具体场馆事实，以及后续普通规划遗漏已有入口。两项均已真实模型定向复验；专项规范压缩后的静态复审未发现边界回退。当前未解决发现 0 项。
 
 两轴汇总：Standards 0 项；Spec 0 项未解决。最终[后端全套回归](information-retrieval/full-final.log.gz) **298 项通过，250.811 秒**；pyright **0 错误、0 警告**；前端 **13 项通过**，生产构建和 `git diff --check` 通过。
+
+## 合并主分支后的复验
+
+用户授权合并 PR #72 时，主分支已通过 PR #71 迁入 `travel_app/` 并集中上下文维护与 Web 轮次运行职责。冲突解决保留新的启动入口与运行结构，将本次系统指令及资料索引提示迁入包内；逐字比对确认 SYSTEM 与已审查提交 `f9ba5a9` 一致，8,845 字符。验收脚本同步使用 `travel_app.*` 导入与实际 CLI 替换目标。
+
+[合并后完整回归](information-retrieval/merge-backend.log.gz) **298 项通过，247.091 秒**，pyright **0 错误、0 警告**。两个独立审查代理以新主分支 `1d89156` 为基线增量复审，Standards 与 Spec 遗留均为 0。[CLI 真实模型复验](information-retrieval/merge-cli.json.gz)正常退出，默认规划 0 次网页核实调用；[Web 三轮复验](information-retrieval/merge-booking.json.gz)找入口执行 1 次搜索，后续普通规划与改期均保留入口链接且没有追加网页查询。地图、网页仍为控制资料，适用前述采样限制。
 
 ## 限制
 

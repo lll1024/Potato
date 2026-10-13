@@ -1,0 +1,88 @@
+
+> travel-local-ui@0.1.0 test:ui
+> playwright test --config /var/folders/gt/8qx7txk930n09zc4s5l0wfqh0000gn/T/backend-organization-browser-6456od2d/playwright.config.ts recovery-live.spec.ts preferences-recovery-live.spec.ts
+
+
+Running 3 tests using 1 worker
+
+(node:68595) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/ui/preferences-recovery-live.spec.ts:7:1 › 正式页面区分闲置等待、提取、有限重试和失败，已有偏好及普通回答仍可用 (0ms)
+(node:68602) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 tests/ui/recovery-live.spec.ts:6:3 › 正式页面 1280px：失败、摘要、轨迹与新轮次重试贯通 (0ms)
+(node:68613) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 tests/ui/recovery-live.spec.ts:6:3 › 正式页面 390px：失败、摘要、轨迹与新轮次重试贯通 (0ms)
+
+
+  1) tests/ui/preferences-recovery-live.spec.ts:7:1 › 正式页面区分闲置等待、提取、有限重试和失败，已有偏好及普通回答仍可用 ───────────
+
+    Error: browserType.launch: Target page, context or browser has been closed
+    Browser logs:
+
+    <launching> /Applications/Google Chrome.app/Contents/MacOS/Google Chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,NetworkTimeServiceQuerying,AimEnabled,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/gt/8qx7txk930n09zc4s5l0wfqh0000gn/T/playwright_chromiumdev_profile-nuP6Sy --remote-debugging-pipe --no-startup-window
+    <launched> pid=68596
+    Call log:
+      - <launching> /Applications/Google Chrome.app/Contents/MacOS/Google Chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,NetworkTimeServiceQuerying,AimEnabled,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/gt/8qx7txk930n09zc4s5l0wfqh0000gn/T/playwright_chromiumdev_profile-nuP6Sy --remote-debugging-pipe --no-startup-window
+      - <launched> pid=68596
+      - [pid=68596] <gracefully close start>
+      - [pid=68596] <kill>
+      - [pid=68596] <will force kill>
+      - [pid=68596] exception while trying to kill process: Error: kill EPERM
+      - [pid=68596] <process did exit: exitCode=null, signal=SIGABRT>
+      - [pid=68596] starting temporary directories cleanup
+      - [pid=68596] finished temporary directories cleanup
+      - [pid=68596] <gracefully close end>
+
+
+    Error Context: ../../../../../var/folders/gt/8qx7txk930n09zc4s5l0wfqh0000gn/T/backend-organization-browser-6456od2d/results/preferences-recovery-live-正式页面区分闲置等待、提取、有限重试和失败，已有偏好及普通回答仍可用/error-context.md
+
+  2) tests/ui/recovery-live.spec.ts:6:3 › 正式页面 1280px：失败、摘要、轨迹与新轮次重试贯通 ─────────────────────────────
+
+    Error: browserType.launch: Target page, context or browser has been closed
+    Browser logs:
+
+    <launching> /Applications/Google Chrome.app/Contents/MacOS/Google Chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,NetworkTimeServiceQuerying,AimEnabled,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/gt/8qx7txk930n09zc4s5l0wfqh0000gn/T/playwright_chromiumdev_profile-327jtO --remote-debugging-pipe --no-startup-window
+    <launched> pid=68611
+    Call log:
+      - <launching> /Applications/Google Chrome.app/Contents/MacOS/Google Chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,NetworkTimeServiceQuerying,AimEnabled,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/gt/8qx7txk930n09zc4s5l0wfqh0000gn/T/playwright_chromiumdev_profile-327jtO --remote-debugging-pipe --no-startup-window
+      - <launched> pid=68611
+      - [pid=68611] <gracefully close start>
+      - [pid=68611] <kill>
+      - [pid=68611] <will force kill>
+      - [pid=68611] exception while trying to kill process: Error: kill EPERM
+      - [pid=68611] <process did exit: exitCode=null, signal=SIGABRT>
+      - [pid=68611] starting temporary directories cleanup
+      - [pid=68611] finished temporary directories cleanup
+      - [pid=68611] <gracefully close end>
+
+
+    Error Context: ../../../../../var/folders/gt/8qx7txk930n09zc4s5l0wfqh0000gn/T/backend-organization-browser-6456od2d/results/recovery-live-正式页面-1280px：失败、摘要、轨迹与新轮次重试贯通/error-context.md
+
+  3) tests/ui/recovery-live.spec.ts:6:3 › 正式页面 390px：失败、摘要、轨迹与新轮次重试贯通 ──────────────────────────────
+
+    Error: browserType.launch: Target page, context or browser has been closed
+    Browser logs:
+
+    <launching> /Applications/Google Chrome.app/Contents/MacOS/Google Chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,NetworkTimeServiceQuerying,AimEnabled,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/gt/8qx7txk930n09zc4s5l0wfqh0000gn/T/playwright_chromiumdev_profile-yRGQxn --remote-debugging-pipe --no-startup-window
+    <launched> pid=68614
+    Call log:
+      - <launching> /Applications/Google Chrome.app/Contents/MacOS/Google Chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,NetworkTimeServiceQuerying,AimEnabled,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/gt/8qx7txk930n09zc4s5l0wfqh0000gn/T/playwright_chromiumdev_profile-yRGQxn --remote-debugging-pipe --no-startup-window
+      - <launched> pid=68614
+      - [pid=68614] <gracefully close start>
+      - [pid=68614] <kill>
+      - [pid=68614] <will force kill>
+      - [pid=68614] exception while trying to kill process: Error: kill EPERM
+      - [pid=68614] <process did exit: exitCode=null, signal=SIGABRT>
+      - [pid=68614] starting temporary directories cleanup
+      - [pid=68614] finished temporary directories cleanup
+      - [pid=68614] <gracefully close end>
+
+
+    Error Context: ../../../../../var/folders/gt/8qx7txk930n09zc4s5l0wfqh0000gn/T/backend-organization-browser-6456od2d/results/recovery-live-正式页面-390px：失败、摘要、轨迹与新轮次重试贯通/error-context.md
+
+  3 failed
+    tests/ui/preferences-recovery-live.spec.ts:7:1 › 正式页面区分闲置等待、提取、有限重试和失败，已有偏好及普通回答仍可用 ────────────
+    tests/ui/recovery-live.spec.ts:6:3 › 正式页面 1280px：失败、摘要、轨迹与新轮次重试贯通 ──────────────────────────────
+    tests/ui/recovery-live.spec.ts:6:3 › 正式页面 390px：失败、摘要、轨迹与新轮次重试贯通 ───────────────────────────────

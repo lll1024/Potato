@@ -1,0 +1,20 @@
+test_sigint_waits_for_real_call_then_exits_cleanly_and_unlocks_history (test_web_entrypoint.WebEntrypointTests.test_sigint_waits_for_real_call_then_exits_cleanly_and_unlocks_history) ... StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 53696)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=58296 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:53697/api/state "HTTP/1.1 502 Bad Gateway"
+HTTP Request: GET http://127.0.0.1:53697/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:53697/api/turns "HTTP/1.1 202 Accepted"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=58296 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code 0
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=58321 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:53767/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53767/api/sessions/3a407172ff39428b89f5b9ab4c228721 "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=58321 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+StreamableHTTP session manager shutting down
+ok
+
+----------------------------------------------------------------------
+Ran 1 test in 8.809s
+
+OK

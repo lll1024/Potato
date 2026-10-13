@@ -1,0 +1,3 @@
+browser-recovery.log: exit=0
+browser-original-context.log: exit=1
+隔离补充上下文场景通过；原场景结果须单独读取。

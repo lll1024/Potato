@@ -1,13 +1,13 @@
 """共享地图与网页资料的工具声明、分派及连接生命周期。"""
 from contextlib import AsyncExitStack, asynccontextmanager
 
-from source_http import SourceHTTPClient
+from travel_app.source_http import SourceHTTPClient
 from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 
-from amap_mcp import AmapTools
-from limits import TOOL_TIMEOUT
-from exa_mcp import EXA_URL, SOURCE_TOOLS, ExaTools, UNAVAILABLE_MESSAGE
+from travel_app.amap_mcp import AmapTools
+from travel_app.limits import TOOL_TIMEOUT
+from travel_app.exa_mcp import EXA_URL, SOURCE_TOOLS, ExaTools, UNAVAILABLE_MESSAGE
 
 
 class TravelTools:

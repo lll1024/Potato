@@ -1,0 +1,10 @@
+{
+  "checks": [
+    "根 CLI 启动入口读取项目根 .env 并覆盖环境；--check-amap 不要求模型凭据",
+    "Web 项目根 .env、默认静态资源、显式静态覆盖、启动参数有效",
+    "默认 .travel-data 与相对 data-dir 均落于启动工作目录",
+    "CLI 与 Web 缺少配置/构建及非法参数诊断、退出码保持"
+  ],
+  "passed": 4,
+  "external_calls": 0
+}

@@ -9,8 +9,8 @@ from unittest.mock import patch
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from agent import agent_loop
-from amap_mcp import AmapTools
+from travel_app.agent import agent_loop
+from travel_app.amap_mcp import AmapTools
 from test_agent import ModelService, response
 from test_dining import tool_call
 
@@ -166,7 +166,7 @@ class ItineraryTests(unittest.IsolatedAsyncioTestCase):
                               for reply in replies[:-1] for block in reply.content]
         sequential_replies.append(replies[-1])
         for scenario, model_replies in (("批量查询", replies), ("逐条查询", sequential_replies)):
-            with self.subTest(scenario=scenario), patch("amap_mcp.MAP_CALL_INTERVAL", 0):
+            with self.subTest(scenario=scenario), patch("travel_app.amap_mcp.MAP_CALL_INTERVAL", 0):
                 service = ItineraryMapService(outcomes)
                 tools = AmapTools(cast(Client, service))
                 await tools.discover()

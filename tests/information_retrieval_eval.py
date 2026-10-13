@@ -25,13 +25,13 @@ from dotenv import load_dotenv
 from mcp import Client
 from mcp.server import MCPServer
 
-from agent import SYSTEM, run_cli
-from amap_mcp import AmapTools
-from exa_mcp import ExaTools
-from travel_tools import TravelTools
-from store import Store
-from travel_dates import model_date_context, turn_date_context
-from web import Runtime, create_app
+from travel_app.agent import SYSTEM, run_cli
+from travel_app.amap_mcp import AmapTools
+from travel_app.exa_mcp import ExaTools
+from travel_app.travel_tools import TravelTools
+from travel_app.store import Store
+from travel_app.travel_dates import model_date_context, turn_date_context
+from travel_app.web import Runtime, create_app
 
 
 NOW = datetime.fromisoformat("2026-10-13T10:00:00+08:00")
@@ -196,9 +196,9 @@ async def cli(real):
     async def model_context(**kwargs):
         yield model
     output = io.StringIO()
-    with patch("agent.Client", side_effect=lambda *args, **kwargs: Client(maps)), \
-         patch("travel_tools.Client", side_effect=lambda *args, **kwargs: Client(sources)), \
-         patch("agent.AsyncAnthropic", side_effect=model_context), \
+    with patch("travel_app.agent.Client", side_effect=lambda *args, **kwargs: Client(maps)), \
+         patch("travel_app.travel_tools.Client", side_effect=lambda *args, **kwargs: Client(sources)), \
+         patch("travel_app.agent.AsyncAnthropic", side_effect=model_context), \
          patch("builtins.input", side_effect=[PLAN, "exit"]), redirect_stdout(output):
         exit_code = await run_cli("controlled-map-key", clock=lambda: NOW)
     return {"case": "cli", "entry": "run_cli", "exit_code": exit_code, "answer": output.getvalue(),

@@ -1,0 +1,11 @@
+[WebServer] (node:62022) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:62023) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/ui/recovery-live.spec.ts:6:3 › 正式页面 1280px：失败、摘要、轨迹与新轮次重试贯通 (3.5s)
+  ✓  2 tests/ui/recovery-live.spec.ts:6:3 › 正式页面 390px：失败、摘要、轨迹与新轮次重试贯通 (2.3s)
+
+  2 passed (10.7s)

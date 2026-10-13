@@ -1,0 +1,7 @@
+Executing <Task finished name='Task-2' coro=<ContextRecoveryTests.test_cli_distinguishes_exceeded_prepared_started_and_returned_without_summary_body() done, defined at /var/folders/gt/8qx7txk930n09zc4s5l0wfqh0000gn/T/backend-organization-jtr4onj3/baseline/tests/test_context_limit_recovery.py:176> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py:110> took 0.132 seconds
+......Executing <Task pending name='Task-396' coro=<create_app.<locals>.execute() running at /private/var/folders/gt/8qx7txk930n09zc4s5l0wfqh0000gn/T/backend-organization-jtr4onj3/baseline/web.py:267> wait_for=<Future pending cb=[Task.task_wakeup()] created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py:460> created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.106 seconds
+..............
+----------------------------------------------------------------------
+Ran 20 tests in 19.970s
+
+OK

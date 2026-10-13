@@ -99,9 +99,9 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
         from typing import cast
         from anthropic import AsyncAnthropic
         from mcp import Client
-        from agent import agent_loop
-        from amap_mcp import AmapTools
-        from model_context import ContextView, ContextPolicy
+        from travel_app.agent import agent_loop
+        from travel_app.amap_mcp import AmapTools
+        from travel_app.model_context import ContextView, ContextPolicy
         from test_agent import MapService
         history = [{"role": "user", "content": "旧酒店细节原文"}, {"role": "assistant", "content": "旧回答"},
                    {"role": "user", "content": "继续规划"}]
@@ -133,9 +133,9 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
         from typing import cast
         from anthropic import AsyncAnthropic
         from mcp import Client
-        from agent import agent_loop
-        from amap_mcp import AmapTools
-        from model_context import ContextPolicy
+        from travel_app.agent import agent_loop
+        from travel_app.amap_mcp import AmapTools
+        from travel_app.model_context import ContextPolicy
         from test_agent import MapService
         class LargeMap(MapService):
             async def call_tool(self, name, arguments):
@@ -155,7 +155,7 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("酒店早餐价格待核实" * 3000, history[2]["content"][0]["content"])
 
     async def test_web_startup_configuration_error_is_actionable(self):
-        from web import create_app
+        from travel_app.web import create_app
         with patch.dict(os.environ, {"CONTEXT_COMPACTION_ENABLED": "true"}, clear=True), tempfile.TemporaryDirectory() as directory:
             app = create_app(directory)
             with self.assertRaisesRegex(RuntimeError, "MODEL_CONTEXT_WINDOW"):
@@ -166,9 +166,9 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
         from typing import cast
         from anthropic import AsyncAnthropic
         from mcp import Client
-        from agent import agent_loop
-        from amap_mcp import AmapTools
-        from model_context import ContextPolicy
+        from travel_app.agent import agent_loop
+        from travel_app.amap_mcp import AmapTools
+        from travel_app.model_context import ContextPolicy
         from test_agent import MapService
         huge = "中文查询资料价格条件" * 3000
         for component in ("preferences", "tools", "materials"):
@@ -192,9 +192,9 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
         from unittest.mock import AsyncMock
         from anthropic import AsyncAnthropic
         from mcp import Client
-        from agent import agent_loop
-        from amap_mcp import AmapTools
-        from model_context import ContextPolicy
+        from travel_app.agent import agent_loop
+        from travel_app.amap_mcp import AmapTools
+        from travel_app.model_context import ContextPolicy
         from test_agent import MapService
         from test_model_retry import RetryModel
         first = response([])
@@ -202,7 +202,7 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
         model = RetryModel([first, response([{"type": "text", "text": "不应发送"}])])
         tools = AmapTools(cast(Client, MapService()))
         await tools.discover()
-        with patch("agent.asyncio.sleep", new_callable=AsyncMock):
+        with patch("travel_app.agent.asyncio.sleep", new_callable=AsyncMock):
             answer = await agent_loop([{"role": "user", "content": "杭州旅行"}], cast(AsyncAnthropic, model), tools, "test-model", context_policy=ContextPolicy(40000))
         self.assertIn("安全预算", answer)
         self.assertEqual(len(model.requests), 1)

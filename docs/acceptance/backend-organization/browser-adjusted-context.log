@@ -1,0 +1,13 @@
+
+> travel-local-ui@0.1.0 test:ui
+> playwright test --config /var/folders/gt/8qx7txk930n09zc4s5l0wfqh0000gn/T/backend-package-browser-o452p80h/playwright.config.ts
+
+
+Running 2 tests using 1 worker
+
+(node:68952) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 ../../../../../private/var/folders/gt/8qx7txk930n09zc4s5l0wfqh0000gn/T/backend-package-browser-o452p80h/context-compaction-live.spec.ts:26:7 › 真实服务的上下文采用、保存、停止和中断事实 1440 (18.3s)
+  ✓  2 ../../../../../private/var/folders/gt/8qx7txk930n09zc4s5l0wfqh0000gn/T/backend-package-browser-o452p80h/context-compaction-live.spec.ts:26:7 › 真实服务的上下文采用、保存、停止和中断事实 390 (18.3s)
+
+  2 passed (37.5s)

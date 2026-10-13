@@ -1,0 +1,52 @@
+{
+  "base": "4fff3d26ef43a18a4a19263d50240a5ff4d130ae",
+  "branch": "codex/backend-organization",
+  "backend": {
+    "tests": 296,
+    "seconds": 242.795,
+    "passed": true,
+    "command": ".venv/bin/python -m unittest discover -s tests -v"
+  },
+  "typecheck": {
+    "errors": 0,
+    "warnings": 0,
+    "command": ".venv/bin/pyright --pythonpath .venv/bin/python agent.py web.py travel_app"
+  },
+  "frontend": {
+    "tests": 13,
+    "passed": true,
+    "build_passed": true
+  },
+  "browser": {
+    "original": {
+      "passed": 3,
+      "failed": 2
+    },
+    "baseline_context": {
+      "failed": 2,
+      "reason": "原夹具首轮输入超过安全预算"
+    },
+    "isolated_context": {
+      "passed": 2,
+      "seconds": 37.3,
+      "changed_repetitions": {
+        "310": 260,
+        "350": 280,
+        "550": 450
+      },
+      "assertions_unchanged": true,
+      "production_window": 40000
+    }
+  },
+  "resource_groups": 4,
+  "existing_data_read_and_continued": true,
+  "old_internal_imports": [],
+  "protected_changes": [],
+  "mechanical_modules": 16,
+  "scope": "#67目录与导航，未完成父规格后续职责整理；未重跑真实外部模型/地图",
+  "navigation_links": 145,
+  "review": {
+    "standards_findings": 0,
+    "spec_findings": 0
+  }
+}

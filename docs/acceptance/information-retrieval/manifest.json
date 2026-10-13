@@ -281,5 +281,35 @@
     "baseline": 8874,
     "after_compacting": 8802,
     "final": 8845
+  },
+  "integration": {
+    "base": "1d8915624a7cad177ad4da6b8396e64c1a94a93a",
+    "system_matches_reviewed_f9ba5a9": true,
+    "system_characters": 8845,
+    "pyright_errors": 0,
+    "standards_unresolved": 0,
+    "spec_unresolved": 0,
+    "cli": {
+      "exit_code": 0,
+      "web_calls": 0
+    },
+    "booking": {
+      "web_calls_by_turn": [
+        1,
+        0,
+        0
+      ],
+      "existing_link_preserved": [
+        true,
+        true,
+        true
+      ]
+    },
+    "backend": {
+      "tests": 298,
+      "duration_seconds": 247.091,
+      "failures": 0,
+      "errors": 0
+    }
   }
 }

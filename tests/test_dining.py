@@ -7,8 +7,8 @@ import unittest
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from agent import agent_loop
-from amap_mcp import AmapTools
+from travel_app.agent import agent_loop
+from travel_app.amap_mcp import AmapTools
 from test_agent import ModelService, response
 
 

@@ -76,8 +76,8 @@ class IncrementalContextTests(unittest.IsolatedAsyncioTestCase):
                     self.assertTrue(ref.startswith("message:"))
 
     async def test_oversized_history_batches_merge_correction_and_keep_deterministic_dates(self):
-        from model_context import TokenMeter
-        from travel_dates import saved_date_context
+        from travel_app.model_context import TokenMeter
+        from travel_app.travel_dates import saved_date_context
         model = IncrementalModel(groups=0)
         with patch.dict(os.environ, {"CONTEXT_COMPACTION_ENABLED": "false"}, clear=True), tempfile.TemporaryDirectory() as directory:
             async with serving(directory, model) as client:

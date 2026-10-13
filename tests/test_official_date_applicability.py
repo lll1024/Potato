@@ -11,14 +11,14 @@ from anthropic import AsyncAnthropic
 from mcp import Client
 from mcp.server import MCPServer
 
-from amap_mcp import AmapTools
-from exa_mcp import ExaTools
+from travel_app.amap_mcp import AmapTools
+from travel_app.exa_mcp import ExaTools
 from exa_fixtures import source_text
-from travel_tools import TravelTools
+from travel_app.travel_tools import TravelTools
 from test_agent import MapService, ModelService, response
 import test_history
 from test_travel_dates import context_from_request
-from web import Runtime, create_app
+from travel_app.web import Runtime, create_app
 
 
 class OfficialDateApplicabilityTests(unittest.IsolatedAsyncioTestCase):

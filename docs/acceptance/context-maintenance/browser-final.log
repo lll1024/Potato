@@ -1,0 +1,66 @@
+[WebServer] (node:61651) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:61652) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/ui/context-compaction-live.spec.ts:26:3 › 真实服务的上下文采用、保存、停止和中断事实 1440 (8.7s)
+(node:61744) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 tests/ui/context-compaction-live.spec.ts:26:3 › 真实服务的上下文采用、保存、停止和中断事实 390 (8.3s)
+
+
+  1) tests/ui/context-compaction-live.spec.ts:26:3 › 真实服务的上下文采用、保存、停止和中断事实 1440 ────────────────────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('酒店未预订，预算3000元人民币。', { exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByText('酒店未预订，预算3000元人民币。', { exact: true }) with timeout 5000ms
+      - waiting for getByText('酒店未预订，预算3000元人民币。', { exact: true })
+
+
+      33 |       const input = page.getByRole('textbox', {name: '旅行需求'});
+      34 |       await input.fill(original); await page.getByRole('button', {name: /^发送/}).click();
+    > 35 |       await expect(page.getByText('酒店未预订，预算3000元人民币。', {exact: true})).toBeVisible();
+         |                                                                        ^
+      36 |       await input.fill('继续保留原条件'); await page.getByRole('button', {name: /^发送/}).click();
+      37 |       await page.getByRole('button', {name: '轨迹', exact: true}).click();
+      38 |       const maintenance = page.locator('.model-retries').filter({hasText: '旅行记录整理'}).last();
+        at /Users/jarviliu/projects/travel/frontend/tests/ui/context-compaction-live.spec.ts:35:72
+
+    Error Context: test-results/context-compaction-live-真实服务的上下文采用、保存、停止和中断事实-1440/error-context.md
+
+  2) tests/ui/context-compaction-live.spec.ts:26:3 › 真实服务的上下文采用、保存、停止和中断事实 390 ─────────────────────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('酒店未预订，预算3000元人民币。', { exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByText('酒店未预订，预算3000元人民币。', { exact: true }) with timeout 5000ms
+      - waiting for getByText('酒店未预订，预算3000元人民币。', { exact: true })
+
+
+      33 |       const input = page.getByRole('textbox', {name: '旅行需求'});
+      34 |       await input.fill(original); await page.getByRole('button', {name: /^发送/}).click();
+    > 35 |       await expect(page.getByText('酒店未预订，预算3000元人民币。', {exact: true})).toBeVisible();
+         |                                                                        ^
+      36 |       await input.fill('继续保留原条件'); await page.getByRole('button', {name: /^发送/}).click();
+      37 |       await page.getByRole('button', {name: '轨迹', exact: true}).click();
+      38 |       const maintenance = page.locator('.model-retries').filter({hasText: '旅行记录整理'}).last();
+        at /Users/jarviliu/projects/travel/frontend/tests/ui/context-compaction-live.spec.ts:35:72
+
+    Error Context: test-results/context-compaction-live-真实服务的上下文采用、保存、停止和中断事实-390/error-context.md
+
+  2 failed
+    tests/ui/context-compaction-live.spec.ts:26:3 › 真实服务的上下文采用、保存、停止和中断事实 1440 ─────────────────────
+    tests/ui/context-compaction-live.spec.ts:26:3 › 真实服务的上下文采用、保存、停止和中断事实 390 ──────────────────────
