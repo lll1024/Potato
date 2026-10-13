@@ -8,10 +8,10 @@
 | --- | --- | --- |
 | CLI 启动、地图连接检查、退出诊断 | [agent.main / run_cli](../travel_app/agent.py) → 地图连接与旅行模型；`--check-amap` 只检查地图 | [CLI](../tests/test_cli.py)、[真实 MCP](../tests/test_mcp_integration.py) |
 | Web 启动、HTTP/SSE、提交身份、运行名额、停止和生命周期 | [web.main / create_app](../travel_app/web.py) → Store、agent_loop、偏好后台处理 | [正式入口](../tests/test_web_entrypoint.py)、[提交](../tests/test_submissions.py)、[停止](../tests/test_stop.py)、[事件续接](../tests/test_reconnect.py) |
-| 对话轮次、旅行模型步骤、工具执行与观察事实 | [agent_loop](../travel_app/agent.py) → 重试、上下文视图、摘要、旅行日期、历史回读和查询工具 | [助手循环](../tests/test_agent.py)、[模型轨迹](../tests/test_trace.py)、[工具轨迹](../tests/test_tool_trace.py) |
+| 对话轮次、旅行模型步骤、工具执行与观察事实 | [agent_loop](../travel_app/agent.py) → 重试、上下文维护、旅行日期、历史回读和查询工具 | [助手循环](../tests/test_agent.py)、[模型轨迹](../tests/test_trace.py)、[工具轨迹](../tests/test_tool_trace.py) |
 | 普通模型网络重试 | [model_retry](../travel_app/model_retry.py) 判别故障与等待；agent_loop 负责调用及停止边界 | [模型重试](../tests/test_model_retry.py)、[ADR 0004](adr/0004-bounded-model-request-retries.md) |
-| 模型上下文、计量与预算 | [model_context](../travel_app/model_context.py) 的 ContextPolicy、ContextView、TokenMeter；压力与超限分支当前仍由 agent_loop 编排 | [预算](../tests/test_context_budget.py)、[超限恢复](../tests/test_context_limit_recovery.py) |
-| 摘要、完整交互切分、额度与采用校验 | [context_summary](../travel_app/context_summary.py) → 独立摘要请求；agent_loop 采用候选，Store 保存有效版本 | [摘要](../tests/test_context_summary.py)、[增量压缩](../tests/test_context_incremental.py)、[恢复](../tests/test_context_recovery.py) |
+| 模型上下文维护、计量与预算 | agent_loop → [ContextMaintenance](../travel_app/context_maintenance.py) 的 `prepare_request` / `prepare_recovery`；集中持有 ContextView、TokenMeter、整轮摘要额度与失败状态，统一整理、摘要和最终预算检查；基础数据与计量位于 [model_context](../travel_app/model_context.py) | [预算](../tests/test_context_budget.py)、[超限恢复](../tests/test_context_limit_recovery.py) |
+| 摘要、完整交互切分、额度与采用校验 | [context_summary](../travel_app/context_summary.py) → 独立摘要请求；ContextMaintenance 共享整轮额度并调用摘要，摘要职责复核和采用候选，Store 随轮次结果保存有效版本 | [摘要](../tests/test_context_summary.py)、[增量压缩](../tests/test_context_incremental.py)、[恢复](../tests/test_context_recovery.py) |
 | 原始助手会话与工具载荷回读 | [session_history](../travel_app/session_history.py) → Store 原始记录；CLI 使用进程内记录 | [历史回读](../tests/test_session_history.py) |
 | SQLite、助手会话、执行轨迹、提交身份和有效上下文版本 | [Store](../travel_app/store.py) → 查询资料索引、旅行日期、PreferenceStore | [存储故障](../tests/test_storage.py)、[历史](../tests/test_history.py)、[真实进程恢复](../tests/test_recovery.py) |
 | 跨会话旅行者偏好与后台提取 | [preferences](../travel_app/preferences.py) 管理保存、闲置、版本及模型提取；Web 协调后台生命周期 | [偏好](../tests/test_preferences.py)、[管理](../tests/test_preference_management.py)、[重启恢复](../tests/test_preference_recovery.py) |
@@ -28,6 +28,6 @@
 
 ## 实施阶段与依据
 
-[Issue #67](https://github.com/lll1024/Potato/issues/67) 负责本次目录与导航；[Issue #68](https://github.com/lll1024/Potato/issues/68) 后续集中上下文维护职责。Web 运行状态集中属于父规格 [#66](https://github.com/lll1024/Potato/issues/66) 的后续阶段；当前仍在 `create_app` 闭包内，地图不将其描述为已经完成。
+[Issue #67](https://github.com/lll1024/Potato/issues/67) 负责本次目录与导航；[Issue #68](https://github.com/lll1024/Potato/issues/68) 集中上下文维护职责，本次验证见[上下文维护验收](acceptance/context-maintenance.md)。Web 运行状态集中属于父规格 [#66](https://github.com/lll1024/Potato/issues/66) 的后续阶段；当前仍在 `create_app` 闭包内，地图不将其描述为已经完成。
 
 领域词汇见[术语表](../GLOSSARY.md)，兼容与职责决策见 [ADR 0006](adr/0006-backend-package-and-execution-responsibilities.md)。验证结论从[验收索引](acceptance/README.md)进入，旧任务从[历史档案说明](../.scratch/README.md)进入。

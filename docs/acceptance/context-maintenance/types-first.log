@@ -1,0 +1,5 @@
+/Users/jarviliu/projects/travel/travel_app/context_maintenance.py
+  /Users/jarviliu/projects/travel/travel_app/context_maintenance.py:44:54 - error: "pressure_threshold" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/jarviliu/projects/travel/travel_app/context_maintenance.py:66:31 - error: Object of type "None" is not subscriptable (reportOptionalSubscript)
+  /Users/jarviliu/projects/travel/travel_app/context_maintenance.py:73:46 - error: Expected mapping for dictionary unpack operator (reportGeneralTypeIssues)
+3 errors, 0 warnings, 0 informations

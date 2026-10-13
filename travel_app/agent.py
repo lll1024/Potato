@@ -20,8 +20,8 @@ from mcp.client.streamable_http import streamable_http_client
 from travel_app.amap_http import AmapHTTPClient
 from travel_app.amap_mcp import AmapTools, ToolResult
 from travel_app.limits import MAX_ROUNDS, MAX_TOOL_CALLS, TOOL_TIMEOUT
-from travel_app.model_context import ContextConfigurationError, ContextPolicy, ContextView, TokenMeter
-from travel_app.context_summary import earlier_history_cutoff, summarize_history
+from travel_app.model_context import ContextConfigurationError, ContextPolicy, ContextView
+from travel_app.context_maintenance import ContextMaintenance
 from travel_app.model_retry import MAX_RETRIES, EmptyModelResponse, model_failure, retry_delay
 from travel_app.travel_dates import current_time, model_date_context, saved_date_context, turn_date_context
 from travel_app.travel_tools import TravelTools, connected_travel_tools
@@ -238,7 +238,6 @@ async def agent_loop(
         return answer
     view = context_view if context_view is not None else ContextView.from_history(messages)
     view.messages = json.loads(tools.redact(json.dumps(view.messages, ensure_ascii=False)))
-    meter = TokenMeter(model, usage_semantics="anthropic" if not os.getenv("ANTHROPIC_BASE_URL") else "compatible_unknown")
     latest_input = next((message["content"] for message in reversed(messages)
                          if message["role"] == "user" and isinstance(message["content"], str)), "")
     date_context = turn_date_context(str(latest_input), (clock or current_time)(), previous_date_context)
@@ -277,14 +276,17 @@ async def agent_loop(
         return cast(str, stop_reason() if callable(stop_reason) else stop_reason)
 
     request_ordinal = 0
-    summary_attempts = 0
-    summary_blocked = False
     current_turn_start = len(messages) - 1
 
     def next_request_ordinal():
         nonlocal request_ordinal
         request_ordinal += 1
         return request_ordinal
+
+    context = ContextMaintenance(
+        view=view, policy=context_policy, model=model, client=client, tools=tools,
+        date_context=date_context, turn_start=current_turn_start,
+        next_request_ordinal=next_request_ordinal, observer=observer, stop_requested=stop_requested)
 
     for ordinal in range(1, max_rounds + 1):
         if stop_requested and stop_requested.is_set():
@@ -310,42 +312,11 @@ async def agent_loop(
                 stopped = "已停止本轮查询，尚未完成的信息待核实。"
                 reason = requested_reason()
                 break
-            measurement = meter.measure(parameters) if context_policy else None
-            if context_policy is not None and measurement is not None:
-                if not context_recovery and measurement["estimated_tokens"] >= context_policy.pressure_threshold:
-                    before_tokens = measurement["estimated_tokens"]
-                    changed_result_count = view.organize_tool_results()
-                    parameters["messages"] = copy.deepcopy(view.messages)
-                    measurement = meter.measure(parameters)
-                    if observer:
-                        await observer("context.organized", {"before_tokens": before_tokens,
-                            "after_tokens": measurement["estimated_tokens"],
-                            "changed_result_count": changed_result_count,
-                            "pressure_threshold": context_policy.pressure_threshold,
-                            "pressure_remaining": measurement["estimated_tokens"] >= context_policy.pressure_threshold,
-                            "original_watermark": view.original_watermark, "version": view.version,
-                            "record_ids": view.record_ids.copy(), "step": ordinal, "attempt": attempt})
-                if not context_recovery and measurement["estimated_tokens"] >= context_policy.pressure_threshold and summary_attempts < 4 and not summary_blocked:
-                    summary_result = await summarize_history(
-                        view=view, policy=context_policy, meter=meter, parameters=parameters,
-                        client=client, tools=tools, date_context=date_context,
-                        cutoff=earlier_history_cutoff(view, current_turn_start, context_policy, meter),
-                        remaining_attempts=4 - summary_attempts, next_request_ordinal=next_request_ordinal,
-                        observer=observer, stop_requested=stop_requested)
-                    summary_attempts += summary_result.attempts
-                    summary_blocked = summary_result.terminal_failure
-                    parameters["messages"] = copy.deepcopy(view.messages)
-                    measurement = meter.measure(parameters)
-                allowed = measurement["estimated_tokens"] <= context_policy.input_budget
-                if observer:
-                    await observer("context.checked", {**measurement, "window": context_policy.window,
-                        "input_budget": context_policy.input_budget, "allowed": allowed,
-                        "original_watermark": view.original_watermark, "version": view.version,
-                        "record_ids": view.record_ids.copy(), "step": ordinal, "attempt": attempt})
-                if not allowed:
-                    stopped = "完整模型输入超过安全预算，已停止本轮查询；请缩小需求范围或核对 MODEL_CONTEXT_WINDOW。"
-                    reason = "context_budget"
-                    break
+            blocked = await context.prepare_request(parameters, step=ordinal, attempt=attempt, recovering=context_recovery)
+            if blocked:
+                stopped = "完整模型输入超过安全预算，已停止本轮查询；请缩小需求范围或核对 MODEL_CONTEXT_WINDOW。"
+                reason = blocked
+                break
             if stop_requested and stop_requested.is_set():
                 stopped = "已停止本轮查询，尚未完成的信息待核实。"
                 reason = requested_reason()
@@ -390,10 +361,8 @@ async def agent_loop(
                     duration_ms = max(0,(asyncio.get_running_loop().time()-started)*1000)
                     finished_at = datetime.now(timezone.utc).isoformat()
                 failure = model_failure(error, stage)
-            if measurement is not None and parsed is not None:
-                calibration = meter.observe_usage(parsed.get("usage"), measurement)
-                if observer:
-                    await observer("context.usage", {"request_id": request_id, **calibration})
+            if parsed is not None:
+                await context.observe_usage(request_id, parsed.get("usage"))
             if failure is not None:
                 if observer:
                     await observer("request.failed", {
@@ -418,41 +387,13 @@ async def agent_loop(
                                 "status": "failed", "reason": reason, "step": ordinal})
                         break
                     recovery_of = request_id
-                    before_tokens = meter.measure(parameters)["estimated_tokens"]
-                    changed_result_count = view.organize_tool_results()
-                    parameters["messages"] = copy.deepcopy(view.messages)
-                    organized_tokens = meter.measure(parameters)["estimated_tokens"]
-                    if observer:
-                        await observer("context.organized", {"before_tokens": before_tokens,
-                            "after_tokens": organized_tokens, "changed_result_count": changed_result_count,
-                            "pressure_remaining": context_policy is None or organized_tokens >= context_policy.pressure_threshold,
-                            "original_watermark": view.original_watermark, "version": view.version,
-                            "record_ids": view.record_ids.copy(), "step": ordinal, "attempt": attempt})
-                    if (context_policy is not None and summary_attempts < 4 and not summary_blocked
-                            and (organized_tokens >= before_tokens or organized_tokens > context_policy.input_budget)):
-                        summary_result = await summarize_history(
-                            view=view, policy=context_policy, meter=meter, parameters=parameters,
-                            client=client, tools=tools, date_context=date_context,
-                            cutoff=earlier_history_cutoff(view, current_turn_start, context_policy, meter, force=True),
-                            remaining_attempts=4 - summary_attempts, next_request_ordinal=next_request_ordinal,
-                            observer=observer, stop_requested=stop_requested)
-                        summary_attempts += summary_result.attempts
-                        summary_blocked = summary_blocked or summary_result.terminal_failure
-                    parameters["messages"] = copy.deepcopy(view.messages)
-                    after_tokens = meter.measure(parameters)["estimated_tokens"]
-                    allowed = context_policy is not None and after_tokens <= context_policy.input_budget
-                    reduced = after_tokens < before_tokens
-                    if observer:
-                        await observer("context.recovery_prepared", {"request_id": request_id,
-                            "before_tokens": before_tokens, "after_tokens": after_tokens,
-                            "reduced": reduced, "allowed": allowed, "step": ordinal,
-                            "summary_attempts": summary_attempts, "version": view.version})
+                    blocked = await context.prepare_recovery(parameters, request_id=request_id, step=ordinal, attempt=attempt)
                     if stop_requested and stop_requested.is_set():
                         stopped = "已停止本轮查询，尚未完成的信息待核实。"
                         reason = requested_reason()
                         break
-                    if not reduced or not allowed:
-                        status, reason = "failed", "context_recovery_unavailable"
+                    if blocked:
+                        status, reason = "failed", blocked
                         stopped = "服务报告上下文超限，未获得预算内的有效输入缩减，已停止本轮查询。"
                         if observer:
                             await observer("context.recovery_result", {"request_id": request_id,
@@ -554,14 +495,10 @@ async def agent_loop(
                 attempted = True
                 if block.name in HISTORY_TOOLS:
                     def history_fits(content):
-                        if context_policy is None:
-                            return True
-                        projected = copy.deepcopy(parameters)
                         remaining = [{"type": "tool_result", "tool_use_id": pending.id, "content": "", "is_error": True}
                                      for pending in tool_calls[len(results) + 1:]]
-                        projected["messages"] = copy.deepcopy(view.messages) + [{"role": "user", "content": [*results,
-                            {"type": "tool_result", "tool_use_id": block.id, "content": content, "is_error": False}, *remaining]}]
-                        return meter.measure(projected)["estimated_tokens"] <= context_policy.input_budget
+                        return context.fits_tool_results(parameters, [*results,
+                            {"type": "tool_result", "tool_use_id": block.id, "content": content, "is_error": False}, *remaining])
                     output = await history.call(block.name, block.input, observer=tool_observer if observer else None, fits=history_fits)
                     if output.get("not_executed"):
                         calls -= 1

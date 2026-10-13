@@ -1,0 +1,13 @@
+{
+  "baseline": "7563199",
+  "tests": 20,
+  "http_cases": 19,
+  "events": 499,
+  "requests": 106,
+  "equal": true,
+  "changed_cases": [],
+  "normalized_sha256": {
+    "before": "66f5f3c82e20b27389a43e98a43563940e40287a9e7bedd807e88b83a74803bf",
+    "after": "66f5f3c82e20b27389a43e98a43563940e40287a9e7bedd807e88b83a74803bf"
+  }
+}
