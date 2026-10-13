@@ -1,0 +1,1563 @@
+{
+  "baseline": "4f94ad48d7e7967fe32913c2b27243d3357482e8",
+  "implementation_start": "953ade94d8c12b1f557f5662a4ac361e6033a3f5",
+  "system_sha256": "5b7fc521d975ce195c44209d4f59dda1b0398782a7bc37c31aab5754bd148590",
+  "model": "gpt-6.1-sol",
+  "context_compaction_enabled": false,
+  "note": "参数检查仅证明链接与坐标先取得；查询选择的独立性和回答质量另行人工核对，不由此自动推断。每个场景重复两次，调整两轮分别记录。",
+  "rows": [
+    {
+      "file": "web-before-1.json.gz",
+      "case": "web",
+      "version": "before",
+      "repeat": 1,
+      "turn": 1,
+      "wait_ms": 33249.542334116995,
+      "tool_phase_ms_sum": 3283.395,
+      "model_requests": 3,
+      "model_ms": 29905.02366842702,
+      "tool_calls": 4,
+      "tool_wait_ms_sum": 0,
+      "tool_execution_ms_sum": 3263.560249004513,
+      "summaries": 0,
+      "retries": 0,
+      "failures": [],
+      "reported_input_tokens_sum": 9,
+      "reported_output_tokens_sum": 828,
+      "batches": [
+        [
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 博物馆 周末 参观 攻略 游览 时间 预约",
+              "objective": "寻找一份可读取正文的北京博物馆周末玩法资料，需包含具体游览建议、时长或开放预约限制及真实链接；普通资料获取，不专项核实。"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 公园 秋季 赏秋 玩法 攻略 游览 时间",
+              "objective": "寻找一份可读取正文的北京公园秋季玩法资料，包含具体玩法、建议时长或开放游览限制及真实链接；不额外核实。"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 胡同 散步 路线 攻略 游览 时间 注意事项",
+              "objective": "寻找一份可读取正文的北京胡同散步玩法资料，含具体散步路线、时长或限制及真实链接；不额外核实。"
+            }
+          }
+        ],
+        [
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/museum",
+                "https://guide.example.test/park",
+                "https://guide.example.test/hutong"
+              ],
+              "maxCharacters": 6000
+            }
+          }
+        ],
+        []
+      ],
+      "bodies_read": [
+        "https://guide.example.test/hutong",
+        "https://guide.example.test/museum",
+        "https://guide.example.test/park"
+      ],
+      "dependency_violations": []
+    },
+    {
+      "file": "web-before-2.json.gz",
+      "case": "web",
+      "version": "before",
+      "repeat": 2,
+      "turn": 1,
+      "wait_ms": 32184.860082808882,
+      "tool_phase_ms_sum": 3285.258,
+      "model_requests": 3,
+      "model_ms": 28848.248210269958,
+      "tool_calls": 4,
+      "tool_wait_ms_sum": 0,
+      "tool_execution_ms_sum": 3260.9962094575167,
+      "summaries": 0,
+      "retries": 0,
+      "failures": [],
+      "reported_input_tokens_sum": 9,
+      "reported_output_tokens_sum": 766,
+      "batches": [
+        [
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 博物馆 周末 参观 攻略 游玩 时长",
+              "objective": "找一份可读取正文的北京博物馆周末玩法攻略，包含具体参观玩法、建议时长及参观限制，获取实际来源链接；不额外核实"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 公园 秋季 赏秋 游玩 攻略 时长",
+              "objective": "找一份可读取正文的北京公园秋季玩法资料，包含具体玩法、建议时长、季节或游玩限制，获取实际来源链接；不额外核实"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 胡同 散步 路线 攻略 时长",
+              "objective": "找一份可读取正文的北京胡同散步玩法攻略，包含具体路线玩法、建议时长及限制，获取实际来源链接；不安排交通餐饮，不额外核实"
+            }
+          }
+        ],
+        [
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/museum",
+                "https://guide.example.test/park",
+                "https://guide.example.test/hutong"
+              ],
+              "maxCharacters": 6000
+            }
+          }
+        ],
+        []
+      ],
+      "bodies_read": [
+        "https://guide.example.test/hutong",
+        "https://guide.example.test/museum",
+        "https://guide.example.test/park"
+      ],
+      "dependency_violations": []
+    },
+    {
+      "file": "web-final-1.json.gz",
+      "case": "web",
+      "version": "final",
+      "repeat": 1,
+      "turn": 1,
+      "wait_ms": 32301.64045887068,
+      "tool_phase_ms_sum": 2452.911,
+      "model_requests": 3,
+      "model_ms": 29790.185792837292,
+      "tool_calls": 4,
+      "tool_wait_ms_sum": 1205.6055832654238,
+      "tool_execution_ms_sum": 3276.8379184417427,
+      "summaries": 0,
+      "retries": 0,
+      "failures": [],
+      "reported_input_tokens_sum": 9,
+      "reported_output_tokens_sum": 796,
+      "batches": [
+        [
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 博物馆 周末 游玩 攻略 参观",
+              "objective": "寻找一份有正文可读取的北京博物馆周末玩法资料，提供具体玩法、建议时长和文中限制，取得实际来源链接；普通资料获取，不专项核实。"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 公园 秋季 游玩 赏秋 攻略",
+              "objective": "寻找一份有正文可读取的北京公园秋季玩法资料，提供具体玩法、建议时长和文中限制，取得实际来源链接；普通资料获取，不专项核实。"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 胡同 散步 路线 游玩 攻略",
+              "objective": "寻找一份有正文可读取的北京胡同散步玩法资料，提供具体玩法、建议时长和文中限制，取得实际来源链接；普通资料获取，不专项核实。"
+            }
+          }
+        ],
+        [
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/museum",
+                "https://guide.example.test/park",
+                "https://guide.example.test/hutong"
+              ],
+              "maxCharacters": 6000
+            }
+          }
+        ],
+        []
+      ],
+      "bodies_read": [
+        "https://guide.example.test/hutong",
+        "https://guide.example.test/museum",
+        "https://guide.example.test/park"
+      ],
+      "dependency_violations": []
+    },
+    {
+      "file": "web-final-2.json.gz",
+      "case": "web",
+      "version": "final",
+      "repeat": 2,
+      "turn": 1,
+      "wait_ms": 30426.512083038688,
+      "tool_phase_ms_sum": 2477.8189999999995,
+      "model_requests": 3,
+      "model_ms": 27865.921082440764,
+      "tool_calls": 4,
+      "tool_wait_ms_sum": 1250.9066672064364,
+      "tool_execution_ms_sum": 3271.5537496842444,
+      "summaries": 0,
+      "retries": 0,
+      "failures": [],
+      "reported_input_tokens_sum": 9,
+      "reported_output_tokens_sum": 787,
+      "batches": [
+        [
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 博物馆 周末 参观 玩法 攻略",
+              "objective": "寻找一份可读取正文的北京博物馆周末游玩资料，包含具体游览玩法、建议时长及参观限制，取得真实来源链接；仅资料获取，不专项核实。"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 公园 秋季 赏秋 游玩 攻略",
+              "objective": "寻找一份可读取正文的北京公园秋季游玩资料，包含具体玩法、建议时长或游览范围及限制，取得真实来源链接；仅资料获取，不专项核实。"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 胡同 散步 路线 攻略 时长",
+              "objective": "寻找一份可读取正文的北京胡同散步资料，包含具体步行玩法、建议时长及限制，取得真实来源链接；不查询交通餐饮，不专项核实。"
+            }
+          }
+        ],
+        [
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/museum",
+                "https://guide.example.test/park",
+                "https://guide.example.test/hutong"
+              ],
+              "maxCharacters": 6000
+            }
+          }
+        ],
+        []
+      ],
+      "bodies_read": [
+        "https://guide.example.test/hutong",
+        "https://guide.example.test/museum",
+        "https://guide.example.test/park"
+      ],
+      "dependency_violations": []
+    },
+    {
+      "file": "mixed-before-1.json.gz",
+      "case": "mixed",
+      "version": "before",
+      "repeat": 1,
+      "turn": 1,
+      "wait_ms": 55004.72762482241,
+      "tool_phase_ms_sum": 6517.397000000001,
+      "model_requests": 3,
+      "model_ms": 48429.674916900694,
+      "tool_calls": 8,
+      "tool_wait_ms_sum": 0,
+      "tool_execution_ms_sum": 6480.211792513728,
+      "summaries": 0,
+      "retries": 0,
+      "failures": [],
+      "reported_input_tokens_sum": 9,
+      "reported_output_tokens_sum": 1485,
+      "batches": [
+        [
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "首都博物馆"
+            }
+          },
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "玉渊潭公园"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "首都博物馆 参观攻略 展览 游览 开放时间",
+              "objective": "获取北京首都博物馆本馆玩法资料和可读取正文链接，包含具体看点、游览时长建议、参观限制和已有预约入口，不做专项核实"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 玉渊潭公园 游玩攻略 景点 开放时间",
+              "objective": "获取玉渊潭公园玩法资料和可读取正文链接，包含具体看点、游览时长建议、限制及已有购票入口，不做专项核实"
+            }
+          },
+          {
+            "name": "maps_weather",
+            "arguments": {
+              "city": "北京"
+            }
+          }
+        ],
+        [
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/museum"
+              ],
+              "maxCharacters": 8000
+            }
+          },
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/park"
+              ],
+              "maxCharacters": 8000
+            }
+          },
+          {
+            "name": "maps_direction_transit_integrated",
+            "arguments": {
+              "city": "北京",
+              "cityd": "北京",
+              "origin": "116.341,39.906",
+              "destination": "116.320,39.916"
+            }
+          }
+        ],
+        []
+      ],
+      "bodies_read": [
+        "https://guide.example.test/museum",
+        "https://guide.example.test/park"
+      ],
+      "dependency_violations": []
+    },
+    {
+      "file": "mixed-before-2.json.gz",
+      "case": "mixed",
+      "version": "before",
+      "repeat": 2,
+      "turn": 1,
+      "wait_ms": 47714.82566697523,
+      "tool_phase_ms_sum": 6524.303000000001,
+      "model_requests": 3,
+      "model_ms": 41134.69179207459,
+      "tool_calls": 8,
+      "tool_wait_ms_sum": 0,
+      "tool_execution_ms_sum": 6489.482084754854,
+      "summaries": 0,
+      "retries": 0,
+      "failures": [],
+      "reported_input_tokens_sum": 9,
+      "reported_output_tokens_sum": 1286,
+      "batches": [
+        [
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "首都博物馆"
+            }
+          },
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "玉渊潭公园"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "首都博物馆 参观 攻略 展览 游玩 开放时间 预约",
+              "objective": "寻找首都博物馆玩法正文来源，含具体展览看点、建议参观时长、开放与预约限制及已给出的预约入口。"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "玉渊潭公园 游玩 攻略 秋季 景点 开放时间",
+              "objective": "寻找玉渊潭公园玩法正文来源，含秋季适合的具体看点、游玩时长、开放与门票限制及已提供购票入口。"
+            }
+          },
+          {
+            "name": "maps_weather",
+            "arguments": {
+              "city": "北京"
+            }
+          }
+        ],
+        [
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/museum"
+              ],
+              "maxCharacters": 6000
+            }
+          },
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/park"
+              ],
+              "maxCharacters": 6000
+            }
+          },
+          {
+            "name": "maps_direction_transit_integrated",
+            "arguments": {
+              "city": "北京",
+              "cityd": "北京",
+              "origin": "116.341,39.906",
+              "destination": "116.320,39.916"
+            }
+          }
+        ],
+        []
+      ],
+      "bodies_read": [
+        "https://guide.example.test/museum",
+        "https://guide.example.test/park"
+      ],
+      "dependency_violations": []
+    },
+    {
+      "file": "mixed-final-1.json.gz",
+      "case": "mixed",
+      "version": "final",
+      "repeat": 1,
+      "turn": 1,
+      "wait_ms": 133320.19825000316,
+      "tool_phase_ms_sum": 3313.406,
+      "model_requests": 4,
+      "model_ms": 129464.3138749525,
+      "tool_calls": 7,
+      "tool_wait_ms_sum": 2938.4317924268544,
+      "tool_execution_ms_sum": 5762.122250627726,
+      "summaries": 0,
+      "retries": 1,
+      "failures": [],
+      "reported_input_tokens_sum": 9,
+      "reported_output_tokens_sum": 1394,
+      "batches": [
+        [
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "首都博物馆 参观 游玩 看点 开放时间",
+              "objective": "获取首都博物馆玩法正文来源，具体看点、建议时长、参观限制及已有预约入口；普通规划资料获取"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 玉渊潭公园 游玩 看点 开放时间 秋季",
+              "objective": "获取玉渊潭公园玩法正文来源，具体看点、建议时长和游览限制及已有购票入口；普通规划资料获取"
+            }
+          },
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "首都博物馆"
+            }
+          },
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "玉渊潭公园"
+            }
+          },
+          {
+            "name": "maps_weather",
+            "arguments": {
+              "city": "北京"
+            }
+          }
+        ],
+        [],
+        [
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/museum",
+                "https://guide.example.test/park"
+              ],
+              "maxCharacters": 6000
+            }
+          },
+          {
+            "name": "maps_direction_transit_integrated",
+            "arguments": {
+              "city": "北京",
+              "cityd": "北京",
+              "origin": "116.341,39.906",
+              "destination": "116.320,39.916"
+            }
+          }
+        ],
+        []
+      ],
+      "bodies_read": [
+        "https://guide.example.test/museum",
+        "https://guide.example.test/park"
+      ],
+      "dependency_violations": []
+    },
+    {
+      "file": "mixed-final-2.json.gz",
+      "case": "mixed",
+      "version": "final",
+      "repeat": 2,
+      "turn": 1,
+      "wait_ms": 41351.611874997616,
+      "tool_phase_ms_sum": 3667.764,
+      "model_requests": 3,
+      "model_ms": 37608.78341831267,
+      "tool_calls": 8,
+      "tool_wait_ms_sum": 3285.9317930415273,
+      "tool_execution_ms_sum": 6498.446541838348,
+      "summaries": 0,
+      "retries": 0,
+      "failures": [],
+      "reported_input_tokens_sum": 9,
+      "reported_output_tokens_sum": 1321,
+      "batches": [
+        [
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "首都博物馆 参观 攻略 看点 开放时间 预约",
+              "objective": "查找首都博物馆北京本馆玩法正文来源，包含具体看点、建议游览时长、参观限制与预约入口，取得实际链接供读取。"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 玉渊潭公园 游玩 攻略 看点 开放时间 游览时长",
+              "objective": "查找玉渊潭公园玩法正文，包含景点看点、游览时长、开放与游玩限制，取得实际链接供读取。"
+            }
+          },
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "首都博物馆"
+            }
+          },
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "玉渊潭公园"
+            }
+          },
+          {
+            "name": "maps_weather",
+            "arguments": {
+              "city": "北京"
+            }
+          }
+        ],
+        [
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/museum"
+              ],
+              "maxCharacters": 7000
+            }
+          },
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/park"
+              ],
+              "maxCharacters": 7000
+            }
+          },
+          {
+            "name": "maps_direction_transit_integrated",
+            "arguments": {
+              "city": "北京",
+              "cityd": "北京",
+              "origin": "116.341,39.906",
+              "destination": "116.320,39.916"
+            }
+          }
+        ],
+        []
+      ],
+      "bodies_read": [
+        "https://guide.example.test/museum",
+        "https://guide.example.test/park"
+      ],
+      "dependency_violations": []
+    },
+    {
+      "file": "dependency-before-1.json.gz",
+      "case": "dependency",
+      "version": "before",
+      "repeat": 1,
+      "turn": 1,
+      "wait_ms": 59330.15958312899,
+      "tool_phase_ms_sum": 6501.975999999999,
+      "model_requests": 5,
+      "model_ms": 52762.004292570055,
+      "tool_calls": 8,
+      "tool_wait_ms_sum": 0,
+      "tool_execution_ms_sum": 6465.707916766405,
+      "summaries": 0,
+      "retries": 0,
+      "failures": [],
+      "reported_input_tokens_sum": 15,
+      "reported_output_tokens_sum": 1333,
+      "batches": [
+        [
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 博物馆 青铜器 专题 展览 游玩 首都博物馆 中国国家博物馆",
+              "objective": "发现北京博物馆候选玩法及真实来源链接，选取可读取正文且明确含青铜器专题的候选；获取参观玩法和时长限制资料，不进行专项政策核实。"
+            }
+          }
+        ],
+        [
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/museum",
+                "https://guide.example.test/other"
+              ],
+              "maxCharacters": 6000
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 玉渊潭公园 游玩 时长 开放时间",
+              "objective": "取得玉渊潭公园玩法、建议游览时长及时间限制的来源链接和资料，用于2026年10月17日下午行程，不专项核实。"
+            }
+          },
+          {
+            "name": "maps_weather",
+            "arguments": {
+              "city": "北京"
+            }
+          }
+        ],
+        [
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/park"
+              ],
+              "maxCharacters": 6000
+            }
+          },
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "首都博物馆"
+            }
+          },
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "玉渊潭公园"
+            }
+          }
+        ],
+        [
+          {
+            "name": "maps_direction_transit_integrated",
+            "arguments": {
+              "city": "北京",
+              "cityd": "北京",
+              "origin": "116.341,39.906",
+              "destination": "116.320,39.916"
+            }
+          }
+        ],
+        []
+      ],
+      "bodies_read": [
+        "https://guide.example.test/museum",
+        "https://guide.example.test/other",
+        "https://guide.example.test/park"
+      ],
+      "dependency_violations": []
+    },
+    {
+      "file": "dependency-before-2.json.gz",
+      "case": "dependency",
+      "version": "before",
+      "repeat": 2,
+      "turn": 1,
+      "wait_ms": 54165.47637525946,
+      "tool_phase_ms_sum": 6483.356,
+      "model_requests": 5,
+      "model_ms": 47618.51716693491,
+      "tool_calls": 8,
+      "tool_wait_ms_sum": 0,
+      "tool_execution_ms_sum": 6459.943623747677,
+      "summaries": 0,
+      "retries": 0,
+      "failures": [],
+      "reported_input_tokens_sum": 15,
+      "reported_output_tokens_sum": 1237,
+      "batches": [
+        [
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 博物馆 青铜器 专题 展览 首都博物馆 中国国家博物馆 参观 玩法",
+              "objective": "发现北京博物馆候选参观资料和真实网页链接，随后读取正文以选择明确有青铜器专题的一家，规划2026年10月17日参观。"
+            }
+          }
+        ],
+        [
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/museum",
+                "https://guide.example.test/other"
+              ],
+              "maxCharacters": 6000
+            }
+          },
+          {
+            "name": "maps_weather",
+            "arguments": {
+              "city": "北京"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "玉渊潭公园 游玩 时长 开放时间",
+              "objective": "获取下午玉渊潭公园游玩建议、时长及限制的来源资料，不进行专项核实。"
+            }
+          }
+        ],
+        [
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "首都博物馆"
+            }
+          },
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "玉渊潭公园"
+            }
+          },
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/park"
+              ],
+              "maxCharacters": 6000
+            }
+          }
+        ],
+        [
+          {
+            "name": "maps_direction_transit_integrated",
+            "arguments": {
+              "city": "北京",
+              "cityd": "北京",
+              "origin": "116.341,39.906",
+              "destination": "116.320,39.916"
+            }
+          }
+        ],
+        []
+      ],
+      "bodies_read": [
+        "https://guide.example.test/museum",
+        "https://guide.example.test/other",
+        "https://guide.example.test/park"
+      ],
+      "dependency_violations": []
+    },
+    {
+      "file": "dependency-final-1.json.gz",
+      "case": "dependency",
+      "version": "final",
+      "repeat": 1,
+      "turn": 1,
+      "wait_ms": 67481.53833393008,
+      "tool_phase_ms_sum": 4131.988,
+      "model_requests": 5,
+      "model_ms": 63243.88066586107,
+      "tool_calls": 8,
+      "tool_wait_ms_sum": 1221.4020024985075,
+      "tool_execution_ms_sum": 6519.532375968993,
+      "summaries": 0,
+      "retries": 0,
+      "failures": [],
+      "reported_input_tokens_sum": 15,
+      "reported_output_tokens_sum": 1366,
+      "batches": [
+        [
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 博物馆 青铜器 专题展览 参观 游玩",
+              "objective": "发现北京博物馆候选及玩法资料，获取实际网页链接以随后读取候选正文，选择明确有青铜器专题的一家，规划2026年10月17日上午参观。不进行专项政策核实。"
+            }
+          }
+        ],
+        [
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/museum",
+                "https://guide.example.test/other"
+              ],
+              "maxCharacters": 6000
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 玉渊潭公园 游玩 建议 时长",
+              "objective": "获取下午玉渊潭公园玩法、时长及限制的资料和真实来源链接，用于2026年10月17日一日游普通规划。"
+            }
+          },
+          {
+            "name": "maps_weather",
+            "arguments": {
+              "city": "北京"
+            }
+          },
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "玉渊潭公园"
+            }
+          }
+        ],
+        [
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "首都博物馆"
+            }
+          },
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/park"
+              ],
+              "maxCharacters": 6000
+            }
+          }
+        ],
+        [
+          {
+            "name": "maps_direction_transit_integrated",
+            "arguments": {
+              "city": "北京",
+              "cityd": "北京",
+              "origin": "116.341,39.906",
+              "destination": "116.320,39.916"
+            }
+          }
+        ],
+        []
+      ],
+      "bodies_read": [
+        "https://guide.example.test/museum",
+        "https://guide.example.test/other",
+        "https://guide.example.test/park"
+      ],
+      "dependency_violations": []
+    },
+    {
+      "file": "dependency-final-2.json.gz",
+      "case": "dependency",
+      "version": "final",
+      "repeat": 2,
+      "turn": 1,
+      "wait_ms": 52554.27916580811,
+      "tool_phase_ms_sum": 4506.034,
+      "model_requests": 5,
+      "model_ms": 47956.59175142646,
+      "tool_calls": 8,
+      "tool_wait_ms_sum": 1218.8422922044992,
+      "tool_execution_ms_sum": 6506.39983266592,
+      "summaries": 0,
+      "retries": 0,
+      "failures": [],
+      "reported_input_tokens_sum": 15,
+      "reported_output_tokens_sum": 1322,
+      "batches": [
+        [
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 博物馆 青铜器 专题 展览 参观 玩法",
+              "objective": "发现北京博物馆候选参观资料和实际网页链接，下一步读取候选正文后选取明确有青铜器专题的一家；获取可依据的参观时长或限制信息"
+            }
+          }
+        ],
+        [
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/museum",
+                "https://guide.example.test/other"
+              ],
+              "maxCharacters": 6000
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 玉渊潭公园 游玩 时长 开放时间",
+              "objective": "获取下午玉渊潭公园的玩法、建议游览时长及资料中所述限制，发现实际来源链接"
+            }
+          },
+          {
+            "name": "maps_weather",
+            "arguments": {
+              "city": "北京"
+            }
+          }
+        ],
+        [
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/park"
+              ],
+              "maxCharacters": 5000
+            }
+          },
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "首都博物馆"
+            }
+          },
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "玉渊潭公园"
+            }
+          }
+        ],
+        [
+          {
+            "name": "maps_direction_transit_integrated",
+            "arguments": {
+              "city": "北京",
+              "cityd": "北京",
+              "origin": "116.341,39.906",
+              "destination": "116.320,39.916"
+            }
+          }
+        ],
+        []
+      ],
+      "bodies_read": [
+        "https://guide.example.test/museum",
+        "https://guide.example.test/other",
+        "https://guide.example.test/park"
+      ],
+      "dependency_violations": []
+    },
+    {
+      "file": "adjustment-before-1.json.gz",
+      "case": "adjustment",
+      "version": "before",
+      "repeat": 1,
+      "turn": 1,
+      "wait_ms": 58151.43899992108,
+      "tool_phase_ms_sum": 6480.5160000000005,
+      "model_requests": 3,
+      "model_ms": 51614.79045916349,
+      "tool_calls": 8,
+      "tool_wait_ms_sum": 0,
+      "tool_execution_ms_sum": 6456.879416946322,
+      "summaries": 0,
+      "retries": 0,
+      "failures": [],
+      "reported_input_tokens_sum": 9,
+      "reported_output_tokens_sum": 1336,
+      "batches": [
+        [
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "首都博物馆"
+            }
+          },
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "玉渊潭公园"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "首都博物馆 参观 看点 展览 开放时间 预约",
+              "objective": "获取首都博物馆游玩资料及可读取的正文来源，了解看点、参观时长建议、开放预约限制及已给出的预约入口；用于2026年10月17日普通行程规划，不进行专项核实。"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "玉渊潭公园 游玩 看点 景点 开放时间 游览",
+              "objective": "获取玉渊潭公园玩法正文来源，了解秋季可选看点、游览时长建议和开放游玩限制及已有购票入口；用于2026年10月17日普通规划。"
+            }
+          },
+          {
+            "name": "maps_weather",
+            "arguments": {
+              "city": "北京"
+            }
+          }
+        ],
+        [
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/museum"
+              ],
+              "maxCharacters": 6000
+            }
+          },
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/park"
+              ],
+              "maxCharacters": 6000
+            }
+          },
+          {
+            "name": "maps_direction_transit_integrated",
+            "arguments": {
+              "city": "北京",
+              "cityd": "北京",
+              "origin": "116.341,39.906",
+              "destination": "116.320,39.916"
+            }
+          }
+        ],
+        []
+      ],
+      "bodies_read": [
+        "https://guide.example.test/museum",
+        "https://guide.example.test/park"
+      ],
+      "dependency_violations": []
+    },
+    {
+      "file": "adjustment-before-1.json.gz",
+      "case": "adjustment",
+      "version": "before",
+      "repeat": 1,
+      "turn": 2,
+      "wait_ms": 32648.0363747105,
+      "tool_phase_ms_sum": 1622.941,
+      "model_requests": 2,
+      "model_ms": 30997.077208943665,
+      "tool_calls": 2,
+      "tool_wait_ms_sum": 0,
+      "tool_execution_ms_sum": 1610.109916422516,
+      "summaries": 0,
+      "retries": 0,
+      "failures": [],
+      "reported_input_tokens_sum": 6,
+      "reported_output_tokens_sum": 861,
+      "batches": [
+        [
+          {
+            "name": "maps_direction_walking",
+            "arguments": {
+              "origin": "116.341,39.906",
+              "destination": "116.320,39.916"
+            }
+          },
+          {
+            "name": "maps_weather",
+            "arguments": {
+              "city": "北京"
+            }
+          }
+        ],
+        []
+      ],
+      "bodies_read": [
+        "https://guide.example.test/museum",
+        "https://guide.example.test/park"
+      ],
+      "dependency_violations": []
+    },
+    {
+      "file": "adjustment-before-2.json.gz",
+      "case": "adjustment",
+      "version": "before",
+      "repeat": 2,
+      "turn": 1,
+      "wait_ms": 47241.730875335634,
+      "tool_phase_ms_sum": 6493.218,
+      "model_requests": 3,
+      "model_ms": 40723.19137491286,
+      "tool_calls": 8,
+      "tool_wait_ms_sum": 0,
+      "tool_execution_ms_sum": 6452.573291491717,
+      "summaries": 0,
+      "retries": 0,
+      "failures": [],
+      "reported_input_tokens_sum": 9,
+      "reported_output_tokens_sum": 1282,
+      "batches": [
+        [
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "首都博物馆"
+            }
+          },
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "玉渊潭公园"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "首都博物馆 参观 游玩 展览 开放 时间 攻略",
+              "objective": "获取首都博物馆本馆玩法来源，包括具体看点、建议参观时长及开放预约限制，提供可读取正文链接和已有预约入口；不是专项核实。"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "玉渊潭公园 游玩 景点 开放 时间 10月",
+              "objective": "获取北京玉渊潭公园玩法来源，包括具体看点、建议时长与开放游玩限制、已有购票入口链接，供读取正文；不是专项核实。"
+            }
+          },
+          {
+            "name": "maps_weather",
+            "arguments": {
+              "city": "北京"
+            }
+          }
+        ],
+        [
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/museum"
+              ],
+              "maxCharacters": 6000
+            }
+          },
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/park"
+              ],
+              "maxCharacters": 6000
+            }
+          },
+          {
+            "name": "maps_direction_transit_integrated",
+            "arguments": {
+              "city": "北京",
+              "cityd": "北京",
+              "origin": "116.341,39.906",
+              "destination": "116.320,39.916"
+            }
+          }
+        ],
+        []
+      ],
+      "bodies_read": [
+        "https://guide.example.test/museum",
+        "https://guide.example.test/park"
+      ],
+      "dependency_violations": []
+    },
+    {
+      "file": "adjustment-before-2.json.gz",
+      "case": "adjustment",
+      "version": "before",
+      "repeat": 2,
+      "turn": 2,
+      "wait_ms": 38260.49591694027,
+      "tool_phase_ms_sum": 1613.065,
+      "model_requests": 2,
+      "model_ms": 36602.022333070636,
+      "tool_calls": 2,
+      "tool_wait_ms_sum": 0,
+      "tool_execution_ms_sum": 1607.7901250682771,
+      "summaries": 0,
+      "retries": 0,
+      "failures": [],
+      "reported_input_tokens_sum": 6,
+      "reported_output_tokens_sum": 888,
+      "batches": [
+        [
+          {
+            "name": "maps_direction_walking",
+            "arguments": {
+              "origin": "116.341,39.906",
+              "destination": "116.320,39.916"
+            }
+          },
+          {
+            "name": "maps_weather",
+            "arguments": {
+              "city": "北京"
+            }
+          }
+        ],
+        []
+      ],
+      "bodies_read": [
+        "https://guide.example.test/museum",
+        "https://guide.example.test/park"
+      ],
+      "dependency_violations": []
+    },
+    {
+      "file": "adjustment-final-1.json.gz",
+      "case": "adjustment",
+      "version": "final",
+      "repeat": 1,
+      "turn": 1,
+      "wait_ms": 38168.70466712862,
+      "tool_phase_ms_sum": 3305.803,
+      "model_requests": 3,
+      "model_ms": 34809.73583320156,
+      "tool_calls": 7,
+      "tool_wait_ms_sum": 2933.6632918566465,
+      "tool_execution_ms_sum": 5759.070126339793,
+      "summaries": 0,
+      "retries": 0,
+      "failures": [],
+      "reported_input_tokens_sum": 9,
+      "reported_output_tokens_sum": 1353,
+      "batches": [
+        [
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "首都博物馆 参观攻略 看点 展览 开放时间",
+              "objective": "查找首都博物馆玩法资料及可读取正文实际链接，获取具体看点、建议时长和参观限制，不进行专项核实"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "玉渊潭公园 游玩攻略 景点 开放时间 游览时长",
+              "objective": "查找北京玉渊潭公园玩法正文实际链接，了解看点、时长和限制，不进行专项核实"
+            }
+          },
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "首都博物馆"
+            }
+          },
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "玉渊潭公园"
+            }
+          },
+          {
+            "name": "maps_weather",
+            "arguments": {
+              "city": "北京"
+            }
+          }
+        ],
+        [
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/museum",
+                "https://guide.example.test/park"
+              ],
+              "maxCharacters": 7000
+            }
+          },
+          {
+            "name": "maps_direction_transit_integrated",
+            "arguments": {
+              "city": "北京",
+              "cityd": "北京",
+              "origin": "116.341,39.906",
+              "destination": "116.320,39.916"
+            }
+          }
+        ],
+        []
+      ],
+      "bodies_read": [
+        "https://guide.example.test/museum",
+        "https://guide.example.test/park"
+      ],
+      "dependency_violations": []
+    },
+    {
+      "file": "adjustment-final-1.json.gz",
+      "case": "adjustment",
+      "version": "final",
+      "repeat": 1,
+      "turn": 2,
+      "wait_ms": 30625.233000144362,
+      "tool_phase_ms_sum": 1624.424,
+      "model_requests": 2,
+      "model_ms": 28930.208667181432,
+      "tool_calls": 2,
+      "tool_wait_ms_sum": 812.300874851644,
+      "tool_execution_ms_sum": 1610.4812077246606,
+      "summaries": 0,
+      "retries": 0,
+      "failures": [],
+      "reported_input_tokens_sum": 6,
+      "reported_output_tokens_sum": 886,
+      "batches": [
+        [
+          {
+            "name": "maps_direction_walking",
+            "arguments": {
+              "origin": "116.341,39.906",
+              "destination": "116.320,39.916"
+            }
+          },
+          {
+            "name": "maps_weather",
+            "arguments": {
+              "city": "北京"
+            }
+          }
+        ],
+        []
+      ],
+      "bodies_read": [
+        "https://guide.example.test/museum",
+        "https://guide.example.test/park"
+      ],
+      "dependency_violations": []
+    },
+    {
+      "file": "adjustment-final-2.json.gz",
+      "case": "adjustment",
+      "version": "final",
+      "repeat": 2,
+      "turn": 1,
+      "wait_ms": 50516.049165744334,
+      "tool_phase_ms_sum": 3308.832,
+      "model_requests": 3,
+      "model_ms": 47160.58137593791,
+      "tool_calls": 7,
+      "tool_wait_ms_sum": 2922.3832921124995,
+      "tool_execution_ms_sum": 5751.111125107855,
+      "summaries": 0,
+      "retries": 0,
+      "failures": [],
+      "reported_input_tokens_sum": 9,
+      "reported_output_tokens_sum": 1397,
+      "batches": [
+        [
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "首都博物馆 参观 攻略 展览 看点 开放 时间",
+              "objective": "发现首都博物馆玩法正文来源，获取可读取链接以提取具体看点、游览时长建议和参观限制；普通行程资料获取，不进行专项核实。"
+            }
+          },
+          {
+            "name": "web_search_exa",
+            "arguments": {
+              "query": "北京 玉渊潭公园 游玩 看点 秋季 开放时间",
+              "objective": "发现玉渊潭公园玩法正文来源，获取可读取链接以提取十月游玩看点、时长建议和限制；普通行程资料获取。"
+            }
+          },
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "首都博物馆"
+            }
+          },
+          {
+            "name": "maps_text_search",
+            "arguments": {
+              "city": "北京",
+              "citylimit": true,
+              "keywords": "玉渊潭公园"
+            }
+          },
+          {
+            "name": "maps_weather",
+            "arguments": {
+              "city": "北京"
+            }
+          }
+        ],
+        [
+          {
+            "name": "web_fetch_exa",
+            "arguments": {
+              "urls": [
+                "https://guide.example.test/museum",
+                "https://guide.example.test/park"
+              ],
+              "maxCharacters": 6000
+            }
+          },
+          {
+            "name": "maps_direction_transit_integrated",
+            "arguments": {
+              "city": "北京",
+              "cityd": "北京",
+              "origin": "116.341,39.906",
+              "destination": "116.320,39.916"
+            }
+          }
+        ],
+        []
+      ],
+      "bodies_read": [
+        "https://guide.example.test/museum",
+        "https://guide.example.test/park"
+      ],
+      "dependency_violations": []
+    },
+    {
+      "file": "adjustment-final-2.json.gz",
+      "case": "adjustment",
+      "version": "final",
+      "repeat": 2,
+      "turn": 2,
+      "wait_ms": 30266.047624871135,
+      "tool_phase_ms_sum": 1611.8870000000002,
+      "model_requests": 2,
+      "model_ms": 28602.01562475413,
+      "tool_calls": 2,
+      "tool_wait_ms_sum": 805.3890415467322,
+      "tool_execution_ms_sum": 1606.242208275944,
+      "summaries": 0,
+      "retries": 0,
+      "failures": [],
+      "reported_input_tokens_sum": 6,
+      "reported_output_tokens_sum": 917,
+      "batches": [
+        [
+          {
+            "name": "maps_direction_walking",
+            "arguments": {
+              "origin": "116.341,39.906",
+              "destination": "116.320,39.916"
+            }
+          },
+          {
+            "name": "maps_weather",
+            "arguments": {
+              "city": "北京"
+            }
+          }
+        ],
+        []
+      ],
+      "bodies_read": [
+        "https://guide.example.test/museum",
+        "https://guide.example.test/park"
+      ],
+      "dependency_violations": []
+    }
+  ]
+}

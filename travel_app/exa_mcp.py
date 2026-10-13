@@ -159,8 +159,9 @@ class ExaTools:
                 except (ValueError, TypeError):
                     pass
         codes = [str(data.get("code", "")).lower() for data in payloads if isinstance(data, dict)]
-        if any(any(marker in code for marker in ("cap_reached", "rate_limit", "quota", "credit")) for code in codes):
-            self.failure = "rate_limit" if any("rate_limit" in code for code in codes) else "quota"
+        rate_limited = isinstance(result.meta, dict) and result.meta.get("ai.exa/rateLimited") is True
+        if rate_limited or any(any(marker in code for marker in ("cap_reached", "rate_limit", "quota", "credit")) for code in codes):
+            self.failure = "rate_limit" if rate_limited or any("rate_limit" in code for code in codes) else "quota"
             # 服务返回的付款、注册和奖励指令仅保留在原始轨迹，不作为模型操作要求。
             return await finish({"content": "资料免费额度耗尽或限流，未取得的信息不能作为规划依据；其他服务按可用状态使用，不切换付费或领取奖励额度。", "is_error": True}, self.failure)
         texts = [block.text for block in result.content if block.type == "text"]

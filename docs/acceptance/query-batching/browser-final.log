@@ -1,0 +1,32 @@
+[WebServer] (node:14606) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 23 tests using 1 worker
+
+(node:14607) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/ui/conversation.spec.ts:54:1 › 模型等待重试有真实次数、延迟及可用停止入口，停止不会误记为新请求 (1.0s)
+  ✓   2 tests/ui/conversation.spec.ts:81:1 › 轨迹保留每次尝试和重试等待，耗尽后最终失败不会被重试历史遮蔽 (555ms)
+  ✓   3 tests/ui/conversation.spec.ts:105:1 › 预订入口点击时只访问官网，不包含后续中文说明 (457ms)
+  ✓   4 tests/ui/conversation.spec.ts:119:1 › Enter 发送、Shift+Enter 换行，中文候选确认和空白输入不会发送 (351ms)
+  ✓   5 tests/ui/conversation.spec.ts:144:1 › 只显示真实阶段和耗时，移除停止入口与处理过程日志 (481ms)
+  ✓   6 tests/ui/conversation.spec.ts:180:1 › 后台完成仅显示静态小点，刷新保留，查看后清除 (564ms)
+  ✓   7 tests/ui/conversation.spec.ts:204:1 › 断线不冒充处理失败，恢复后显示真实终态并保留下一条草稿 (404ms)
+  ✓   8 tests/ui/conversation.spec.ts:231:1 › 已打开会话的旧快照不能清除新结果的小点 (430ms)
+  ✓   9 tests/ui/conversation.spec.ts:252:1 › 新事件不会打断滚动回看，工具失败仍等待整轮结束 (491ms)
+  ✓  10 tests/ui/conversation.spec.ts:276:1 › 提交尚未返回时立即反馈，重复提交不重复发送，编辑的新草稿不会被清空 (366ms)
+  ✓  11 tests/ui/conversation.spec.ts:308:1 › 并发查询乱序完成时状态及时更新，工具列表保持提出顺序 (625ms)
+  ✓  12 tests/ui/recovery.spec.ts:37:1 › 旧异常会话隐藏诊断，折叠资料，重试保留草稿并只提交一次 (433ms)
+  ✓  13 tests/ui/recovery.spec.ts:60:1 › 预算终止仍展示收尾回答与未完成限制，刷新不会自动重放 (526ms)
+  ✓  14 tests/ui/recovery.spec.ts:78:3 › 异常终局 execution_error 按真实原因说明 (382ms)
+  ✓  15 tests/ui/recovery.spec.ts:78:3 › 异常终局 budget 按真实原因说明 (402ms)
+  ✓  16 tests/ui/recovery.spec.ts:78:3 › 异常终局 user_stop 按真实原因说明 (392ms)
+  ✓  17 tests/ui/recovery.spec.ts:78:3 › 异常终局 map_paused 按真实原因说明 (403ms)
+  ✓  18 tests/ui/recovery.spec.ts:78:3 › 异常终局 service_shutdown 按真实原因说明 (387ms)
+  ✓  19 tests/ui/recovery.spec.ts:78:3 › 异常终局 service_interrupted 按真实原因说明 (412ms)
+  ✓  20 tests/ui/recovery.spec.ts:78:3 › 异常终局 output_limit 按真实原因说明 (383ms)
+  ✓  21 tests/ui/recovery.spec.ts:78:3 › 异常终局 storage_failure 按真实原因说明 (425ms)
+  ✓  22 tests/ui/recovery.spec.ts:95:1 › 提交响应丢失后核对沿用身份，忙和停止期间禁止新重试 (496ms)
+  ✓  23 tests/ui/recovery.spec.ts:123:1 › 真实存储故障保持上次保存的运行状态，不冒充已保存终局或继续执行 (428ms)
+
+  23 passed (16.0s)

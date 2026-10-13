@@ -1,0 +1,252 @@
+{
+  "date": "2026-10-14",
+  "branch": "codex/shared-call-budget",
+  "baseline": "4f94ad48d7e7967fe32913c2b27243d3357482e8",
+  "implementation_start": "953ade94d8c12b1f557f5662a4ac361e6033a3f5",
+  "comparison": "固定同一真实模型、服务、旅行要求、资料和0.8秒控制延迟；短任务比较统一关闭上下文维护，另补测本机启用配置。基线main，最终短提示，初版和重叠样本排除且保留。",
+  "conclusions": {
+    "mechanism": "符合规格，固定工具阶段4.108秒→1.657秒",
+    "real_tasks": "未证明稳定整体改善，成功模型步骤未减少，超时慢样本计入",
+    "real_service": "最终上限10；首次峰值7且免费限流，复验峰值5且十条成功，不保证持续十条在途可靠"
+  },
+  "checks": {
+    "backend_full": {
+      "passed": 319,
+      "seconds": 294.543
+    },
+    "targeted": 39,
+    "context": 40,
+    "frontend": 13,
+    "browser": 23,
+    "types": "0 errors, 0 warnings",
+    "secret_scan": "passed"
+  },
+  "files": [
+    {
+      "name": "adjustment-before-1.json.gz",
+      "sha256": "b65ded8e3a17b4d5a5b356e10fce4c5d1c0e0834cd52b3dfcc0763d866f71018"
+    },
+    {
+      "name": "adjustment-before-2.json.gz",
+      "sha256": "1651e78d9022e170cf638cf11014bad441006a3c50677e3a0c922ca329175a83"
+    },
+    {
+      "name": "adjustment-final-1.json.gz",
+      "sha256": "9f4b0a4de26c1a2ae0c76840d5465262c5b881dfb5d041c1c5678291b8d1f666"
+    },
+    {
+      "name": "adjustment-final-2.json.gz",
+      "sha256": "7dbd4fdcac1b116e1eeccee14d79e78b23c14cea407847e49c98dd90f067e473"
+    },
+    {
+      "name": "adjustment-policy-initial-1.json.gz",
+      "sha256": "c5c44f89b58963f1bf55853e431e1e44b830fd2f75b45c44d45b3b9fb45fdc3f"
+    },
+    {
+      "name": "ambiguous-final-1.json.gz",
+      "sha256": "95c228ccab436c8c9ec3a05a5e04eed90629e228594ebdd037591fb3842b74f8"
+    },
+    {
+      "name": "browser-final.log",
+      "sha256": "d3b149723801946bc4f2dff2f8106ddec302f0a17539a3d14bbedf0fe45ae7a6"
+    },
+    {
+      "name": "browser-reviewed-final.log",
+      "sha256": "611e40c75df6d04afff0464fa0710eee77fd6c7fcabd63ab8c4ed2e7cfdfa9be"
+    },
+    {
+      "name": "browser-reviewed.log",
+      "sha256": "de1a08e8e7e161c6cadfa6803aaa22d3d113ef852cf2a79eedb67bf682fe764d"
+    },
+    {
+      "name": "browser.log",
+      "sha256": "6e45328b2f5f56b8c1f1e710532bfdcf064135fcf0a73955d91ee7e33b0c3361"
+    },
+    {
+      "name": "cli-configured-final.json.gz",
+      "sha256": "0011530ba9624c4b6aa2492943f10d3c0c702be9f68032d142bb91302b866466"
+    },
+    {
+      "name": "cli-final-1.json.gz",
+      "sha256": "8bfd5286f3029366e6b88bd5d9f311145ec18b60dea3c303e5cb98fcccb1a363"
+    },
+    {
+      "name": "context-final.log",
+      "sha256": "7349d78d53f04738e5cab1ba8fc972147ad17aebf7cc4250c316fdc0f756cc62"
+    },
+    {
+      "name": "context-repaired.log.gz",
+      "sha256": "a320606e9e88f96ae31f604214a7c2499c8d9396f465e708102ee9b770bc1c63"
+    },
+    {
+      "name": "dependency-before-1.json.gz",
+      "sha256": "7a89ce774d44cdfc28f52e299bcf8b21028d44a0312f1fae70740e18f1106203"
+    },
+    {
+      "name": "dependency-before-2.json.gz",
+      "sha256": "05c03aa201c7dc5e9d804232b65250409f7c603e37dc5a2aec1df6818b76f607"
+    },
+    {
+      "name": "dependency-final-1.json.gz",
+      "sha256": "9dae018674aeb9f904075c90df52f00f3f5b657ecfb30ca55336e1710cdab772"
+    },
+    {
+      "name": "dependency-final-2.json.gz",
+      "sha256": "7a99320ef8fa3a4454736d71b784ff3581ad50a3df91cdae8dce7a9a8259a234"
+    },
+    {
+      "name": "dependency-policy-initial-1.json.gz",
+      "sha256": "8fa07569e9a576ff2d3aa1e75b7aaf3947635212acc4d8933484a1ae60345861"
+    },
+    {
+      "name": "frontend-build-final.log",
+      "sha256": "8d54aa620bf1c9cfc3c316b26bc875c294a1c55b2e4a3f5b0c1af7e365554ce2"
+    },
+    {
+      "name": "frontend-build.log",
+      "sha256": "544987b271add204d26e4aa47a49c646c65511a70468eb96882494250ae997fe"
+    },
+    {
+      "name": "frontend-tests-final.log",
+      "sha256": "ed776153a20bd5015e201d0bd92263f4d36ef4e8c7f92a72a696315451d984a6"
+    },
+    {
+      "name": "frontend-tests.log",
+      "sha256": "57436f210f66696f2b137a0827301436bc489461a9e70ba7a04491af00eac9a4"
+    },
+    {
+      "name": "full-final.log.gz",
+      "sha256": "c1fd7c255edc8d3cc605405a3ea6dae9d57e845168a1607474c9cafd94f72c71"
+    },
+    {
+      "name": "full.log.gz",
+      "sha256": "93244dbf897dd14f56a45ec2d08b931d35ee2d64da15388c645bc8e447906f4e"
+    },
+    {
+      "name": "live-load-repaired.json.gz",
+      "sha256": "c25263fe905d44ff6859db331b3a7fe8d31b7ddff2fc529a3b41823774d12ebc"
+    },
+    {
+      "name": "live-load.json.gz",
+      "sha256": "ce74a55229f95424e9190654e1f587073f998895fb080bc66df4cf1c06e77487"
+    },
+    {
+      "name": "measurements.json",
+      "sha256": "9aeb44e86474bdc70ad7133837e55a20870961176e971e503e01fd696e932129"
+    },
+    {
+      "name": "mechanism-before.json.gz",
+      "sha256": "dfe8748ab176fc54a0ce78cc1c2a14b80da5c57896f14a9c229b6351d979e99f"
+    },
+    {
+      "name": "mechanism-final.json.gz",
+      "sha256": "a0a4d8197531d28fb08fdcb8d68a9739bf59ad06ee632e0294d48cf151dff860"
+    },
+    {
+      "name": "mixed-before-1.json.gz",
+      "sha256": "e7341119a6ba15f986d2c58064bb989b4b661a02ee93c632ff557835dd7b46c0"
+    },
+    {
+      "name": "mixed-before-2.json.gz",
+      "sha256": "5e50e44f11300449785389b487f3f24da977eef24a946098008390f27456df38"
+    },
+    {
+      "name": "mixed-before-overlapping.json.gz",
+      "sha256": "e86898f346cdf382fef842e3ce144dc630e976ffc90ff86b41f5dacfa51d7a21"
+    },
+    {
+      "name": "mixed-configured-before.json.gz",
+      "sha256": "f12bdf295fbcb648b2b4a8b3f8be02f09737fa1cd59f08314fc709de7d1b37ad"
+    },
+    {
+      "name": "mixed-configured-final.json.gz",
+      "sha256": "e4bc441967679940e3d424f4890ec82cc89be2671bbc8c0075599327ff40c3c6"
+    },
+    {
+      "name": "mixed-final-1.json.gz",
+      "sha256": "f5059c43a0c23e17e450d4ba5486bd6261a65e6468cfa2abdf893c760e62f215"
+    },
+    {
+      "name": "mixed-final-2.json.gz",
+      "sha256": "19ffd86693a9fc346f53ea399b2bf2673b9340079852be0dbe27c0484a13691c"
+    },
+    {
+      "name": "mixed-policy-initial-1.json.gz",
+      "sha256": "558e6c51a9466e6c5fcd655ff1000a3c03daa081961f9e4610dabe120acca17c"
+    },
+    {
+      "name": "mixed-policy-initial-2.json.gz",
+      "sha256": "236048b8d7613fe56b60f5af6cb5c7ce279b804513b7169f21c091bf1214e4eb"
+    },
+    {
+      "name": "quality-review.json",
+      "sha256": "49219fdad48eb217483d237801bf6e41668b698f3430647e85c1ae9e05b1f124"
+    },
+    {
+      "name": "rate-limit-before.log",
+      "sha256": "ff3ef088175e4891884e4ac05f49bd8e960fb64d67aa8856aad529a8ebdad610"
+    },
+    {
+      "name": "rate-limit-final.log",
+      "sha256": "790fad86889026561b8f2713a234e7f5e6aae03bfaf72ff19911a430d62da39f"
+    },
+    {
+      "name": "rate-limit-red.log",
+      "sha256": "33477adb6e2c6f4b027b72603055093e15675faba64080fecb28676557ce0c65"
+    },
+    {
+      "name": "rate-limit-repaired.log",
+      "sha256": "66843b678e51ab7156e94a1308afd8d94cd3a225df5b9dc51ed5287779ad97a6"
+    },
+    {
+      "name": "review.md",
+      "sha256": "acd1bb6aed43bbce223bb7a78d4fd20d7f32b21fb96a562634e4baa4f70c2246"
+    },
+    {
+      "name": "targeted-final.log",
+      "sha256": "31093e69805713dda1c6865da169f1402fc3d3db1433fe5c66e4f234ce60f25f"
+    },
+    {
+      "name": "targeted.log",
+      "sha256": "c24fdc751e40c18870505025210f1df73aa7bd0facac1db27dce0e943a17ba54"
+    },
+    {
+      "name": "types-final.log",
+      "sha256": "6d88a1b220adb7a3d62092b6e38431f0b3fe8babe9864fab90e5849766260332"
+    },
+    {
+      "name": "types.log",
+      "sha256": "6d88a1b220adb7a3d62092b6e38431f0b3fe8babe9864fab90e5849766260332"
+    },
+    {
+      "name": "web-before-1.json.gz",
+      "sha256": "3ccfc15216844cfef9e5a45dd384fdfdcf08904f11506395944e10dd4c5f304e"
+    },
+    {
+      "name": "web-before-2.json.gz",
+      "sha256": "9e7cc90cea14120b19c41f9bfc22157a9c1a035c34b5df34a3e5833d2906848e"
+    },
+    {
+      "name": "web-final-1.json.gz",
+      "sha256": "784d6c7c47c3384c44b20faa4510c1c73eb3a642baa2268df0164bcd08863abb"
+    },
+    {
+      "name": "web-final-2.json.gz",
+      "sha256": "31fb752e49e6e8b831457c12b3573e6caba3cac5961fea6eb6a8c3775e664cc3"
+    },
+    {
+      "name": "web-policy-initial-1.json.gz",
+      "sha256": "c3beb46446231534980740dd6edb04ace3b908760ec5677174ca418e162c7598"
+    },
+    {
+      "name": "web-policy-initial-2.json.gz",
+      "sha256": "d85f48e087fc8c7dbfc401e1bac3b47e174f543e920b827531dd152b50d973de"
+    }
+  ],
+  "review": {
+    "base": "4f94ad48d7e7967fe32913c2b27243d3357482e8",
+    "snapshot": "52f12825a9e1076b4497e1a8f3b8fd3624a08d43",
+    "standards_findings": 0,
+    "spec_findings": 0
+  }
+}

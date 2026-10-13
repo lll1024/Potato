@@ -1,0 +1,301 @@
+{
+  "method": "人工语义核对；细节见 query-batching.md，数值与参数依赖检查见 measurements.json。",
+  "samples": [
+    {
+      "file": "web-before-1.json.gz",
+      "necessary_materials": [
+        "museum正文90分钟/需预约但余票未知",
+        "park正文75分钟/实时叶色和门票未知",
+        "hutong正文45分钟/不进私人院落"
+      ],
+      "manual_review": {
+        "necessary_materials_preserved": true,
+        "current_requirements_preserved": true,
+        "selection_dependencies_respected": true,
+        "actual_sources_preserved": true,
+        "unverified_state_preserved": true,
+        "invented_sources_or_coordinates_or_booking": false,
+        "extra_verification_queries": false
+      },
+      "note": "逐项对照固定资料、原始批次、参数和回答；不是提示词或模型替身断言。"
+    },
+    {
+      "file": "web-before-2.json.gz",
+      "necessary_materials": [
+        "museum正文90分钟/需预约但余票未知",
+        "park正文75分钟/实时叶色和门票未知",
+        "hutong正文45分钟/不进私人院落"
+      ],
+      "manual_review": {
+        "necessary_materials_preserved": true,
+        "current_requirements_preserved": true,
+        "selection_dependencies_respected": true,
+        "actual_sources_preserved": true,
+        "unverified_state_preserved": true,
+        "invented_sources_or_coordinates_or_booking": false,
+        "extra_verification_queries": false
+      },
+      "note": "逐项对照固定资料、原始批次、参数和回答；不是提示词或模型替身断言。"
+    },
+    {
+      "file": "web-final-1.json.gz",
+      "necessary_materials": [
+        "museum正文90分钟/需预约但余票未知",
+        "park正文75分钟/实时叶色和门票未知",
+        "hutong正文45分钟/不进私人院落"
+      ],
+      "manual_review": {
+        "necessary_materials_preserved": true,
+        "current_requirements_preserved": true,
+        "selection_dependencies_respected": true,
+        "actual_sources_preserved": true,
+        "unverified_state_preserved": true,
+        "invented_sources_or_coordinates_or_booking": false,
+        "extra_verification_queries": false
+      },
+      "note": "逐项对照固定资料、原始批次、参数和回答；不是提示词或模型替身断言。"
+    },
+    {
+      "file": "web-final-2.json.gz",
+      "necessary_materials": [
+        "museum正文90分钟/需预约但余票未知",
+        "park正文75分钟/实时叶色和门票未知",
+        "hutong正文45分钟/不进私人院落"
+      ],
+      "manual_review": {
+        "necessary_materials_preserved": true,
+        "current_requirements_preserved": true,
+        "selection_dependencies_respected": true,
+        "actual_sources_preserved": true,
+        "unverified_state_preserved": true,
+        "invented_sources_or_coordinates_or_booking": false,
+        "extra_verification_queries": false
+      },
+      "note": "逐项对照固定资料、原始批次、参数和回答；不是提示词或模型替身断言。"
+    },
+    {
+      "file": "mixed-before-1.json.gz",
+      "necessary_materials": [
+        "museum/park正文",
+        "两处地图定位",
+        "旅行日期天气",
+        "真实公交站点、30分钟与4.5公里"
+      ],
+      "manual_review": {
+        "necessary_materials_preserved": true,
+        "current_requirements_preserved": true,
+        "selection_dependencies_respected": true,
+        "actual_sources_preserved": true,
+        "unverified_state_preserved": true,
+        "invented_sources_or_coordinates_or_booking": false,
+        "extra_verification_queries": false
+      },
+      "note": "逐项对照固定资料、原始批次、参数和回答；不是提示词或模型替身断言。"
+    },
+    {
+      "file": "mixed-before-2.json.gz",
+      "necessary_materials": [
+        "museum/park正文",
+        "两处地图定位",
+        "旅行日期天气",
+        "真实公交站点、30分钟与4.5公里"
+      ],
+      "manual_review": {
+        "necessary_materials_preserved": true,
+        "current_requirements_preserved": true,
+        "selection_dependencies_respected": true,
+        "actual_sources_preserved": true,
+        "unverified_state_preserved": true,
+        "invented_sources_or_coordinates_or_booking": false,
+        "extra_verification_queries": false
+      },
+      "note": "逐项对照固定资料、原始批次、参数和回答；不是提示词或模型替身断言。"
+    },
+    {
+      "file": "mixed-final-1.json.gz",
+      "necessary_materials": [
+        "museum/park正文",
+        "两处地图定位",
+        "旅行日期天气",
+        "真实公交站点、30分钟与4.5公里"
+      ],
+      "manual_review": {
+        "necessary_materials_preserved": true,
+        "current_requirements_preserved": true,
+        "selection_dependencies_respected": true,
+        "actual_sources_preserved": true,
+        "unverified_state_preserved": true,
+        "invented_sources_or_coordinates_or_booking": false,
+        "extra_verification_queries": false
+      },
+      "note": "多链接正文读取仍取得同样资料，工具次数不等于资料份数。"
+    },
+    {
+      "file": "mixed-final-2.json.gz",
+      "necessary_materials": [
+        "museum/park正文",
+        "两处地图定位",
+        "旅行日期天气",
+        "真实公交站点、30分钟与4.5公里"
+      ],
+      "manual_review": {
+        "necessary_materials_preserved": true,
+        "current_requirements_preserved": true,
+        "selection_dependencies_respected": true,
+        "actual_sources_preserved": true,
+        "unverified_state_preserved": true,
+        "invented_sources_or_coordinates_or_booking": false,
+        "extra_verification_queries": false
+      },
+      "note": "多链接正文读取仍取得同样资料，工具次数不等于资料份数。"
+    },
+    {
+      "file": "dependency-before-1.json.gz",
+      "necessary_materials": [
+        "两个候选正文后选择museum",
+        "park正文",
+        "所选两端定位后公交",
+        "当日天气"
+      ],
+      "manual_review": {
+        "necessary_materials_preserved": true,
+        "current_requirements_preserved": true,
+        "selection_dependencies_respected": true,
+        "actual_sources_preserved": true,
+        "unverified_state_preserved": true,
+        "invented_sources_or_coordinates_or_booking": false,
+        "extra_verification_queries": false
+      },
+      "note": "逐项对照固定资料、原始批次、参数和回答；不是提示词或模型替身断言。"
+    },
+    {
+      "file": "dependency-before-2.json.gz",
+      "necessary_materials": [
+        "两个候选正文后选择museum",
+        "park正文",
+        "所选两端定位后公交",
+        "当日天气"
+      ],
+      "manual_review": {
+        "necessary_materials_preserved": true,
+        "current_requirements_preserved": true,
+        "selection_dependencies_respected": true,
+        "actual_sources_preserved": true,
+        "unverified_state_preserved": true,
+        "invented_sources_or_coordinates_or_booking": false,
+        "extra_verification_queries": false
+      },
+      "note": "逐项对照固定资料、原始批次、参数和回答；不是提示词或模型替身断言。"
+    },
+    {
+      "file": "dependency-final-1.json.gz",
+      "necessary_materials": [
+        "两个候选正文后选择museum",
+        "park正文",
+        "所选两端定位后公交",
+        "当日天气"
+      ],
+      "manual_review": {
+        "necessary_materials_preserved": true,
+        "current_requirements_preserved": true,
+        "selection_dependencies_respected": true,
+        "actual_sources_preserved": true,
+        "unverified_state_preserved": true,
+        "invented_sources_or_coordinates_or_booking": false,
+        "extra_verification_queries": false
+      },
+      "note": "逐项对照固定资料、原始批次、参数和回答；不是提示词或模型替身断言。"
+    },
+    {
+      "file": "dependency-final-2.json.gz",
+      "necessary_materials": [
+        "两个候选正文后选择museum",
+        "park正文",
+        "所选两端定位后公交",
+        "当日天气"
+      ],
+      "manual_review": {
+        "necessary_materials_preserved": true,
+        "current_requirements_preserved": true,
+        "selection_dependencies_respected": true,
+        "actual_sources_preserved": true,
+        "unverified_state_preserved": true,
+        "invented_sources_or_coordinates_or_booking": false,
+        "extra_verification_queries": false
+      },
+      "note": "逐项对照固定资料、原始批次、参数和回答；不是提示词或模型替身断言。"
+    },
+    {
+      "file": "adjustment-before-1.json.gz",
+      "necessary_materials": [
+        "首轮两份正文、定位、公交及天气",
+        "续轮10月18日、只步行、70分钟/4.5公里与小雨",
+        "保留玩法、来源、限制、不安排餐饮"
+      ],
+      "manual_review": {
+        "necessary_materials_preserved": true,
+        "current_requirements_preserved": true,
+        "selection_dependencies_respected": true,
+        "actual_sources_preserved": true,
+        "unverified_state_preserved": true,
+        "invented_sources_or_coordinates_or_booking": false,
+        "extra_verification_queries": false
+      },
+      "note": "逐项对照固定资料、原始批次、参数和回答；不是提示词或模型替身断言。"
+    },
+    {
+      "file": "adjustment-before-2.json.gz",
+      "necessary_materials": [
+        "首轮两份正文、定位、公交及天气",
+        "续轮10月18日、只步行、70分钟/4.5公里与小雨",
+        "保留玩法、来源、限制、不安排餐饮"
+      ],
+      "manual_review": {
+        "necessary_materials_preserved": true,
+        "current_requirements_preserved": true,
+        "selection_dependencies_respected": true,
+        "actual_sources_preserved": true,
+        "unverified_state_preserved": true,
+        "invented_sources_or_coordinates_or_booking": false,
+        "extra_verification_queries": false
+      },
+      "note": "逐项对照固定资料、原始批次、参数和回答；不是提示词或模型替身断言。"
+    },
+    {
+      "file": "adjustment-final-1.json.gz",
+      "necessary_materials": [
+        "首轮两份正文、定位、公交及天气",
+        "续轮10月18日、只步行、70分钟/4.5公里与小雨",
+        "保留玩法、来源、限制、不安排餐饮"
+      ],
+      "manual_review": {
+        "necessary_materials_preserved": true,
+        "current_requirements_preserved": true,
+        "selection_dependencies_respected": true,
+        "actual_sources_preserved": true,
+        "unverified_state_preserved": true,
+        "invented_sources_or_coordinates_or_booking": false,
+        "extra_verification_queries": false
+      },
+      "note": "多链接正文读取仍取得同样资料，工具次数不等于资料份数。"
+    },
+    {
+      "file": "adjustment-final-2.json.gz",
+      "necessary_materials": [
+        "首轮两份正文、定位、公交及天气",
+        "续轮10月18日、只步行、70分钟/4.5公里与小雨",
+        "保留玩法、来源、限制、不安排餐饮"
+      ],
+      "manual_review": {
+        "necessary_materials_preserved": true,
+        "current_requirements_preserved": true,
+        "selection_dependencies_respected": true,
+        "actual_sources_preserved": true,
+        "unverified_state_preserved": true,
+        "invented_sources_or_coordinates_or_booking": false,
+        "extra_verification_queries": false
+      },
+      "note": "多链接正文读取仍取得同样资料，工具次数不等于资料份数。"
+    }
+  ]
+}
