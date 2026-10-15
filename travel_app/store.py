@@ -198,7 +198,7 @@ class Store:
                 JOIN payloads p ON p.payload_id=r.response_payload_id WHERE r.session_id=? ORDER BY p.rowid""", (session_id,)):
             # 摘要请求不属于普通助手文本；旧记录缺 purpose 时仍为旅行请求。
             start = self.db.execute("SELECT data FROM events WHERE request_id=? AND kind='request.started'", (row["request_id"],)).fetchone()
-            if start and json.loads(start["data"]).get("purpose", "travel") != "travel":
+            if start and json.loads(start["data"]).get("purpose", "travel") == "context_summary":
                 continue
             for index, block in enumerate(json.loads(row["content"]).get("content", [])):
                 if block.get("type") == "text":

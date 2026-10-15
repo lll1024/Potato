@@ -24,7 +24,7 @@ export function TraceTimeline({turns, requests, tools, events, selected, onLocat
   for (const tool of tools) {
     const title = `工具 ${tool.ordinal} · ${tool.name}`;
     add('tool', tool.tool_call_id, tool.turn_id, tool.proposed_at, 'tool.pending', `${title} · 模型提出`, tool.ordinal * 10);
-    add('tool', tool.tool_call_id, tool.turn_id, tool.waiting_at, 'tool.waiting', `${title} · 限速等待开始`, tool.ordinal * 10 + 1);
+    add('tool', tool.tool_call_id, tool.turn_id, tool.waiting_at, 'tool.waiting', `${title} · 等待查询开始`, tool.ordinal * 10 + 1);
     add('tool', tool.tool_call_id, tool.turn_id, tool.call_started_at, 'tool.running', `${title} · SDK 开始${tool.interrupted ? '（中断，结果未知）' : tool.call_finished_at ? '' : '（尚未结束）'}`, tool.ordinal * 10 + 2);
     add('tool', tool.tool_call_id, tool.turn_id, tool.call_finished_at, `tool.${tool.status}`, `${title} · SDK 结束`, tool.ordinal * 10 + 3);
     add('tool', tool.tool_call_id, tool.turn_id, tool.finished_at, `tool.${tool.status}.result`, `${title} · 应用回填${tool.status === 'not_executed' ? '（未调用）' : ''}`, tool.ordinal * 10 + 4);
@@ -57,7 +57,7 @@ export function TraceTimeline({turns, requests, tools, events, selected, onLocat
         onClick={() => onLocate('request', request.request_id, request.turn_id)} />;
     })}</div></div>}
     <details className="timeline-boundaries"><summary>查看 {boundaries.length} 个已采集时间边界</summary>
-    <p className="hint">模型条显示请求至结束；工具条显示提出至应用回填。SDK 与限速等待的独立边界见下方记录。</p>
+    <p className="hint">模型条显示请求至结束；工具条显示提出至应用回填。工具等待名额或启动间隔；实际调用边界见下方记录。</p>
     <ol>{boundaries.map(item => <li key={item.identity}>
       <button type="button" data-reading-anchor={`boundary:${item.identity}`} aria-pressed={selected === item.objectId} onClick={() => onLocate(item.objectType, item.objectId, item.turnId)}>
         <time dateTime={item.time}>{new Date(item.time).toLocaleTimeString('zh-CN', {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit', fractionalSecondDigits:3})}</time>

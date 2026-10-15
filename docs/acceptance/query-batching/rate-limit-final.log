@@ -1,0 +1,36 @@
+test_free_exa_rate_limit_pauses_web_without_losing_map_or_forwarding_signup (__main__.QueryBatchingTests.test_free_exa_rate_limit_pauses_web_without_losing_map_or_forwarding_signup) ... HTTP Request: POST http://sources.test/mcp "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/fec8af85ac544c57adb4164262524b4d "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+FAIL
+
+======================================================================
+FAIL: test_free_exa_rate_limit_pauses_web_without_losing_map_or_forwarding_signup (__main__.QueryBatchingTests.test_free_exa_rate_limit_pauses_web_without_losing_map_or_forwarding_signup)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py", line 720, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/Users/jarviliu/projects/travel/tests/test_query_batching.py", line 37, in test_free_exa_rate_limit_pauses_web_without_losing_map_or_forwarding_signup
+    self.assertEqual(limited["failure_category"], "rate_limit")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'malformed' != 'rate_limit'
+- malformed
++ rate_limit
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.065s
+
+FAILED (failures=1)

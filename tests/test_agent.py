@@ -233,7 +233,7 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
             {"type": "tool_use", "id": query_id, "name": "maps_text_search",
              "input": {"keywords": "西湖", "city": "杭州"}}
             for query_id in ["query-1", "query-2"]
-        ], "tool_use")])
+        ], "tool_use"), response([{"type": "text", "text": "只整理已取得地点，另一个查询未执行。"}])])
         history = [{"role": "user", "content": "查询西湖"}]
 
         answer = await agent_loop(
@@ -241,6 +241,8 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(service.calls, 1)
+        self.assertEqual(len(model.requests), 2)
+        self.assertNotIn("tools", model.requests[-1])
         self.assertIn("上限", answer)
         results = history[-2]["content"]
         self.assertEqual([result["tool_use_id"] for result in results], ["query-1", "query-2"])

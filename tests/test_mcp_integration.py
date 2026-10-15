@@ -50,7 +50,7 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("杭州市西湖区", answer)
         self.assertFalse(model.requests[1]["messages"][-1]["content"][0]["is_error"])
 
-    async def test_http_faults_keep_prior_success_and_stop_remaining_batch(self):
+    async def test_http_faults_keep_prior_success_and_pause_remaining_maps(self):
         for fault, explanation in [(401, "Key"), (429, "额度"), (503, "服务"),
                                    ("disconnect", "连接"), ("json-read", "连接"), ("sse-read", "连接")]:
             with self.subTest(fault=fault):
@@ -90,7 +90,7 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
                     {"type": "tool_use", "id": call_id, "name": "maps_text_search",
                      "input": {"keywords": "西湖", "city": "杭州"}}
                     for call_id in ["ok", "fault", "pending"]
-                ], "tool_use")])
+                ], "tool_use"), response([{"type": "text", "text": "地图查询已暂停，其余信息待核实。"}])])
                 history = [{"role": "user", "content": "查杭州的地点"}]
                 async with app.router.lifespan_context(app):
                     async with AmapHTTPClient(transport=FaultTransport(app=app)) as http_client:
@@ -99,7 +99,7 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
                             tools = AmapTools(client, tool_timeout=0.1, http_client=http_client)
                             await tools.discover()
                             answer = await agent_loop(history, cast(AsyncAnthropic, model), tools,
-                                                      "test-model", max_rounds=1)
+                                                      "test-model")
 
                 self.assertEqual(len(sent), 2)
                 self.assertIn("地图查询已暂停", answer)
@@ -113,7 +113,7 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
                 if fault in ("json-read", "sse-read"):
                     self.assertTrue(closed_streams)
 
-    async def test_cli_connection_failure_ends_runtime_and_closes_clients(self):
+    async def test_cli_map_connection_failure_allows_next_input_then_closes_on_exit(self):
         server = MCPServer("断连测试地图服务")
 
         @server.tool(name="maps_text_search")
@@ -133,8 +133,9 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
             {"type": "tool_use", "id": "disconnect", "name": "maps_text_search",
              "input": {"keywords": "西湖", "city": "杭州"}}
         ], "tool_use")
+        model_replies = iter([model_reply, response([{"type": "text", "text": "地图查询已暂停，信息待核实。"}])])
         model_http = httpx2.AsyncClient(transport=httpx2.MockTransport(
-            lambda request: httpx2.Response(200, json=model_reply.model_dump(mode="json"))
+            lambda request: httpx2.Response(200, json=next(model_replies).model_dump(mode="json"))
         ))
         captured = io.StringIO()
         async with app.router.lifespan_context(app):
@@ -145,11 +146,11 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
                     patch("travel_app.agent.Client", return_value=client),
                     patch("travel_app.travel_tools.Client", side_effect=ConnectionError("资料服务不可用")),
                     patch("travel_app.agent.AsyncAnthropic", side_effect=lambda **kwargs: AsyncAnthropic(http_client=model_http, **kwargs)),
-                    patch("builtins.input", side_effect=["查询杭州西湖"]) as user_input,
+                    patch("builtins.input", side_effect=["查询杭州西湖", "exit"]) as user_input,
                     contextlib.redirect_stdout(captured),
                 ):
-                    self.assertEqual(await run_cli("test-amap-key"), 1)
-                user_input.assert_called_once()
+                    self.assertEqual(await run_cli("test-amap-key"), 0)
+                self.assertEqual(user_input.call_count, 2)
 
         self.assertIn("地图查询已暂停", captured.getvalue())
         self.assertIn("待核实", captured.getvalue())

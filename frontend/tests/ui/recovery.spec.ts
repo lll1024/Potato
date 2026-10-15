@@ -57,6 +57,19 @@ test('旧异常会话隐藏诊断，折叠资料，重试保留草稿并只提�
   await expect(page.getByText(/本机可接收输入/)).not.toBeVisible();
 });
 
+test('预算终止仍展示收尾回答与未完成限制，刷新不会自动重放', async ({page}) => {
+  const app = await recovery(page);
+  app.turn.reason = 'budget'; app.turn.status = 'terminated'; app.turn.answer_source = 'model';
+  app.turn.answer = '旅行行程尚未完成。\n\n已取得三亚天气资料，交通路线尚未查询。';
+  await app.notify();
+  await expect(page.getByText(/查询达到本轮上限，结果不完整/)).toBeVisible();
+  await expect(page.getByText(/已取得三亚天气资料，交通路线尚未查询/)).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', {name: /^三亚旅行/}).click();
+  await expect(page.getByText(/已取得三亚天气资料，交通路线尚未查询/)).toBeVisible();
+  expect(app.writes).toHaveLength(0);
+});
+
 for (const [reason, meaning] of [
   ['execution_error', '这次请求未能完成'], ['budget', '结果不完整'], ['user_stop', '已停止本次请求'],
   ['map_paused', '地图查询已暂停'], ['service_shutdown', '本机服务已退出'],

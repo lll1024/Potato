@@ -9,13 +9,14 @@ from travel_app.model_context import TokenMeter
 
 class ContextMaintenance:
     def __init__(self, *, view, policy, model, client, tools, date_context, turn_start,
-                 next_request_ordinal, observer, stop_requested):
+                 next_request_ordinal, remaining_requests, observer, stop_requested):
         self.view = view
         self.policy = policy
         self.meter = TokenMeter(model, usage_semantics="anthropic" if not os.getenv("ANTHROPIC_BASE_URL") else "compatible_unknown")
         self.client, self.tools = client, tools
         self.date_context, self.turn_start = date_context, turn_start
         self.next_request_ordinal = next_request_ordinal
+        self.remaining_requests = remaining_requests
         self.observer, self.stop_requested = observer, stop_requested
         self.summary_attempts = 0
         self.summary_blocked = False
@@ -48,25 +49,25 @@ class ContextMaintenance:
         return measurement
 
     async def _summarize(self, parameters, *, force=False):
-        if self.policy is None or self.summary_attempts >= 4 or self.summary_blocked:
+        if self.policy is None or self.summary_attempts >= 4 or self.summary_blocked or not self.remaining_requests():
             return
         result = await summarize_history(
             view=self.view, policy=self.policy, meter=self.meter, parameters=parameters,
             client=self.client, tools=self.tools, date_context=self.date_context,
             cutoff=earlier_history_cutoff(self.view, self.turn_start, self.policy, self.meter, force=force),
-            remaining_attempts=4 - self.summary_attempts, next_request_ordinal=self.next_request_ordinal,
+            remaining_attempts=min(4 - self.summary_attempts, self.remaining_requests()), next_request_ordinal=self.next_request_ordinal,
             observer=self.observer, stop_requested=self.stop_requested)
         self.summary_attempts += result.attempts
         self.summary_blocked = self.summary_blocked or result.terminal_failure
 
-    async def prepare_request(self, parameters, *, step, attempt, recovering=False):
+    async def prepare_request(self, parameters, *, step, attempt, recovering=False, final=False):
         """更新可发送的输入；返回预算阻止原因，关闭压缩时沿用原输入。"""
         measurement = self.meter.measure(parameters) if self.policy else None
         self.measurement = measurement
         if self.policy is None:
             return None
         assert measurement is not None
-        if not recovering and measurement["estimated_tokens"] >= self.policy.pressure_threshold:
+        if not final and not recovering and measurement["estimated_tokens"] >= self.policy.pressure_threshold:
             measurement = await self._organize(parameters, measurement, step=step, attempt=attempt)
             if (measurement["estimated_tokens"] >= self.policy.pressure_threshold
                     and self.summary_attempts < 4 and not self.summary_blocked):

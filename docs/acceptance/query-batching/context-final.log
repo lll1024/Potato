@@ -1,0 +1,230 @@
+test_auth_and_quota_do_not_retry_summary (test_context_summary.ContextSummaryTests.test_auth_and_quota_do_not_retry_summary) ... ok
+test_candidate_storage_failure_stops_before_next_request (test_context_summary.ContextSummaryTests.test_candidate_storage_failure_stops_before_next_request) ... ok
+test_changed_dates_survive_stopped_summary_before_any_travel_request (test_context_summary.ContextSummaryTests.test_changed_dates_survive_stopped_summary_before_any_travel_request) ... ok
+test_cli_keeps_summary_within_process_and_prints_short_status (test_context_summary.ContextSummaryTests.test_cli_keeps_summary_within_process_and_prints_short_status) ... ok
+test_finish_failure_does_not_promote_unsaved_version (test_context_summary.ContextSummaryTests.test_finish_failure_does_not_promote_unsaved_version) ... ok
+test_invalid_candidate_retried_once_then_original_input_answers (test_context_summary.ContextSummaryTests.test_invalid_candidate_retried_once_then_original_input_answers) ... ok
+test_invalid_summary_over_budget_ends_without_travel_request (test_context_summary.ContextSummaryTests.test_invalid_summary_over_budget_ends_without_travel_request) ... ok
+test_low_pressure_never_summarizes (test_context_summary.ContextSummaryTests.test_low_pressure_never_summarizes) ... ok
+test_old_history_summary_answers_preserves_original_and_restarts (test_context_summary.ContextSummaryTests.test_old_history_summary_answers_preserves_original_and_restarts) ... ok
+test_stop_inflight_summary_records_return_without_adoption_or_next_call (test_context_summary.ContextSummaryTests.test_stop_inflight_summary_records_return_without_adoption_or_next_call) ... ok
+test_summary_requests_have_a_four_call_turn_limit_without_using_travel_steps (test_context_summary.ContextSummaryTests.test_summary_requests_have_a_four_call_turn_limit_without_using_travel_steps) ... ok
+test_summary_transport_failure_has_only_two_attempts (test_context_summary.ContextSummaryTests.test_summary_transport_failure_has_only_two_attempts) ... ok
+test_terminal_summary_error_is_not_retried_on_later_travel_steps (test_context_summary.ContextSummaryTests.test_terminal_summary_error_is_not_retried_on_later_travel_steps) ... ok
+test_actual_retry_is_checked_again_after_returned_usage_calibrates_upwards (test_context_budget.ContextBudgetTests.test_actual_retry_is_checked_again_after_returned_usage_calibrates_upwards) ... ok
+test_budget_edge_covers_full_system_and_chinese_input (test_context_budget.ContextBudgetTests.test_budget_edge_covers_full_system_and_chinese_input) ... ok
+test_enabled_missing_capacity_ends_without_sending_and_keeps_input (test_context_budget.ContextBudgetTests.test_enabled_missing_capacity_ends_without_sending_and_keeps_input) ... ok
+test_invalid_or_nonpositive_capacity_has_the_same_diagnosis (test_context_budget.ContextBudgetTests.test_invalid_or_nonpositive_capacity_has_the_same_diagnosis) ... ok
+test_large_tool_result_stops_before_next_request_and_keeps_complete_pair (test_context_budget.ContextBudgetTests.test_large_tool_result_stops_before_next_request_and_keeps_complete_pair) ... ok
+test_low_pressure_preserves_protocol_and_missing_usage_is_unknown (test_context_budget.ContextBudgetTests.test_low_pressure_preserves_protocol_and_missing_usage_is_unknown) ... ok
+test_model_view_replacement_does_not_change_original_history (test_context_budget.ContextBudgetTests.test_model_view_replacement_does_not_change_original_history) ... ok
+test_oversized_chinese_json_is_not_sent_or_truncated (test_context_budget.ContextBudgetTests.test_oversized_chinese_json_is_not_sent_or_truncated) ... ok
+test_preferences_tool_declarations_and_saved_materials_are_in_budget (test_context_budget.ContextBudgetTests.test_preferences_tool_declarations_and_saved_materials_are_in_budget) ... ok
+test_usage_calibration_counts_official_cache_but_not_ambiguous_compatibility_cache (test_context_budget.ContextBudgetTests.test_usage_calibration_counts_official_cache_but_not_ambiguous_compatibility_cache) ... ok
+test_web_startup_configuration_error_is_actionable (test_context_budget.ContextBudgetTests.test_web_startup_configuration_error_is_actionable) ... ok
+test_growing_tool_history_exhausts_shared_four_summary_calls_and_preserves_results (test_context_incremental.IncrementalContextTests.test_growing_tool_history_exhausts_shared_four_summary_calls_and_preserves_results) ... ok
+test_indivisible_latest_multitool_group_ends_without_summary_or_next_travel_call (test_context_incremental.IncrementalContextTests.test_indivisible_latest_multitool_group_ends_without_summary_or_next_travel_call) ... ok
+test_multiple_summary_versions_keep_original_tool_results_readable (test_context_incremental.IncrementalContextTests.test_multiple_summary_versions_keep_original_tool_results_readable) ... ok
+test_oversized_history_batches_merge_correction_and_keep_deterministic_dates (test_context_incremental.IncrementalContextTests.test_oversized_history_batches_merge_correction_and_keep_deterministic_dates) ... ok
+test_second_batch_failure_keeps_first_version_and_shares_two_request_limit (test_context_incremental.IncrementalContextTests.test_second_batch_failure_keeps_first_version_and_shares_two_request_limit) ... ok
+test_single_turn_repeated_compaction_keeps_current_input_and_latest_multitool_group (test_context_incremental.IncrementalContextTests.test_single_turn_repeated_compaction_keeps_current_input_and_latest_multitool_group) ... ok
+test_failure_warning_and_different_json_value_types_are_preserved (test_context_organization.ContextOrganizationTests.test_failure_warning_and_different_json_value_types_are_preserved) ... ok
+test_low_pressure_keeps_duplicate_tool_result_unchanged (test_context_organization.ContextOrganizationTests.test_low_pressure_keeps_duplicate_tool_result_unchanged) ... ok
+test_pressure_removes_duplicate_views_and_preserves_complete_original (test_context_organization.ContextOrganizationTests.test_pressure_removes_duplicate_views_and_preserves_complete_original) ... ok
+test_source_body_duplicates_use_references_without_losing_conditions_or_failures (test_context_organization.ContextOrganizationTests.test_source_body_duplicates_use_references_without_losing_conditions_or_failures) ... ok
+test_cli_cancelled_summary_exits_and_new_run_has_no_previous_context (test_context_recovery.ContextRecoveryTests.test_cli_cancelled_summary_exits_and_new_run_has_no_previous_context) ... ok
+test_history_storage_read_failure_stops_without_saved_completion (test_context_recovery.ContextRecoveryTests.test_history_storage_read_failure_stops_without_saved_completion) ... ok
+test_interrupted_material_is_short_index_and_readable_by_payload_identity (test_context_recovery.ContextRecoveryTests.test_interrupted_material_is_short_index_and_readable_by_payload_identity) ... StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 63193)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=15100 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/traceback.py:294: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x113fe88b0>
+  def __init__(self, filename, lineno, name, *, lookup_line=True,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+HTTP Request: GET http://127.0.0.1:63194/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63194/api/turns "HTTP/1.1 202 Accepted"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=15100 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=15101 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:63217/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63217/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63217/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63217/api/sessions/4a14205cbd6843b2ba690a39602c5eef "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=15101 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+StreamableHTTP session manager shutting down
+ok
+test_killed_summary_or_adopted_candidate_restores_previous_saved_version (test_context_recovery.ContextRecoveryTests.test_killed_summary_or_adopted_candidate_restores_previous_saved_version) ... StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 63246)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=15102 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:63247/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63247/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63247/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63247/api/sessions/529b4f16031d4fde8794002780a417d0 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63247/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63247/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63247/api/sessions/529b4f16031d4fde8794002780a417d0 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63247/api/turns "HTTP/1.1 202 Accepted"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=15102 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=15103 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:63284/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63284/api/sessions/529b4f16031d4fde8794002780a417d0 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63284/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63284/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63284/api/sessions/529b4f16031d4fde8794002780a417d0 "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=15103 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+StreamableHTTP session manager shutting down
+StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 63309)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=15104 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:63310/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63310/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63310/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63310/api/sessions/9a1b2a7451b14371a8f224769c8f7934 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63310/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63310/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63310/api/sessions/9a1b2a7451b14371a8f224769c8f7934 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63310/api/turns "HTTP/1.1 202 Accepted"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=15104 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=15105 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:63348/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63348/api/sessions/9a1b2a7451b14371a8f224769c8f7934 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63348/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63348/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63348/api/sessions/9a1b2a7451b14371a8f224769c8f7934 "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=15105 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+StreamableHTTP session manager shutting down
+ok
+test_same_text_from_interrupted_turn_does_not_bind_completed_protocol (test_context_recovery.ContextRecoveryTests.test_same_text_from_interrupted_turn_does_not_bind_completed_protocol) ... StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 63373)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=15106 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:63374/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63374/api/turns "HTTP/1.1 202 Accepted"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=15106 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=15107 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:63396/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63396/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63396/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63396/api/sessions/e1cd22f09ab94305934b078ab83aa967 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63396/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63396/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63396/api/sessions/e1cd22f09ab94305934b078ab83aa967 "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=15107 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+StreamableHTTP session manager shutting down
+ok
+test_storage_boundaries_then_process_exit_do_not_promote_candidate (test_context_recovery.ContextRecoveryTests.test_storage_boundaries_then_process_exit_do_not_promote_candidate) ... StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 63433)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=15111 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:63434/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63434/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63434/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63434/api/sessions/1b7748a9e13349f888134f2da2b6802b "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63434/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63434/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63434/api/sessions/1b7748a9e13349f888134f2da2b6802b "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63434/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63434/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63434/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63434/api/sessions/1b7748a9e13349f888134f2da2b6802b "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=15111 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=15135 running stdout=<_UnixReadPipeTransport fd=8 polling>>
+HTTP Request: GET http://127.0.0.1:63479/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63479/api/sessions/1b7748a9e13349f888134f2da2b6802b "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63479/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63479/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63479/api/sessions/1b7748a9e13349f888134f2da2b6802b "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=8 polling> was closed by peer
+<_UnixSubprocessTransport pid=15135 running stdout=<_UnixReadPipeTransport closing fd=8 idle>> exited with return code -9
+StreamableHTTP session manager shutting down
+StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 63506)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=15136 running stdout=<_UnixReadPipeTransport fd=8 polling>>
+HTTP Request: GET http://127.0.0.1:63507/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63507/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63507/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63507/api/sessions/b918e7a2fbf04048b30a557c585abfdd "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63507/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63507/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63507/api/sessions/b918e7a2fbf04048b30a557c585abfdd "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63507/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63507/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63507/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63507/api/sessions/b918e7a2fbf04048b30a557c585abfdd "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=8 polling> was closed by peer
+<_UnixSubprocessTransport pid=15136 running stdout=<_UnixReadPipeTransport closing fd=8 idle>> exited with return code -9
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=15142 running stdout=<_UnixReadPipeTransport fd=9 polling>>
+HTTP Request: GET http://127.0.0.1:63554/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63554/api/sessions/b918e7a2fbf04048b30a557c585abfdd "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63554/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63554/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63554/api/sessions/b918e7a2fbf04048b30a557c585abfdd "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=9 polling> was closed by peer
+<_UnixSubprocessTransport pid=15142 running stdout=<_UnixReadPipeTransport closing fd=9 idle>> exited with return code -9
+StreamableHTTP session manager shutting down
+StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 63580)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=15157 running stdout=<_UnixReadPipeTransport fd=9 polling>>
+HTTP Request: GET http://127.0.0.1:63581/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63581/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63581/api/events?after=0 "HTTP/1.1 200 OK"
+/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/linecache.py:224: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x114200b80>
+  def _make_lazycache_entry(filename, module_globals):
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+HTTP Request: GET http://127.0.0.1:63581/api/sessions/3b95252f0403439e90548218a80d5e23 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63581/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63581/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63581/api/sessions/3b95252f0403439e90548218a80d5e23 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63581/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63581/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63581/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63581/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63581/api/sessions/3b95252f0403439e90548218a80d5e23 "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=9 polling> was closed by peer
+<_UnixSubprocessTransport pid=15157 running stdout=<_UnixReadPipeTransport closing fd=9 idle>> exited with return code -9
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=15158 running stdout=<_UnixReadPipeTransport fd=9 polling>>
+HTTP Request: GET http://127.0.0.1:63627/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63627/api/sessions/3b95252f0403439e90548218a80d5e23 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63627/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63627/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63627/api/sessions/3b95252f0403439e90548218a80d5e23 "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=9 polling> was closed by peer
+<_UnixSubprocessTransport pid=15158 running stdout=<_UnixReadPipeTransport closing fd=9 idle>> exited with return code -9
+StreamableHTTP session manager shutting down
+StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 63651)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=15161 running stdout=<_UnixReadPipeTransport fd=9 polling>>
+HTTP Request: GET http://127.0.0.1:63652/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63652/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63652/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63652/api/sessions/296be2a9379e43309a20dd47a0d17c11 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63652/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63652/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63652/api/sessions/296be2a9379e43309a20dd47a0d17c11 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63652/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63652/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63652/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63652/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63652/api/sessions/296be2a9379e43309a20dd47a0d17c11 "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=9 polling> was closed by peer
+<_UnixSubprocessTransport pid=15161 running stdout=<_UnixReadPipeTransport closing fd=9 idle>> exited with return code -9
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=15165 running stdout=<_UnixReadPipeTransport fd=10 polling>>
+HTTP Request: GET http://127.0.0.1:63699/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63699/api/sessions/296be2a9379e43309a20dd47a0d17c11 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:63699/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:63699/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:63699/api/sessions/296be2a9379e43309a20dd47a0d17c11 "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=10 polling> was closed by peer
+<_UnixSubprocessTransport pid=15165 running stdout=<_UnixReadPipeTransport closing fd=10 idle>> exited with return code -9
+StreamableHTTP session manager shutting down
+ok
+
+----------------------------------------------------------------------
+Ran 40 tests in 45.985s
+
+OK

@@ -14,7 +14,7 @@ from mcp.types import CONNECTION_CLOSED, INVALID_PARAMS, REQUEST_TIMEOUT
 
 from travel_app.agent import agent_loop
 from travel_app.amap_mcp import AmapTools
-from travel_app.limits import MAX_ROUNDS
+from travel_app.limits import MAX_MODEL_REQUESTS
 from test_agent import MapService, ModelService, response
 
 
@@ -69,7 +69,7 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(results[0]["tool_use_id"], "ok")
         self.assertFalse(results[0]["is_error"])
 
-    async def test_auth_quota_and_connection_stop_remaining_calls_and_retries(self):
+    async def test_auth_quota_and_connection_pause_maps_and_inform_next_model(self):
         request = httpx2.Request("POST", "https://mcp.example.test/mcp?key=secret")
         faults = [
             (map_result({"status": "0", "infocode": "10001", "info": "INVALID_USER_KEY"}), "Key"),
@@ -94,18 +94,19 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
                 await tools.discover()
                 model = ModelService([response([
                     query("ok"), query("fault"), query("unexecuted")
-                ], "tool_use")])
+                ], "tool_use"), response([{"type": "text", "text": "地图查询已暂停，已有资料保留，缺失资料待核实。"}])])
                 history = [{"role": "user", "content": "查询杭州的地点"}]
 
                 answer = await agent_loop(history, cast(AsyncAnthropic, model), tools, "test-model")
 
                 self.assertEqual(len(service.calls), 2)
-                self.assertEqual(len(model.requests), 1)
+                self.assertEqual(len(model.requests), 2)
                 self.assertIn("地图查询已暂停", answer)
                 self.assertNotIn("杭州市西湖区", answer)
                 self.assertIn("杭州市西湖区", str(history))
                 self.assertIn("待核实", answer)
-                results = history[-2]["content"]
+                self.assertIn("已暂停地图查询", model.requests[1]["system"])
+                results = model.requests[1]["messages"][-1]["content"]
                 self.assertEqual([item["tool_use_id"] for item in results], ["ok", "fault", "unexecuted"])
                 self.assertEqual([item["is_error"] for item in results], [False, True, True])
                 history.append({"role": "user", "content": "再试一次"})
@@ -214,7 +215,8 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(len(service.calls), 1)
-        self.assertEqual(len(model.requests), 1)
+        self.assertEqual(len(model.requests), 2)
+        self.assertNotIn("tools", model.requests[-1])
         self.assertIn("上限", answer)
         self.assertNotIn("杭州市西湖区", answer)
         self.assertIn("待核实", answer)
@@ -233,7 +235,7 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_budgets_accumulate_across_rounds_and_reset_for_next_request(self):
         for limits, expected_calls, expected_rounds in [
-            ({"max_tool_calls": 3}, 3, 2), ({"max_rounds": 2}, 4, 2),
+            ({"max_tool_calls": 3}, 3, 3), ({"max_rounds": 2}, 4, 2),
         ]:
             with self.subTest(limits=limits):
                 service = FaultMapService([map_result({"name": "西湖"}) for _ in range(5)])
@@ -264,18 +266,19 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(len(service.calls), expected_calls + 1)
 
     async def test_default_model_budget_stops_and_resets_for_next_request(self):
-        service = FaultMapService([map_result({"name": "西湖"}) for _ in range(MAX_ROUNDS + 1)])
+        service = FaultMapService([map_result({"name": "西湖"}) for _ in range(MAX_MODEL_REQUESTS + 1)])
         tools = AmapTools(cast(Client, service))
         await tools.discover()
         model = ModelService([response([query(f"r{index}")], "tool_use")
-                              for index in range(MAX_ROUNDS + 1)])
+                              for index in range(MAX_MODEL_REQUESTS + 1)])
         history = [{"role": "user", "content": "持续查询西湖"}]
         # 放宽工具预算以单独触发默认模型预算；不消耗真实额度和限速等待。
         with patch("travel_app.amap_mcp.MAP_CALL_INTERVAL", 0):
             answer = await agent_loop(history, cast(AsyncAnthropic, model), tools,
-                                      "test-model", max_tool_calls=MAX_ROUNDS + 1)
-            self.assertEqual(len(model.requests), MAX_ROUNDS)
-            self.assertEqual(len(service.calls), MAX_ROUNDS)
+                                      "test-model", max_tool_calls=MAX_MODEL_REQUESTS + 1)
+            self.assertEqual(len(model.requests), 64)
+            self.assertEqual(len(service.calls), 62)
+            self.assertNotIn("tools", model.requests[-1])
             self.assertIn("已达到本轮查询上限", answer)
             self.assertNotIn("西湖", answer)
             self.assertIn("西湖", str(history))
@@ -284,7 +287,7 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
                                     response([{"type": "text", "text": "西湖已核实。"}])])
             answer = await agent_loop(history, cast(AsyncAnthropic, followup), tools, "test-model")
             self.assertEqual(answer, "西湖已核实。")
-            self.assertEqual(len(service.calls), MAX_ROUNDS + 1)
+            self.assertEqual(len(service.calls), 63)
 
     async def test_timeout_cancels_tool_without_losing_success_in_same_batch(self):
         cancelled = asyncio.Event()

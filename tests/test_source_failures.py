@@ -277,9 +277,9 @@ class SourceFailureTests(unittest.IsolatedAsyncioTestCase):
                 await client.post("/api/turns/" + accepted["turn_id"] + "/stop")
                 snapshot = await finished(client, accepted)
                 self.assertEqual(snapshot["turns"][0]["reason"], "user_stop")
-                self.assertEqual([tool["status"] for tool in snapshot["tool_calls"]], ["completed", "not_executed", "not_executed"])
+                self.assertEqual([tool["status"] for tool in snapshot["tool_calls"]], ["completed", "not_executed", "completed"])
                 self.assertEqual(len(service.source_calls), 1)
-                self.assertEqual(service.map_calls, [])
+                self.assertEqual(len(service.map_calls), 1)
                 self.assertIn("官方预约须知", str(snapshot["turns"][0]["query_materials"]))
                 self.assertEqual(snapshot["turns"][0]["travel_date_context"]["travel_dates"]["start_date"], "2026-10-17")
                 self.assertEqual(len(model.requests), 1)
@@ -299,27 +299,28 @@ class SourceFailureTests(unittest.IsolatedAsyncioTestCase):
                 service.release.set()
                 snapshot = await finished(client, accepted)
                 self.assertEqual(snapshot["turns"][0]["reason"], "user_stop")
-                self.assertEqual([tool["status"] for tool in snapshot["tool_calls"]], ["completed", "not_executed"])
+                self.assertEqual([tool["status"] for tool in snapshot["tool_calls"]], ["completed", "completed"])
                 self.assertIn("官方预约须知", str(snapshot["turns"][0]["query_materials"]))
-                self.assertEqual(service.map_calls, [])
+                self.assertEqual(len(service.map_calls), 1)
 
     async def test_mixed_services_share_the_total_budget(self):
         data = {"results": [{"url": "https://museum.example.test/visit", "content": "官方线索"}]}
-        service = SourceService([data] * 62)
+        service = SourceService([data] * 126)
         proposals = [call("map-first", "maps_text_search", {"keywords": "博物馆", "city": "北京"})]
-        proposals += [call("source-" + str(i), "web_search_exa", {"query": "官方线索 " + str(i)}) for i in range(62)]
+        proposals += [call("source-" + str(i), "web_search_exa", {"query": "官方线索 " + str(i)}) for i in range(126)]
         proposals += [call("map-last", "maps_text_search", {"keywords": "博物馆", "city": "北京"}),
                       call("over-budget", "web_search_exa", {"query": "不可再查询"})]
-        model = ModelService([response(proposals, "tool_use")])
+        model = ModelService([response(proposals, "tool_use"), response([{"type": "text", "text": "只整理已取得资料，仍有查询未完成。"}])])
         with tempfile.TemporaryDirectory() as directory:
             async with service.serving(directory, model, interval=0) as client:
                 accepted = (await client.post("/api/turns", json={"input": "2026年10月17日去北京博物馆"})).json()
                 snapshot = await finished(client, accepted)
                 self.assertEqual(snapshot["turns"][0]["reason"], "budget")
-                self.assertEqual(len(service.source_calls), 62)
+                self.assertEqual(len(service.source_calls), 126)
                 self.assertEqual(len(service.map_calls), 2)
                 self.assertEqual(snapshot["tool_calls"][-1]["status"], "not_executed")
-                self.assertEqual(len(model.requests), 1)
+                self.assertEqual(len(model.requests), 2)
+                self.assertNotIn("tools", model.requests[-1])
                 self.assertIn("上限", snapshot["turns"][0]["answer"])
 
     async def test_source_credentials_and_sensitive_url_parameters_are_redacted_everywhere(self):
@@ -422,7 +423,7 @@ class SourceFailureTests(unittest.IsolatedAsyncioTestCase):
                 self.assertNotIn("result_payload_id", before["tool_calls"][0])
                 self.assertEqual(before["turns"][0]["query_materials"], [])
                 self.assertEqual((await client.get("/api/state")).json()["unsaved_fact"]["kind"], "tool.completed")
-                self.assertEqual(service.map_calls, [])
+                self.assertEqual(len(service.map_calls), 1)
             with closing(sqlite3.connect(Path(directory) / "travel.sqlite3")) as database, database:
                 database.execute("DROP TRIGGER fail_result")
             next_model = ModelService([response([{"type": "text", "text": "没有已保存正文，规则待核实。"}])])

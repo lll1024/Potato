@@ -11,6 +11,8 @@ import { reasonLabels } from './turnReasons';
 import { ModelRetries, retryEntries, type RetryEvent } from './ModelRetries';
 export type { TraceLocation } from './PayloadViewer';
 
+const requestLabels: Record<string, string> = {context_summary: '摘要', travel_final: '收尾'};
+
 type Usage = Record<string, unknown>;
 type UsageSummary = Record<string, {value: number | null; known_count: number; request_count: number}>;
 type TraceRequest = {
@@ -32,7 +34,7 @@ type TraceEvent = RetryEvent & {tool_call_id?: string | null; data?: RetryEvent[
 type TraceSnapshot = {events: TraceEvent[]; session: {title: string}; turns: TraceTurn[]; requests: TraceRequest[]; tool_calls: TraceTool[]; usage_summary: UsageSummary; next_before: number | null; cursor: number; stream_id: string};
 type Props = {sessionId: string | null; refreshKey?: number; location?: TraceLocation | null; onInteraction?: () => void;
   onStop?: (turnId: string) => void; stopping?: boolean; disconnected?: boolean};
-const toolStatuses: Record<string,string> = {pending:'已提出',waiting:'限速等待',running:'执行中',completed:'成功',failed:'失败',not_executed:'未执行'};
+const toolStatuses: Record<string,string> = {pending:'已提出',waiting:'等待查询',running:'执行中',completed:'成功',failed:'失败',not_executed:'未执行'};
 const failureLabels: Record<string,string> = {auth:'鉴权失败',quota:'额度或限流',connection:'连接不可恢复',service:'地图服务暂停',arguments:'参数错误',timeout:'查询超时',business:'地图业务失败',sdk_error:'SDK 错误标志',error:'普通工具失败'};
 function turnStatus(turn: TraceTurn) { return turn.status === 'completed' ? (turn.tool_error_count ? `完成，含工具错误（${turn.tool_error_count}）` : '已完成') : turn.status === 'running' ? '正在执行' : `${turn.status === 'failed' ? '失败' : '终止'}：${reasonLabels[turn.reason ?? ''] ?? turn.reason ?? '原因未知'}`; }
 const statuses: Record<string,string> = {running:'正在请求',completed:'已收到响应',failed:'请求失败'};
@@ -198,7 +200,7 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
             {turn.status === 'running' && retryEntries(snapshot.events, turn).length > 0 && onStop &&
               <button type="button" disabled={stopping || disconnected} onClick={() => onStop(turn.turn_id)}>停止本轮重试</button>}
             {snapshot.requests.filter(item => item.turn_id === turn.turn_id).map(item => <details key={item.request_id} id={`trace-object-${item.request_id}`} className={`trace-request ${selected === item.request_id ? 'selected' : ''}`} open={expanded[item.request_id] ?? false} onToggle={event => {const open=event.currentTarget.open; setExpanded(current => ({...current,[item.request_id]:open}));}}>
-              <summary data-reading-anchor={`request:${item.request_id}`}><span className="trace-badge model">{item.purpose === 'context_summary' ? '摘要' : '模型'}</span><span className="trace-row-text">请求 #{item.ordinal}</span><span className="trace-row-status">{item.interrupted ? '中断，结果未知' : statuses[item.status] ?? item.status}</span></summary>
+              <summary data-reading-anchor={`request:${item.request_id}`}><span className="trace-badge model">{requestLabels[item.purpose ?? 'travel'] ?? '模型'}</span><span className="trace-row-text">请求 #{item.ordinal}</span><span className="trace-row-status">{item.interrupted ? '中断，结果未知' : statuses[item.status] ?? item.status}</span></summary>
               <div className="trace-request-row"><time dateTime={item.started_at}>{new Date(item.started_at).toLocaleTimeString('zh-CN')}</time><span>{item.duration_ms === null ? (item.interrupted ? '—（中断，结束未知）' : '—（尚未结束）') : `${item.duration_ms.toFixed(1)} ms`}</span><button aria-pressed={selected === item.request_id} onClick={() => select(item.request_id)}>查看详情</button></div>
               {item.step !== undefined && <p className="hint">模型步骤 {item.step} · 实际尝试 {item.attempt}</p>}
               {snapshot.tool_calls.filter(call => call.request_id === item.request_id).map(call => <div key={call.tool_call_id} id={`trace-object-${call.tool_call_id}`} className={`trace-tool ${selected === call.tool_call_id ? 'selected' : ''}`}>
@@ -223,7 +225,7 @@ function RequestDetail({request,location,onInteraction}: {request: TraceRequest;
   const missing = request.interrupted ? '未采集／结果未知' : request.usage_state === 'not_completed' ? '未采集／尚未完成' : '未返回';
   return <div onFocus={onInteraction} onWheel={onInteraction}>
     {location && !location.payload_id && <p><Highlight text={location.excerpt ?? ''} query={location.query} /></p>}
-    <h3>{request.purpose === 'context_summary' ? '摘要请求' : '模型请求'} {request.ordinal} · {request.interrupted ? '中断，结果未知' : statuses[request.status] ?? request.status}</h3>
+    <h3>{requestLabels[request.purpose ?? 'travel'] ?? '模型'}请求 {request.ordinal} · {request.interrupted ? '中断，结果未知' : statuses[request.status] ?? request.status}</h3>
     {request.interrupted && <p className="hint">保留上次保存的开始事实；结束、耗时与用量未知，没有重试或重放。</p>}
     <dl className="request-facts"><dt>应用请求身份</dt><dd>{request.request_id}</dd><dt>开始时间</dt><dd>{new Date(request.started_at).toLocaleString('zh-CN')}</dd><dt>结束时间</dt><dd>{request.finished_at ? new Date(request.finished_at).toLocaleString('zh-CN') : request.interrupted ? '—（中断，结束未知）' : '—（尚未结束）'}</dd><dt>SDK 调用耗时</dt><dd>{request.duration_ms === null ? (request.interrupted ? '—（中断，耗时未知）' : '—（尚未完成）') : `${request.duration_ms.toFixed(1)} ms`}</dd></dl>
     <h4>实际 token 用量</h4>
@@ -247,7 +249,7 @@ function ToolDetail({tool,location,onInteraction}: {tool: TraceTool; location?: 
       <dt>模型提出时间</dt><dd>{time(tool.proposed_at)}</dd><dt>应用处理开始</dt><dd>{time(tool.started_at)}</dd>
       <dt>进入底层 SDK</dt><dd>{tool.call_started ? '是' : '否（未调用）'}</dd><dt>SDK 开始时间</dt><dd>{tool.call_started ? time(tool.call_started_at) : '—（未调用）'}</dd>
       <dt>SDK 结束时间</dt><dd>{tool.call_started ? time(tool.call_finished_at) : '—（未调用）'}</dd>
-      <dt>限速等待耗时</dt><dd>{duration(tool.wait_duration_ms,'—（未采集／尚未完成）')}</dd>
+      <dt>启动前等待耗时</dt><dd>{duration(tool.wait_duration_ms,'—（未采集／尚未完成）')}</dd>
       <dt>实际调用耗时</dt><dd>{duration(tool.call_duration_ms,tool.call_started ? '—（尚未完成）' : '—（未调用）')}</dd>
       <dt>应用总耗时</dt><dd>{duration(tool.total_duration_ms,'—（未采集／尚未完成）')}</dd>
       <dt>SDK is_error</dt><dd>{typeof tool.sdk_is_error === 'boolean' ? String(tool.sdk_is_error) : '未取得服务返回'}</dd>

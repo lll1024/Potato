@@ -3,7 +3,7 @@ import type { Turn } from './ConversationRounds';
 import './conversation-controls.css';
 import { ModelRetries, retryEntries, type RetryEvent } from './ModelRetries';
 
-type Request = {request_id: string; turn_id: string; status: string; interrupted?: boolean; started_at?: string};
+type Request = {request_id: string; turn_id: string; status: string; purpose?: string; interrupted?: boolean; started_at?: string};
 type Tool = {tool_call_id: string; turn_id: string; name: string; status: string; interrupted?: boolean};
 type Event = RetryEvent & {tool_call_id?: string | null};
 export type RoundActivity = {requests?: Request[]; tool_calls?: Tool[]; events?: Event[]};
@@ -42,6 +42,7 @@ export function RoundProgress({turn, activity, stopping, disconnected, statusTex
     else if (waiting.length) phase = `等待调用额度 · ${waiting.length} 项查询`;
     else if (pending.length) phase = `正在准备 ${pending.length} 项查询`;
     else if (retry?.state === 'waiting') phase = `等待重试（${retry.data?.retry ?? '未知'}/${retry.data?.max_retries ?? '未知'}） · ${retry.data?.delay_ms === undefined ? '等待时长未知' : `${Number((retry.data.delay_ms / 1000).toFixed(2))} 秒`}`;
+    else if (requests.some(item => item.status === 'running' && !item.interrupted && item.purpose === 'travel_final')) phase = '已达到调用上限，正在整理已有资料';
     else if (requests.some(item => item.status === 'running' && !item.interrupted)) phase = '正在请求助手';
     else phase = requests.length ? '正在处理查询结果' : '正在准备请求';
     if (executing.length && waiting.length && !stopping && !disconnected) phase += ` · ${waiting.length} 项等待调用额度`;
