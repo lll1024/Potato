@@ -38,6 +38,21 @@ def status_error(status, body=None, headers=None):
 
 
 class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
+    async def test_snapshot_reports_terminal_failure_code_without_reusing_previous_attempt(self):
+        model = RetryModel([connection_error(), status_error(401), response([{"type": "text", "text": "请提供城市。"}])])
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory, model) as client:
+                accepted = (await client.post("/api/turns", json={"input": "规划旅行"})).json()
+                saved = await asyncio.wait_for(wait_finished(client, accepted["session_id"]), 5)
+                self.assertEqual(saved["turns"][0]["model_error_code"], "AUTH")
+                failure = saved["turns"][0]
+                retry = (await client.post("/api/turns", json={"input": "规划旅行", "session_id": accepted["session_id"]})).json()
+                finished = await asyncio.wait_for(wait_finished(client, accepted["session_id"], retry["turn_id"]), 5)
+                self.assertEqual(finished["turns"][0], failure)
+                self.assertIsNone(finished["turns"][1]["model_error_code"])
+                reopened = (await client.get("/api/sessions/" + accepted["session_id"] + "?include_messages=false")).json()
+                self.assertEqual(reopened["turns"][0]["model_error_code"], "AUTH")
+
     async def test_transient_failure_recovers_in_last_allowed_step_without_repeating_input(self):
         model = RetryModel([connection_error(), response([{"type": "text", "text": "请提供城市。"}])])
         tools = AmapTools(cast(Client, MapService()))

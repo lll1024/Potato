@@ -511,6 +511,13 @@ class Store:
             if tool["turn_id"] in interrupted and tool["status"] in ("pending","waiting","running"):
                 tool["interrupted"] = True
         for turn in turns:
+            turn["model_error_code"] = None
+            if turn["reason"] == "model_error":
+                last_request = next((request for request in reversed(requests) if request["turn_id"] == turn["turn_id"]), None)
+                failure_payload = self.payload(last_request["error_payload_id"]) if last_request and last_request["status"] == "failed" and last_request["error_payload_id"] else None
+                failure = failure_payload["content"] if failure_payload else None
+                if isinstance(failure, dict) and isinstance(failure.get("code"), str):
+                    turn["model_error_code"] = failure["code"]
             first_request = next((request for request in requests if request["turn_id"] == turn["turn_id"] and request.get("purpose", "travel") == "travel"), None)
             context_payload = self.payload(first_request["input_payload_id"]) if first_request else None
             context = saved_date_context(context_payload["content"].get("system", "")) if context_payload else None

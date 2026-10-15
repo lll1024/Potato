@@ -8,7 +8,8 @@ async function conversation(page: Page) {
     {session_id: 'old', title: '旧会话', updated_at: '2026-10-08T02:00:00Z', status: 'completed', reason: null, tool_error_count: 0},
   ];
   const turn = {turn_id: 'turn', ordinal: 1, input: '查询西湖', status: 'running', reason: null as string | null,
-    answer: null as string | null, answer_source: 'model', tool_error_count: 0, created_at: new Date(Date.now() - 5000).toISOString()};
+    answer: null as string | null, answer_source: 'model', model_error_code: null as string | null,
+    tool_error_count: 0, created_at: new Date(Date.now() - 5000).toISOString()};
   const activity = {requests: [] as object[], tool_calls: [] as object[], events: [] as object[]};
   const writes: string[] = [];
   let cursor = 0;
@@ -51,6 +52,44 @@ async function conversation(page: Page) {
   }};
 }
 
+test('异常紧贴用户消息显示短提示和图标重试，不插入助手说明或资料空态', async ({page}) => {
+  const app = await conversation(page);
+  app.sessions[0].status = 'failed'; app.turn.status = 'failed'; app.turn.reason = 'model_error';
+  app.turn.answer_source = 'application'; app.turn.answer = '模型请求未能完成';
+  await app.notify();
+  await page.getByRole('button', {name: /杭州行程.*请求未完成/}).click();
+  const failure = page.getByRole('region', {name: '第 1 轮异常提示'});
+  await expect(failure.getByRole('status')).toHaveText('请求失败');
+  const retry = failure.getByRole('button', {name: '重新尝试', exact: true});
+  await expect(retry).toBeEnabled();
+  await expect(retry).toHaveText('');
+  await expect(page.getByRole('heading', {name: '旅行助手', exact: true})).toHaveCount(0);
+  await expect(page.getByText('你的旅行需求已保留。', {exact: true})).toHaveCount(0);
+  await expect(page.getByText(/本轮没有可展示的查询资料/)).toHaveCount(0);
+  await expect(page.getByRole('region', {name: '第 1 轮处理进展'})).toHaveCount(0);
+  await expect(page.getByRole('button', {name: '查看本轮轨迹', exact: true})).toBeVisible();
+});
+
+test('模型失败按最终原因显示短提示，旧错误或供应商文字不会冒充当前原因', async ({page}) => {
+  const app = await conversation(page);
+  app.sessions[0].status = 'failed'; app.turn.status = 'failed'; app.turn.reason = 'model_error';
+  app.turn.answer_source = 'application'; app.turn.answer = 'provider failed: secret';
+  app.activity.events = [{event_id: 'old-error', turn_id: 'turn', sequence: 1, kind: 'request.retry_scheduled',
+    data: {code: 'TIMEOUT', message: 'provider failed: secret'}}];
+  app.turn.model_error_code = 'AUTH';
+  await app.notify();
+  await page.getByRole('button', {name: /杭州行程.*请求未完成/}).click();
+  const hint = page.getByRole('region', {name: '第 1 轮异常提示'}).getByRole('status');
+  await expect(hint).toHaveText('模型认证失败');
+  for (const [code, text] of [['QUOTA', '额度不足'], ['RATE_LIMIT', '请求过于频繁'], ['TIMEOUT', '连接超时'],
+    ['TRANSPORT', '连接失败'], ['SERVER', '服务暂时不可用'], ['EMPTY_RESPONSE', '模型返回空响应'],
+    ['CONTEXT_WINDOW_EXCEEDED', '上下文超过模型上限'], ['INVALID_REQUEST', '请求参数无效'], ['UNKNOWN', '请求失败']]) {
+    app.turn.model_error_code = code; await app.notify();
+    await expect(hint).toHaveText(text);
+  }
+  await expect(page.getByText('provider failed: secret', {exact: true})).toHaveCount(0);
+});
+
 test('模型等待重试有真实次数、延迟及可用停止入口，停止不会误记为新请求', async ({page}) => {
   const app = await conversation(page);
   app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
@@ -64,8 +103,9 @@ test('模型等待重试有真实次数、延迟及可用停止入口，停止�
   const progress = page.getByRole('region', {name: '第 1 轮处理进展'});
   await expect(progress.getByRole('status')).toContainText('等待重试（1/5） · 2 秒');
   await page.setViewportSize({width: 1440, height: 900});
-  await progress.getByText('模型重试记录 · 1 次').click();
-  await expect(progress).toContainText('连接失败');
+  await expect(progress.getByText('模型重试记录 · 1 次')).toHaveCount(0);
+  await expect(progress.getByText('连接失败', {exact: true})).toHaveCount(0);
+  await expect(page.getByRole('region', {name: '第 1 轮异常提示'})).toHaveCount(0);
   await page.screenshot({path: test.info().outputPath('model-retry-desktop.png')});
   await page.setViewportSize({width: 390, height: 844});
   await page.getByRole('button', {name: '收起会话导航'}).first().click();
@@ -91,7 +131,7 @@ test('轨迹保留每次尝试和重试等待，耗尽后最终失败不会被�
       kind: 'request.retry_started', timestamp: '2026-10-12T02:00:02Z', data: {retry_id: 'chain', retry: 5}}];
   await app.notify();
   await page.getByRole('button', {name: /杭州行程.*请求未完成/}).click();
-  await expect(page.getByRole('region', {name: '第 1 轮处理进展'})).toContainText('失败');
+  await expect(page.getByRole('region', {name: '第 1 轮异常提示'}).getByRole('status')).toHaveText('请求失败');
   await page.getByRole('button', {name: '轨迹', exact: true}).click();
   await expect(page.getByText('模型步骤 1 · 实际尝试 6', {exact: true})).toBeVisible();
   await page.getByText('模型重试记录 · 1 次').click();
@@ -219,9 +259,8 @@ test('断线不冒充处理失败，恢复后显示真实终态并保留下一�
   app.turn.status = 'terminated'; app.turn.reason = 'service_interrupted'; app.turn.answer = '服务中断，请重新提问。';
   app.sessions[0].status = 'terminated'; app.state.active_turn_id = null; app.state.active_session_id = null;
   await app.notify();
-  await expect(progress.getByRole('status')).toContainText('终止');
-  await expect(progress.getByRole('status')).not.toContainText('正在');
-  await expect(progress.locator('.activity-spinner')).toHaveCount(0);
+  await expect(progress).toHaveCount(0);
+  await expect(page.getByRole('region', {name: '第 1 轮异常提示'}).getByRole('status')).toHaveText('服务中断');
   await expect(input).toHaveValue('接着查询天气');
   await expect(page.getByRole('button', {name: /^发送/})).toBeEnabled();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

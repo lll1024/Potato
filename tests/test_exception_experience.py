@@ -81,6 +81,7 @@ class ExceptionExperienceTests(unittest.IsolatedAsyncioTestCase):
                 saved = await asyncio.wait_for(wait_finished(client, accepted["session_id"]), 5)
                 turn = saved["turns"][0]
                 self.assertEqual(turn["reason"], "model_error")
+                self.assertEqual(turn["model_error_code"], "QUOTA")
                 self.assertNotIn("maps_search_detail", turn["answer"])
                 self.assertNotIn("MODEL_ID", turn["answer"])
                 materials = turn["query_materials"]

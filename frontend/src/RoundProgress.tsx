@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Turn } from './ConversationRounds';
 import './conversation-controls.css';
-import { ModelRetries, retryEntries, type RetryEvent } from './ModelRetries';
+import { retryEntries, type RetryEvent } from './ModelRetries';
 
 type Request = {request_id: string; turn_id: string; status: string; purpose?: string; interrupted?: boolean; started_at?: string};
 type Tool = {tool_call_id: string; turn_id: string; name: string; status: string; interrupted?: boolean};
@@ -54,6 +54,5 @@ export function RoundProgress({turn, activity, stopping, disconnected, statusTex
     <div className="progress-summary"><p role="status">{running && <span className="activity-spinner" aria-hidden="true" />}{phase}</p>
       {seconds !== null && <span className="progress-duration">{running ? '已等待' : '已用时'} {seconds} 秒</span>}</div>
     {running && retries.length > 0 && onStop && <button type="button" disabled={stopping || disconnected} onClick={onStop}>停止本轮重试</button>}
-    <ModelRetries events={events} turn={turn} />
   </div>;
 }

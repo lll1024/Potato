@@ -5,6 +5,7 @@
   --accent: #315cce; --accent-soft: #e9efff; --text-muted: #646a78;
   --line: #e8e9ee; --sidebar: #f0f1f5; --surface: #f7f8fa;
   --model: #75549d; --model-soft: #f0eaf7; --tool: #a45610; --tool-soft: #fff2e3;
+  --retry: #b8750b; --retry-hover: #925b07;
 }
 body { margin: 0; }
 button, textarea, input, select { font: inherit; }

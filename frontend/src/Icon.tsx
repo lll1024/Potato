@@ -1,4 +1,4 @@
-type Name = 'panel' | 'plus' | 'send' | 'close' | 'compass' | 'chat' | 'trace';
+type Name = 'panel' | 'plus' | 'send' | 'close' | 'compass' | 'chat' | 'trace' | 'retry';
 
 const paths: Record<Name, string> = {
   panel: 'M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm4 0v18',
@@ -8,6 +8,7 @@ const paths: Record<Name, string> = {
   compass: 'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-6-3-2 4-4 2 2-4 4-2Z',
   chat: 'M21 11a8 8 0 0 1-8 8H5l-3 3V11a8 8 0 0 1 8-8h3a8 8 0 0 1 8 8Z',
   trace: 'M4 6h4m4 0h8M4 12h8m4 0h4M4 18h4m4 0h8',
+  retry: 'M20 7v5h-5M20 12a8 8 0 1 0-2.3 5.7M20 12a8 8 0 0 0-2.3-5.7',
 };
 
 export function Icon({name, size = 18}: {name: Name; size?: number}) {
