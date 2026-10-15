@@ -14,7 +14,7 @@ import { requestJson } from './api';
 import { reasonLabels } from './turnReasons';
 import { Icon } from './Icon';
 import { PreferencesView } from './PreferencesView';
-import { isExceptional, type QueryMaterial } from './ExceptionOutcome';
+import { isExceptional } from './ExceptionOutcome';
 
 type Snapshot = RoundActivity & { schema_version: number; session: { title: string; updated_at?: string }; turns: Turn[]; next_before: number | null; total_turns: number };
 
@@ -49,7 +49,6 @@ function App() {
   const [earlierActivity, setEarlierActivity] = useState<Record<string, RoundActivity>>({});
   const [loadingEarlier, setLoadingEarlier] = useState(false);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
-  const [materialsExpanded, setMaterialsExpanded] = useState<Record<string, boolean>>({});
   const {state, revision: serviceRevision, datasetRevision, deletedSession, connectionError, recoveryNotice, refresh: refreshService} = useServiceEvents();
   const [error, setError] = useState('');
 
@@ -110,7 +109,7 @@ function App() {
   }
   useEffect(() => {if (deletedSession) deletedConversation(deletedSession);}, [deletedSession]);
   useEffect(() => {
-    if (datasetRevision) {setEarlierTurns({}); setEarlierActivity({}); setMaterialsExpanded({}); selectConversation(null);}
+    if (datasetRevision) {setEarlierTurns({}); setEarlierActivity({}); selectConversation(null);}
   }, [datasetRevision]);
   async function loadEarlier() {
     conversationFollow.pause();
@@ -155,12 +154,6 @@ function App() {
     setTraceLocation({turn_id:turn.turn_id,turn_ordinal:turn.ordinal,object_type:'turn',object_id:turn.turn_id,payload_id:null,field:'turn_input',query:''});
     setView('trace');
   }
-  function showMaterialTrace(turn: Turn, material: QueryMaterial) {
-    conversationFollow.pause();
-    setTraceLocation({turn_id: turn.turn_id, turn_ordinal: turn.ordinal, object_type: 'tool', object_id: material.tool_call_id,
-      payload_id: material.payload_id, field: 'tool_result', query: ''});
-    setView('trace');
-  }
   const canLoadEarlier = Boolean(snapshot && turns[0]?.ordinal > 1);
   function toggleNavigation() {
     setSidebarOpen(current => !current);
@@ -191,9 +184,8 @@ function App() {
             <ConversationRounds turns={turns} statusText={statusText} onTrace={showTurnTrace} activity={activity} onStop={stopTurn}
               onRetry={failed => void retryTurn(failed)} retryTurnId={turn && (isExceptional(turn) || turn.turn_id === storageTurnId) ? turn.turn_id : undefined}
               storageTurnId={storageTurnId}
-              retryBlocked={retryBlocked} onMaterialTrace={showMaterialTrace}
-              materialsExpanded={materialsExpanded} onMaterialsExpanded={(id, expanded) => setMaterialsExpanded(current => ({...current, [id]: expanded}))}
-              stoppingTurnId={state.stopping ? state.active_turn_id : null} disconnected={Boolean(connectionError)} onRead={conversationFollow.pause} />
+              retryBlocked={retryBlocked}
+              stoppingTurnId={state.stopping ? state.active_turn_id : null} disconnected={Boolean(connectionError)} />
           </> : <div className="empty"><div className="empty-mark"><Icon name="compass" size={36} /></div><h3>下一站，去哪里？</h3></div>}
         </ReadingScroll></>}
         <div className="composer-area"><form className="composer" onSubmit={send}>

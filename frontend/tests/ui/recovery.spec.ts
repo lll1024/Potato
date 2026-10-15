@@ -34,17 +34,13 @@ async function recovery(page: Page) {
   }, {state, cursor: ++cursor})};
 }
 
-test('旧异常会话隐藏诊断，折叠资料，重试保留草稿并只提交一次', async ({page}) => {
+test('旧异常会话只显示紧凑提示，图标重试保留草稿并只提交一次', async ({page}) => {
   const {writes} = await recovery(page);
-  await expect(page.getByText(/这次请求未能完成/)).toBeVisible();
-  await expect(page.getByText(/你的旅行需求已保留/)).toBeVisible();
+  await expect(page.getByRole('region', {name: '第 1 轮异常提示'}).getByRole('status')).toHaveText('请求失败');
   await expect(page.getByText(/MODEL_ID/)).toHaveCount(0);
   await expect(page.getByText(/maps_weather/)).toHaveCount(0);
   await expect(page.getByText('城市：三亚', {exact: true})).not.toBeVisible();
-  const materials = page.getByText('查看已有资料', {exact: true});
-  await materials.focus(); await page.keyboard.press('Enter');
-  await expect(page.getByText('城市：三亚', {exact: true})).toBeVisible();
-  await expect(page.getByText(/尚无法确认适用性/)).toBeVisible();
+  await expect(page.getByText('查看已有资料', {exact: true})).toHaveCount(0);
   expect(writes).toHaveLength(0);
   const input = page.getByRole('textbox', {name: '旅行需求'});
   await input.fill('正在编辑的需求');
@@ -62,7 +58,8 @@ test('预算终止仍展示收尾回答与未完成限制，刷新不会自动�
   app.turn.reason = 'budget'; app.turn.status = 'terminated'; app.turn.answer_source = 'model';
   app.turn.answer = '旅行行程尚未完成。\n\n已取得三亚天气资料，交通路线尚未查询。';
   await app.notify();
-  await expect(page.getByText(/查询达到本轮上限，结果不完整/)).toBeVisible();
+  await expect(page.getByRole('region', {name: '第 1 轮异常提示'}).getByRole('status')).toHaveText('查询达到上限');
+  await expect(page.getByText('回答不完整', {exact: true})).toBeVisible();
   await expect(page.getByText(/已取得三亚天气资料，交通路线尚未查询/)).toBeVisible();
   await page.reload();
   await page.getByRole('button', {name: /^三亚旅行/}).click();
@@ -71,9 +68,11 @@ test('预算终止仍展示收尾回答与未完成限制，刷新不会自动�
 });
 
 for (const [reason, meaning] of [
-  ['execution_error', '这次请求未能完成'], ['budget', '结果不完整'], ['user_stop', '已停止本次请求'],
+  ['execution_error', '服务执行失败'], ['budget', '查询达到上限'], ['user_stop', '已停止'],
   ['map_paused', '地图查询已暂停'], ['service_shutdown', '本机服务已退出'],
-  ['service_interrupted', '结果仍未知'], ['output_limit', '回答尚不完整'], ['storage_failure', '最后成功保存'],
+  ['service_interrupted', '服务中断'], ['output_limit', '回答达到输出上限'], ['storage_failure', '结果未完整保存'],
+  ['context_budget', '上下文超过安全预算'], ['context_configuration', '上下文容量配置无效'],
+  ['context_window_exceeded', '上下文超过模型上限'], ['context_recovery_unavailable', '上下文无法恢复'],
 ]) {
   test(`异常终局 ${reason} 按真实原因说明`, async ({page}) => {
     const app = await recovery(page);
@@ -83,9 +82,14 @@ for (const [reason, meaning] of [
     if (reason === 'storage_failure') app.state.accepting = false;
     if (reason === 'map_paused') app.state.map_paused = true;
     await app.notify();
-    await expect(page.getByText(new RegExp(meaning)).first()).toBeVisible();
+    await expect(page.getByRole('region', {name: '第 1 轮异常提示'}).getByRole('status')).toHaveText(meaning);
     await expect(page.getByText('查看已有资料', {exact: true})).toHaveCount(0);
-    if (reason === 'output_limit') await expect(page.getByText('实际收到的未完整回答', {exact: true})).toBeVisible();
+    if (reason === 'output_limit') {
+      await expect(page.getByText('实际收到的未完整回答', {exact: true})).toBeVisible();
+      await expect(page.getByText('回答不完整', {exact: true})).toBeVisible();
+      app.turn.answer = ''; await app.notify();
+      await expect(page.getByRole('heading', {name: '旅行助手', exact: true})).toHaveCount(0);
+    } else await expect(page.getByRole('heading', {name: '旅行助手', exact: true})).toHaveCount(0);
     if (reason === 'storage_failure') await expect(page.getByText('你的旅行需求已保留。', {exact: true})).toHaveCount(0);
     if (reason === 'map_paused' || reason === 'storage_failure') await expect(page.getByRole('button', {name: '重新尝试', exact: true})).toBeDisabled();
     expect(app.writes).toHaveLength(0);
@@ -129,7 +133,8 @@ test('真实存储故障保持上次保存的运行状态，不冒充已保存�
   await app.notify();
   const round = page.getByRole('region', {name: '第 1 轮对话', exact: true});
   // section 的可访问名称属于浏览器的公开交互界面。
-  await expect(round.getByText(/最后成功保存/).first()).toBeVisible();
+  await expect(round.getByRole('region', {name: '第 1 轮异常提示'}).getByRole('status')).toHaveText('结果未完整保存');
+  await expect(round.getByRole('region', {name: '第 1 轮处理进展'})).toHaveCount(0);
   await expect(round.getByText('你的旅行需求已保留。', {exact: true})).toHaveCount(0);
   await expect(round.getByRole('button', {name: '重新尝试', exact: true})).toBeDisabled();
   expect(app.writes).toHaveLength(0);
