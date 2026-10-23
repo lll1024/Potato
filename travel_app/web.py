@@ -28,7 +28,7 @@ from mcp.client.streamable_http import streamable_http_client
 from pydantic import BaseModel, Field
 
 from travel_app.agent import SERVICE_MESSAGE
-from travel_app.model_context import ContextConfigurationError, ContextPolicy
+from travel_app.planning import ContextConfigurationError, validate_configuration
 from travel_app.amap_http import AmapHTTPClient
 from travel_app.amap_mcp import AmapTools
 from travel_app.travel_tools import connected_travel_tools
@@ -39,7 +39,7 @@ from travel_app.turn_runtime import Runtime, RunRejected, TurnRuntime
 
 @asynccontextmanager
 async def configured_resources():
-    ContextPolicy.from_env()
+    validate_configuration()
     api_key = os.getenv("AMAP_MAPS_API_KEY", "").strip()
     if not api_key or not os.getenv("MODEL_ID"):
         raise RuntimeError("请配置 AMAP_MAPS_API_KEY 和 MODEL_ID。")

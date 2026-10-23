@@ -499,8 +499,8 @@
       ]
     },
     "tests/test_context_budget.py": {
-      "owner": "context",
-      "role": "internal-test",
+      "owner": "integration",
+      "role": "caller-test",
       "remove_by": "#82",
       "imports": [
         "tests/test_agent.py:MapService",
@@ -509,9 +509,6 @@
         "tests/test_trace.py:serving,wait_finished",
         "travel_app/agent.py:agent_loop",
         "travel_app/amap_mcp.py:AmapTools",
-        "travel_app/model_context.py:ContextPolicy",
-        "travel_app/model_context.py:ContextPolicy,ContextView",
-        "travel_app/model_context.py:ContextView",
         "travel_app/web.py:create_app"
       ]
     },
@@ -523,7 +520,6 @@
         "tests/test_agent.py:MapService,ModelService,response",
         "tests/test_context_summary.py:ENV,submit",
         "tests/test_trace.py:serving",
-        "travel_app/model_context.py:TokenMeter",
         "travel_app/travel_dates.py:saved_date_context"
       ]
     },
@@ -1061,13 +1057,7 @@
       "imports": [
         "travel_app/amap_http.py:AmapHTTPClient",
         "travel_app/amap_mcp.py:AmapTools,FAILURE_MESSAGES,ToolResult",
-        "travel_app/context_maintenance.py:ContextMaintenance",
         "travel_app/limits.py:MAX_MODEL_REQUESTS,MAX_ROUNDS,MAX_TOOL_CALLS,TOOL_TIMEOUT",
-        "travel_app/model_context.py:ContextConfigurationError,ContextPolicy,ContextView",
-        "travel_app/model_context.py:ContextPolicy",
-        "travel_app/model_context.py:ContextView",
-        "travel_app/model_retry.py:EmptyModelResponse,MAX_RETRIES,model_failure,retry_delay",
-        "travel_app/session_history.py:HISTORY_DECLARATIONS,HISTORY_TOOLS,SessionHistory,bind_protocol_references,protocol_records",
         "travel_app/travel_dates.py:current_time,model_date_context,saved_date_context,turn_date_context",
         "travel_app/travel_tools.py:TravelTools,connected_travel_tools"
       ]
@@ -1087,25 +1077,6 @@
         "travel_app/limits.py:MAP_CALL_INTERVAL,TOOL_TIMEOUT"
       ]
     },
-    "travel_app/context_maintenance.py": {
-      "owner": "context",
-      "role": "production",
-      "remove_by": "#82",
-      "imports": [
-        "travel_app/context_summary.py:earlier_history_cutoff,summarize_history",
-        "travel_app/model_context.py:TokenMeter"
-      ]
-    },
-    "travel_app/context_summary.py": {
-      "owner": "context",
-      "role": "production",
-      "remove_by": "#82",
-      "imports": [
-        "travel_app/model_context.py:ContextView",
-        "travel_app/model_retry.py:EmptyModelResponse,model_failure,retry_delay",
-        "travel_app/session_history.py:HISTORY_TOOLS"
-      ]
-    },
     "travel_app/exa_mcp.py": {
       "owner": "retrieval",
       "role": "production",
@@ -1121,28 +1092,10 @@
       "remove_by": "#86",
       "imports": []
     },
-    "travel_app/model_context.py": {
-      "owner": "context",
-      "role": "production",
-      "remove_by": "#82",
-      "imports": []
-    },
-    "travel_app/model_retry.py": {
-      "owner": "planning",
-      "role": "production",
-      "remove_by": "#83",
-      "imports": []
-    },
     "travel_app/preferences.py": {
       "owner": "preferences",
       "role": "production",
       "remove_by": "#84",
-      "imports": []
-    },
-    "travel_app/session_history.py": {
-      "owner": "context",
-      "role": "production",
-      "remove_by": "#82",
       "imports": []
     },
     "travel_app/source_http.py": {
@@ -1187,8 +1140,6 @@
         "travel_app/amap_http.py:AmapHTTPClient",
         "travel_app/amap_mcp.py:AmapTools",
         "travel_app/limits.py:TOOL_TIMEOUT",
-        "travel_app/model_context.py:ContextConfigurationError,ContextPolicy",
-        "travel_app/model_context.py:ContextPolicy",
         "travel_app/travel_tools.py:connected_travel_tools",
         "travel_app/turn_runtime.py:RunRejected,Runtime,TurnRuntime"
       ]
@@ -1226,6 +1177,14 @@
     "travel_app/tool_catalog.py": {
       "owner": "support",
       "role": "support"
+    },
+    "travel_app/model_retry.py": {
+      "owner": "support",
+      "role": "support"
+    },
+    "tests/test_context_contracts.py": {
+      "owner": "integration",
+      "role": "caller-test"
     }
   }
 }

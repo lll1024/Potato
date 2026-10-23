@@ -99,24 +99,23 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
         from typing import cast
         from anthropic import AsyncAnthropic
         from mcp import Client
-        from travel_app.agent import agent_loop
+        from travel_app.planning import plan
+        from travel_app.local_records import PlanningSeed
+        import json
         from travel_app.amap_mcp import AmapTools
-        from travel_app.model_context import ContextView, ContextPolicy
         from test_agent import MapService
-        history = [{"role": "user", "content": "旧酒店细节原文"}, {"role": "assistant", "content": "旧回答"},
-                   {"role": "user", "content": "继续规划"}]
-        view = ContextView.from_history(history)
-        view.messages = view.messages[-1:]
-        view.record_ids = view.record_ids[-1:]
-        view.version = 1
+        history = [{"role": "user", "content": "旧酒店细节原文"}, {"role": "assistant", "content": "旧回答"}]
+        state = {"messages": [], "record_ids": [], "original_watermark": 2, "version": 1}
         tools = AmapTools(cast(Client, MapService()))
         await tools.discover()
         model = ModelService([response([{"type": "text", "text": "请补充城市。"}])])
-        answer = await agent_loop(history, cast(AsyncAnthropic, model), tools, "test-model",
-                                  context_view=view, context_policy=ContextPolicy(40000))
-        self.assertEqual(answer, "请补充城市。")
-        self.assertEqual(history[0]["content"], "旧酒店细节原文")
-        self.assertEqual(len(history), 4)
+        with patch.dict(os.environ, {"CONTEXT_COMPACTION_ENABLED": "true", "MODEL_CONTEXT_WINDOW": "40000"}):
+            result = await plan("继续规划", cast(AsyncAnthropic, model), tools, "test-model",
+                seed=PlanningSeed(messages_json=json.dumps(history), context_json=json.dumps(state)))
+        saved = json.loads(result.material.messages_json)
+        self.assertEqual(result.answer, "请补充城市。")
+        self.assertEqual(saved[0]["content"], "旧酒店细节原文")
+        self.assertEqual(len(saved), 4)
         self.assertEqual(len(model.requests[0]["messages"]), 1)
 
     async def test_invalid_or_nonpositive_capacity_has_the_same_diagnosis(self):
@@ -135,7 +134,7 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
         from mcp import Client
         from travel_app.agent import agent_loop
         from travel_app.amap_mcp import AmapTools
-        from travel_app.model_context import ContextPolicy
+        from travel_app.context import ContextPolicy
         from test_agent import MapService
         class LargeMap(MapService):
             async def call_tool(self, name, arguments):
@@ -168,7 +167,7 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
         from mcp import Client
         from travel_app.agent import agent_loop
         from travel_app.amap_mcp import AmapTools
-        from travel_app.model_context import ContextPolicy
+        from travel_app.context import ContextPolicy
         from test_agent import MapService
         huge = "中文查询资料价格条件" * 3000
         for component in ("preferences", "tools", "materials"):
@@ -194,7 +193,7 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
         from mcp import Client
         from travel_app.agent import agent_loop
         from travel_app.amap_mcp import AmapTools
-        from travel_app.model_context import ContextPolicy
+        from travel_app.context import ContextPolicy
         from test_agent import MapService
         from test_model_retry import RetryModel
         first = response([])

@@ -1,6 +1,6 @@
 # 六模块迁移状态与检查规则
 
-实施规格为 [#79](https://github.com/lll1024/Potato/issues/79)，[#80](https://github.com/lll1024/Potato/issues/80) 已固定行为基线；[#81](https://github.com/lll1024/Potato/issues/81) 贯通真实公开规划入口、原子轮次保存和一致读取。六项能力仍在分阶段迁移，目录或检查通过不代表完整封装。
+实施规格为 [#79](https://github.com/lll1024/Potato/issues/79)，[#80](https://github.com/lll1024/Potato/issues/80) 已固定行为基线；[#81](https://github.com/lll1024/Potato/issues/81) 贯通真实公开规划入口、原子轮次保存和一致读取；[#82](https://github.com/lll1024/Potato/issues/82) 收拢完整模型上下文、CLI 延续与恢复。六项能力仍在分阶段迁移，目录或检查通过不代表完整封装。
 
 ## 归属与阶段
 
@@ -9,13 +9,13 @@
 | 能力 | 目标后端目录 | 当前状态 | 迁移任务 |
 | --- | --- | --- | --- |
 | 助手会话 | `travel_app/sessions/` | 公开会话入口已接通；完整查看与前端仍待收拢 | #81、#85 |
-| 旅行规划 | `travel_app/planning/` | 主要 plan 入口返回结构化结果；内部上下文及查询适配待迁移 | #81–#83 |
+| 旅行规划 | `travel_app/planning/` | 主要 plan 入口返回结构化结果；内部上下文已迁移，查询适配待 #83 迁移 | #81–#83 |
 | 资料获取 | `travel_app/retrieval/` | 仍由 amap、exa、travel_tools 及 HTTP adapter 承担 | #83 |
-| 模型上下文 | `travel_app/context/` | 已公开记录值适配；完整运行职责仍在旧实现 | #82 |
+| 模型上下文 | `travel_app/context/` | 完整协议、模型视图、容量、摘要、回读、延续凭证与恢复已迁入 | #82 |
 | 旅行者偏好 | `travel_app/preferences/` | 仍由 preferences、turn_runtime 及 PreferencesView 承担 | #84 |
 | 本机记录 | `travel_app/local_records/` | 原子接受、事实、完成与一致读取已迁入；偏好规则适配待 #84 收拢 | #81、#84、#85 |
 
-相关前端目标目录位于 `frontend/src/`，使用同名能力目录。已有前端文件逐项列在清单，现阶段没有迁移前端或改变 UI。当前公开入口与运行约束见[助手会话](sessions.md)、[旅行规划](planning.md)、[本机记录](local-records.md)；[模型上下文](context.md)仅为记录值适配。旧内部实现按需从[后端职责地图](../backend-map.md)展开；未完成部分明确留给后续任务。
+相关前端目标目录位于 `frontend/src/`，使用同名能力目录。已有前端文件逐项列在清单，现阶段没有迁移前端或改变 UI。当前公开入口与运行约束见[助手会话](sessions.md)、[旅行规划](planning.md)、[本机记录](local-records.md)；[模型上下文](context.md)已覆盖完整运行职责。旧内部实现按需从[后端职责地图](../backend-map.md)展开；未完成部分明确留给后续任务。
 
 ## 检查入口
 
@@ -40,4 +40,4 @@ Python 动态导入解析 `importlib` 别名及静态相对包参数；同能力
 
 两个特殊过渡项同样逐项登记：`tests/compatibility/entrypoint.py` 目前借旧装配符号注入外部服务、配置和时间，随着各模块公开装配入口落地修改，并最迟在 #86 移除旧依赖；`capture.py` 暂复用既有外部 HTTP 服务和 SSE 测试辅助，辅助归属迁移完成后改用明确测试支撑。它们不替换规划、上下文、查询 adapter、事务或后台偏好实现。
 
-基线证据、归一化规则和旧数据复现见[行为基线验收](../acceptance/deep-modules-baseline.md)。本阶段公开链路、原子保存与一致读取证据见 [#81 验收](../acceptance/public-planning.md)。每次迁移都运行目标回归、此检查及对应反例；本阶段的检查不能代替 #86 的全能力封装、独立阅读、调用与内部修改验收。
+基线证据、归一化规则和旧数据复现见[行为基线验收](../acceptance/deep-modules-baseline.md)。本阶段公开链路、原子保存与一致读取证据见 [#81 验收](../acceptance/public-planning.md)。每次迁移都运行目标回归、此检查及对应反例；模型上下文的四项旧生产实现及其导入豁免已按 #82 移除；旧上下文测试的跨文件辅助与尚未迁移的查询装配依赖仍按清单精确限制，后续能力迁移时继续收拢，不是生产调用方绕过上下文的入口。本阶段的检查不能代替 #86 的全能力封装、独立阅读、调用与内部修改验收。
