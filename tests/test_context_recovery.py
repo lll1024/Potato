@@ -291,3 +291,31 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
         with patch.dict(os.environ, {**ENV, 'MODEL_ID': 'test-model'}, clear=True), patch('travel_app.agent.Client', side_effect=external_maps), patch('travel_app.travel_tools.Client', side_effect=RuntimeError('资料服务不可用')), patch('travel_app.agent.AsyncAnthropic', side_effect=external_model), patch('travel_app.agent.streamable_http_client', return_value=None), patch('builtins.input', side_effect=['新会话', 'exit']), redirect_stdout(io.StringIO()):
             self.assertEqual(await run_cli('test-key'), 0)
         self.assertEqual(model.requests[0]['messages'], [{'role': 'user', 'content': '新会话'}])
+
+
+    async def test_invalid_saved_context_stops_acceptance_without_starting_next_model(self):
+        import sqlite3
+        from pathlib import Path
+        from test_agent import ModelService, response
+        from test_trace import serving
+        from test_storage import wait_state
+        model = ModelService([response([{"type": "text", "text": "上轮完成"}])])
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory, model) as client:
+                first = (await client.post("/api/turns", json={"input": "杭州旅行"})).json()
+                await wait_finished(client, first["session_id"], first["turn_id"])
+                with sqlite3.connect(Path(directory) / "travel.sqlite3") as database, database:
+                    database.execute("INSERT INTO context_versions VALUES (?,?,1,'saved',?)",
+                                     (first["session_id"], first["turn_id"], '{"version": 1}'))
+                accepted = (await client.post("/api/turns", json={
+                    "input": "继续", "session_id": first["session_id"]})).json()
+                state = await wait_state(client, lambda item: item["active_turn_id"] is None)
+                self.assertFalse(state["accepting"])
+                self.assertEqual(state["unsaved_fact"]["kind"], "turn.context")
+                self.assertEqual(len(model.requests), 1)
+                saved = (await client.get("/api/sessions/" + first["session_id"])).json()
+                self.assertEqual(saved["turns"][-1]["status"], "running")
+                self.assertFalse(any(event["turn_id"] == accepted["turn_id"] and
+                                     event["kind"] in ("request.started", "turn.finished")
+                                     for event in saved["events"]))
+                self.assertEqual((await client.post("/api/turns", json={"input": "新需求"})).status_code, 503)

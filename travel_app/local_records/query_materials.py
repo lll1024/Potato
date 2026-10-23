@@ -3,7 +3,7 @@ import json
 import re
 from datetime import date
 
-from travel_app.exa_mcp import SEARCH_TOOLS, SOURCE_TOOLS
+from travel_app.tool_catalog import SEARCH_TOOLS, SOURCE_TOOLS
 
 # 仅用于读取旧载荷，不用于声明或分派新调用。
 LEGACY_SEARCH_TOOLS = {"tavily-search", "tavily_search"}

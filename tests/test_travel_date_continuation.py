@@ -1,5 +1,6 @@
 """公开 HTTP 与 CLI 验证旅行日期的跨日、重启、改期和存储故障。"""
 import asyncio
+import json
 import tempfile
 import unittest
 from collections.abc import AsyncIterator
@@ -136,16 +137,16 @@ class TravelDateContinuationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_legacy_record_without_date_basis_does_not_infer_dates_from_history(self):
         from pathlib import Path
-        from travel_app.store import Store
+        from travel_app.local_records import LocalRecords as Store, TurnMaterial
 
         with tempfile.TemporaryDirectory() as directory:
             legacy = Store(Path(directory))
             first = legacy.accept("明天去北京")
             history = [{"role": "user", "content": "明天去北京"},
                        {"role": "assistant", "content": "旅行安排"}]
-            legacy.finish(first["session_id"], first["turn_id"], "旅行安排", history,
+            legacy.finish(first["session_id"], first["turn_id"], "旅行安排", TurnMaterial(json.dumps(history)),
                           {"status": "completed", "reason": None, "answer_source": "model", "tool_error_count": 0}, 0)
-            legacy.db.close()
+            legacy.close()
             model = ModelService([response([{"type": "text", "text": "测试模型回答"}])])
             self.moment = datetime.fromisoformat("2026-10-12T09:00:00+08:00")
             async with self.service(directory, model) as client:

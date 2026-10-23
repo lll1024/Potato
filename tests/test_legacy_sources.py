@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from travel_app.store import Store
+from travel_app.local_records import LocalRecords as Store, TurnMaterial
 from test_agent import ModelService, response
 from test_source_failures import SourceService, finished
 
@@ -35,7 +35,7 @@ class LegacySourceTests(unittest.IsolatedAsyncioTestCase):
                         "tool_call_id": "legacy-tool", "request_id": "legacy-request", "ordinal": 1,
                         "name": name, "provider": "tavily", "arguments": arguments, "result": result})
                     if not interrupted:
-                        store.finish(session_id, turn_id, "旧回答", protocol, {
+                        store.finish(session_id, turn_id, "旧回答", TurnMaterial(json.dumps(protocol, ensure_ascii=False)), {
                             "status": "completed", "reason": None, "answer_source": "model", "tool_error_count": 0}, 10)
                     store.close()
                     service = SourceService([])

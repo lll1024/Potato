@@ -15,9 +15,7 @@ from travel_app.amap_mcp import ToolResult
 from travel_app.limits import SOURCE_CALL_INTERVAL, TOOL_TIMEOUT
 
 EXA_URL = "https://mcp.exa.ai/mcp"
-SEARCH_TOOLS = {"web_search_exa"}
-EXTRACT_TOOLS = {"web_fetch_exa"}
-SOURCE_TOOLS = SEARCH_TOOLS | EXTRACT_TOOLS
+from travel_app.tool_catalog import SEARCH_TOOLS, EXTRACT_TOOLS, SOURCE_TOOLS
 SOURCE_FAILURES = {
     "auth": "资料鉴权失败", "rate_limit": "资料服务限流", "quota": "资料免费额度耗尽",
     "connection": "资料连接不可用", "timeout": "资料查询超时", "service": "资料服务暂不可用",

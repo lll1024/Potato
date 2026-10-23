@@ -1,6 +1,7 @@
 import argparse
 import copy
 from datetime import datetime, timezone
+from dataclasses import dataclass
 from uuid import uuid4
 import asyncio
 import json
@@ -17,13 +18,14 @@ from dotenv import load_dotenv
 from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 
+from travel_app.context import ContextCheckpoint, PlanningSeed, RecordAbort, TurnMaterial, saved_date_context
 from travel_app.amap_http import AmapHTTPClient
 from travel_app.amap_mcp import FAILURE_MESSAGES, AmapTools, ToolResult
 from travel_app.limits import MAX_MODEL_REQUESTS, MAX_ROUNDS, MAX_TOOL_CALLS, TOOL_TIMEOUT
 from travel_app.model_context import ContextConfigurationError, ContextPolicy, ContextView
 from travel_app.context_maintenance import ContextMaintenance
 from travel_app.model_retry import MAX_RETRIES, EmptyModelResponse, model_failure, retry_delay
-from travel_app.travel_dates import current_time, model_date_context, saved_date_context, turn_date_context
+from travel_app.travel_dates import current_time, model_date_context, turn_date_context
 from travel_app.travel_tools import TravelTools, connected_travel_tools
 from travel_app.session_history import HISTORY_DECLARATIONS, HISTORY_TOOLS, SessionHistory, bind_protocol_references, protocol_records
 
@@ -235,7 +237,94 @@ def terminated_answer(reason: str, outcomes: list[ToolResult]) -> str:
         "未完成的信息仍待核实。"])
 
 
-async def agent_loop(
+@dataclass(frozen=True)
+class ExecutionOutcome:
+    answer: str
+    status: str
+    reason: str | None
+    answer_source: str
+    tool_error_count: int
+
+    def fields(self) -> dict[str, Any]:
+        return {"status": self.status, "reason": self.reason,
+                "answer_source": self.answer_source, "tool_error_count": self.tool_error_count}
+
+
+@dataclass(frozen=True)
+class PlanningResult(ExecutionOutcome):
+    material: TurnMaterial
+    continuation: "Continuation"
+
+
+class Continuation:
+    """仅在当前进程复用；内部上下文适配在 #82 收拢。"""
+    def __init__(self, messages, view, date_context):
+        self._messages = messages
+        self._view = view
+        self._date_context = date_context
+
+
+async def plan(text: str, client: AsyncAnthropic, tools: AmapTools | TravelTools, model: str, *,
+               seed: PlanningSeed | None = None, continuation: Continuation | None = None,
+               observer: Callable[[str, dict[str, Any]], Awaitable[None]] | None = None,
+               stop_requested: asyncio.Event | None = None,
+               stop_reason: str | Callable[[], str] = "user_stop",
+               preference_background: str = "", clock: Callable[[], datetime] | None = None,
+               history_records: Callable[[], list[dict[str, Any]]] | None = None) -> PlanningResult:
+    if seed is not None and continuation is not None:
+        raise ValueError("持久上下文与进程内延续凭证只能选择一个。")
+    seed = seed or PlanningSeed()
+    try:
+        messages = copy.deepcopy(continuation._messages) if continuation else json.loads(seed.messages_json)
+        messages.append({"role": "user", "content": text})
+        if continuation:
+            view = copy.deepcopy(continuation._view)
+            view.append(messages[-1], len(messages))
+            previous_dates = continuation._date_context
+        else:
+            state = json.loads(seed.context_json) if seed.context_json else None
+            view = ContextView.from_state(state, messages) if state else ContextView.from_history(messages)
+            previous_dates = json.loads(seed.date_context_json) if seed.date_context_json else None
+    except Exception:
+        raise RecordAbort("完整上下文无法恢复，查询未启动。", kind="turn.context") from None
+    date_context = previous_dates
+
+    async def observe(kind, data):
+        nonlocal date_context
+        if kind == "context.date":
+            date_context = copy.deepcopy(data["date_context"])
+        elif kind == "request.started" and data.get("purpose", "travel") == "travel":
+            date_context = saved_date_context(data["input"]["system"])
+        if observer:
+            await observer(kind, data)
+
+    try:
+        result = await _execute_plan(messages, client, tools, model, observer=observe,
+            stop_requested=stop_requested, stop_reason=stop_reason, clock=clock,
+            preference_background=preference_background, previous_date_context=previous_dates,
+            previous_source_materials=json.loads(seed.source_materials_json),
+            context_view=view, history_records=history_records)
+    except RecordAbort:
+        raise
+    except Exception:
+        result = ExecutionOutcome("这次请求未能完成，旅行行程尚未完成。请查看处理记录或重新尝试。",
+                                  "failed", "execution_error", "application", 0)
+    try:
+        answer = tools.redact(result.answer)
+        material = TurnMaterial(tools.redact(json.dumps(messages, ensure_ascii=False)),
+                                ContextCheckpoint.capture(view.to_state()))
+    except Exception:
+        raise RecordAbort("轮次保存材料无法生成；仅保留最后成功提交的事实。", kind="turn.finished") from None
+    return PlanningResult(answer, result.status, result.reason, result.answer_source,
+                          result.tool_error_count, material, Continuation(messages, view, date_context))
+
+
+async def agent_loop(messages, client, tools, model, **kwargs) -> str:
+    """旧内部测试适配；生产调用统一使用 plan，#83 移除。"""
+    return (await _execute_plan(messages, client, tools, model, **kwargs)).answer
+
+
+async def _execute_plan(
     messages: list[MessageParam], client: AsyncAnthropic, tools: AmapTools | TravelTools, model: str,
     *, max_rounds: int = MAX_ROUNDS, max_tool_calls: int = MAX_TOOL_CALLS,
     observer: Callable[[str, dict[str, Any]], Awaitable[None]] | None = None,
@@ -246,7 +335,7 @@ async def agent_loop(
     preference_background: str = "",
     context_view: ContextView | None = None, context_policy: ContextPolicy | None = None,
     history_records: Callable[[], list[dict[str, Any]]] | None = None,
-) -> str:
+) -> ExecutionOutcome:
     messages[:] = json.loads(tools.redact(json.dumps(messages, ensure_ascii=False)))
     try:
         context_policy = context_policy or ContextPolicy.from_env()
@@ -256,7 +345,7 @@ async def agent_loop(
         if observer:
             await observer("turn.finished", {"status": "terminated", "reason": "context_configuration",
                 "answer_source": "application", "tool_error_count": 0})
-        return answer
+        return ExecutionOutcome(answer, "terminated", "context_configuration", "application", 0)
     view = context_view if context_view is not None else ContextView.from_history(messages)
     view.messages = json.loads(tools.redact(json.dumps(view.messages, ensure_ascii=False)))
     latest_input = next((message["content"] for message in reversed(messages)
@@ -289,13 +378,13 @@ async def agent_loop(
     status = "terminated"
     reason: str | None = "budget"
 
-    async def finished(answer: str, source: str) -> str:
+    async def finished(answer: str, source: str) -> ExecutionOutcome:
         if observer:
             await observer("turn.finished", {
                 "status": status, "reason": reason, "answer_source": source,
                 "tool_error_count": tool_errors,
             })
-        return answer
+        return ExecutionOutcome(answer, status, reason, source, tool_errors)
 
     def requested_reason() -> str:
         return cast(str, stop_reason() if callable(stop_reason) else stop_reason)
@@ -666,16 +755,9 @@ async def run_cli(api_key: str, *, check_amap: bool = False, clock: Callable[[],
                 timeout=60.0,
                 max_retries=0,
             ) as model_client:
-                history: list[MessageParam] = []
-                date_context: dict[str, Any] | None = None
-                cli_view: ContextView | None = None
+                continuation: Continuation | None = None
                 async def remember_date_context(kind, data):
-                    nonlocal date_context
-                    if kind == "context.date":
-                        date_context = data["date_context"]
-                    elif kind == "request.started" and data.get("purpose", "travel") == "travel":
-                        date_context = saved_date_context(data["input"]["system"])
-                    elif kind == "context.organized":
+                    if kind == "context.organized":
                         print(f"上下文整理：{data['before_tokens']} → {data['after_tokens']} tokens（估算）。")
                     elif kind == "context.exceeded":
                         print("服务报告上下文超限，正在检查输入缩减。")
@@ -699,14 +781,10 @@ async def run_cli(api_key: str, *, check_amap: bool = False, clock: Callable[[],
                         return 0
                     if query.strip().lower() in ("q", "exit", ""):
                         return 0
-                    history.append({"role": "user", "content": query})
-                    if cli_view is None:
-                        cli_view = ContextView.from_history(history)
-                    else:
-                        cli_view.append(history[-1], len(history))
-                    answer = await agent_loop(history, model_client, travel_tools, os.environ["MODEL_ID"], clock=clock,
-                                              previous_date_context=date_context, observer=remember_date_context, context_view=cli_view)
-                    print(answer)
+                    result = await plan(query, model_client, travel_tools, os.environ["MODEL_ID"], clock=clock,
+                                        continuation=continuation, observer=remember_date_context)
+                    continuation = result.continuation
+                    print(result.answer)
 
 
 def main() -> int:

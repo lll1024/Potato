@@ -29,7 +29,7 @@ from travel_app.agent import SYSTEM, run_cli
 from travel_app.amap_mcp import AmapTools
 from travel_app.exa_mcp import ExaTools
 from travel_app.travel_tools import TravelTools
-from travel_app.store import Store
+from travel_app.local_records import LocalRecords as Store, TurnMaterial
 from travel_app.travel_dates import model_date_context, turn_date_context
 from travel_app.web import Runtime, create_app
 

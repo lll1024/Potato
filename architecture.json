@@ -44,14 +44,6 @@
     }
   },
   "legacy": {
-    "agent.py": {
-      "owner": "assembly",
-      "role": "assembly",
-      "remove_by": "#81",
-      "imports": [
-        "travel_app/agent.py:main"
-      ]
-    },
     "frontend/playwright.config.ts": {
       "owner": "integration",
       "role": "caller-test",
@@ -393,14 +385,13 @@
       ]
     },
     "tests/information_retrieval_eval.py": {
-      "owner": "planning",
-      "role": "internal-test",
+      "owner": "integration",
+      "role": "caller-test",
       "remove_by": "#83",
       "imports": [
         "travel_app/agent.py:SYSTEM,run_cli",
         "travel_app/amap_mcp.py:AmapTools",
         "travel_app/exa_mcp.py:ExaTools",
-        "travel_app/store.py:Store",
         "travel_app/travel_dates.py:model_date_context,turn_date_context",
         "travel_app/travel_tools.py:TravelTools",
         "travel_app/web.py:Runtime,create_app"
@@ -663,13 +654,12 @@
       ]
     },
     "tests/test_legacy_sources.py": {
-      "owner": "planning",
-      "role": "internal-test",
+      "owner": "integration",
+      "role": "caller-test",
       "remove_by": "#83",
       "imports": [
         "tests/test_agent.py:ModelService,response",
-        "tests/test_source_failures.py:SourceService,finished",
-        "travel_app/store.py:Store"
+        "tests/test_source_failures.py:SourceService,finished"
       ]
     },
     "tests/test_mcp_integration.py": {
@@ -812,7 +802,6 @@
       "imports": [
         "tests/test_agent.py:MapService,response",
         "travel_app/amap_mcp.py:AmapTools",
-        "travel_app/store.py:Store",
         "travel_app/web.py:Runtime,create_app"
       ]
     },
@@ -987,8 +976,8 @@
       ]
     },
     "tests/test_travel_date_continuation.py": {
-      "owner": "planning",
-      "role": "internal-test",
+      "owner": "integration",
+      "role": "caller-test",
       "remove_by": "#83",
       "imports": [
         "tests/test_agent.py:MapService,ModelService,response",
@@ -1000,7 +989,6 @@
         "tests/test_travel_dates.py:context_from_request",
         "travel_app/agent.py:run_cli",
         "travel_app/amap_mcp.py:AmapTools",
-        "travel_app/store.py:Store",
         "travel_app/web.py:Runtime,create_app"
       ]
     },
@@ -1151,14 +1139,6 @@
       "remove_by": "#84",
       "imports": []
     },
-    "travel_app/query_materials.py": {
-      "owner": "retrieval",
-      "role": "production",
-      "remove_by": "#83",
-      "imports": [
-        "travel_app/exa_mcp.py:SEARCH_TOOLS,SOURCE_TOOLS"
-      ]
-    },
     "travel_app/session_history.py": {
       "owner": "context",
       "role": "production",
@@ -1170,18 +1150,6 @@
       "role": "production",
       "remove_by": "#83",
       "imports": []
-    },
-    "travel_app/store.py": {
-      "owner": "local_records",
-      "role": "production",
-      "remove_by": "#81",
-      "imports": [
-        "travel_app/amap_mcp.py:DINING_TOOLS,PLACE_TOOLS,ROUTE_TOOLS,WEATHER_TOOLS",
-        "travel_app/preferences.py:PreferenceStore",
-        "travel_app/query_materials.py:READABLE_SOURCE_TOOLS,summarize_query",
-        "travel_app/session_history.py:source_metadata",
-        "travel_app/travel_dates.py:saved_date_context"
-      ]
     },
     "travel_app/travel_dates.py": {
       "owner": "planning",
@@ -1205,11 +1173,8 @@
       "role": "production",
       "remove_by": "#85",
       "imports": [
-        "travel_app/agent.py:agent_loop",
         "travel_app/amap_mcp.py:AmapTools",
-        "travel_app/model_context.py:ContextView",
         "travel_app/preferences.py:extract_preferences,preference_background",
-        "travel_app/store.py:SCHEMA_VERSION,Store",
         "travel_app/travel_tools.py:TravelTools"
       ]
     },
@@ -1224,17 +1189,8 @@
         "travel_app/limits.py:TOOL_TIMEOUT",
         "travel_app/model_context.py:ContextConfigurationError,ContextPolicy",
         "travel_app/model_context.py:ContextPolicy",
-        "travel_app/store.py:SCHEMA_VERSION,StartupError,Store",
         "travel_app/travel_tools.py:connected_travel_tools",
         "travel_app/turn_runtime.py:RunRejected,Runtime,TurnRuntime"
-      ]
-    },
-    "web.py": {
-      "owner": "assembly",
-      "role": "assembly",
-      "remove_by": "#81",
-      "imports": [
-        "travel_app/web.py:main"
       ]
     }
   },
@@ -1266,6 +1222,10 @@
     "tests/test_migration_baseline.py": {
       "owner": "compatibility",
       "role": "tooling"
+    },
+    "travel_app/tool_catalog.py": {
+      "owner": "support",
+      "role": "support"
     }
   }
 }

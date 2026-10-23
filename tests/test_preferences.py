@@ -211,14 +211,14 @@ class PreferenceTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_upgrade_preserves_old_conversation_and_does_not_extract_old_inputs(self):
         from pathlib import Path
-        from travel_app.store import Store
+        from travel_app.local_records import LocalRecords as Store, TurnMaterial
         model, clock = PreferenceModel(), Clock()
         with tempfile.TemporaryDirectory() as directory:
             # 创建原版本已有的聊天事实；没有启用后的偏好待处理身份。
             old = Store(Path(directory))
             identity = old.accept('我以前喜欢博物馆')
             old.finish(identity['session_id'], identity['turn_id'], '旧回答',
-                       [{'role': 'user', 'content': '我以前喜欢博物馆'}, {'role': 'assistant', 'content': '旧回答'}],
+                       TurnMaterial(json.dumps([{'role': 'user', 'content': '我以前喜欢博物馆'}, {'role': 'assistant', 'content': '旧回答'}])),
                        {'status': 'completed', 'reason': None, 'answer_source': 'model', 'tool_error_count': 0}, 1)
             old.close()
             async with self.service(directory, model, clock) as client:

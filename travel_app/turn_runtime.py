@@ -7,17 +7,14 @@ import sqlite3
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable
+from typing import Callable
 
 from anthropic import AsyncAnthropic
-from anthropic.types import MessageParam
 
-from travel_app.agent import agent_loop
+from travel_app.planning import plan
 from travel_app.amap_mcp import AmapTools
-from travel_app.model_context import ContextView
-from travel_app.local_records import ContextCheckpoint, RecordAbort
+from travel_app.local_records import LocalRecords, RecordAbort, SCHEMA_VERSION
 from travel_app.preferences import extract_preferences, preference_background
-from travel_app.store import SCHEMA_VERSION, Store
 from travel_app.travel_tools import TravelTools
 
 
@@ -36,7 +33,7 @@ class RunRejected(Exception):
 
 
 class TurnRuntime:
-    def __init__(self, store: Store, runtime: Runtime, *, request_shutdown: Callable[[], None] | None = None,
+    def __init__(self, store: LocalRecords, runtime: Runtime, *, request_shutdown: Callable[[], None] | None = None,
                  clock: Callable[[], datetime] | None = None, preference_clock=time.time,
                  preference_wait=asyncio.sleep, preference_timeout=60.0):
         self.store = store
@@ -121,14 +118,9 @@ class TurnRuntime:
             self.changed.set()
 
     async def _execute(self, identity, text):
-        messages: list[MessageParam] = []
-        outcome: dict[str, Any] = {}
-        context_view = None
         started = asyncio.get_running_loop().time()
         async def observe(kind, data):
-            if kind == "turn.finished":
-                outcome.update(data)
-            elif kind.startswith(("request.","tool.","context.")):
+            if kind.startswith(("request.","tool.","context.")):
                 safe = json.loads(self.runtime.tools.redact(json.dumps(data,ensure_ascii=False)))
                 try:
                     if kind.startswith("request."):
@@ -153,31 +145,28 @@ class TurnRuntime:
                 raise RecordAbort(message) from None
         try:
             try:
-                messages = self.store.context(identity["session_id"]) + [{"role":"user","content":text}]
-                state = self.store.context_state(identity["session_id"])
-                context_view = ContextView.from_state(state, messages) if state else ContextView.from_history(messages)
-                previous_date_context = self.store.date_context(identity["session_id"])
-                previous_source_materials = self.store.source_context(identity["session_id"])
+                seed = self.store.planning_seed(identity["session_id"])
                 preference_snapshot = self.store.preferences.snapshot()
                 background = preference_background(preference_snapshot["preferences"], preference_snapshot["ambiguities"])
             except Exception:
                 self.storage_failed("完整上下文无法读取，查询未启动。",kind="turn.context",turn_id=identity["turn_id"])
                 raise RecordAbort from None
-            answer = await agent_loop(messages,self.runtime.client,self.runtime.tools,self.runtime.model,observer=observe,stop_requested=self._stop_requested,stop_reason=lambda: self._stop_reason,
-                                      preference_background=background, clock=self.clock, previous_date_context=previous_date_context,
-                                      previous_source_materials=previous_source_materials, context_view=context_view,
-                                      history_records=history_records)
-        except RecordAbort:
+            result = await plan(text, self.runtime.client, self.runtime.tools, self.runtime.model,
+                seed=seed, observer=observe, stop_requested=self._stop_requested,
+                stop_reason=lambda: self._stop_reason, preference_background=background,
+                clock=self.clock, history_records=history_records)
+        except RecordAbort as error:
+            if self._storage_error is None:
+                kind = error.kind or "turn.context"
+                message = ("轮次保存材料无法生成；仅保留最后成功提交的事实。" if kind == "turn.finished"
+                           else "完整上下文无法恢复，查询未启动。")
+                self.storage_failed(message, kind=kind, turn_id=identity["turn_id"])
             return
-        except Exception:
-            answer = "这次请求未能完成，旅行行程尚未完成。请查看处理记录或重新尝试。"
-            outcome.update(status="failed",reason="execution_error",answer_source="application",tool_error_count=0)
         try:
-            answer = self.runtime.tools.redact(answer)
-            messages = json.loads(self.runtime.tools.redact(json.dumps(messages,ensure_ascii=False)))
-            self.store.finish(identity["session_id"],identity["turn_id"],answer,messages,outcome,
-                         max(0,(asyncio.get_running_loop().time()-started)*1000), preference_now=self.preference_clock(),
-                         context_checkpoint=ContextCheckpoint.capture(context_view.to_state()) if context_view else None)
+            self.store.finish(identity["session_id"], identity["turn_id"], result.answer,
+                              result.material, result.fields(),
+                              max(0, (asyncio.get_running_loop().time()-started)*1000),
+                              preference_now=self.preference_clock())
         except Exception:
             # 保存失败时停止接受输入，保留最后提交事实，不能伪报终局已保存。
             self.storage_failed("轮次结果未保存；仅保留最后成功提交的事实。",kind="turn.finished",turn_id=identity["turn_id"])

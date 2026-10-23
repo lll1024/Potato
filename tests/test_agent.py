@@ -11,6 +11,8 @@ from mcp import Client
 
 from travel_app.amap_mcp import AmapTools
 from travel_app.agent import agent_loop
+from travel_app.planning import plan
+from travel_app.context import PlanningSeed, RecordAbort
 
 
 def response(content, stop_reason="end_turn"):
@@ -308,3 +310,51 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PlanningContractTests(unittest.IsolatedAsyncioTestCase):
+    async def test_result_contains_terminal_state_without_observer_and_frozen_save_material(self):
+        tools = AmapTools(cast(Client, MapService()))
+        await tools.discover()
+        model = ModelService([response([{"type": "text", "text": "请提供旅行城市。"}])])
+        result = await plan("帮我安排旅行", cast(AsyncAnthropic, model), tools, "test-model")
+        self.assertEqual(result.answer, "请提供旅行城市。")
+        self.assertEqual((result.status, result.reason, result.answer_source, result.tool_error_count),
+                         ("completed", None, "model", 0))
+        self.assertEqual(json.loads(result.material.messages_json), [
+            {"role": "user", "content": "帮我安排旅行"},
+            {"role": "assistant", "content": [{"type": "text", "text": "请提供旅行城市。", "citations": None}]}])
+        self.assertFalse(hasattr(result, "saved"))
+
+
+    async def test_terminal_observation_is_not_the_source_of_result_state(self):
+        tools = AmapTools(cast(Client, MapService()))
+        await tools.discover()
+        model = ModelService([response([{"type": "text", "text": "西湖"}])])
+        async def observe(kind, data):
+            if kind == "turn.finished":
+                data.update(status="failed", reason="untrusted_observation", tool_error_count=99)
+        result = await plan("杭州", cast(AsyncAnthropic, model), tools, "test-model", observer=observe)
+        self.assertEqual(result.fields(), {"status": "completed", "reason": None,
+                         "answer_source": "model", "tool_error_count": 0})
+
+    async def test_record_abort_before_request_prevents_model_call_and_returns_no_result(self):
+        tools = AmapTools(cast(Client, MapService()))
+        await tools.discover()
+        model = ModelService([])
+        async def observe(kind, data):
+            if kind == "request.started":
+                raise RecordAbort("开始事实未保存")
+        with self.assertRaises(RecordAbort):
+            await plan("杭州", cast(AsyncAnthropic, model), tools, "test-model", observer=observe)
+        self.assertEqual(model.requests, [])
+
+
+    async def test_invalid_saved_context_aborts_before_external_calls(self):
+        tools = AmapTools(cast(Client, MapService()))
+        await tools.discover()
+        model = ModelService([])
+        with self.assertRaises(RecordAbort):
+            await plan("继续杭州旅行", cast(AsyncAnthropic, model), tools, "test-model",
+                       seed=PlanningSeed(context_json='{"version": 1}'))
+        self.assertEqual(model.requests, [])

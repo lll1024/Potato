@@ -14,14 +14,7 @@ from mcp.types import CONNECTION_CLOSED, INVALID_PARAMS, REQUEST_TIMEOUT
 from travel_app.limits import MAP_CALL_INTERVAL, TOOL_TIMEOUT
 from travel_app.amap_http import AmapHTTPClient
 
-PLACE_TOOLS = {"maps_text_search", "maps_search_detail"}
-DINING_TOOLS = {"maps_around_search"}
-WEATHER_TOOLS = {"maps_weather"}
-ROUTE_TOOLS = {
-    "maps_geo", "maps_regeocode", "maps_distance",
-    "maps_direction_walking", "maps_direction_bicycling",
-    "maps_direction_driving", "maps_direction_transit_integrated",
-}
+from travel_app.tool_catalog import PLACE_TOOLS, DINING_TOOLS, WEATHER_TOOLS, ROUTE_TOOLS
 
 
 class ToolResult(TypedDict):

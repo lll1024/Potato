@@ -4,26 +4,13 @@ from datetime import datetime, timezone
 import json
 from typing import Any, Callable
 
+from travel_app.local_records import source_metadata
+
 HISTORY_TOOLS = {"session_history_search", "session_history_read"}
 HISTORY_DECLARATIONS = [
     {"name": "session_history_search", "description": "按关键词搜索当前助手会话历史；最多 5 条、每条 200 字符。保留旧资料的来源、适用日期和已知核实状态；回读不自动触发信息核实。", "input_schema": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"], "additionalProperties": False}},
     {"name": "session_history_read", "description": "按搜索或摘要中的 record_id/protocol_reference 分页读取当前助手会话原文；每页最多 4000 字符，next_offset 可继续读取。历史资料不等于当前已核实事实；状态仅供参考，不要求自动查证。", "input_schema": {"type": "object", "properties": {"record_id": {"type": "string"}, "offset": {"type": "integer", "minimum": 0}, "limit": {"type": "integer", "minimum": 1, "maximum": 4000}}, "required": ["record_id"], "additionalProperties": False}},
 ]
-
-
-def source_metadata(text):
-    """把原文已有的来源/日期/核实边界随页面携带，不生成新的核实结论。"""
-    try:
-        content = json.loads(text)
-    except (ValueError, TypeError):
-        return {}
-    if not isinstance(content, dict):
-        return {}
-    metadata = {key: content[key] for key in ("retrieved_at", "document_status", "content_boundary", "max_characters", "travel_dates", "applicable_dates", "verification_status") if key in content}
-    if isinstance(content.get("sources"), list):
-        metadata["sources"] = [{key: source[key] for key in ("url", "title", "published_date", "content_type", "retrieved_at", "applicable_dates", "verification_status") if key in source}
-                               for source in content["sources"] if isinstance(source, dict)]
-    return {"source_metadata": metadata} if metadata else {}
 
 
 def protocol_records(messages):

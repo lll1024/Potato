@@ -33,7 +33,7 @@ from travel_app.amap_http import AmapHTTPClient
 from travel_app.amap_mcp import AmapTools
 from travel_app.travel_tools import connected_travel_tools
 from travel_app.limits import TOOL_TIMEOUT
-from travel_app.store import SCHEMA_VERSION, StartupError, Store
+from travel_app.local_records import SCHEMA_VERSION, StartupError, LocalRecords
 from travel_app.turn_runtime import Runtime, RunRejected, TurnRuntime
 
 
@@ -79,7 +79,7 @@ class RenameSession(BaseModel):
 def create_app(data_dir: str | Path, *, resources=configured_resources, static_dir: str | Path | None=None, request_shutdown: Callable[[], None] | None=None, clock: Callable[[], datetime] | None=None,
                preference_clock=time.time, preference_wait=asyncio.sleep, preference_timeout=60.0) -> FastAPI:
     directory = Path(data_dir)
-    store: Store
+    store: LocalRecords
     runtime: Runtime
     running: TurnRuntime
 
@@ -92,7 +92,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
                 fcntl.flock(lock,fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
                 raise StartupError("同一数据目录已有旅行服务运行。") from None
-            store = Store(directory)
+            store = LocalRecords(directory)
             try:
                 store.recover()
                 store.preferences.recover(preference_clock())
@@ -180,9 +180,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
 
     @app.get("/api/sessions/{session_id}")
     async def snapshot(session_id: str, limit: int = Query(50,ge=1,le=100), before: int | None = Query(None,ge=1), summary: bool = False, include_messages: bool = True):
-        with store.db:
-            store.db.execute("BEGIN")
-            result = store.snapshot(session_id,limit,before,summary,include_messages)
+        result = store.snapshot(session_id,limit,before,summary,include_messages)
         if result is None:
             raise HTTPException(404,{"code":"SESSION_NOT_FOUND","message":"会话不存在。"})
         return result
@@ -198,9 +196,7 @@ def create_app(data_dir: str | Path, *, resources=configured_resources, static_d
 
     @app.get("/api/snapshot")
     async def global_snapshot():
-        with store.db:
-            store.db.execute("BEGIN")
-            return {**await state(),"cursor":store.cursor(),"stream_id":store.stream_id}
+        return {**await state(), **store.stream_position()}
 
     @app.get("/api/payloads/{payload_id}")
     async def payload(payload_id: str, offset: int | None = Query(None,ge=0), limit: int = Query(8192,ge=1,le=65536)):

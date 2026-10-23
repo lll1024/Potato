@@ -139,10 +139,4 @@ def model_date_context(context: dict[str, Any]) -> str:
     return "\n本轮时间与旅行日期（同轮固定，以此解释本轮用户输入）：\n<travel_date_context>" + json.dumps(context, ensure_ascii=False) + "</travel_date_context>"
 
 
-def saved_date_context(system: str) -> dict[str, Any] | None:
-    if "<travel_date_context>" not in system:
-        return None
-    try:
-        return json.loads(system.split("<travel_date_context>", 1)[1].split("</travel_date_context>", 1)[0])
-    except (ValueError, IndexError):
-        return None
+from travel_app.context import saved_date_context
