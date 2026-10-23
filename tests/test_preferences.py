@@ -11,9 +11,9 @@ import httpx
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from travel_app.amap_mcp import AmapTools
-from test_agent import MapService, response
-from travel_app.web import Runtime, create_app
+from travel_app.retrieval import Retrieval
+from service_fixtures import MapService, response
+from travel_app.sessions import Runtime, create_app
 
 
 class Clock:
@@ -55,7 +55,7 @@ class PreferenceTests(unittest.IsolatedAsyncioTestCase):
     async def service(self, directory, model, clock, **options):
         @asynccontextmanager
         async def resources():
-            tools = AmapTools(cast(Client, MapService()))
+            tools = Retrieval(cast(Client, MapService()))
             await tools.discover()
             yield Runtime(cast(AsyncAnthropic, model), tools, 'test-model')
         app = create_app(directory, resources=resources, preference_clock=clock, preference_wait=clock.wait, **options)

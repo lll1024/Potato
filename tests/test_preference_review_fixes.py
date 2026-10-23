@@ -63,7 +63,7 @@ class ReviewFixTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(state['processing'], [])
 
     async def test_same_batch_assistant_answer_explains_reference_but_never_authorizes_source(self):
-        from test_agent import response
+        from service_fixtures import response
         model, clock = ChangesModel(), Clock()
         create = model.create
         async def answering(**kwargs):

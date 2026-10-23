@@ -1,5 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
-import {requestJson} from './api';
+import {requestJson} from '../api';
 import './preferences.css';
 
 export type Preference = {id: string; category: string; content: string; source_turn_id: string | null; source_input: string; updated_at: string; input_order: number; version: number};

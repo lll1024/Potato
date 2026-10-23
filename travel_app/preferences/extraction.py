@@ -57,7 +57,7 @@ async def extract_preferences(runtime, batch, existing):
     if result.stop_reason != 'end_turn' or any(block.type != 'text' for block in result.content):
         raise ValueError('偏好输出未完整结束')
     text = ''.join(block.text for block in result.content)
-    return validate_changes(json.loads(runtime.tools.redact(text)), batch['inputs'], existing, batch['managed_preferences'])
+    return validate_changes(json.loads(runtime.redact(text)), batch['inputs'], existing, batch['managed_preferences'])
 
 
 def preference_background(items, ambiguities=()):

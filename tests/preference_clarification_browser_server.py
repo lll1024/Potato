@@ -13,11 +13,11 @@ import httpx
 import uvicorn
 from anthropic import AsyncAnthropic
 from mcp import Client
-from travel_app.amap_mcp import AmapTools
-from test_agent import MapService, response
+from travel_app.retrieval import Retrieval
+from service_fixtures import MapService, response
 from test_preference_changes import ChangesModel, add, targeted
 from test_preferences import Clock
-from travel_app.web import Runtime, create_app
+from travel_app.sessions import Runtime, create_app
 
 
 async def main():
@@ -32,7 +32,7 @@ async def main():
     model.create = controlled
     @asynccontextmanager
     async def resources():
-        tools = AmapTools(cast(Client, MapService()))
+        tools = Retrieval(cast(Client, MapService()))
         await tools.discover()
         yield Runtime(cast(AsyncAnthropic, model), tools, 'test-model')
     with tempfile.TemporaryDirectory() as directory:

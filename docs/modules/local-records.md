@@ -31,6 +31,10 @@
 
 `SCHEMA_VERSION` 与 `StartupError` 保留正式启动和外部协议所需类型。纯值解释 `source_metadata`、`saved_date_context` 供历史与日期适配复用；它们不引用规划、查询、上下文或偏好的运行对象。实现见 [storage.py](../../travel_app/local_records/storage.py)、[metadata.py](../../travel_app/local_records/metadata.py)和[查询资料投影](../../travel_app/local_records/query_materials.py)。
 
-`preferences` 暂提供既有偏好记录操作，内部实现为 [preference_records.py](../../travel_app/local_records/preference_records.py)，与接受及完成共享同一事务。旧闲置资格、重试和管理复核规则暂保留于此适配，按 #84 归回偏好能力；不能据此宣称偏好深化完成。完整会话查看收拢和独立阅读验收分别属于 #85、#86。
+`preferences.read() -> PreferenceState` 一致读取偏好、歧义、管理保护、未完成输入及其会话运行事实和全局输入水位。`PreferenceState.capture(data)` 冻结 JSON，`data()` 返回调用方独立拥有的值；不携带连接、SQL 或偏好运行对象。输入和会话原始事实只用于条件复核，调用方不改写接受顺序或运行状态。
+
+`preferences.write(expected, replacement) -> bool` 在 `BEGIN IMMEDIATE` 短事务中重新读取并比较完整条件快照；不匹配返回假且不写入，匹配后原子保存偏好、歧义、保护记录及输入处理字段的差异。新输入、结束事实、停止、管理版本、聊天删除和输入水位都纳入复核；写入故障回滚全部变更并传播。调用方可重新读取并按最新事实计算，不能把旧计算结果直接换上新条件。`preferences.context(session_id, before_turn)` 只读取该输入前两轮原文，供能力解释指代。
+
+这些值和条件是偏好模块的持久接口；[旅行者偏好](preferences.md)拥有资格、来源、顺序、去重、歧义、管理保护、重试和恢复规则，本机记录不导入其实现。接受登记与结束时间仍在 `accept` / `finish` 原子事务内部写入。实现见 [preference_records.py](../../travel_app/local_records/preference_records.py)，数据表及旧库格式保持。独立阅读验收属于 #86。
 
 验证：[记录值与公开保存](../../tests/test_record_contracts.py)、[原子接受](../../tests/test_submissions.py)、[故障回滚与在途返回](../../tests/test_storage.py)、[上下文恢复](../../tests/test_context_recovery.py)及[固定真实入口基线](../../tests/test_migration_baseline.py)。

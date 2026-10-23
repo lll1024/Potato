@@ -36,7 +36,7 @@ class RecordContractsTests(unittest.TestCase):
                 snapshot = records.snapshot(identity["session_id"])
                 self.assertEqual(snapshot["turns"][0]["status"], "completed")
                 self.assertEqual(snapshot["turns"][0]["messages"], messages)
-                self.assertEqual(records.preferences.snapshot()["processing"][0]["status"], "pending")
+                self.assertEqual(records.preferences.read().data()["inputs"][0]["status"], "pending")
                 self.assertEqual(records.submission("same-input")["turn_id"], identity["turn_id"])
                 self.assertEqual(json.loads(records.planning_seed(identity["session_id"]).messages_json), messages)
             finally:

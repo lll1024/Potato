@@ -36,3 +36,16 @@ class TurnMaterial:
     """轮次共同保存材料；JSON 在规划返回时冻结。"""
     messages_json: str
     context_checkpoint: ContextCheckpoint | None = None
+
+
+@dataclass(frozen=True)
+class PreferenceState:
+    """偏好记录及资格事实的一致快照；不携带连接或业务规则。"""
+    state_json: str
+
+    @classmethod
+    def capture(cls, state: dict) -> "PreferenceState":
+        return cls(json.dumps(state, ensure_ascii=False, sort_keys=True))
+
+    def data(self) -> dict:
+        return json.loads(self.state_json)

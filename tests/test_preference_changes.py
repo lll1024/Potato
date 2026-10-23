@@ -3,7 +3,7 @@ import json
 import tempfile
 import unittest
 
-from test_agent import response
+from service_fixtures import response
 import test_preferences as helpers
 from test_preferences import Clock, PreferenceModel
 
