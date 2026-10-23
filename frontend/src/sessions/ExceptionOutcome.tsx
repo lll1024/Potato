@@ -1,6 +1,6 @@
 import './exception.css';
 import type { Turn } from './ConversationRounds';
-import { Icon } from './Icon';
+import { Icon } from '../Icon';
 
 export type QueryMaterial = {title: string; entries: string[][]; notes: string[]; tool_call_id: string; payload_id: string};
 

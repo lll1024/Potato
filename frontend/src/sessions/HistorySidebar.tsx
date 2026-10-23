@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { requestJson } from './api';
+import { requestJson } from '../api';
 import './conversation-controls.css';
 
 type Session = {
@@ -27,6 +27,7 @@ export function useConversationDraft(sessionId: string | null) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const key = sessionId ?? 'blank';
   return {
+    clearDrafts: () => setDrafts({}),
     draft: drafts[key] ?? '',
     setDraft: (text: string) => setDrafts(current => ({...current, [key]: text})),
     clearSubmittedDraft: (id: string | null, input: string) => setDrafts(current => {

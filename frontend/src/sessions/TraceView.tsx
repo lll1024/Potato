@@ -6,7 +6,7 @@ import { TraceSearch } from './TraceSearch';
 import { TraceTimeline } from './TraceTimeline';
 import { useReadingFollow } from './useReadingFollow';
 import { ReadingScroll } from './ReadingScroll';
-import { requestJson } from './api';
+import { useSessionPage } from './useSessionPage';
 import { reasonLabels } from './turnReasons';
 import { ModelRetries, retryEntries, type RetryEvent } from './ModelRetries';
 export type { TraceLocation } from './PayloadViewer';
@@ -32,7 +32,7 @@ type TraceTool = {
 type TraceTurn = {turn_id: string; ordinal: number; input: string; input_is_summary?: boolean; input_payload_id?: string; answer_payload_id?: string; answer_source?: string | null; status: string; reason?: string | null; tool_error_count: number; usage_summary?: UsageSummary};
 type TraceEvent = RetryEvent & {tool_call_id?: string | null; data?: RetryEvent["data"] & {estimated_tokens?: number; input_budget?: number; allowed?: boolean; valid?: boolean; reason?: string | null; status?: string; version?: number; before_tokens?: number; after_tokens?: number; changed_result_count?: number; pressure_remaining?: boolean}};
 type TraceSnapshot = {events: TraceEvent[]; session: {title: string}; turns: TraceTurn[]; requests: TraceRequest[]; tool_calls: TraceTool[]; usage_summary: UsageSummary; next_before: number | null; cursor: number; stream_id: string};
-type Props = {sessionId: string | null; refreshKey?: number; location?: TraceLocation | null; onInteraction?: () => void;
+type Props = {sessionId: string | null; refreshKey?: number; datasetRevision?: number; location?: TraceLocation | null; onInteraction?: () => void;
   onStop?: (turnId: string) => void; stopping?: boolean; disconnected?: boolean};
 const toolStatuses: Record<string,string> = {pending:'已提出',waiting:'等待查询',running:'执行中',completed:'成功',failed:'失败',not_executed:'未执行'};
 const failureLabels: Record<string,string> = {auth:'鉴权失败',quota:'额度或限流',connection:'连接不可恢复',service:'地图服务暂停',arguments:'参数错误',timeout:'查询超时',business:'地图业务失败',sdk_error:'SDK 错误标志',error:'普通工具失败'};
@@ -41,10 +41,6 @@ const statuses: Record<string,string> = {running:'正在请求',completed:'已�
 const usageLabels: Record<string,string> = {input_tokens:'输入',output_tokens:'输出',cache_creation_input_tokens:'缓存写入',cache_read_input_tokens:'缓存读取',
   'cache_creation.ephemeral_5m_input_tokens':'缓存写入（5 分钟）', 'cache_creation.ephemeral_1h_input_tokens':'缓存写入（1 小时）'};
 
-function read<T>(path: string): Promise<T> {
-  return requestJson<T>(path, '无法读取执行轨迹。', undefined, '数据版本不兼容，请更新页面。');
-}
-
 function UsageTotals({summary}: {summary?: UsageSummary}) {
   if (!summary) return null;
   return <div className="usage-totals">{Object.entries(summary).map(([field,value]) => <span key={field}>
@@ -52,15 +48,13 @@ function UsageTotals({summary}: {summary?: UsageSummary}) {
   </span>)}</div>;
 }
 
-export function TraceView({sessionId,refreshKey,location:externalLocation,onInteraction:onRead,onStop,stopping,disconnected}: Props) {
+export function TraceView({sessionId,refreshKey,datasetRevision,location:externalLocation,onInteraction:onRead,onStop,stopping,disconnected}: Props) {
   const sessionRef=useRef(sessionId);
   sessionRef.current=sessionId;
-  const [snapshot,setSnapshot] = useState<TraceSnapshot | null>(null);
+  const {snapshot, error, setError, loadingEarlier, loadEarlier: readEarlier, locate: readLocation} = useSessionPage<TraceSnapshot>(sessionId, refreshKey, 'summary=true', datasetRevision);
   const [selected,setSelected] = useState<string | null>(null);
   const [expanded,setExpanded] = useState<Record<string,boolean>>({});
-  const [error,setError] = useState('');
   const [location,setLocation] = useState<TraceLocation | null>(null);
-  const [loadingEarlier,setLoadingEarlier] = useState(false);
   const follow = useReadingFollow(sessionId, snapshot?.events.at(-1)?.event_id ?? '');
   const latestRef = useRef<string | undefined>(undefined);
   function onInteraction() {follow.pause(); onRead?.();}
@@ -71,21 +65,11 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
     media.addEventListener('change',change); return () => media.removeEventListener('change',change);
   },[]);
   useEffect(() => {
-    setSnapshot(null); setSelected(null); setExpanded({}); setLocation(null); setError(''); latestRef.current=undefined;
-  }, [sessionId]);
+    setSelected(null); setExpanded({}); setLocation(null); setError(''); latestRef.current=undefined;
+  }, [sessionId,datasetRevision]);
   useEffect(() => {
-  if (!sessionId) return;
-    let cancelled = false;
-    async function refresh() {
-      try {
-        const result = await read<TraceSnapshot>(`/api/sessions/${sessionId}?summary=true`);
-        if (cancelled) return;
-        setSnapshot(current => current ? {...result,
-          next_before:current.next_before,
-          turns:[...current.turns.filter(item => !result.turns.some(incoming => incoming.turn_id===item.turn_id)),...result.turns].sort((a,b) => a.ordinal-b.ordinal),
-          requests:[...current.requests.filter(item => !result.turns.some(turn => turn.turn_id===item.turn_id)),...result.requests],
-          tool_calls:[...current.tool_calls.filter(item => !result.turns.some(turn => turn.turn_id===item.turn_id)),...result.tool_calls],
-          events:[...current.events.filter(item => !result.turns.some(turn => turn.turn_id===item.turn_id)),...result.events].sort((a,b) => a.sequence-b.sequence)} : result);
+    const result = snapshot;
+    if (result) {
         setExpanded(current => {
           const next = {...current};
           const latest = result.turns.at(-1)?.turn_id;
@@ -99,40 +83,18 @@ export function TraceView({sessionId,refreshKey,location:externalLocation,onInte
           return next;
         });
 
-      } catch (cause) {
-        if (!cancelled) setError(cause instanceof Error ? cause.message : '无法读取执行轨迹。');
-      }
     }
-    void refresh();
-    return () => {cancelled = true;};
-  }, [sessionId,refreshKey]);
+  }, [snapshot]);
   async function loadEarlier() {
-    if (!sessionId || !snapshot?.next_before) return;
-    onInteraction(); setLoadingEarlier(true);
-    const id=sessionId;
-    try {
-      const page=await read<TraceSnapshot>(`/api/sessions/${id}?summary=true&before=${snapshot.next_before}`);
-      if (sessionRef.current!==id) return;
-      setSnapshot(current => current ? {...current,
-        next_before:page.next_before,
-        turns:[...page.turns.filter(item => !current.turns.some(old => old.turn_id===item.turn_id)),...current.turns].sort((a,b) => a.ordinal-b.ordinal),
-        requests:[...page.requests.filter(item => !current.requests.some(old => old.request_id===item.request_id)),...current.requests],
-        tool_calls:[...page.tool_calls.filter(item => !current.tool_calls.some(old => old.tool_call_id===item.tool_call_id)),...current.tool_calls],
-        events:[...page.events.filter(item => !current.events.some(old => old.event_id===item.event_id)),...current.events].sort((a,b) => a.sequence-b.sequence)} : page);
-    } catch (cause) {setError(cause instanceof Error ? cause.message : '无法读取更早轨迹。');}
-    finally {setLoadingEarlier(false);}
+    onInteraction();
+    await readEarlier();
   }
   async function locate(target: TraceLocation) {
     if (!sessionId) return;
     onInteraction?.(); setLocation(target); setSelected(target.object_id);
     try {
-      const page = await read<TraceSnapshot>(`/api/sessions/${sessionId}?summary=true&limit=1&before=${target.turn_ordinal+1}`);
-      if (sessionRef.current !== sessionId) return;
-      setSnapshot(current => current ? {...current,
-        turns:[...current.turns.filter(item => item.turn_id!==target.turn_id),...page.turns].sort((a,b) => a.ordinal-b.ordinal),
-        requests:[...current.requests.filter(item => item.turn_id!==target.turn_id),...page.requests],
-        tool_calls:[...current.tool_calls.filter(item => item.turn_id!==target.turn_id),...page.tool_calls],
-        events:[...current.events.filter(item => item.turn_id!==target.turn_id),...page.events].sort((a,b) => a.sequence-b.sequence)} : page);
+      const page = await readLocation(target.turn_ordinal);
+      if (!page || sessionRef.current !== sessionId) return;
       const requestId=page.tool_calls.find(item => item.tool_call_id===target.object_id)?.request_id ?? target.object_id;
       setExpanded(current => ({...current,session:true,[target.turn_id]:true,[requestId]:true}));
       requestAnimationFrame(() => {

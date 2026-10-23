@@ -11,25 +11,23 @@ from typing import Callable
 
 from anthropic import AsyncAnthropic
 
-from travel_app.planning import plan
-from travel_app.amap_mcp import AmapTools
+from travel_app.planning import PlanningTools, plan
 from travel_app.local_records import LocalRecords, RecordAbort, SCHEMA_VERSION
-from travel_app.preferences import extract_preferences, preference_background
-from travel_app.travel_tools import TravelTools
+from travel_app.preferences import Preferences
 
 
 @dataclass
 class Runtime:
     client: AsyncAnthropic
-    tools: AmapTools | TravelTools
+    tools: PlanningTools
     model: str
 
 
 class RunRejected(Exception):
-    def __init__(self, status_code: int, detail: dict[str, str]):
+    def __init__(self, status_code: int, detail: dict[str, str] | str):
         self.status_code = status_code
         self.detail = detail
-        super().__init__(detail['message'])
+        super().__init__(detail['message'] if isinstance(detail, dict) else detail)
 
 
 class TurnRuntime:
@@ -41,10 +39,7 @@ class TurnRuntime:
         self.request_shutdown = request_shutdown
         self.clock = clock
         self.preference_clock = preference_clock
-        self.preference_wait = preference_wait
-        self.preference_timeout = preference_timeout
         self._task: asyncio.Task | None = None
-        self._preference_task: asyncio.Task | None = None
         self._active: dict[str, str] | None = None
         self._accepting = False
         self._acceptance_lock = asyncio.Lock()
@@ -53,11 +48,14 @@ class TurnRuntime:
         self._stop_requested = asyncio.Event()
         self._stop_reason = 'user_stop'
         self.changed = asyncio.Event()
+        self.preferences = Preferences(store, runtime.client, runtime.model, redact=runtime.tools.redact,
+                                       clock=preference_clock, wait=preference_wait, timeout=preference_timeout,
+                                       storage_failed=self.storage_failed, available=lambda: self._accepting)
 
     def start(self):
         self._stop_requested.clear()
         self._accepting = True
-        self._preference_task = asyncio.create_task(self._process_preferences())
+        self.preferences.start()
 
     async def shutdown(self):
         self._accepting = False
@@ -65,12 +63,7 @@ class TurnRuntime:
             self._stop_reason = 'service_shutdown'
         self._stop_requested.set()
         self.changed.set()
-        if self._preference_task:
-            self._preference_task.cancel()
-            try:
-                await self._preference_task
-            except asyncio.CancelledError:
-                pass
+        await self.preferences.shutdown()
         if self._task:
             await self._task
 
@@ -87,27 +80,6 @@ class TurnRuntime:
         self._stop_requested.set()
         if previous != (self._accepting,self._storage_error,self._unsaved_fact):
             self.changed.set()
-
-    async def _process_preferences(self):
-        while True:
-            try:
-                batch = self.store.preferences.eligible(self.preference_clock()) if self._accepting else None
-                if batch:
-                    existing = self.store.preferences.snapshot()['preferences']
-                    if not self.store.preferences.start(batch, self.preference_clock()):
-                        continue
-                    try:
-                        changes = await asyncio.wait_for(extract_preferences(self.runtime, batch, existing), self.preference_timeout)
-                    except sqlite3.Error:
-                        raise
-                    except Exception:
-                        self.store.preferences.failed(batch, self.preference_clock())
-                    else:
-                        self.store.preferences.commit(batch, changes, self.preference_clock())
-                    continue
-            except sqlite3.Error:
-                self.storage_failed("偏好存储无法可靠读取或保存。")
-            await self.preference_wait(30)
 
     async def _run_turn(self, identity, text):
         try:
@@ -146,8 +118,7 @@ class TurnRuntime:
         try:
             try:
                 seed = self.store.planning_seed(identity["session_id"])
-                preference_snapshot = self.store.preferences.snapshot()
-                background = preference_background(preference_snapshot["preferences"], preference_snapshot["ambiguities"])
+                background = self.preferences.background()
             except Exception:
                 self.storage_failed("完整上下文无法读取，查询未启动。",kind="turn.context",turn_id=identity["turn_id"])
                 raise RecordAbort from None
@@ -209,7 +180,7 @@ class TurnRuntime:
         if saved is None:
             raise RunRejected(404, {"code":"TURN_NOT_FOUND","message":"轮次不存在。"})
         if self._active and self._active["turn_id"] == turn_id:
-            self.store.preferences.cancel(turn_id)
+            self.preferences.stop(turn_id)
             self._stop_requested.set()
             self.changed.set()
         return {"schema_version":SCHEMA_VERSION,"turn_id":turn_id,"status":saved["status"],
@@ -228,7 +199,128 @@ class TurnRuntime:
         return {"schema_version":SCHEMA_VERSION,"active_turn_id":self._active["turn_id"] if self._active else None,
                 "active_session_id":self._active["session_id"] if self._active else None,"accepting":self._accepting,
                 "stopping":bool(self._active and self._stop_requested.is_set()),
-                "map_paused":self.runtime.tools.failure is not None,
-                "map_pause_reason":self.runtime.tools.failure,
+                "map_paused":self.runtime.tools.capabilities.map_pause_reason is not None,
+                "map_pause_reason":self.runtime.tools.capabilities.map_pause_reason,
                 "service_status":"available" if self._accepting else "unavailable","storage_error":self._storage_error,
                 "unsaved_fact":self._unsaved_fact}
+
+    def _read(self, operation, *args):
+        try:
+            return operation(*args)
+        except sqlite3.Error:
+            self.storage_failed("数据无法可靠读取或保存。")
+            raise RunRejected(503, {"code":"STORAGE_FAILURE","message":"存储故障，数据暂时无法核对，请检查后重启。"}) from None
+
+    def history(self, limit: int = 50, cursor: str | None = None):
+        try:
+            return self._read(self.store.sessions, limit, cursor)
+        except (ValueError, TypeError):
+            raise RunRejected(422, "历史分页游标无效，请重新加载。") from None
+
+    def history_page(self, session_id: str, limit: int = 50, before: int | None = None,
+                     summary: bool = False, include_messages: bool = True):
+        result = self._read(self.store.snapshot, session_id, limit, before, summary, include_messages)
+        if result is None:
+            raise RunRejected(404, {"code":"SESSION_NOT_FOUND","message":"会话不存在。"})
+        return result
+
+    def search(self, session_id: str, query: str, scope: str = "full"):
+        if scope not in ("full", "summary"):
+            raise RunRejected(422, "搜索范围无效。")
+        result = self._read(self.store.search, session_id, self.runtime.tools.redact(query), scope)
+        if result is None:
+            raise RunRejected(404, "会话不存在。")
+        return result
+
+    def payload(self, payload_id: str, offset: int | None = None, limit: int = 8192):
+        result = self._read(self.store.payload, payload_id, offset, limit)
+        if result is None:
+            raise RunRejected(404, "详情不存在。")
+        return result
+
+    def service_snapshot(self):
+        return {**self.snapshot(), **self._read(self.store.stream_position)}
+
+    def rename(self, session_id: str, title: str):
+        title = self.runtime.tools.redact(title).strip()
+        if not title:
+            raise RunRejected(422, "请输入会话标题。")
+        try:
+            renamed = self.store.rename(session_id, title)
+        except Exception:
+            self.storage_failed("标题未保存。")
+            raise RunRejected(503, {"code":"STORAGE_FAILURE","message":"存储故障，标题未保存，请检查后重启。"}) from None
+        if not renamed:
+            raise RunRejected(404, {"code":"SESSION_NOT_FOUND","message":"会话不存在。"})
+        return {"schema_version":SCHEMA_VERSION,"session_id":session_id,"title":title}
+
+    def delete(self, session_id: str):
+        try:
+            deleted = self.store.delete(session_id)
+        except ValueError:
+            raise RunRejected(409, {"code":"BUSY","message":"会话正在执行或停止，请等待结束后删除。"}) from None
+        except Exception:
+            self.storage_failed("会话删除未保存。")
+            raise RunRejected(503, {"code":"STORAGE_FAILURE","message":"存储故障，会话未删除，请检查后重启。"}) from None
+        if not deleted:
+            raise RunRejected(404, {"code":"SESSION_NOT_FOUND","message":"会话不存在。"})
+        self.changed.set()
+        return {"schema_version":SCHEMA_VERSION,"deleted_session_id":session_id}
+
+    def notifications(self, after: int | None = None, stream_id: str | None = None, last_event_id: str | None = None):
+        try:
+            # EventSource 自动续接仍保留最初 URL；已处理身份优先于初始 after。
+            cursor = int(last_event_id) if last_event_id is not None else after or 0
+        except ValueError:
+            raise RunRejected(409,{"code":"SNAPSHOT_REQUIRED","message":"事件游标无法续接，请重新读取快照。"}) from None
+        position = self._read(self.store.stream_position)
+        if cursor < 0 or cursor > position["cursor"] or (stream_id is not None and stream_id != position["stream_id"]):
+            raise RunRejected(409,{"code":"SNAPSHOT_REQUIRED","message":"事件游标无法续接或数据目录已更换，请重新读取快照。"})
+        async def stream():
+            nonlocal cursor
+            last_state = None
+            while True:
+                self.changed.clear()
+                read_failed = False
+                try:
+                    batch = self.store.events_after(cursor)
+                except sqlite3.Error:
+                    self.storage_failed("执行通知暂时无法读取；仅保留最后成功提交的事实。")
+                    read_failed = True
+                    batch = []
+                for event in batch:
+                    # 等待网络发送时其他页面可能删除；不发送已级联删除的预读摘要。
+                    try:
+                        if not self.store.event_exists(event["cursor"]):
+                            cursor = event["cursor"]
+                            continue
+                    except sqlite3.Error:
+                        self.storage_failed("执行通知暂时无法读取；仅保留最后成功提交的事实。")
+                        read_failed = True
+                        break
+                    cursor = event["cursor"]
+                    yield f"id: {cursor}\nevent: trace\ndata: {json.dumps({'schema_version':SCHEMA_VERSION,**event},ensure_ascii=False)}\n\n"
+                current_state = self.snapshot()
+                if current_state != last_state:
+                    last_state = current_state
+                    notice = {"schema_version":SCHEMA_VERSION,"kind":"service.state","transient":True,"state":current_state}
+                    # 实时运行状态不冒充已提交轨迹，不能推进持久化 cursor。
+                    yield f"event: service.state\ndata: {json.dumps(notice,ensure_ascii=False)}\n\n"
+                # yield 期间可能又有提交；先重新补齐，避免另一个订阅清空唤醒后漏等。
+                if read_failed:
+                    await asyncio.sleep(1)
+                    continue
+                try:
+                    pending = self.store.cursor()>cursor
+                except sqlite3.Error:
+                    self.storage_failed("执行通知暂时无法读取；仅保留最后成功提交的事实。")
+                    await asyncio.sleep(1)
+                    continue
+                if batch or pending or self.changed.is_set() or self.snapshot()!=last_state:
+                    continue
+
+                try:
+                    await asyncio.wait_for(self.changed.wait(),15)
+                except asyncio.TimeoutError:
+                    yield ": heartbeat\n\n"
+        return stream()

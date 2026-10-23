@@ -9,7 +9,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 const require = createRequire(import.meta.url);
 async function component(file, name) {
-  const source = await readFile(new URL(`../src/${file}.tsx`, import.meta.url), 'utf8');
+  const source = await readFile(new URL(`../src/sessions/${file}.tsx`, import.meta.url), 'utf8');
   const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.ReactJSX } });
   const code = outputText.replace(/from ["']([^"']+)["']/g, (_, specifier) => `from "${pathToFileURL(require.resolve(specifier))}"`);
   return (await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`))[name];
