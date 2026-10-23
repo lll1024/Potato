@@ -1,0 +1,6 @@
+{
+  "source": "pre-commit working-tree",
+  "source_sha256": "23c7bdd3c0498eaadbb8b82a82126b0f3f7775f4fdf146755827ec695dd6b769",
+  "baseline_commit": "4e01678fdb036f034d72a858fadb226ea239a0c1",
+  "normalized_comparison": "equal"
+}

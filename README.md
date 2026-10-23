@@ -80,6 +80,7 @@ python web.py
 python -m pip install -r requirements-dev.txt
 python -m unittest discover -s tests -v
 pyright --pythonpath .venv/bin/python agent.py web.py travel_app
+python scripts/check_modules.py
 npm test --prefix frontend
 npm run build --prefix frontend
 ```
@@ -87,6 +88,8 @@ npm run build --prefix frontend
 真实高德连接检查：`python agent.py --check-amap`。它不调用模型，会消耗一次“杭州的西湖”地点查询，不替代完整旅行规划验收。
 
 后端实现位于单个浅层 `travel_app/` 包，根目录保留 `agent.py` 与 `web.py` 启动入口；仓库内部使用 `travel_app.*` 导入。
+
+六模块改造已进入 #80 基线准备阶段，当前迁移范围、公开契约及依赖检查规则见[迁移状态](docs/modules/migration.md)，可重现对照与合成旧数据见[行为基线](docs/acceptance/deep-modules-baseline.md)。
 
 按工作范围查阅：
 

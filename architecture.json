@@ -1,0 +1,1271 @@
+{
+  "baseline": "4e01678fdb036f034d72a858fadb226ea239a0c1",
+  "modules": {
+    "sessions": {
+      "backend": "travel_app/sessions",
+      "frontend": "frontend/src/sessions",
+      "depends": [
+        "planning",
+        "preferences",
+        "local_records"
+      ]
+    },
+    "planning": {
+      "backend": "travel_app/planning",
+      "frontend": "frontend/src/planning",
+      "depends": [
+        "retrieval",
+        "context"
+      ]
+    },
+    "retrieval": {
+      "backend": "travel_app/retrieval",
+      "frontend": "frontend/src/retrieval",
+      "depends": []
+    },
+    "context": {
+      "backend": "travel_app/context",
+      "frontend": "frontend/src/context",
+      "depends": [
+        "local_records"
+      ]
+    },
+    "preferences": {
+      "backend": "travel_app/preferences",
+      "frontend": "frontend/src/preferences",
+      "depends": [
+        "local_records"
+      ]
+    },
+    "local_records": {
+      "backend": "travel_app/local_records",
+      "frontend": "frontend/src/local_records",
+      "depends": []
+    }
+  },
+  "legacy": {
+    "agent.py": {
+      "owner": "assembly",
+      "role": "assembly",
+      "remove_by": "#81",
+      "imports": [
+        "travel_app/agent.py:main"
+      ]
+    },
+    "frontend/playwright.config.ts": {
+      "owner": "integration",
+      "role": "caller-test",
+      "remove_by": "#86",
+      "imports": []
+    },
+    "frontend/src/AnswerBody.tsx": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": []
+    },
+    "frontend/src/ComposerInput.tsx": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": [
+        "frontend/src/conversation-controls.css:"
+      ]
+    },
+    "frontend/src/ContextMaintenance.tsx": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": []
+    },
+    "frontend/src/ConversationRounds.tsx": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": [
+        "frontend/src/AnswerBody.tsx:AnswerBody",
+        "frontend/src/ExceptionOutcome.tsx:ExceptionOutcome,QueryMaterial,isExceptional",
+        "frontend/src/RoundProgress.tsx:RoundActivity,RoundProgress"
+      ]
+    },
+    "frontend/src/ExceptionOutcome.tsx": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": [
+        "frontend/src/ConversationRounds.tsx:Turn",
+        "frontend/src/Icon.tsx:Icon",
+        "frontend/src/exception.css:"
+      ]
+    },
+    "frontend/src/HistorySidebar.tsx": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": [
+        "frontend/src/api.ts:requestJson",
+        "frontend/src/conversation-controls.css:"
+      ]
+    },
+    "frontend/src/Icon.tsx": {
+      "owner": "support",
+      "role": "production",
+      "remove_by": "#86",
+      "imports": []
+    },
+    "frontend/src/ModelRetries.tsx": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": []
+    },
+    "frontend/src/PayloadViewer.tsx": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": []
+    },
+    "frontend/src/PreferencesView.tsx": {
+      "owner": "preferences",
+      "role": "production",
+      "remove_by": "#84",
+      "imports": [
+        "frontend/src/api.ts:requestJson",
+        "frontend/src/preferences.css:"
+      ]
+    },
+    "frontend/src/ReadingScroll.tsx": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": []
+    },
+    "frontend/src/RoundProgress.tsx": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": [
+        "frontend/src/ConversationRounds.tsx:Turn",
+        "frontend/src/ModelRetries.tsx:RetryEvent,retryEntries",
+        "frontend/src/conversation-controls.css:"
+      ]
+    },
+    "frontend/src/TraceSearch.tsx": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": [
+        "frontend/src/PayloadViewer.tsx:Highlight,TraceLocation"
+      ]
+    },
+    "frontend/src/TraceTimeline.tsx": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": []
+    },
+    "frontend/src/TraceView.tsx": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": [
+        "frontend/src/ContextMaintenance.tsx:ContextMaintenance",
+        "frontend/src/ModelRetries.tsx:ModelRetries,RetryEvent,retryEntries",
+        "frontend/src/PayloadViewer.tsx:Highlight,Payload,TraceLocation",
+        "frontend/src/PayloadViewer.tsx:TraceLocation",
+        "frontend/src/ReadingScroll.tsx:ReadingScroll",
+        "frontend/src/TraceSearch.tsx:TraceSearch",
+        "frontend/src/TraceTimeline.tsx:TraceTimeline",
+        "frontend/src/api.ts:requestJson",
+        "frontend/src/trace.css:",
+        "frontend/src/turnReasons.ts:reasonLabels",
+        "frontend/src/useReadingFollow.ts:useReadingFollow"
+      ]
+    },
+    "frontend/src/api.ts": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": []
+    },
+    "frontend/src/conversation-controls.css": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": []
+    },
+    "frontend/src/exception.css": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": []
+    },
+    "frontend/src/main.tsx": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": [
+        "frontend/src/ComposerInput.tsx:ComposerInput",
+        "frontend/src/ConversationRounds.tsx:ConversationRounds,Turn",
+        "frontend/src/ExceptionOutcome.tsx:isExceptional",
+        "frontend/src/HistorySidebar.tsx:HistorySidebar,useConversationDraft",
+        "frontend/src/Icon.tsx:Icon",
+        "frontend/src/PreferencesView.tsx:PreferencesView",
+        "frontend/src/ReadingScroll.tsx:ReadingScroll",
+        "frontend/src/RoundProgress.tsx:RoundActivity",
+        "frontend/src/TraceView.tsx:TraceLocation,TraceView",
+        "frontend/src/api.ts:requestJson",
+        "frontend/src/style.css:",
+        "frontend/src/turnReasons.ts:reasonLabels",
+        "frontend/src/useReadingFollow.ts:useReadingFollow",
+        "frontend/src/useServiceEvents.ts:useServiceEvents",
+        "frontend/src/useSubmission.ts:useSubmission"
+      ]
+    },
+    "frontend/src/preferences.css": {
+      "owner": "preferences",
+      "role": "production",
+      "remove_by": "#84",
+      "imports": []
+    },
+    "frontend/src/style.css": {
+      "owner": "support",
+      "role": "production",
+      "remove_by": "#86",
+      "imports": []
+    },
+    "frontend/src/trace.css": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": []
+    },
+    "frontend/src/turnReasons.ts": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": []
+    },
+    "frontend/src/useReadingFollow.ts": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": []
+    },
+    "frontend/src/useServiceEvents.ts": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": []
+    },
+    "frontend/src/useSubmission.ts": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": []
+    },
+    "frontend/tests/presentation.test.mjs": {
+      "owner": "integration",
+      "role": "caller-test",
+      "remove_by": "#86",
+      "imports": [
+        "<dynamic>:"
+      ]
+    },
+    "frontend/tests/ui/context-compaction-live.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test",
+      "remove_by": "#86",
+      "imports": []
+    },
+    "frontend/tests/ui/conversation.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test",
+      "remove_by": "#86",
+      "imports": []
+    },
+    "frontend/tests/ui/history.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test",
+      "remove_by": "#86",
+      "imports": []
+    },
+    "frontend/tests/ui/preferences-clarification-live.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test",
+      "remove_by": "#86",
+      "imports": []
+    },
+    "frontend/tests/ui/preferences-management.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test",
+      "remove_by": "#86",
+      "imports": []
+    },
+    "frontend/tests/ui/preferences-recovery-live.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test",
+      "remove_by": "#86",
+      "imports": []
+    },
+    "frontend/tests/ui/preferences.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test",
+      "remove_by": "#86",
+      "imports": []
+    },
+    "frontend/tests/ui/recovery-live.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test",
+      "remove_by": "#86",
+      "imports": []
+    },
+    "frontend/tests/ui/recovery.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test",
+      "remove_by": "#86",
+      "imports": []
+    },
+    "frontend/vite.config.ts": {
+      "owner": "integration",
+      "role": "caller-test",
+      "remove_by": "#86",
+      "imports": []
+    },
+    "tests/compatibility/capture.py": {
+      "owner": "compatibility",
+      "role": "tooling",
+      "remove_by": "#86",
+      "imports": [
+        "tests/test_recovery.py:ExternalServices,free_port",
+        "tests/test_trace.py:wait_finished"
+      ]
+    },
+    "tests/compatibility/entrypoint.py": {
+      "owner": "compatibility",
+      "role": "tooling",
+      "remove_by": "#86",
+      "imports": [
+        "travel_app/__init__.py:agent,travel_tools,web",
+        "travel_app/agent.py:run_cli",
+        "travel_app/travel_tools.py:EXA_URL",
+        "travel_app/web.py:create_app"
+      ]
+    },
+    "tests/context_browser_server.py": {
+      "owner": "context",
+      "role": "internal-test",
+      "remove_by": "#82",
+      "imports": [
+        "tests/test_agent.py:MapService,response",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/context_semantic_eval.py": {
+      "owner": "context",
+      "role": "internal-test",
+      "remove_by": "#82",
+      "imports": [
+        "tests/test_agent.py:MapService",
+        "tests/test_preferences.py:Clock",
+        "travel_app/agent.py:run_cli",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/exa_fixtures.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": []
+    },
+    "tests/exception_browser_server.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:response",
+        "tests/test_exception_experience.py:FailingAfterTools,call",
+        "tests/test_itinerary.py:ItineraryMapService,map_result",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/information_retrieval_eval.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "travel_app/agent.py:SYSTEM,run_cli",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/exa_mcp.py:ExaTools",
+        "travel_app/store.py:Store",
+        "travel_app/travel_dates.py:model_date_context,turn_date_context",
+        "travel_app/travel_tools.py:TravelTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/preference_browser_server.py": {
+      "owner": "preferences",
+      "role": "internal-test",
+      "remove_by": "#84",
+      "imports": [
+        "tests/test_agent.py:MapService,response",
+        "tests/test_preferences.py:PreferenceModel",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/preference_clarification_browser_server.py": {
+      "owner": "preferences",
+      "role": "internal-test",
+      "remove_by": "#84",
+      "imports": [
+        "tests/test_agent.py:MapService,response",
+        "tests/test_preference_changes.py:ChangesModel,add,targeted",
+        "tests/test_preferences.py:Clock",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/preference_semantic_eval.py": {
+      "owner": "preferences",
+      "role": "internal-test",
+      "remove_by": "#84",
+      "imports": [
+        "tests/test_agent.py:MapService",
+        "tests/test_preferences.py:Clock",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/query_batching_eval.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:ModelService,response",
+        "travel_app/agent.py:run_cli",
+        "travel_app/amap_http.py:AmapHTTPClient",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/exa_mcp.py:EXA_URL,ExaTools",
+        "travel_app/source_http.py:SourceHTTPClient",
+        "travel_app/travel_tools.py:TravelTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/recovery_process.py": {
+      "owner": "sessions",
+      "role": "internal-test",
+      "remove_by": "#85",
+      "imports": [
+        "travel_app/amap_http.py:AmapHTTPClient",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/test_acceptance.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:MapService,ModelService,response",
+        "tests/test_reconnect.py:notices",
+        "tests/test_tool_trace.py:serving_tools",
+        "tests/test_trace.py:wait_finished"
+      ]
+    },
+    "tests/test_agent.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "travel_app/agent.py:agent_loop",
+        "travel_app/amap_mcp.py:AmapTools"
+      ]
+    },
+    "tests/test_call_budget.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:MapService,ModelService,response",
+        "tests/test_context_summary.py:OLD,submit,summary_response",
+        "tests/test_model_retry.py:RetryModel,status_error",
+        "tests/test_source_failures.py:SourceService,call,finished",
+        "tests/test_storage.py:fail_event,wait_state",
+        "tests/test_trace.py:serving,wait_finished",
+        "travel_app/agent.py:run_cli"
+      ]
+    },
+    "tests/test_cli.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "travel_app/agent.py:main"
+      ]
+    },
+    "tests/test_context_budget.py": {
+      "owner": "context",
+      "role": "internal-test",
+      "remove_by": "#82",
+      "imports": [
+        "tests/test_agent.py:MapService",
+        "tests/test_agent.py:ModelService,response",
+        "tests/test_model_retry.py:RetryModel",
+        "tests/test_trace.py:serving,wait_finished",
+        "travel_app/agent.py:agent_loop",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/model_context.py:ContextPolicy",
+        "travel_app/model_context.py:ContextPolicy,ContextView",
+        "travel_app/model_context.py:ContextView",
+        "travel_app/web.py:create_app"
+      ]
+    },
+    "tests/test_context_incremental.py": {
+      "owner": "context",
+      "role": "internal-test",
+      "remove_by": "#82",
+      "imports": [
+        "tests/test_agent.py:MapService,ModelService,response",
+        "tests/test_context_summary.py:ENV,submit",
+        "tests/test_trace.py:serving",
+        "travel_app/model_context.py:TokenMeter",
+        "travel_app/travel_dates.py:saved_date_context"
+      ]
+    },
+    "tests/test_context_limit_recovery.py": {
+      "owner": "context",
+      "role": "internal-test",
+      "remove_by": "#82",
+      "imports": [
+        "tests/test_agent.py:MapService",
+        "tests/test_agent.py:response",
+        "tests/test_context_incremental.py:LargeMaps",
+        "tests/test_context_summary.py:ENV,OLD",
+        "tests/test_context_summary.py:submit,summary_response",
+        "tests/test_model_retry.py:RetryModel,status_error",
+        "tests/test_trace.py:serving",
+        "tests/test_trace.py:wait_finished",
+        "travel_app/agent.py:run_cli"
+      ]
+    },
+    "tests/test_context_organization.py": {
+      "owner": "context",
+      "role": "internal-test",
+      "remove_by": "#82",
+      "imports": [
+        "tests/test_agent.py:MapService,ModelService,response",
+        "tests/test_trace.py:serving,wait_finished"
+      ]
+    },
+    "tests/test_context_recovery.py": {
+      "owner": "context",
+      "role": "internal-test",
+      "remove_by": "#82",
+      "imports": [
+        "tests/test_agent.py:MapService,ModelService,response",
+        "tests/test_agent.py:ModelService,response",
+        "tests/test_context_summary.py:ENV,OLD",
+        "tests/test_recovery.py:ExternalServices,process",
+        "tests/test_storage.py:fail_event,wait_state",
+        "tests/test_storage.py:wait_state",
+        "tests/test_trace.py:serving",
+        "tests/test_trace.py:wait_finished",
+        "travel_app/agent.py:run_cli"
+      ]
+    },
+    "tests/test_context_summary.py": {
+      "owner": "context",
+      "role": "internal-test",
+      "remove_by": "#82",
+      "imports": [
+        "tests/test_agent.py:MapService",
+        "tests/test_agent.py:ModelService,response",
+        "tests/test_model_retry.py:RetryModel,connection_error",
+        "tests/test_model_retry.py:RetryModel,status_error",
+        "tests/test_storage.py:fail_event,wait_state",
+        "tests/test_trace.py:serving,wait_finished",
+        "travel_app/agent.py:run_cli",
+        "travel_app/travel_dates.py:saved_date_context"
+      ]
+    },
+    "tests/test_dining.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:ModelService,response",
+        "travel_app/agent.py:agent_loop",
+        "travel_app/amap_mcp.py:AmapTools"
+      ]
+    },
+    "tests/test_exa_sources.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "travel_app/exa_mcp.py:ExaTools"
+      ]
+    },
+    "tests/test_exception_experience.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:ModelService,response",
+        "tests/test_itinerary.py:ItineraryMapService,map_result",
+        "tests/test_tool_trace.py:serving_tools",
+        "tests/test_trace.py:wait_finished"
+      ]
+    },
+    "tests/test_failures.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:MapService,ModelService,response",
+        "travel_app/agent.py:agent_loop",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/limits.py:MAX_MODEL_REQUESTS"
+      ]
+    },
+    "tests/test_history.py": {
+      "owner": "sessions",
+      "role": "internal-test",
+      "remove_by": "#85",
+      "imports": [
+        "tests/test_agent.py:MapService,ModelService,response",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/test_information_retrieval.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:ModelService,response",
+        "tests/test_source_failures.py:SourceService,call,finished"
+      ]
+    },
+    "tests/test_itinerary.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:ModelService,response",
+        "tests/test_dining.py:tool_call",
+        "travel_app/agent.py:agent_loop",
+        "travel_app/amap_mcp.py:AmapTools"
+      ]
+    },
+    "tests/test_legacy_sources.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:ModelService,response",
+        "tests/test_source_failures.py:SourceService,finished",
+        "travel_app/store.py:Store"
+      ]
+    },
+    "tests/test_mcp_integration.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:ModelService,response",
+        "travel_app/agent.py:agent_loop,run_cli",
+        "travel_app/amap_http.py:AmapHTTPClient",
+        "travel_app/amap_mcp.py:AmapTools"
+      ]
+    },
+    "tests/test_model_retry.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:MapService,ModelService,response",
+        "tests/test_storage.py:fail_event,wait_state",
+        "tests/test_trace.py:serving,wait_finished",
+        "travel_app/agent.py:agent_loop",
+        "travel_app/amap_mcp.py:AmapTools"
+      ]
+    },
+    "tests/test_official_date_applicability.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/exa_fixtures.py:source_text",
+        "tests/test_agent.py:MapService,ModelService,response",
+        "tests/test_history.py:",
+        "tests/test_history.py:HistoryTests",
+        "tests/test_travel_dates.py:context_from_request",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/exa_mcp.py:ExaTools",
+        "travel_app/travel_tools.py:TravelTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/test_official_sources.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:MapService,ModelService,response",
+        "travel_app/agent.py:run_cli",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/exa_mcp.py:ExaTools",
+        "travel_app/travel_tools.py:SourceHTTPClient,TravelTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/test_preference_activity.py": {
+      "owner": "preferences",
+      "role": "internal-test",
+      "remove_by": "#84",
+      "imports": [
+        "tests/test_agent.py:MapService,response",
+        "tests/test_preferences.py:",
+        "tests/test_preferences.py:Clock,PreferenceModel",
+        "tests/test_preferences.py:PreferenceTests",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/test_preference_changes.py": {
+      "owner": "preferences",
+      "role": "internal-test",
+      "remove_by": "#84",
+      "imports": [
+        "tests/test_agent.py:response",
+        "tests/test_preferences.py:",
+        "tests/test_preferences.py:Clock,PreferenceModel",
+        "tests/test_preferences.py:PreferenceTests"
+      ]
+    },
+    "tests/test_preference_clarification.py": {
+      "owner": "preferences",
+      "role": "internal-test",
+      "remove_by": "#84",
+      "imports": [
+        "tests/test_preference_changes.py:ChangesModel,add,targeted",
+        "tests/test_preferences.py:",
+        "tests/test_preferences.py:Clock",
+        "tests/test_preferences.py:PreferenceTests",
+        "tests/test_preferences.py:PreferenceTests()"
+      ]
+    },
+    "tests/test_preference_management.py": {
+      "owner": "preferences",
+      "role": "internal-test",
+      "remove_by": "#84",
+      "imports": [
+        "tests/test_preference_changes.py:ChangesModel,add,targeted",
+        "tests/test_preferences.py:",
+        "tests/test_preferences.py:Clock,PreferenceModel",
+        "tests/test_preferences.py:PreferenceTests",
+        "tests/test_preferences.py:PreferenceTests()"
+      ]
+    },
+    "tests/test_preference_recovery.py": {
+      "owner": "preferences",
+      "role": "internal-test",
+      "remove_by": "#84",
+      "imports": [
+        "tests/test_recovery.py:ExternalServices,process",
+        "tests/test_trace.py:wait_finished"
+      ]
+    },
+    "tests/test_preference_retry.py": {
+      "owner": "preferences",
+      "role": "internal-test",
+      "remove_by": "#84",
+      "imports": [
+        "tests/test_preferences.py:",
+        "tests/test_preferences.py:Clock,PreferenceModel",
+        "tests/test_preferences.py:PreferenceTests",
+        "tests/test_preferences.py:PreferenceTests()"
+      ]
+    },
+    "tests/test_preference_review_fixes.py": {
+      "owner": "preferences",
+      "role": "internal-test",
+      "remove_by": "#84",
+      "imports": [
+        "tests/test_agent.py:response",
+        "tests/test_preference_changes.py:ChangesModel,add",
+        "tests/test_preferences.py:",
+        "tests/test_preferences.py:Clock",
+        "tests/test_preferences.py:PreferenceTests",
+        "tests/test_preferences.py:PreferenceTests()"
+      ]
+    },
+    "tests/test_preferences.py": {
+      "owner": "preferences",
+      "role": "internal-test",
+      "remove_by": "#84",
+      "imports": [
+        "tests/test_agent.py:MapService,response",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/store.py:Store",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/test_query_batching.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:ModelService,response",
+        "tests/test_source_failures.py:SourceService,call,finished"
+      ]
+    },
+    "tests/test_reconnect.py": {
+      "owner": "sessions",
+      "role": "internal-test",
+      "remove_by": "#85",
+      "imports": [
+        "tests/test_agent.py:ModelService,response",
+        "tests/test_trace.py:serving,wait_finished"
+      ]
+    },
+    "tests/test_recovery.py": {
+      "owner": "sessions",
+      "role": "internal-test",
+      "remove_by": "#85",
+      "imports": [
+        "tests/test_trace.py:wait_finished"
+      ]
+    },
+    "tests/test_routes.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:ModelService,response",
+        "travel_app/agent.py:agent_loop",
+        "travel_app/amap_mcp.py:AmapTools"
+      ]
+    },
+    "tests/test_search.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:MapService",
+        "tests/test_agent.py:ModelService,response",
+        "tests/test_tool_trace.py:serving_tools",
+        "tests/test_trace.py:serving,wait_finished"
+      ]
+    },
+    "tests/test_session_history.py": {
+      "owner": "context",
+      "role": "internal-test",
+      "remove_by": "#82",
+      "imports": [
+        "tests/test_agent.py:MapService",
+        "tests/test_agent.py:ModelService",
+        "tests/test_agent.py:ModelService,response",
+        "tests/test_source_failures.py:finished",
+        "tests/test_trace.py:serving,wait_finished",
+        "travel_app/agent.py:agent_loop",
+        "travel_app/agent.py:run_cli",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/exa_mcp.py:ExaTools",
+        "travel_app/travel_tools.py:TravelTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/test_source_failures.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/exa_fixtures.py:source_text",
+        "tests/test_agent.py:ModelService,response",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/exa_mcp.py:ExaTools",
+        "travel_app/source_http.py:SourceHTTPClient",
+        "travel_app/travel_tools.py:TravelTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/test_spec28_integration.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:MapService",
+        "tests/test_preferences.py:",
+        "tests/test_preferences.py:Clock,PreferenceModel",
+        "tests/test_preferences.py:PreferenceTests",
+        "tests/test_travel_dates.py:context_from_request",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/travel_tools.py:TravelTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/test_stop.py": {
+      "owner": "sessions",
+      "role": "internal-test",
+      "remove_by": "#85",
+      "imports": [
+        "tests/test_agent.py:MapService,ModelService,response",
+        "tests/test_tool_trace.py:serving_tools,tool_reply",
+        "tests/test_trace.py:wait_finished",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/test_storage.py": {
+      "owner": "sessions",
+      "role": "internal-test",
+      "remove_by": "#85",
+      "imports": [
+        "tests/test_agent.py:MapService",
+        "tests/test_agent.py:ModelService,response",
+        "tests/test_recovery.py:ExternalServices,process",
+        "tests/test_tool_trace.py:serving_tools",
+        "tests/test_tool_trace.py:serving_tools,tool_reply",
+        "tests/test_trace.py:serving,wait_finished"
+      ]
+    },
+    "tests/test_submissions.py": {
+      "owner": "sessions",
+      "role": "internal-test",
+      "remove_by": "#85",
+      "imports": [
+        "tests/test_agent.py:MapService,ModelService,response",
+        "tests/test_trace.py:serving",
+        "tests/test_trace.py:serving,wait_finished",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/test_tool_concurrency.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:ModelService,response",
+        "tests/test_source_failures.py:SourceService,call,finished",
+        "tests/test_storage.py:fail_event",
+        "travel_app/amap_http.py:AmapHTTPClient",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/exa_mcp.py:ExaTools",
+        "travel_app/source_http.py:SourceHTTPClient",
+        "travel_app/travel_tools.py:TravelTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/test_tool_trace.py": {
+      "owner": "sessions",
+      "role": "internal-test",
+      "remove_by": "#85",
+      "imports": [
+        "tests/test_agent.py:MapService,ModelService,response",
+        "tests/test_trace.py:wait_finished",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/test_trace.py": {
+      "owner": "sessions",
+      "role": "internal-test",
+      "remove_by": "#85",
+      "imports": [
+        "tests/test_agent.py:MapService,ModelService,response",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/exa_mcp.py:ExaTools",
+        "travel_app/travel_tools.py:TravelTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/test_travel_date_continuation.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:MapService,ModelService,response",
+        "tests/test_exception_experience.py:FailingAfterTools",
+        "tests/test_history.py:",
+        "tests/test_history.py:HistoryTests",
+        "tests/test_itinerary.py:ItineraryMapService,map_result",
+        "tests/test_storage.py:fail_event",
+        "tests/test_travel_dates.py:context_from_request",
+        "travel_app/agent.py:run_cli",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/store.py:Store",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/test_travel_date_corrections.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:ModelService,response",
+        "tests/test_exception_experience.py:FailingAfterTools",
+        "tests/test_itinerary.py:ItineraryMapService,map_result",
+        "tests/test_travel_date_continuation.py:",
+        "tests/test_travel_date_continuation.py:TravelDateContinuationTests",
+        "tests/test_travel_dates.py:context_from_request"
+      ]
+    },
+    "tests/test_travel_dates.py": {
+      "owner": "planning",
+      "role": "internal-test",
+      "remove_by": "#83",
+      "imports": [
+        "tests/test_agent.py:MapService,ModelService,response",
+        "tests/test_exception_experience.py:FailingAfterTools",
+        "tests/test_itinerary.py:ItineraryMapService,map_result",
+        "travel_app/agent.py:run_cli",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/test_web.py": {
+      "owner": "sessions",
+      "role": "internal-test",
+      "remove_by": "#85",
+      "imports": [
+        "tests/test_agent.py:MapService,ModelService,response",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/web.py:Runtime,create_app"
+      ]
+    },
+    "tests/test_web_entrypoint.py": {
+      "owner": "sessions",
+      "role": "internal-test",
+      "remove_by": "#85",
+      "imports": [
+        "tests/test_recovery.py:ExternalServices,free_port",
+        "tests/test_recovery.py:process"
+      ]
+    },
+    "tests/web_main_process.py": {
+      "owner": "sessions",
+      "role": "internal-test",
+      "remove_by": "#85",
+      "imports": [
+        "travel_app/__init__.py:web",
+        "travel_app/web.py:load_dotenv",
+        "travel_app/web.py:main",
+        "travel_app/web.py:streamable_http_client"
+      ]
+    },
+    "travel_app/__init__.py": {
+      "owner": "support",
+      "role": "production",
+      "remove_by": "#86",
+      "imports": []
+    },
+    "travel_app/agent.py": {
+      "owner": "planning",
+      "role": "production",
+      "remove_by": "#83",
+      "imports": [
+        "travel_app/amap_http.py:AmapHTTPClient",
+        "travel_app/amap_mcp.py:AmapTools,FAILURE_MESSAGES,ToolResult",
+        "travel_app/context_maintenance.py:ContextMaintenance",
+        "travel_app/limits.py:MAX_MODEL_REQUESTS,MAX_ROUNDS,MAX_TOOL_CALLS,TOOL_TIMEOUT",
+        "travel_app/model_context.py:ContextConfigurationError,ContextPolicy,ContextView",
+        "travel_app/model_context.py:ContextPolicy",
+        "travel_app/model_context.py:ContextView",
+        "travel_app/model_retry.py:EmptyModelResponse,MAX_RETRIES,model_failure,retry_delay",
+        "travel_app/session_history.py:HISTORY_DECLARATIONS,HISTORY_TOOLS,SessionHistory,bind_protocol_references,protocol_records",
+        "travel_app/travel_dates.py:current_time,model_date_context,saved_date_context,turn_date_context",
+        "travel_app/travel_tools.py:TravelTools,connected_travel_tools"
+      ]
+    },
+    "travel_app/amap_http.py": {
+      "owner": "retrieval",
+      "role": "production",
+      "remove_by": "#83",
+      "imports": []
+    },
+    "travel_app/amap_mcp.py": {
+      "owner": "retrieval",
+      "role": "production",
+      "remove_by": "#83",
+      "imports": [
+        "travel_app/amap_http.py:AmapHTTPClient",
+        "travel_app/limits.py:MAP_CALL_INTERVAL,TOOL_TIMEOUT"
+      ]
+    },
+    "travel_app/context_maintenance.py": {
+      "owner": "context",
+      "role": "production",
+      "remove_by": "#82",
+      "imports": [
+        "travel_app/context_summary.py:earlier_history_cutoff,summarize_history",
+        "travel_app/model_context.py:TokenMeter"
+      ]
+    },
+    "travel_app/context_summary.py": {
+      "owner": "context",
+      "role": "production",
+      "remove_by": "#82",
+      "imports": [
+        "travel_app/model_context.py:ContextView",
+        "travel_app/model_retry.py:EmptyModelResponse,model_failure,retry_delay",
+        "travel_app/session_history.py:HISTORY_TOOLS"
+      ]
+    },
+    "travel_app/exa_mcp.py": {
+      "owner": "retrieval",
+      "role": "production",
+      "remove_by": "#83",
+      "imports": [
+        "travel_app/amap_mcp.py:ToolResult",
+        "travel_app/limits.py:SOURCE_CALL_INTERVAL,TOOL_TIMEOUT"
+      ]
+    },
+    "travel_app/limits.py": {
+      "owner": "support",
+      "role": "production",
+      "remove_by": "#86",
+      "imports": []
+    },
+    "travel_app/model_context.py": {
+      "owner": "context",
+      "role": "production",
+      "remove_by": "#82",
+      "imports": []
+    },
+    "travel_app/model_retry.py": {
+      "owner": "planning",
+      "role": "production",
+      "remove_by": "#83",
+      "imports": []
+    },
+    "travel_app/preferences.py": {
+      "owner": "preferences",
+      "role": "production",
+      "remove_by": "#84",
+      "imports": []
+    },
+    "travel_app/query_materials.py": {
+      "owner": "retrieval",
+      "role": "production",
+      "remove_by": "#83",
+      "imports": [
+        "travel_app/exa_mcp.py:SEARCH_TOOLS,SOURCE_TOOLS"
+      ]
+    },
+    "travel_app/session_history.py": {
+      "owner": "context",
+      "role": "production",
+      "remove_by": "#82",
+      "imports": []
+    },
+    "travel_app/source_http.py": {
+      "owner": "retrieval",
+      "role": "production",
+      "remove_by": "#83",
+      "imports": []
+    },
+    "travel_app/store.py": {
+      "owner": "local_records",
+      "role": "production",
+      "remove_by": "#81",
+      "imports": [
+        "travel_app/amap_mcp.py:DINING_TOOLS,PLACE_TOOLS,ROUTE_TOOLS,WEATHER_TOOLS",
+        "travel_app/preferences.py:PreferenceStore",
+        "travel_app/query_materials.py:READABLE_SOURCE_TOOLS,summarize_query",
+        "travel_app/session_history.py:source_metadata",
+        "travel_app/travel_dates.py:saved_date_context"
+      ]
+    },
+    "travel_app/travel_dates.py": {
+      "owner": "planning",
+      "role": "production",
+      "remove_by": "#83",
+      "imports": []
+    },
+    "travel_app/travel_tools.py": {
+      "owner": "retrieval",
+      "role": "production",
+      "remove_by": "#83",
+      "imports": [
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/exa_mcp.py:EXA_URL,ExaTools,SOURCE_TOOLS,UNAVAILABLE_MESSAGE",
+        "travel_app/limits.py:TOOL_TIMEOUT",
+        "travel_app/source_http.py:SourceHTTPClient"
+      ]
+    },
+    "travel_app/turn_runtime.py": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": [
+        "travel_app/agent.py:agent_loop",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/model_context.py:ContextView",
+        "travel_app/preferences.py:extract_preferences,preference_background",
+        "travel_app/store.py:SCHEMA_VERSION,Store",
+        "travel_app/travel_tools.py:TravelTools"
+      ]
+    },
+    "travel_app/web.py": {
+      "owner": "sessions",
+      "role": "production",
+      "remove_by": "#85",
+      "imports": [
+        "travel_app/agent.py:SERVICE_MESSAGE",
+        "travel_app/amap_http.py:AmapHTTPClient",
+        "travel_app/amap_mcp.py:AmapTools",
+        "travel_app/limits.py:TOOL_TIMEOUT",
+        "travel_app/model_context.py:ContextConfigurationError,ContextPolicy",
+        "travel_app/model_context.py:ContextPolicy",
+        "travel_app/store.py:SCHEMA_VERSION,StartupError,Store",
+        "travel_app/travel_tools.py:connected_travel_tools",
+        "travel_app/turn_runtime.py:RunRejected,Runtime,TurnRuntime"
+      ]
+    },
+    "web.py": {
+      "owner": "assembly",
+      "role": "assembly",
+      "remove_by": "#81",
+      "imports": [
+        "travel_app/web.py:main"
+      ]
+    }
+  },
+  "files": {
+    "scripts/check_modules.py": {
+      "owner": "tooling",
+      "role": "tooling"
+    },
+    "scripts/frontend_imports.mjs": {
+      "owner": "tooling",
+      "role": "tooling"
+    },
+    "tests/compatibility/__init__.py": {
+      "owner": "compatibility",
+      "role": "tooling"
+    },
+    "tests/test_module_boundaries.py": {
+      "owner": "tooling",
+      "role": "tooling"
+    },
+    "tests/test_record_contracts.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/compatibility/compare.py": {
+      "owner": "compatibility",
+      "role": "tooling"
+    },
+    "tests/test_migration_baseline.py": {
+      "owner": "compatibility",
+      "role": "tooling"
+    }
+  }
+}

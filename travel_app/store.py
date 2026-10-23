@@ -11,6 +11,7 @@ from travel_app.amap_mcp import PLACE_TOOLS, DINING_TOOLS, WEATHER_TOOLS, ROUTE_
 from travel_app.travel_dates import saved_date_context
 from travel_app.preferences import PreferenceStore
 from travel_app.session_history import source_metadata
+from travel_app.local_records import ContextCheckpoint
 
 SCHEMA_VERSION = 1
 
@@ -413,7 +414,7 @@ class Store:
         row = self.db.execute("SELECT turn_id,status FROM turns WHERE turn_id=?", (turn_id,)).fetchone()
         return dict(row) if row else None
 
-    def finish(self, session_id, turn_id, answer, messages, outcome, duration_ms, *, preference_now=None, context_view=None):
+    def finish(self, session_id, turn_id, answer, messages, outcome, duration_ms, *, preference_now=None, context_checkpoint: ContextCheckpoint | None=None):
         now = timestamp()
         with self.db:
             self.db.execute("UPDATE turns SET status=?,reason=?,answer=?,answer_source=?,tool_error_count=?,finished_at=?,duration_ms=?,messages=? WHERE turn_id=?", (outcome["status"],outcome["reason"],answer,outcome["answer_source"],outcome["tool_error_count"],now,duration_ms,json.dumps(messages,ensure_ascii=False),turn_id))
@@ -421,14 +422,14 @@ class Store:
             if preference_now is not None:
                 self.preferences.finish(turn_id, preference_now)
             self.save_payload(session_id,turn_id,"turn_answer",answer)
-            if context_view is not None:
+            if context_checkpoint is not None:
                 row = self.db.execute("SELECT version FROM context_versions WHERE turn_id=? AND version=? AND status='used'",
-                                      (turn_id,context_view.version)).fetchone()
+                                      (turn_id,context_checkpoint.version)).fetchone()
                 if row:
                     self.db.execute("UPDATE context_versions SET status='saved',data=? WHERE turn_id=? AND version=?",
-                                    (json.dumps(context_view.to_state(),ensure_ascii=False),turn_id,context_view.version))
-                    self.event(session_id,turn_id,"context.saved",{"version":context_view.version,
-                               "original_watermark":context_view.original_watermark})
+                                    (context_checkpoint.state_json,turn_id,context_checkpoint.version))
+                    self.event(session_id,turn_id,"context.saved",{"version":context_checkpoint.version,
+                               "original_watermark":context_checkpoint.original_watermark})
             self.event(session_id,turn_id,"turn.finished",{**outcome,"answer_summary":answer[:120]})
 
     def rename(self, session_id, title):

@@ -15,6 +15,7 @@ from anthropic.types import MessageParam
 from travel_app.agent import agent_loop
 from travel_app.amap_mcp import AmapTools
 from travel_app.model_context import ContextView
+from travel_app.local_records import ContextCheckpoint, RecordAbort
 from travel_app.preferences import extract_preferences, preference_background
 from travel_app.store import SCHEMA_VERSION, Store
 from travel_app.travel_tools import TravelTools
@@ -25,10 +26,6 @@ class Runtime:
     client: AsyncAnthropic
     tools: AmapTools | TravelTools
     model: str
-
-
-class TraceStorageError(RuntimeError):
-    """观察事实未提交；不改写成模型／地图失败或已保存终局。"""
 
 
 class RunRejected(Exception):
@@ -145,7 +142,7 @@ class TurnRuntime:
                                if kind in ("request.completed","request.failed","tool.completed","tool.failed")
                                else "调用开始或执行事实未保存，已停止后续查询。")
                     self.storage_failed(message,kind=kind,turn_id=identity["turn_id"])
-                    raise TraceStorageError(message) from None
+                    raise RecordAbort(message) from None
                 self.changed.set()
         def history_records():
             try:
@@ -153,7 +150,7 @@ class TurnRuntime:
             except Exception:
                 message = "历史原文无法可靠读取，已停止后续查询；仅保留最后成功提交的事实。"
                 self.storage_failed(message, kind="tool.history_read", turn_id=identity["turn_id"])
-                raise TraceStorageError(message) from None
+                raise RecordAbort(message) from None
         try:
             try:
                 messages = self.store.context(identity["session_id"]) + [{"role":"user","content":text}]
@@ -165,12 +162,12 @@ class TurnRuntime:
                 background = preference_background(preference_snapshot["preferences"], preference_snapshot["ambiguities"])
             except Exception:
                 self.storage_failed("完整上下文无法读取，查询未启动。",kind="turn.context",turn_id=identity["turn_id"])
-                raise TraceStorageError from None
+                raise RecordAbort from None
             answer = await agent_loop(messages,self.runtime.client,self.runtime.tools,self.runtime.model,observer=observe,stop_requested=self._stop_requested,stop_reason=lambda: self._stop_reason,
                                       preference_background=background, clock=self.clock, previous_date_context=previous_date_context,
                                       previous_source_materials=previous_source_materials, context_view=context_view,
                                       history_records=history_records)
-        except TraceStorageError:
+        except RecordAbort:
             return
         except Exception:
             answer = "这次请求未能完成，旅行行程尚未完成。请查看处理记录或重新尝试。"
@@ -179,7 +176,8 @@ class TurnRuntime:
             answer = self.runtime.tools.redact(answer)
             messages = json.loads(self.runtime.tools.redact(json.dumps(messages,ensure_ascii=False)))
             self.store.finish(identity["session_id"],identity["turn_id"],answer,messages,outcome,
-                         max(0,(asyncio.get_running_loop().time()-started)*1000), preference_now=self.preference_clock(), context_view=context_view)
+                         max(0,(asyncio.get_running_loop().time()-started)*1000), preference_now=self.preference_clock(),
+                         context_checkpoint=ContextCheckpoint.capture(context_view.to_state()) if context_view else None)
         except Exception:
             # 保存失败时停止接受输入，保留最后提交事实，不能伪报终局已保存。
             self.storage_failed("轮次结果未保存；仅保留最后成功提交的事实。",kind="turn.finished",turn_id=identity["turn_id"])

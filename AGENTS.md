@@ -10,6 +10,10 @@
 
 采用单上下文布局：根目录的 `GLOSSARY.md` 和 `docs/adr/`。探索代码库前，阅读 `docs/agents/domain.md`。
 
+### 模块迁移
+
+涉及能力归属、公开入口或跨能力依赖时，先读 `docs/modules/migration.md`，再读已落地能力的公开契约；修改内部行为时展开相应 implementation。新增代码或迁移导入后运行 `python scripts/check_modules.py`。旧实现及其临时适配按 `architecture.json` 指定任务逐项移除。
+
 ### 编码工作准则
 
 #### 1. 编码前先思考

@@ -1,5 +1,7 @@
 # 后端职责地图
 
+2026-10-23 起按 [ADR 0011](adr/0011-deep-modules-and-progressive-disclosure.md) 分阶段迁移六项能力。本文仍描述尚未迁移的真实实现；当前归属、公开契约与检查入口先见[迁移状态](modules/migration.md)，不能将下表中的旧内部入口视为新 module 的公开契约。
+
 后端实现位于单个浅层 [travel_app 包](../travel_app/)，无需额外安装项目包。根目录的 [agent.py](../agent.py) 和 [web.py](../web.py) 只调用包内 `main()`，保留日常启动命令。仓库生产代码、测试、子进程与语义验收脚本使用 `travel_app.*`，没有旧顶层模块的兼容层或模块别名。
 
 ## 从行为定位代码
