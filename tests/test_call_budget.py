@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from test_agent import MapService, ModelService, response
+from service_fixtures import cli_retrieval, MapService, ModelService, response
 from test_model_retry import RetryModel, status_error
 from test_context_summary import OLD, summary_response, submit
 from test_source_failures import SourceService, call, finished
@@ -87,7 +87,7 @@ class CallBudgetTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn("尚未完成", saved["turns"][-1]["answer"])
 
     async def test_cli_uses_final_reserve_and_next_turn_resets(self):
-        from travel_app.agent import run_cli
+        from travel_app.planning import run_cli
         model = ModelService([*[history_query(i) for i in range(63)],
             response([{"type": "text", "text": "仅整理已有资料。"}]),
             response([{"type": "text", "text": "新轮次回答。"}])])
@@ -99,8 +99,8 @@ class CallBudgetTests(unittest.IsolatedAsyncioTestCase):
         async def external_maps(*args, **kwargs):
             yield MapService()
         output = io.StringIO()
-        with patch.dict(os.environ, {"MODEL_ID": "test-model", "CONTEXT_COMPACTION_ENABLED": "false"}, clear=True), patch("travel_app.agent.Client", side_effect=external_maps), patch("travel_app.travel_tools.Client", side_effect=RuntimeError("资料服务不可用")), patch("travel_app.agent.AsyncAnthropic", side_effect=external_model), patch("travel_app.agent.streamable_http_client", return_value=None), patch("builtins.input", side_effect=["规划西湖旅行", "继续", "exit"]), redirect_stdout(output):
-            self.assertEqual(await run_cli("test-key"), 0)
+        with patch.dict(os.environ, {'MODEL_ID': 'test-model', 'CONTEXT_COMPACTION_ENABLED': 'false'}, clear=True), patch('builtins.input', side_effect=['规划西湖旅行', '继续', 'exit']), redirect_stdout(output):
+            self.assertEqual(await run_cli("test-key", retrieval_factory=cli_retrieval(external_maps, RuntimeError('资料服务不可用')), model_client_factory=external_model), 0)
         self.assertEqual(len(model.requests), 65)
         self.assertNotIn("tools", model.requests[63])
         self.assertIn("tools", model.requests[64])

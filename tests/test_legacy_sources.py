@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 from travel_app.local_records import LocalRecords as Store, TurnMaterial
-from test_agent import ModelService, response
+from service_fixtures import ModelService, response
 from test_source_failures import SourceService, finished
 
 

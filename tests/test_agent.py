@@ -9,79 +9,18 @@ from anthropic import AsyncAnthropic
 from anthropic.types import Message
 from mcp import Client
 
-from travel_app.amap_mcp import AmapTools
-from travel_app.agent import agent_loop
+from travel_app.retrieval import Retrieval
+from planning_fixtures import agent_loop
 from travel_app.planning import plan
 from travel_app.context import PlanningSeed, RecordAbort
 
 
-def response(content, stop_reason="end_turn"):
-    return Message.model_validate(
-        {
-            "id": "message-test",
-            "type": "message",
-            "role": "assistant",
-            "model": "test-model",
-            "stop_reason": stop_reason,
-            "stop_sequence": None,
-            "usage": {"input_tokens": 1, "output_tokens": 1},
-            "content": content,
-        }
-    )
-
-
-class ModelService:
-    def __init__(self, replies):
-        self.messages = self
-        self.replies = iter(replies)
-        self.requests = []
-
-    async def create(self, **kwargs):
-        self.requests.append(copy.deepcopy(kwargs))
-        return next(self.replies)
-
-
-class MapService:
-    @property
-    def session(self):
-        return self
-
-    async def list_tools(self, *, cursor=None):
-        return SimpleNamespace(
-            tools=[
-                SimpleNamespace(
-                    name="maps_text_search",
-                    description="按城市和关键词检索地点",
-                    input_schema={
-                        "type": "object",
-                        "properties": {
-                            "keywords": {"type": "string"},
-                            "city": {"type": "string"},
-                        },
-                        "required": ["keywords", "city"],
-                    },
-                )
-            ],
-            next_cursor=None,
-        )
-
-    async def call_tool(self, name, arguments):
-        if (name, arguments) != (
-            "maps_text_search", {"keywords": "西湖", "city": "杭州"}
-        ):
-            raise AssertionError("地图服务收到了错误的名称或参数")
-        return SimpleNamespace(
-            content=[SimpleNamespace(type="text", text="查到一个地点")],
-            structured_content={
-                "pois": [{"id": "poi-west-lake", "name": "西湖", "address": "杭州市西湖区"}]
-            },
-            is_error=False,
-        )
+from service_fixtures import MapService, ModelService, response
 
 
 class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
     async def test_place_query_returns_answer_and_grounded_tool_result(self):
-        tools = AmapTools(cast(Client, MapService()))
+        tools = Retrieval(cast(Client, MapService()))
         await tools.discover()
         model = ModelService(
             [
@@ -121,7 +60,7 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
                 )
                 return listed
 
-        tools = AmapTools(cast(Client, ExtraToolsService()))
+        tools = Retrieval(cast(Client, ExtraToolsService()))
         await tools.discover()
         model = ModelService([
             response([{"type": "tool_use", "id": "forbidden", "name": "bash",
@@ -142,7 +81,7 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result["is_error"])
 
     async def test_separate_histories_do_not_share_user_conditions(self):
-        tools = AmapTools(cast(Client, MapService()))
+        tools = Retrieval(cast(Client, MapService()))
         await tools.discover()
         model = ModelService([
             response([{"type": "text", "text": "请提供杭州的地点关键词。"}]),
@@ -162,7 +101,7 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("上海", json.dumps(model.requests[1]["messages"], ensure_ascii=False))
 
     async def test_round_budget_stops_repeated_model_requests(self):
-        tools = AmapTools(cast(Client, MapService()))
+        tools = Retrieval(cast(Client, MapService()))
         await tools.discover()
         model = ModelService([response([
             {"type": "tool_use", "id": "repeat", "name": "maps_text_search",
@@ -182,7 +121,7 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
             async def list_tools(self, *, cursor=None):
                 return SimpleNamespace(tools=[], next_cursor=None)
 
-        tools = AmapTools(cast(Client, NoPlaceService()))
+        tools = Retrieval(cast(Client, NoPlaceService()))
 
         with self.assertRaisesRegex(RuntimeError, "地点"):
             await tools.discover()
@@ -205,7 +144,7 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
                     next_cursor=None,
                 )
 
-        tools = AmapTools(cast(Client, PagedMapService()))
+        tools = Retrieval(cast(Client, PagedMapService()))
         await tools.discover()
         model = ModelService([response([{"type": "text", "text": "请输入地点。"}])])
 
@@ -229,7 +168,7 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
                 return await super().call_tool(name, arguments)
 
         service = CountingMapService()
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = ModelService([response([
             {"type": "tool_use", "id": query_id, "name": "maps_text_search",
@@ -256,7 +195,7 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
             async def call_tool(self, name, arguments):
                 await asyncio.Event().wait()
 
-        tools = AmapTools(cast(Client, SlowMapService()), tool_timeout=0.01)
+        tools = Retrieval(cast(Client, SlowMapService()), tool_timeout=0.01)
         await tools.discover()
         model = ModelService([
             response([{"type": "tool_use", "id": "slow", "name": "maps_text_search",
@@ -290,7 +229,7 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
                     is_error=True,
                 )
 
-        tools = AmapTools(cast(Client, LeakyMapService()), api_key=key)
+        tools = Retrieval(cast(Client, LeakyMapService()), api_key=key)
         await tools.discover()
         model = ModelService([
             response([{"type": "tool_use", "id": "leaky", "name": "maps_text_search",
@@ -314,7 +253,7 @@ if __name__ == "__main__":
 
 class PlanningContractTests(unittest.IsolatedAsyncioTestCase):
     async def test_result_contains_terminal_state_without_observer_and_frozen_save_material(self):
-        tools = AmapTools(cast(Client, MapService()))
+        tools = Retrieval(cast(Client, MapService()))
         await tools.discover()
         model = ModelService([response([{"type": "text", "text": "请提供旅行城市。"}])])
         result = await plan("帮我安排旅行", cast(AsyncAnthropic, model), tools, "test-model")
@@ -328,7 +267,7 @@ class PlanningContractTests(unittest.IsolatedAsyncioTestCase):
 
 
     async def test_terminal_observation_is_not_the_source_of_result_state(self):
-        tools = AmapTools(cast(Client, MapService()))
+        tools = Retrieval(cast(Client, MapService()))
         await tools.discover()
         model = ModelService([response([{"type": "text", "text": "西湖"}])])
         async def observe(kind, data):
@@ -339,7 +278,7 @@ class PlanningContractTests(unittest.IsolatedAsyncioTestCase):
                          "answer_source": "model", "tool_error_count": 0})
 
     async def test_record_abort_before_request_prevents_model_call_and_returns_no_result(self):
-        tools = AmapTools(cast(Client, MapService()))
+        tools = Retrieval(cast(Client, MapService()))
         await tools.discover()
         model = ModelService([])
         async def observe(kind, data):
@@ -351,7 +290,7 @@ class PlanningContractTests(unittest.IsolatedAsyncioTestCase):
 
 
     async def test_invalid_saved_context_aborts_before_external_calls(self):
-        tools = AmapTools(cast(Client, MapService()))
+        tools = Retrieval(cast(Client, MapService()))
         await tools.discover()
         model = ModelService([])
         with self.assertRaises(RecordAbort):

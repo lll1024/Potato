@@ -10,9 +10,9 @@ import httpx
 from anthropic import AsyncAnthropic, AnthropicError
 from mcp import Client
 
-from travel_app.amap_mcp import AmapTools
-from test_agent import MapService, ModelService, response
-from travel_app.web import Runtime, create_app
+from travel_app.retrieval import Retrieval
+from service_fixtures import MapService, ModelService, response
+from travel_app.sessions import Runtime, create_app
 
 
 class HistoryTests(unittest.IsolatedAsyncioTestCase):
@@ -20,7 +20,7 @@ class HistoryTests(unittest.IsolatedAsyncioTestCase):
     async def service(self, directory, model, maps=None):
         @asynccontextmanager
         async def resources():
-            tools = AmapTools(cast(Client, maps or MapService()))
+            tools = Retrieval(cast(Client, maps or MapService()))
             await tools.discover()
             yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
         app = create_app(directory, resources=resources)

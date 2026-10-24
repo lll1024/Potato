@@ -27,14 +27,12 @@ from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 from mcp.server import MCPServer
 
-from travel_app.agent import run_cli
-from travel_app.amap_http import AmapHTTPClient
-from travel_app.amap_mcp import AmapTools
-from travel_app.exa_mcp import EXA_URL, ExaTools
-from travel_app.source_http import SourceHTTPClient
-from travel_app.travel_tools import TravelTools
-from travel_app.web import Runtime, create_app
-from test_agent import ModelService, response
+from travel_app.planning import run_cli
+from travel_app.retrieval import MapHTTPClient as AmapHTTPClient
+from travel_app.retrieval import Retrieval
+from travel_app.retrieval import SourceHTTPClient
+from travel_app.sessions import Runtime, create_app
+from service_fixtures import ModelService, response
 
 NOW = datetime.fromisoformat("2026-10-14T10:00:00+08:00")
 WEB = "分别搜索并读取北京博物馆周末玩法、北京公园秋季玩法、北京胡同散步玩法三份正文，每份给具体玩法、建议时长、限制及实际来源链接。不安排交通餐饮，不额外核实。"
@@ -121,20 +119,20 @@ class Services:
             await stack.enter_async_context(map_app.router.lifespan_context(map_app))
             map_http = await stack.enter_async_context(AmapHTTPClient(transport=httpx2.ASGITransport(app=map_app)))
             map_client = await stack.enter_async_context(Client(streamable_http_client("http://127.0.0.1:8000/mcp", http_client=map_http)))
-            amap = AmapTools(map_client, http_client=map_http)
+            amap = Retrieval(map_client, http_client=map_http)
             await amap.discover()
             if live_web:
                 source_http = await stack.enter_async_context(SourceHTTPClient(timeout=30))
-                source_url = EXA_URL
+                source_url = "https://mcp.exa.ai/mcp"
             else:
                 source_app = self.web.streamable_http_app(json_response=True, stateless_http=True)
                 await stack.enter_async_context(source_app.router.lifespan_context(source_app))
                 source_http = await stack.enter_async_context(SourceHTTPClient(transport=httpx2.ASGITransport(app=source_app)))
                 source_url = "http://127.0.0.1:8000/mcp"
             source_client = await stack.enter_async_context(Client(streamable_http_client(source_url, http_client=source_http), read_timeout_seconds=30))
-            sources = ExaTools(source_client, redact=amap.redact)
-            await sources.discover()
-            yield Runtime(cast(AsyncAnthropic, model), TravelTools(amap, sources), os.environ["MODEL_ID"])
+            amap = Retrieval(map_client, source_client=source_client, http_client=map_http)
+            await amap.discover()
+            yield Runtime(cast(AsyncAnthropic, model), amap, os.environ["MODEL_ID"])
 
 
 class ObservedModel:
@@ -228,15 +226,10 @@ async def cli(model):
         yield model
     async with services.resources(model) as runtime:
         @asynccontextmanager
-        async def maps(*args, **kwargs):
-            yield runtime.tools.amap.client
-        @asynccontextmanager
-        async def sources(*args, **kwargs):
+        async def retrieval(*args, **kwargs):
             yield runtime.tools
-        with patch("travel_app.agent.AsyncAnthropic", side_effect=model_context), patch("travel_app.agent.Client", side_effect=maps), \
-                patch("travel_app.agent.connected_travel_tools", side_effect=sources), \
-                patch("builtins.input", side_effect=[WEB, "exit"]), redirect_stdout(output):
-            exit_code = await run_cli("controlled-key", clock=lambda: NOW)
+        with patch('builtins.input', side_effect=[WEB, 'exit']), redirect_stdout(output):
+            exit_code = await run_cli("controlled-key", clock=lambda: NOW, retrieval_factory=retrieval, model_client_factory=model_context)
     return {"case": "cli", "exit_code": exit_code, "answer": output.getvalue(), "service_calls": services.calls, "requests": model.requests}
 
 

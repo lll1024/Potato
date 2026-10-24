@@ -17,13 +17,11 @@ from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 from mcp.server import MCPServer
 
-from travel_app.amap_mcp import AmapTools
-from travel_app.exa_mcp import ExaTools
-from travel_app.source_http import SourceHTTPClient
+from travel_app.retrieval import Retrieval
+from travel_app.retrieval import SourceHTTPClient
 from exa_fixtures import source_text
-from travel_app.travel_tools import TravelTools
-from test_agent import ModelService, response
-from travel_app.web import Runtime, create_app
+from service_fixtures import ModelService, response
+from travel_app.sessions import Runtime, create_app
 
 
 def call(identity, name, arguments):
@@ -112,14 +110,14 @@ class SourceService:
             self.map_calls.append((keywords, city, asyncio.get_running_loop().time()))
             return {"name": keywords, "address": city + "市博物馆路"}
         async with Client(maps) as map_client:
-            amap = AmapTools(map_client)
+            amap = Retrieval(map_client)
             await amap.discover()
             async with SourceHTTPClient(transport=httpx2.MockTransport(self.transport), headers={}) as source_http:
                 async with Client(streamable_http_client("http://sources.test/mcp", http_client=source_http), read_timeout_seconds=0.2) as source_client:
                     kwargs = {"call_interval": interval} if interval is not None else {}
-                    sources = ExaTools(source_client, redact=amap.redact, tool_timeout=0.2, **kwargs)
-                    await sources.discover()
-                    yield Runtime(cast(AsyncAnthropic, model), TravelTools(amap, sources), "test-model")
+                    amap = Retrieval(map_client, source_client=source_client, source_timeout=0.2, source_interval=kwargs.get("call_interval", 0.4))
+                    await amap.discover()
+                    yield Runtime(cast(AsyncAnthropic, model), amap, "test-model")
 
     @asynccontextmanager
     async def serving(self, directory, model, *, interval=None, clock=None):

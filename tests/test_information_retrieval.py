@@ -2,7 +2,7 @@
 import tempfile
 import unittest
 
-from test_agent import ModelService, response
+from service_fixtures import ModelService, response
 from test_source_failures import SourceService, call, finished
 
 

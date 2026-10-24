@@ -7,9 +7,9 @@ import unittest
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from travel_app.agent import agent_loop
-from travel_app.amap_mcp import AmapTools
-from test_agent import ModelService, response
+from planning_fixtures import agent_loop
+from travel_app.retrieval import Retrieval
+from service_fixtures import ModelService, response
 
 
 # 2026-10-08 从高德实际 list_tools 返回中保留的餐饮检索工具契约。
@@ -55,7 +55,7 @@ class DiningMapService:
 class DiningRecommendationTests(unittest.IsolatedAsyncioTestCase):
     async def test_around_search_contract_and_locatable_candidates_reach_model(self):
         service = DiningMapService({"pois": [RESTAURANT]}, text_only=True)
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         arguments = {"keywords": "面馆", "location": LOCATION, "radius": "1000"}
         model = ModelService([
@@ -82,7 +82,7 @@ class DiningRecommendationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_region_search_returns_candidates_without_inventing_missing_fields(self):
         service = DiningMapService({"pois": [RESTAURANT]})
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         arguments = {"keywords": "上城区 面馆", "city": "杭州", "citylimit": True}
         model = ModelService([
@@ -106,7 +106,7 @@ class DiningRecommendationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_preference_adjustment_keeps_conversation_and_queries_new_candidates(self):
         service = DiningMapService({"pois": [RESTAURANT]})
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         first_arguments = {"keywords": "上城区 面馆", "city": "杭州", "citylimit": True}
         changed_arguments = {"keywords": "粤菜", "location": LOCATION, "radius": "2000"}
@@ -146,7 +146,7 @@ class DiningRecommendationTests(unittest.IsolatedAsyncioTestCase):
         for data in ({"pois": []}, {"pois": [non_dining]}):
             with self.subTest(data=data):
                 service = DiningMapService(data)
-                tools = AmapTools(cast(Client, service))
+                tools = Retrieval(cast(Client, service))
                 await tools.discover()
                 model = ModelService([
                     response([tool_call("empty", "maps_around_search",

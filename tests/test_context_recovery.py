@@ -4,6 +4,7 @@ import json
 import os
 import tempfile
 import unittest
+from service_fixtures import cli_retrieval
 from unittest.mock import patch
 
 from test_recovery import ExternalServices, process
@@ -73,7 +74,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
     async def test_history_storage_read_failure_stops_without_saved_completion(self):
         import sqlite3
         from pathlib import Path
-        from test_agent import ModelService, response
+        from service_fixtures import ModelService, response
         from test_trace import serving
         from test_storage import wait_state
         entered, release = asyncio.Event(), asyncio.Event()
@@ -259,8 +260,8 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
     async def test_cli_cancelled_summary_exits_and_new_run_has_no_previous_context(self):
         import io
         from contextlib import asynccontextmanager, redirect_stdout
-        from travel_app.agent import run_cli
-        from test_agent import MapService, ModelService, response
+        from travel_app.planning import run_cli
+        from service_fixtures import MapService, ModelService, response
         from test_context_summary import ENV, OLD
         entered = asyncio.Event()
         class WaitingModel(ModelService):
@@ -278,8 +279,8 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
         async def external_maps(*args, **kwargs):
             yield MapService()
         output = io.StringIO()
-        with patch.dict(os.environ, {**ENV, 'MODEL_ID': 'test-model'}, clear=True), patch('travel_app.agent.Client', side_effect=external_maps), patch('travel_app.travel_tools.Client', side_effect=RuntimeError('资料服务不可用')), patch('travel_app.agent.AsyncAnthropic', side_effect=external_model), patch('travel_app.agent.streamable_http_client', return_value=None), patch('builtins.input', side_effect=[OLD, '继续']), redirect_stdout(output):
-            task = asyncio.create_task(run_cli('test-key'))
+        with patch.dict(os.environ, {**ENV, 'MODEL_ID': 'test-model'}, clear=True), patch('builtins.input', side_effect=[OLD, '继续']), redirect_stdout(output):
+            task = asyncio.create_task(run_cli('test-key', retrieval_factory=cli_retrieval(external_maps, RuntimeError('资料服务不可用')), model_client_factory=external_model))
             await asyncio.wait_for(entered.wait(), 2)
             task.cancel()
             with self.assertRaises(asyncio.CancelledError):
@@ -288,15 +289,15 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('正在整理', output.getvalue())
         self.assertNotIn('摘要已用于本轮', output.getvalue())
         model = ModelService([response([{'type': 'text', 'text': '新会话建议'}])])
-        with patch.dict(os.environ, {**ENV, 'MODEL_ID': 'test-model'}, clear=True), patch('travel_app.agent.Client', side_effect=external_maps), patch('travel_app.travel_tools.Client', side_effect=RuntimeError('资料服务不可用')), patch('travel_app.agent.AsyncAnthropic', side_effect=external_model), patch('travel_app.agent.streamable_http_client', return_value=None), patch('builtins.input', side_effect=['新会话', 'exit']), redirect_stdout(io.StringIO()):
-            self.assertEqual(await run_cli('test-key'), 0)
+        with patch.dict(os.environ, {**ENV, 'MODEL_ID': 'test-model'}, clear=True), patch('builtins.input', side_effect=['新会话', 'exit']), redirect_stdout(io.StringIO()):
+            self.assertEqual(await run_cli('test-key', retrieval_factory=cli_retrieval(external_maps, RuntimeError('资料服务不可用')), model_client_factory=external_model), 0)
         self.assertEqual(model.requests[0]['messages'], [{'role': 'user', 'content': '新会话'}])
 
 
     async def test_invalid_saved_context_stops_acceptance_without_starting_next_model(self):
         import sqlite3
         from pathlib import Path
-        from test_agent import ModelService, response
+        from service_fixtures import ModelService, response
         from test_trace import serving
         from test_storage import wait_state
         model = ModelService([response([{"type": "text", "text": "上轮完成"}])])

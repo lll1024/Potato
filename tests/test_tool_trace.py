@@ -13,17 +13,17 @@ import uvicorn
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from travel_app.amap_mcp import AmapTools
-from test_agent import MapService, ModelService, response
+from travel_app.retrieval import Retrieval
+from service_fixtures import MapService, ModelService, response
 from test_trace import wait_finished
-from travel_app.web import Runtime, create_app
+from travel_app.sessions import Runtime, create_app
 
 
 @asynccontextmanager
 async def serving_tools(directory, model, maps, timeout=1, released=None):
     @asynccontextmanager
     async def resources():
-        tools=AmapTools(cast(Client,maps),api_key="known-secret",tool_timeout=timeout)
+        tools=Retrieval(cast(Client,maps),api_key="known-secret",tool_timeout=timeout)
         await tools.discover()
         try:
             yield Runtime(cast(AsyncAnthropic,model),tools,"test-model")

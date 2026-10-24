@@ -7,7 +7,8 @@ import json
 from uuid import uuid4
 
 from .view import ContextView
-from travel_app.model_retry import EmptyModelResponse, model_failure, retry_delay
+from travel_app.model_retry import retry_delay
+from travel_app.model_execution import request_model
 from .history import HISTORY_TOOLS
 
 @dataclass(frozen=True)
@@ -221,25 +222,9 @@ async def _summarize_batch(*, view, policy, meter, parameters, client, tools, da
         await emit("request.started", {"request_id": request_id, "ordinal": next_request_ordinal(),
                                        "purpose": "context_summary", "attempt": attempt,
                                        "started_at": datetime.now(timezone.utc).isoformat(), "input": copy.deepcopy(summary_parameters)})
-        start = asyncio.get_running_loop().time()
-        parsed, failure, response = None, None, None
-        stage = "model_call"
-        try:
-            response = await client.messages.create(**summary_parameters)
-            stage = "response_processing"
-            parsed = response.model_dump(mode="json", exclude_unset=True, warnings=False)
-            if getattr(response, "_request_id", None) is not None:
-                parsed["_request_id"] = response._request_id
-            if not response.content:
-                raise EmptyModelResponse("摘要响应为空。")
-            response = response.model_copy(update={"content": [type(block).model_validate_json(
-                tools.redact(block.model_dump_json(warnings=False))) for block in response.content]})
-        except Exception as error:
-            failure = model_failure(error, stage)
-        result = {"request_id": request_id, "finished_at": datetime.now(timezone.utc).isoformat(),
-                  "duration_ms": max(0, (asyncio.get_running_loop().time() - start) * 1000),
-                  "usage": parsed.get("usage") if parsed else None,
-                  "usage_state": "returned" if parsed and parsed.get("usage") is not None else "not_returned"}
+        returned = await request_model(client, summary_parameters, redact=tools.redact, empty_message="摘要响应为空。")
+        response, parsed, failure = returned.response, returned.parsed, returned.failure
+        result = {"request_id": request_id, **returned.facts()}
         if parsed is not None:
             await emit("context.usage", {"request_id": request_id, **meter.observe_usage(parsed.get("usage"), measurement)})
         if failure:

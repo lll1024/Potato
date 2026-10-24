@@ -1,12 +1,12 @@
 # 旅行规划：当前公开契约
 
-公开入口为 [travel_app.planning](../../travel_app/planning/__init__.py)。主要操作是异步 `plan(text, client, tools, model, *, seed=None, continuation=None, observer=None, stop_requested=None, stop_reason="user_stop", preference_background="", clock=None, history_records=None)`。Web 与真实 CLI 都调用它；不创建数据库或后台偏好任务。
+公开入口为 [travel_app.planning](../../travel_app/planning/__init__.py)。主要操作是异步 `plan(text, client, tools, model, *, seed=None, continuation=None, observer=None, stop_requested=None, stop_reason="user_stop", preference_background="", clock=None, history_records=None, max_rounds=80, max_tool_calls=128, context_policy=None)`。Web 与真实 CLI 都调用它；不创建数据库或后台偏好任务。
 
-`client` 是已配置的 Anthropic 异步客户端；`tools` 是已发现能力的现有地图或组合查询 adapter。生命周期由装配方管理。模型、地图、网页的生产连接配置及超时保持既有启动行为；调用方可以注入可控外部响应。查询 adapter 的独立公开契约留给 #83，本入口不意味着该迁移已经完成。
+`client` 是已配置的 Anthropic 异步客户端；`tools` 是已发现能力的 `PlanningTools`（实际为资料获取公开的 `Retrieval` 类型）。生命周期由装配方管理。模型、地图、网页的生产连接配置及超时保持既有启动行为；调用方可以注入可控外部响应。查询能力说明、分段执行与失败语义见[资料获取契约](retrieval.md)。
 
 `seed` 是本机记录在同一快照中读取的 `PlanningSeed`；首次对话可省略。CLI 将上次返回的 `continuation` 原样传入，不创建或拆解它；它仅在当前进程内有效，不是持久会话身份。两者互斥，同时传入抛出 `ValueError`。输入、完整协议、模型视图和已确定旅行日期由规划内部协调；调用方不追加消息或自行同步视图。偏好背景作为只读文本交入，历史原文通过同步 `history_records()` 回调按需读取。
 
-返回不可变 [PlanningResult](../../travel_app/agent.py)，包含：
+返回不可变 [PlanningResult](../../travel_app/planning/runtime.py)，包含：
 
 | 字段 | 含义 |
 | --- | --- |
@@ -25,6 +25,14 @@
 
 `validate_configuration() -> None` 供启动装配检查模型上下文容量配置；错误为公开 `ContextConfigurationError`，可直接展示。CLI 的日期状态保存在不透明延续凭证中，观察回调只展示进度。
 
-当前实现仍在 [agent.py](../../travel_app/agent.py)，其中 `_execute_plan` 与资料 adapter 是 #83 的明确迁移实现；完整协议、模型视图、摘要、容量和回读已通过 [模型上下文](context.md)公开入口管理；旧 `agent_loop` 仅供现有内部测试适配，生产入口不再调用它。公开入口直接导出实际规划操作。此阶段资料获取尚待 #83 封装。
+`configured_planning(*, retrieval_factory=None)` 检查配置并管理生产模型与查询连接，返回 `PlanningResources(client, tools, model)`；Web 将它装入会话运行资源，CLI 复用同一模型装配。可注入查询资源工厂重定向外部响应，默认连接与超时不变。`run_cli(..., retrieval_factory=None, model_client_factory=None)`、`main(*, load_environment=None, cli_runner=None)` 提供根入口的显式装配 seam；模型客户端工厂只替换连接资源，实际调用、重试、摘要和预算仍走生产 implementation；它们不替换规划、查询、上下文或保存 implementation。
+
+`max_rounds`、`max_tool_calls` 可收紧原有运行限额，分别受 80 和 128 硬上限限制；`context_policy` 可注入公开 `ContextPolicy`，省略时仍读取原环境配置。既有受限运行测试通过此入口执行，不再需要生产 `agent_loop` 适配。资料获取实例的可用状态保留到连接生命周期结束，整轮工具和实际模型预算在每次 `plan` 重建。
+
+模型步骤在 [runtime.py](../../travel_app/planning/runtime.py)；[batch.py](../../travel_app/planning/batch.py)统一登记调用身份、按提出顺序预留工具额度、切分连续外部段、等待历史屏障并按原序收齐一次完整结果；模型步骤不持有分段拼接或供应商状态。历史回读将前段真实结果与后段占位一并交给上下文，按完整请求余量分页。外部段未启动沿用原预留计数，历史局部上限拒绝不消耗总账；实际失败照常计数。
+
+[budget.py](../../travel_app/planning/budget.py)拥有工具总账与实际模型请求序号，摘要和恢复通过同一额度回调扣账，普通请求仅使用前 63 次，第 64 次预留给关闭工具的最终回答。达到预算时先等待在途返回；最终请求不再摘要、查询或重试。逻辑步骤仍独立计数。共同模型事实采集在无业务运行状态的 [model_execution.py](../../travel_app/model_execution.py)，普通重试与摘要的局部策略继续由各自能力拥有。
+
+完整协议、模型视图、摘要、容量和回读通过[模型上下文](context.md)管理；日期解释在 [dates.py](../../travel_app/planning/dates.py)。旧 `travel_app/agent.py`、查询 adapter 和日期文件已迁入所属能力，生产和测试调用均更新到当前入口。阶段证据见 [#83 验收](../acceptance/retrieval-planning.md)。
 
 验证：[规划契约测试](../../tests/test_agent.py)、[记录故障](../../tests/test_storage.py)、[调用预算](../../tests/test_call_budget.py)、[固定 Web/SSE/CLI 与旧库基线](../../tests/test_migration_baseline.py)。

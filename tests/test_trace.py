@@ -13,23 +13,21 @@ import uvicorn
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from travel_app.amap_mcp import AmapTools
-from travel_app.exa_mcp import ExaTools
-from travel_app.travel_tools import TravelTools
-from test_agent import MapService, ModelService, response
-from travel_app.web import Runtime, create_app
+from travel_app.retrieval import Retrieval
+from service_fixtures import MapService, ModelService, response
+from travel_app.sessions import Runtime, create_app
 
 
 @asynccontextmanager
 async def serving(directory, model, *, maps=None, sources=None):
     @asynccontextmanager
     async def resources():
-        tools = AmapTools(cast(Client, maps if maps is not None else MapService()), api_key="known-secret")
+        tools = Retrieval(cast(Client, maps if maps is not None else MapService()), api_key="known-secret")
         await tools.discover()
         if sources is not None:
-            exa = ExaTools(cast(Client, sources), redact=tools.redact, call_interval=0)
-            await exa.discover()
-            yield Runtime(cast(AsyncAnthropic, model), TravelTools(tools, exa), "test-model")
+            tools = Retrieval(cast(Client, maps if maps is not None else MapService()), source_client=cast(Client, sources), api_key="known-secret", source_interval=0)
+            await tools.discover()
+            yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
         else:
             yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
     app = create_app(directory, resources=resources)

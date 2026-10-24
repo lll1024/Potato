@@ -7,7 +7,7 @@ import unittest
 import httpx2
 from anthropic import APIStatusError
 
-from test_agent import ModelService, response
+from service_fixtures import ModelService, response
 from test_itinerary import ItineraryMapService, map_result
 from test_tool_trace import serving_tools
 from test_trace import wait_finished

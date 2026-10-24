@@ -7,9 +7,9 @@ import unittest
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from travel_app.agent import agent_loop
-from travel_app.amap_mcp import AmapTools
-from test_agent import ModelService, response
+from planning_fixtures import agent_loop
+from travel_app.retrieval import Retrieval
+from service_fixtures import ModelService, response
 
 
 # 2026-10-08 从高德实际 list_tools 返回中保留的本任务工具契约。
@@ -114,7 +114,7 @@ class RouteMapService:
 
 class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
     async def test_route_capabilities_use_discovered_schemas(self):
-        tools = AmapTools(cast(Client, RouteMapService()))
+        tools = Retrieval(cast(Client, RouteMapService()))
         await tools.discover()
         model = ModelService([response([{"type": "text", "text": "请提供起终点。"}])])
 
@@ -130,7 +130,7 @@ class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_confirmed_places_feed_all_route_results_back_to_model(self):
         service = RouteMapService()
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         routes = {name: {"origin": ORIGIN, "destination": DESTINATION} for name in [
             "maps_direction_walking", "maps_direction_bicycling", "maps_direction_driving",
@@ -192,7 +192,7 @@ class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_failed_route_does_not_drop_verified_route_or_invent_cost(self):
         service = RouteMapService(failed_route="maps_direction_transit_integrated")
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = ModelService([
             response([
@@ -233,7 +233,7 @@ class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_ambiguous_places_reach_model_before_clarification(self):
         service = RouteMapService(ambiguous=True)
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = ModelService([
             response([tool_call("candidates", "maps_text_search",
@@ -257,7 +257,7 @@ class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_clarification_keeps_known_conditions_without_map_calls(self):
         service = RouteMapService()
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = ModelService([response([{"type": "text", "text": "请提供起点。"}])])
         history = [
@@ -273,7 +273,7 @@ class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_taxi_app_link_is_not_available_as_a_verified_route(self):
         service = RouteMapService()
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = ModelService([
             response([tool_call("taxi", "maps_schema_take_taxi", {})], "tool_use"),

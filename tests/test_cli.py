@@ -9,9 +9,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
-from travel_app.agent import main
+from travel_app.planning import main
 
 
 class CLITests(unittest.TestCase):
@@ -34,11 +34,9 @@ class CLITests(unittest.TestCase):
                         patch.dict(os.environ, {"AMAP_MAPS_API_KEY": "test-secret", "MODEL_ID": "test-model",
                                                "ANTHROPIC_API_KEY": "test-model-key"}, clear=True),
                         patch("sys.argv", ["agent.py"]),
-                        patch("travel_app.agent.load_dotenv"),
-                        patch("travel_app.agent.run_cli", side_effect=fail),
                         contextlib.redirect_stdout(captured), contextlib.redirect_stderr(captured),
                     ):
-                        self.assertEqual(main(), expected)
+                        self.assertEqual(main(load_environment=lambda *_a, **_k: None, cli_runner=fail), expected)
                 finally:
                     logging.getLogger().removeHandler(handler)
                 self.assertNotIn("test-secret", captured.getvalue())
@@ -69,8 +67,9 @@ class CLITests(unittest.TestCase):
                 if capacity is not None:
                     env["MODEL_CONTEXT_WINDOW"] = capacity
                 captured = io.StringIO()
-                with patch.dict(os.environ, env, clear=True), patch("sys.argv", ["agent.py"]), patch("travel_app.agent.load_dotenv"), patch("travel_app.agent.run_cli") as runner, contextlib.redirect_stderr(captured):
-                    self.assertEqual(main(), 1)
+                runner = AsyncMock()
+                with patch.dict(os.environ, env, clear=True), patch("sys.argv", ["agent.py"]), contextlib.redirect_stderr(captured):
+                    self.assertEqual(main(load_environment=lambda *_a, **_k: None, cli_runner=runner), 1)
                     runner.assert_not_called()
                 self.assertIn("MODEL_CONTEXT_WINDOW", captured.getvalue())
                 self.assertNotIn("Traceback", captured.getvalue())

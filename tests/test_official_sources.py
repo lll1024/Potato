@@ -17,12 +17,11 @@ from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 from mcp.server import MCPServer
 
-from travel_app.agent import run_cli
-from travel_app.amap_mcp import AmapTools
-from travel_app.exa_mcp import ExaTools
-from travel_app.travel_tools import SourceHTTPClient, TravelTools
-from test_agent import MapService, ModelService, response
-from travel_app.web import Runtime, create_app
+from travel_app.planning import run_cli
+from travel_app.retrieval import Retrieval
+from travel_app.retrieval import SourceHTTPClient
+from service_fixtures import cli_retrieval, MapService, ModelService, response
+from travel_app.sessions import Runtime, create_app
 
 
 class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
@@ -68,11 +67,11 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
                 async with httpx2.AsyncClient(transport=httpx2.ASGITransport(app=source_app)) as source_http:
                     source_clients.append(source_http)
                     async with Client(streamable_http_client("http://127.0.0.1:8000/mcp", http_client=source_http)) as source_client:
-                        amap = AmapTools(map_client)
+                        amap = Retrieval(map_client)
                         await amap.discover()
-                        exa = ExaTools(source_client, redact=amap.redact)
-                        await exa.discover()
-                        yield Runtime(cast(AsyncAnthropic, model), TravelTools(amap, exa), "test-model")
+                        amap = Retrieval(map_client, source_client=source_client)
+                        await amap.discover()
+                        yield Runtime(cast(AsyncAnthropic, model), amap, "test-model")
 
         with tempfile.TemporaryDirectory() as directory:
             app = create_app(directory, resources=resources)
@@ -120,7 +119,7 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(source_clients[0].is_closed)
             @asynccontextmanager
             async def restored_resources():
-                amap = AmapTools(cast(Client, MapService()))
+                amap = Retrieval(cast(Client, MapService()))
                 await amap.discover()
                 yield Runtime(cast(AsyncAnthropic, model), amap, "test-model")
             restored = create_app(directory, resources=restored_resources)
@@ -147,13 +146,8 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
             response([{"type": "text", "text": "官方正文要求通过小程序预约，尚未完成预约。"}]),
         ])
         output = io.StringIO()
-        with patch.dict(os.environ, {"MODEL_ID": "test-model", "ANTHROPIC_API_KEY": "model-key"}, clear=True), \
-             patch("travel_app.agent.Client", side_effect=lambda *args, **kwargs: Client(maps)), \
-             patch("travel_app.travel_tools.Client", side_effect=lambda *args, **kwargs: Client(sources)), \
-             patch("travel_app.agent.AsyncAnthropic", return_value=ModelContext(model)), \
-             patch("builtins.input", side_effect=["2026年10月10日去测试博物馆", "exit"]), \
-             contextlib.redirect_stdout(output):
-            result = await run_cli("map-key")
+        with patch.dict(os.environ, {'MODEL_ID': 'test-model', 'ANTHROPIC_API_KEY': 'model-key'}, clear=True), patch('builtins.input', side_effect=['2026年10月10日去测试博物馆', 'exit']), contextlib.redirect_stdout(output):
+            result = await run_cli("map-key", retrieval_factory=cli_retrieval(lambda *args, **kwargs: Client(maps), lambda *args, **kwargs: Client(sources)), model_client_factory=lambda *_args, **_kwargs: ModelContext(model))
         self.assertEqual(result, 0)
         names = {tool["name"] for tool in model.requests[0]["tools"]}
         self.assertEqual(names, {"maps_text_search", "web_search_exa", "web_fetch_exa", "session_history_search", "session_history_read"})
@@ -179,13 +173,8 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
                       {"type": "tool_use", "id": "body-after-quota", "name": "web_fetch_exa", "input": {"urls": ["https://museum.example.test"]}}], "tool_use"),
             response([{"type": "text", "text": "地点已查到，资料额度耗尽，开放和预约待核实。"}]),
         ])
-        with patch.dict(os.environ, {"MODEL_ID": "test-model", "ANTHROPIC_API_KEY": "model-key"}, clear=True), \
-             patch("travel_app.agent.Client", side_effect=lambda *args, **kwargs: Client(maps)), \
-             patch("travel_app.travel_tools.Client", side_effect=lambda *args, **kwargs: Client(sources)), \
-             patch("travel_app.agent.AsyncAnthropic", return_value=ModelContext(model)), \
-             patch("builtins.input", side_effect=["2026年10月10日去测试博物馆", "exit"]), \
-             contextlib.redirect_stdout(io.StringIO()):
-            result = await run_cli("map-key")
+        with patch.dict(os.environ, {'MODEL_ID': 'test-model', 'ANTHROPIC_API_KEY': 'model-key'}, clear=True), patch('builtins.input', side_effect=['2026年10月10日去测试博物馆', 'exit']), contextlib.redirect_stdout(io.StringIO()):
+            result = await run_cli("map-key", retrieval_factory=cli_retrieval(lambda *args, **kwargs: Client(maps), lambda *args, **kwargs: Client(sources)), model_client_factory=lambda *_args, **_kwargs: ModelContext(model))
         self.assertEqual(result, 0)
         results = model.requests[1]["messages"][-1]["content"]
         self.assertEqual([item["tool_use_id"] for item in results], ["quota", "map-after-quota", "body-after-quota"])
@@ -213,13 +202,8 @@ class OfficialSourceTests(unittest.IsolatedAsyncioTestCase):
         def source_http(**kwargs):
             return real_client(transport=httpx2.MockTransport(unavailable), **kwargs)
         output = io.StringIO()
-        with patch.dict(os.environ, {"MODEL_ID": "test-model", "ANTHROPIC_API_KEY": "model-key", "TAVILY_API_KEY": "paid-key-must-not-be-used", "EXA_API_KEY": "exa-paid-key-must-not-be-used"}, clear=True), \
-             patch("travel_app.agent.Client", side_effect=lambda *args, **kwargs: Client(maps)), \
-             patch("travel_app.travel_tools.SourceHTTPClient", side_effect=source_http), \
-             patch("travel_app.agent.AsyncAnthropic", return_value=ModelContext(model)), \
-             patch("builtins.input", side_effect=["2026年10月10日去测试博物馆", "exit"]), \
-             contextlib.redirect_stdout(output):
-            result = await run_cli("map-key")
+        with patch.dict(os.environ, {'MODEL_ID': 'test-model', 'ANTHROPIC_API_KEY': 'model-key', 'TAVILY_API_KEY': 'paid-key-must-not-be-used', 'EXA_API_KEY': 'exa-paid-key-must-not-be-used'}, clear=True), patch('builtins.input', side_effect=['2026年10月10日去测试博物馆', 'exit']), contextlib.redirect_stdout(output):
+            result = await run_cli("map-key", retrieval_factory=cli_retrieval(lambda *args, **kwargs: Client(maps), source_http_factory=source_http), model_client_factory=lambda *_args, **_kwargs: ModelContext(model))
         self.assertEqual(result, 0)
         self.assertTrue(requests)
         self.assertEqual(str(requests[0].url), "https://mcp.exa.ai/mcp")

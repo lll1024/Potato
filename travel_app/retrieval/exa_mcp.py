@@ -11,7 +11,7 @@ from mcp import Client
 from mcp.shared.exceptions import MCPError
 from mcp.types import CONNECTION_CLOSED, PARSE_ERROR, REQUEST_TIMEOUT
 
-from travel_app.amap_mcp import ToolResult
+from .amap_mcp import ToolResult
 from travel_app.limits import SOURCE_CALL_INTERVAL, TOOL_TIMEOUT
 
 EXA_URL = "https://mcp.exa.ai/mcp"

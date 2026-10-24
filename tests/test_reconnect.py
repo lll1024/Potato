@@ -6,7 +6,7 @@ import unittest
 import sqlite3
 from pathlib import Path
 
-from test_agent import ModelService, response
+from service_fixtures import ModelService, response
 from test_trace import serving, wait_finished
 
 

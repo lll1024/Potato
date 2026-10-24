@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 from mcp.types import CallToolResult, TextContent
 
-from test_agent import MapService, ModelService, response
+from service_fixtures import MapService, ModelService, response
 from test_trace import serving, wait_finished
 
 

@@ -6,7 +6,7 @@ import unittest
 from contextlib import closing
 from pathlib import Path
 
-from test_agent import ModelService, response
+from service_fixtures import ModelService, response
 from test_trace import serving, wait_finished
 
 
@@ -128,7 +128,7 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(next_model.requests[0]['messages'],[{'role':'user','content':'新输入'}])
 
     async def test_tool_boundaries_rollback_and_stop_following_calls(self):
-        from test_agent import MapService
+        from service_fixtures import MapService
         from test_tool_trace import serving_tools, tool_reply
         for kind in ('tool.pending','tool.running','tool.waiting','tool.completed','tool.failed'):
             with self.subTest(kind=kind),tempfile.TemporaryDirectory() as directory:
@@ -258,7 +258,7 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
         import json
         from contextlib import redirect_stdout,redirect_stderr
         from types import SimpleNamespace
-        from test_agent import MapService
+        from service_fixtures import MapService
         from test_tool_trace import serving_tools
         from urllib.parse import quote,quote_plus
         secret='known-secret'
@@ -348,7 +348,7 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(len(external.map_calls),1)
 
     async def test_unexecuted_backfill_failure_keeps_pending_fact_and_no_followup_query(self):
-        from test_agent import MapService
+        from service_fixtures import MapService
         from test_tool_trace import serving_tools,tool_reply
         entered,release=asyncio.Event(),asyncio.Event()
         class WaitingMaps(MapService):

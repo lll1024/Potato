@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from datetime import datetime
 
-from test_agent import ModelService, response
+from service_fixtures import ModelService, response
 import test_travel_date_continuation
 from test_travel_dates import context_from_request
 

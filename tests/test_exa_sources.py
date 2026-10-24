@@ -6,7 +6,7 @@ from mcp import Client
 from mcp.server import MCPServer
 from mcp.types import CallToolResult, TextContent
 
-from travel_app.exa_mcp import ExaTools
+from travel_app.retrieval.exa_mcp import ExaTools
 
 
 class ExaSourceTests(unittest.IsolatedAsyncioTestCase):

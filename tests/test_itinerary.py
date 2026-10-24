@@ -9,9 +9,9 @@ from unittest.mock import patch
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from travel_app.agent import agent_loop
-from travel_app.amap_mcp import AmapTools
-from test_agent import ModelService, response
+from planning_fixtures import agent_loop
+from travel_app.retrieval import Retrieval
+from service_fixtures import ModelService, response
 from test_dining import tool_call
 
 
@@ -65,7 +65,7 @@ class ItineraryTests(unittest.IsolatedAsyncioTestCase):
                 return await super().call_tool(name, arguments)
 
         service = TimedService()
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = ModelService([
             response([tool_call(f"weather-{i}", "maps_weather", {"city": "杭州"})
@@ -87,7 +87,7 @@ class ItineraryTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_weather_uses_discovered_contract_and_preserves_forecast_dates(self):
         service = ItineraryMapService([map_result(WEATHER, text_only=True)])
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = ModelService([
             response([tool_call("weather", "maps_weather", {"city": "杭州"})], "tool_use"),
@@ -166,9 +166,9 @@ class ItineraryTests(unittest.IsolatedAsyncioTestCase):
                               for reply in replies[:-1] for block in reply.content]
         sequential_replies.append(replies[-1])
         for scenario, model_replies in (("批量查询", replies), ("逐条查询", sequential_replies)):
-            with self.subTest(scenario=scenario), patch("travel_app.amap_mcp.MAP_CALL_INTERVAL", 0):
+            with self.subTest(scenario=scenario):
                 service = ItineraryMapService(outcomes)
-                tools = AmapTools(cast(Client, service))
+                tools = Retrieval(cast(Client, service), map_interval=0)
                 await tools.discover()
                 model = ModelService(model_replies)
                 history = [{"role": "user", "content": "2026年10月9日起在杭州旅行三天，"
@@ -205,7 +205,7 @@ class ItineraryTests(unittest.IsolatedAsyncioTestCase):
             *(map_result({**route, "paths": [{"duration": "300", "distance": "400"}]})
               for route in routes),
         ])
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = ModelService([
             response([tool_call("old", "maps_text_search",
@@ -253,7 +253,7 @@ class ItineraryTests(unittest.IsolatedAsyncioTestCase):
                     map_result({"pois": [place]}), weather_result,
                     map_result({"pois": [dining]}), map_result("交通查询失败", error=True),
                 ])
-                tools = AmapTools(cast(Client, service))
+                tools = Retrieval(cast(Client, service), map_interval=0)
                 await tools.discover()
                 model = ModelService([
                     response([

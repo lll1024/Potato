@@ -12,7 +12,7 @@ from mcp.shared.exceptions import MCPError
 from mcp.types import CONNECTION_CLOSED, INVALID_PARAMS, REQUEST_TIMEOUT
 
 from travel_app.limits import MAP_CALL_INTERVAL, TOOL_TIMEOUT
-from travel_app.amap_http import AmapHTTPClient
+from .amap_http import AmapHTTPClient
 
 from travel_app.tool_catalog import PLACE_TOOLS, DINING_TOOLS, WEATHER_TOOLS, ROUTE_TOOLS
 
@@ -98,12 +98,13 @@ class AmapTools:
     def __init__(
         self, client: Client, *, api_key: str = "", tool_timeout: float = TOOL_TIMEOUT,
         secrets: tuple[str, ...] = (),
-        http_client: AmapHTTPClient | None = None,
+        http_client: AmapHTTPClient | None = None, call_interval: float = MAP_CALL_INTERVAL,
     ):
         self.client = client
         self.http_client = http_client
         self._secrets = (api_key, *secrets)
         self.tool_timeout = tool_timeout
+        self.call_interval = call_interval
         self.declarations: list[ToolParam] = []
         self.failure: str | None = None
         self._next_call_at = 0.0
@@ -196,7 +197,7 @@ class AmapTools:
                 "call_started_at":datetime.now(timezone.utc).isoformat(),"started_at":facts["started_at"],"wait_duration_ms":facts["wait_duration_ms"]})
         facts["call_started"] = True
         call_start = loop.time()
-        self._next_call_at = loop.time() + MAP_CALL_INTERVAL
+        self._next_call_at = loop.time() + self.call_interval
         try:
             result = await asyncio.wait_for(
                 # Client.call_tool 会自动重试或多轮交互；一次预算只发送一次工具请求。

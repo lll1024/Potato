@@ -4,7 +4,7 @@ import json
 import tempfile
 import unittest
 
-from test_agent import ModelService, response
+from service_fixtures import ModelService, response
 from test_trace import serving, wait_finished
 
 
@@ -69,7 +69,7 @@ class PayloadSearchTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_search_includes_tool_parameters_service_fill_and_errors_without_new_calls(self):
         from test_tool_trace import serving_tools
-        from test_agent import MapService
+        from service_fixtures import MapService
         from mcp.types import CallToolResult, TextContent
         class Maps(MapService):
             calls = 0

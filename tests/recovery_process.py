@@ -9,9 +9,9 @@ from anthropic import AsyncAnthropic
 from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 
-from travel_app.amap_http import AmapHTTPClient
-from travel_app.amap_mcp import AmapTools
-from travel_app.web import Runtime, create_app
+from travel_app.retrieval import MapHTTPClient as AmapHTTPClient
+from travel_app.retrieval import Retrieval
+from travel_app.sessions import Runtime, create_app
 
 
 @asynccontextmanager
@@ -21,7 +21,7 @@ async def resources():
         Client(streamable_http_client(sys.argv[3] + '/maps/mcp', http_client=map_http)) as maps,
         AsyncAnthropic(api_key='test-key', base_url=sys.argv[3], max_retries=0, timeout=60) as model,
     ):
-        tools = AmapTools(maps, http_client=map_http)
+        tools = Retrieval(maps, http_client=map_http)
         await tools.discover()
         yield Runtime(model, tools, 'test-model')
 

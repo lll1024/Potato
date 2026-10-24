@@ -12,11 +12,11 @@ import httpx
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from travel_app.amap_mcp import AmapTools
-from test_agent import MapService, ModelService, response
+from travel_app.retrieval import Retrieval
+from service_fixtures import cli_retrieval, MapService, ModelService, response
 import test_history
 from test_travel_dates import context_from_request
-from travel_app.web import Runtime, create_app
+from travel_app.sessions import Runtime, create_app
 
 
 class TravelDateContinuationTests(unittest.IsolatedAsyncioTestCase):
@@ -27,7 +27,7 @@ class TravelDateContinuationTests(unittest.IsolatedAsyncioTestCase):
     async def service(self, directory, model, maps=None) -> AsyncIterator[httpx.AsyncClient]:
         @asynccontextmanager
         async def resources():
-            tools = AmapTools(cast(Client, maps or MapService()))
+            tools = Retrieval(cast(Client, maps or MapService()))
             await tools.discover()
             yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
         app = create_app(directory, resources=resources, clock=lambda: self.moment)
@@ -231,7 +231,7 @@ class TravelDateContinuationTests(unittest.IsolatedAsyncioTestCase):
         import os
         from contextlib import redirect_stdout
         from unittest.mock import patch
-        from travel_app.agent import run_cli
+        from travel_app.planning import run_cli
 
         before = datetime.fromisoformat("2026-10-09T23:59:59+08:00")
         after = datetime.fromisoformat("2026-10-10T00:00:01+08:00")
@@ -250,16 +250,8 @@ class TravelDateContinuationTests(unittest.IsolatedAsyncioTestCase):
         @asynccontextmanager
         async def external_maps(*args, **kwargs):
             yield MapService()
-        with (
-            patch("travel_app.agent.Client", side_effect=external_maps),
-            patch("travel_app.travel_tools.Client", side_effect=RuntimeError("外部资料服务不可用")),
-            patch("travel_app.agent.AsyncAnthropic", side_effect=external_model),
-            patch("travel_app.agent.streamable_http_client", return_value=None),
-            patch("builtins.input", side_effect=user_input),
-            patch.dict(os.environ, {"MODEL_ID": "test-model"}),
-            redirect_stdout(io.StringIO()),
-        ):
-            self.assertEqual(await run_cli("test-key", clock=lambda: moment), 0)
+        with patch('builtins.input', side_effect=user_input), patch.dict(os.environ, {'MODEL_ID': 'test-model'}), redirect_stdout(io.StringIO()):
+            self.assertEqual(await run_cli("test-key", clock=lambda: moment, retrieval_factory=cli_retrieval(external_maps, RuntimeError('外部资料服务不可用')), model_client_factory=external_model), 0)
         context = context_from_request(model.requests[1])
         self.assertEqual(context["now"], "2026-10-10T00:00:01+08:00")
         self.assertEqual(context["travel_dates"].get("start_date"), "2026-10-10")

@@ -10,9 +10,9 @@ import httpx
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from travel_app.amap_mcp import AmapTools
-from test_agent import MapService, ModelService, response
-from travel_app.web import Runtime, create_app
+from travel_app.retrieval import Retrieval
+from service_fixtures import MapService, ModelService, response
+from travel_app.sessions import Runtime, create_app
 
 
 class SubmissionTests(unittest.IsolatedAsyncioTestCase):
@@ -26,7 +26,7 @@ class SubmissionTests(unittest.IsolatedAsyncioTestCase):
         model = WaitingModel([response([{"type":"text","text":"西湖在杭州。"}])])
         @asynccontextmanager
         async def resources():
-            tools = AmapTools(cast(Client, MapService()))
+            tools = Retrieval(cast(Client, MapService()))
             await tools.discover()
             yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
         with tempfile.TemporaryDirectory() as directory:
@@ -58,7 +58,7 @@ class SubmissionTests(unittest.IsolatedAsyncioTestCase):
         model = WaitingModel([response([{"type":"text","text":"杭州。"}])])
         @asynccontextmanager
         async def resources():
-            tools = AmapTools(cast(Client, MapService()))
+            tools = Retrieval(cast(Client, MapService()))
             await tools.discover()
             yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
         with tempfile.TemporaryDirectory() as directory:
@@ -89,7 +89,7 @@ class SubmissionTests(unittest.IsolatedAsyncioTestCase):
         model = WaitingModel([response([{"type":"text","text":"第一轮结果。"}])])
         @asynccontextmanager
         async def resources():
-            tools = AmapTools(cast(Client, MapService()))
+            tools = Retrieval(cast(Client, MapService()))
             await tools.discover()
             yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
         with tempfile.TemporaryDirectory() as directory:
@@ -119,7 +119,7 @@ class SubmissionTests(unittest.IsolatedAsyncioTestCase):
         model = ModelService([response([{"type":"text","text":"西湖在杭州。"}])])
         @asynccontextmanager
         async def resources():
-            tools = AmapTools(cast(Client, MapService()))
+            tools = Retrieval(cast(Client, MapService()))
             await tools.discover()
             yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
         with tempfile.TemporaryDirectory() as directory:
@@ -150,7 +150,7 @@ class SubmissionTests(unittest.IsolatedAsyncioTestCase):
         model = ModelService([response([{"type":"text","text":"不应请求。"}])])
         @asynccontextmanager
         async def resources():
-            tools = AmapTools(cast(Client, MapService()))
+            tools = Retrieval(cast(Client, MapService()))
             await tools.discover()
             yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
         with tempfile.TemporaryDirectory() as directory:
@@ -176,7 +176,7 @@ class SubmissionTests(unittest.IsolatedAsyncioTestCase):
         model = ModelService([])
         @asynccontextmanager
         async def resources():
-            tools = AmapTools(cast(Client, MapService()))
+            tools = Retrieval(cast(Client, MapService()))
             await tools.discover()
             yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
         with tempfile.TemporaryDirectory() as directory:
@@ -193,7 +193,7 @@ class SubmissionTests(unittest.IsolatedAsyncioTestCase):
         model = ModelService([response([{"type":"text","text":"已经查询西湖。"}])])
         @asynccontextmanager
         async def resources():
-            tools = AmapTools(cast(Client, MapService()))
+            tools = Retrieval(cast(Client, MapService()))
             await tools.discover()
             yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
         with tempfile.TemporaryDirectory() as directory:
@@ -225,7 +225,7 @@ class SubmissionTests(unittest.IsolatedAsyncioTestCase):
         model = ModelService([])
         @asynccontextmanager
         async def resources():
-            tools = AmapTools(cast(Client, MapService()))
+            tools = Retrieval(cast(Client, MapService()))
             await tools.discover()
             yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
         with tempfile.TemporaryDirectory() as directory:

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from test_agent import ModelService, response
+from service_fixtures import ModelService, response
 from test_trace import serving, wait_finished
 
 
@@ -102,11 +102,11 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
         from travel_app.planning import plan
         from travel_app.local_records import PlanningSeed
         import json
-        from travel_app.amap_mcp import AmapTools
-        from test_agent import MapService
+        from travel_app.retrieval import Retrieval
+        from service_fixtures import MapService
         history = [{"role": "user", "content": "旧酒店细节原文"}, {"role": "assistant", "content": "旧回答"}]
         state = {"messages": [], "record_ids": [], "original_watermark": 2, "version": 1}
-        tools = AmapTools(cast(Client, MapService()))
+        tools = Retrieval(cast(Client, MapService()))
         await tools.discover()
         model = ModelService([response([{"type": "text", "text": "请补充城市。"}])])
         with patch.dict(os.environ, {"CONTEXT_COMPACTION_ENABLED": "true", "MODEL_CONTEXT_WINDOW": "40000"}):
@@ -132,16 +132,16 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
         from typing import cast
         from anthropic import AsyncAnthropic
         from mcp import Client
-        from travel_app.agent import agent_loop
-        from travel_app.amap_mcp import AmapTools
+        from planning_fixtures import agent_loop
+        from travel_app.retrieval import Retrieval
         from travel_app.context import ContextPolicy
-        from test_agent import MapService
+        from service_fixtures import MapService
         class LargeMap(MapService):
             async def call_tool(self, name, arguments):
                 result = await super().call_tool(name, arguments)
                 result.structured_content["pois"][0]["details"] = "酒店早餐价格待核实" * 3000
                 return result
-        tools = AmapTools(cast(Client, LargeMap()))
+        tools = Retrieval(cast(Client, LargeMap()))
         await tools.discover()
         model = ModelService([response([{"type": "tool_use", "id": "place", "name": "maps_text_search",
                           "input": {"keywords": "西湖", "city": "杭州"}}], "tool_use")])
@@ -154,7 +154,7 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("酒店早餐价格待核实" * 3000, history[2]["content"][0]["content"])
 
     async def test_web_startup_configuration_error_is_actionable(self):
-        from travel_app.web import create_app
+        from travel_app.sessions import create_app
         with patch.dict(os.environ, {"CONTEXT_COMPACTION_ENABLED": "true"}, clear=True), tempfile.TemporaryDirectory() as directory:
             app = create_app(directory)
             with self.assertRaisesRegex(RuntimeError, "MODEL_CONTEXT_WINDOW"):
@@ -165,10 +165,10 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
         from typing import cast
         from anthropic import AsyncAnthropic
         from mcp import Client
-        from travel_app.agent import agent_loop
-        from travel_app.amap_mcp import AmapTools
+        from planning_fixtures import agent_loop
+        from travel_app.retrieval import Retrieval
         from travel_app.context import ContextPolicy
-        from test_agent import MapService
+        from service_fixtures import MapService
         huge = "中文查询资料价格条件" * 3000
         for component in ("preferences", "tools", "materials"):
             class DeclaredMap(MapService):
@@ -177,7 +177,7 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
                     if component == "tools":
                         result.tools[0].description += huge
                     return result
-            tools = AmapTools(cast(Client, DeclaredMap()))
+            tools = Retrieval(cast(Client, DeclaredMap()))
             await tools.discover()
             model = ModelService([])
             kwargs = {"preference_background": huge} if component == "preferences" else {"previous_source_materials": [{"content": huge}]} if component == "materials" else {}
@@ -191,17 +191,17 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
         from unittest.mock import AsyncMock
         from anthropic import AsyncAnthropic
         from mcp import Client
-        from travel_app.agent import agent_loop
-        from travel_app.amap_mcp import AmapTools
+        from planning_fixtures import agent_loop
+        from travel_app.retrieval import Retrieval
         from travel_app.context import ContextPolicy
-        from test_agent import MapService
+        from service_fixtures import MapService
         from test_model_retry import RetryModel
         first = response([])
         first.usage = type(first.usage).model_validate({"input_tokens": 60000, "output_tokens": 1})
         model = RetryModel([first, response([{"type": "text", "text": "不应发送"}])])
-        tools = AmapTools(cast(Client, MapService()))
+        tools = Retrieval(cast(Client, MapService()))
         await tools.discover()
-        with patch("travel_app.agent.asyncio.sleep", new_callable=AsyncMock):
+        with patch("asyncio.sleep", new_callable=AsyncMock):
             answer = await agent_loop([{"role": "user", "content": "杭州旅行"}], cast(AsyncAnthropic, model), tools, "test-model", context_policy=ContextPolicy(40000))
         self.assertIn("安全预算", answer)
         self.assertEqual(len(model.requests), 1)

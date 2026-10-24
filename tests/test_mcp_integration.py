@@ -16,10 +16,11 @@ from mcp.types import CallToolResult, CONNECTION_CLOSED, HEADER_MISMATCH, TextCo
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
-from travel_app.agent import agent_loop, run_cli
-from travel_app.amap_http import AmapHTTPClient
-from travel_app.amap_mcp import AmapTools
-from test_agent import ModelService, response
+from planning_fixtures import agent_loop
+from travel_app.planning import run_cli
+from travel_app.retrieval import MapHTTPClient as AmapHTTPClient
+from travel_app.retrieval import Retrieval
+from service_fixtures import cli_retrieval, ModelService, response
 
 
 class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
@@ -39,13 +40,13 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
         async with app.router.lifespan_context(app):
             async with AmapHTTPClient(transport=httpx2.ASGITransport(app=app)) as http_client:
                 async with Client(streamable_http_client("http://127.0.0.1:8000/mcp", http_client=http_client)) as client:
-                    tools = AmapTools(client, http_client=http_client)
+                    tools = Retrieval(client, http_client=http_client)
                     await tools.discover()
                     answer = await agent_loop(
                         [{"role": "user", "content": "查杭州西湖"}],
                         cast(AsyncAnthropic, model), tools, "test-model",
                     )
-                    self.assertIsNone(tools.failure)
+                    self.assertEqual(tools.capabilities.map_status, "")
 
         self.assertIn("杭州市西湖区", answer)
         self.assertFalse(model.requests[1]["messages"][-1]["content"][0]["is_error"])
@@ -96,7 +97,7 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
                     async with AmapHTTPClient(transport=FaultTransport(app=app)) as http_client:
                         transport = streamable_http_client("http://127.0.0.1:8000/mcp", http_client=http_client)
                         async with Client(transport) as client:
-                            tools = AmapTools(client, tool_timeout=0.1, http_client=http_client)
+                            tools = Retrieval(client, tool_timeout=0.1, http_client=http_client)
                             await tools.discover()
                             answer = await agent_loop(history, cast(AsyncAnthropic, model), tools,
                                                       "test-model")
@@ -141,15 +142,8 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
         async with app.router.lifespan_context(app):
             async with httpx2.AsyncClient(transport=httpx2.ASGITransport(app=app)) as map_http:
                 client = Client(streamable_http_client("http://127.0.0.1:8000/mcp", http_client=map_http))
-                with (
-                    patch.dict(os.environ, {"MODEL_ID": "test-model", "ANTHROPIC_API_KEY": "test-key"}, clear=True),
-                    patch("travel_app.agent.Client", return_value=client),
-                    patch("travel_app.travel_tools.Client", side_effect=ConnectionError("资料服务不可用")),
-                    patch("travel_app.agent.AsyncAnthropic", side_effect=lambda **kwargs: AsyncAnthropic(http_client=model_http, **kwargs)),
-                    patch("builtins.input", side_effect=["查询杭州西湖", "exit"]) as user_input,
-                    contextlib.redirect_stdout(captured),
-                ):
-                    self.assertEqual(await run_cli("test-amap-key"), 0)
+                with patch.dict(os.environ, {'MODEL_ID': 'test-model', 'ANTHROPIC_API_KEY': 'test-key'}, clear=True), patch('builtins.input', side_effect=['查询杭州西湖', 'exit']) as user_input, contextlib.redirect_stdout(captured):
+                    self.assertEqual(await run_cli("test-amap-key", retrieval_factory=cli_retrieval(lambda *_args, **_kwargs: client, ConnectionError('资料服务不可用')), model_client_factory=lambda **kwargs: AsyncAnthropic(http_client=model_http, **kwargs)), 0)
                 self.assertEqual(user_input.call_count, 2)
 
         self.assertIn("地图查询已暂停", captured.getvalue())
@@ -185,7 +179,7 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
             async with httpx2.AsyncClient(transport=httpx2.ASGITransport(app=app)) as http_client:
                 transport = streamable_http_client("http://127.0.0.1:8000/mcp", http_client=http_client)
                 async with Client(transport) as client:
-                    tools = AmapTools(client)
+                    tools = Retrieval(client)
                     await tools.discover()
                     await agent_loop(history, cast(AsyncAnthropic, model), tools,
                                      "test-model", max_tool_calls=1)
@@ -222,23 +216,17 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
                     models.append(client)
                     return client
 
-                with (
-                    patch.dict(os.environ, {"MODEL_ID": "test-model", "ANTHROPIC_API_KEY": "test-key"}, clear=True),
-                    patch("travel_app.agent.Client", side_effect=map_client),
-                    patch("travel_app.travel_tools.Client", side_effect=ConnectionError("资料服务不可用")),
-                    patch("travel_app.agent.AsyncAnthropic", side_effect=model_client),
-                    patch("builtins.input", side_effect=[user_input]),
-                ):
+                with patch.dict(os.environ, {'MODEL_ID': 'test-model', 'ANTHROPIC_API_KEY': 'test-key'}, clear=True), patch('builtins.input', side_effect=[user_input]):
                     if isinstance(user_input, (KeyboardInterrupt, asyncio.CancelledError, RuntimeError)):
                         with self.assertRaises(BaseException) as caught:
-                            await run_cli("test-amap-key")
+                            await run_cli("test-amap-key", retrieval_factory=cli_retrieval(map_client, ConnectionError('资料服务不可用')), model_client_factory=model_client)
                         error = caught.exception
                         if isinstance(error, BaseExceptionGroup):
                             self.assertIsNotNone(error.subgroup(type(user_input)))
                         else:
                             self.assertIsInstance(error, type(user_input))
                     else:
-                        self.assertEqual(await run_cli("test-amap-key"), 0)
+                        self.assertEqual(await run_cli("test-amap-key", retrieval_factory=cli_retrieval(map_client, ConnectionError('资料服务不可用')), model_client_factory=model_client), 0)
 
                 self.assertTrue(models[0].is_closed())
                 self.assertTrue(released.is_set())
@@ -273,7 +261,7 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
         model = ModelService(replies)
 
         async with Client(server) as client:
-            tools = AmapTools(client)
+            tools = Retrieval(client)
             await tools.discover()
             answer = await agent_loop(
                 [{"role": "user", "content": "查询杭州三天每天三个地点的详情"}],
@@ -317,15 +305,8 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
                     def model_client(**kwargs):
                         return AsyncAnthropic(http_client=http_client, **kwargs)
 
-                    with (
-                        patch.dict(os.environ, {"MODEL_ID": "test-model", **environment}, clear=True),
-                        patch("travel_app.agent.Client", side_effect=lambda *args, **kwargs: Client(server)),
-                        patch("travel_app.travel_tools.Client", side_effect=ConnectionError("资料服务不可用")),
-                        patch("travel_app.agent.AsyncAnthropic", side_effect=model_client),
-                        patch("builtins.input", side_effect=["查询杭州西湖", "exit"]),
-                        contextlib.redirect_stdout(io.StringIO()),
-                    ):
-                        result = await run_cli("test-amap-key")
+                    with patch.dict(os.environ, {'MODEL_ID': 'test-model', **environment}, clear=True), patch('builtins.input', side_effect=['查询杭州西湖', 'exit']), contextlib.redirect_stdout(io.StringIO()):
+                        result = await run_cli("test-amap-key", retrieval_factory=cli_retrieval(lambda *args, **kwargs: Client(server), ConnectionError('资料服务不可用')), model_client_factory=model_client)
 
                 self.assertEqual(result, 0)
                 self.assertEqual(len(requests), 1)
@@ -367,7 +348,7 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
         ])
 
         async with Client(server) as client:
-            tools = AmapTools(client)
+            tools = Retrieval(client)
             await tools.discover()
             answer = await agent_loop(
                 [{"role": "user", "content": "查询杭州西湖的详情"}],
@@ -404,7 +385,7 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
                     "http://127.0.0.1:8000/mcp", http_client=http_client
                 )
                 async with Client(transport, read_timeout_seconds=2) as client:
-                    tools = AmapTools(client)
+                    tools = Retrieval(client)
                     await tools.discover()
                     answer = await agent_loop(
                         [{"role": "user", "content": "查询杭州西湖"}],

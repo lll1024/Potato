@@ -12,10 +12,10 @@ from mcp import Client
 from mcp.shared.exceptions import MCPError
 from mcp.types import CONNECTION_CLOSED, INVALID_PARAMS, REQUEST_TIMEOUT
 
-from travel_app.agent import agent_loop
-from travel_app.amap_mcp import AmapTools
+from planning_fixtures import agent_loop
+from travel_app.retrieval import Retrieval
 from travel_app.limits import MAX_MODEL_REQUESTS
-from test_agent import MapService, ModelService, response
+from service_fixtures import MapService, ModelService, response
 
 
 def query(call_id, name="maps_text_search", **arguments):
@@ -52,7 +52,7 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
                 return await super().create(**kwargs)
 
         service = FaultMapService([map_result({"name": "西湖", "address": "杭州市西湖区"})])
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = FailingModel([response([query("ok")], "tool_use")])
         history = [{"role": "user", "content": "查询杭州西湖"}]
@@ -90,7 +90,7 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
                 service = FaultMapService([
                     map_result({"name": "西湖", "address": "杭州市西湖区"}), fault,
                 ])
-                tools = AmapTools(cast(Client, service))
+                tools = Retrieval(cast(Client, service))
                 await tools.discover()
                 model = ModelService([response([
                     query("ok"), query("fault"), query("unexecuted")
@@ -125,7 +125,7 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
                 return listed
 
         service = LeakyService([map_result({"name": "西湖", "url": urls[0]}, text=key)])
-        tools = AmapTools(cast(Client, service), api_key=key)
+        tools = Retrieval(cast(Client, service), api_key=key)
         await tools.discover()
         model = ModelService([
             response([query("safe-id")], "tool_use"),
@@ -149,7 +149,7 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
         ]:
             with self.subTest(fault=type(fault).__name__, explanation=explanation):
                 service = FaultMapService([fault, map_result({"name": "西湖"})])
-                tools = AmapTools(cast(Client, service))
+                tools = Retrieval(cast(Client, service))
                 await tools.discover()
                 model = ModelService([
                     response([query("fault"), query("ok")], "tool_use"),
@@ -174,7 +174,7 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
             map_result(text="MCP 查询失败", is_error=True),
             map_result({"status": "0", "info": "INVALID_PARAMS", "infocode": "20000"}),
         ])
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = ModelService([
             response([
@@ -203,7 +203,7 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
         service = FaultMapService([map_result({
             "pois": [{"id": "west-lake", "name": "西湖", "address": "杭州市西湖区"}]
         })])
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = ModelService([response([
             query("done"), query("pending", keywords="灵隐寺", city="杭州")
@@ -239,7 +239,7 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
         ]:
             with self.subTest(limits=limits):
                 service = FaultMapService([map_result({"name": "西湖"}) for _ in range(5)])
-                tools = AmapTools(cast(Client, service))
+                tools = Retrieval(cast(Client, service))
                 await tools.discover()
                 model = ModelService([
                     response([query(f"r{index}-a"), query(f"r{index}-b")], "tool_use")
@@ -267,27 +267,26 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_default_model_budget_stops_and_resets_for_next_request(self):
         service = FaultMapService([map_result({"name": "西湖"}) for _ in range(MAX_MODEL_REQUESTS + 1)])
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service), map_interval=0)
         await tools.discover()
         model = ModelService([response([query(f"r{index}")], "tool_use")
                               for index in range(MAX_MODEL_REQUESTS + 1)])
         history = [{"role": "user", "content": "持续查询西湖"}]
         # 放宽工具预算以单独触发默认模型预算；不消耗真实额度和限速等待。
-        with patch("travel_app.amap_mcp.MAP_CALL_INTERVAL", 0):
-            answer = await agent_loop(history, cast(AsyncAnthropic, model), tools,
-                                      "test-model", max_tool_calls=MAX_MODEL_REQUESTS + 1)
-            self.assertEqual(len(model.requests), 64)
-            self.assertEqual(len(service.calls), 62)
-            self.assertNotIn("tools", model.requests[-1])
-            self.assertIn("已达到本轮查询上限", answer)
-            self.assertNotIn("西湖", answer)
-            self.assertIn("西湖", str(history))
-            history.append({"role": "user", "content": "新的请求，只查一次"})
-            followup = ModelService([response([query("new")], "tool_use"),
-                                    response([{"type": "text", "text": "西湖已核实。"}])])
-            answer = await agent_loop(history, cast(AsyncAnthropic, followup), tools, "test-model")
-            self.assertEqual(answer, "西湖已核实。")
-            self.assertEqual(len(service.calls), 63)
+        answer = await agent_loop(history, cast(AsyncAnthropic, model), tools,
+                                  "test-model", max_tool_calls=MAX_MODEL_REQUESTS + 1)
+        self.assertEqual(len(model.requests), 64)
+        self.assertEqual(len(service.calls), 62)
+        self.assertNotIn("tools", model.requests[-1])
+        self.assertIn("已达到本轮查询上限", answer)
+        self.assertNotIn("西湖", answer)
+        self.assertIn("西湖", str(history))
+        history.append({"role": "user", "content": "新的请求，只查一次"})
+        followup = ModelService([response([query("new")], "tool_use"),
+                                response([{"type": "text", "text": "西湖已核实。"}])])
+        answer = await agent_loop(history, cast(AsyncAnthropic, followup), tools, "test-model")
+        self.assertEqual(answer, "西湖已核实。")
+        self.assertEqual(len(service.calls), 63)
 
     async def test_timeout_cancels_tool_without_losing_success_in_same_batch(self):
         cancelled = asyncio.Event()
@@ -302,7 +301,7 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
                 return await super().call_tool(name, arguments)
 
         service = SlowService([map_result({"name": "西湖"})])
-        tools = AmapTools(cast(Client, service), tool_timeout=0.01)
+        tools = Retrieval(cast(Client, service), tool_timeout=0.01)
         await tools.discover()
         model = ModelService([
             response([query("slow", keywords="慢查询", city="杭州"), query("ok")], "tool_use"),
