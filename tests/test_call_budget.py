@@ -8,11 +8,11 @@ import unittest
 from unittest.mock import patch
 
 from service_fixtures import cli_retrieval, MapService, ModelService, response
-from test_model_retry import RetryModel, status_error
-from test_context_summary import OLD, summary_response, submit
-from test_source_failures import SourceService, call, finished
-from test_storage import fail_event, wait_state
-from test_trace import serving, wait_finished
+from model_fixtures import RetryModel, status_error
+from context_fixtures import OLD, summary_response, submit
+from source_fixtures import SourceService, call, finished
+from record_faults import fail_event
+from http_fixtures import wait_state, serving, wait_finished
 
 
 def history_query(index):

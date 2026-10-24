@@ -16,9 +16,10 @@ from anthropic import AsyncAnthropic
 from mcp import Client
 
 from travel_app.retrieval import Retrieval
-from service_fixtures import MapService, response
-from test_preferences import PreferenceModel
 from travel_app.sessions import Runtime, create_app
+
+from service_fixtures import MapService, response
+from preference_fixtures import PreferenceModel
 
 
 async def main():

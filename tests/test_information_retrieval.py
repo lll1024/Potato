@@ -3,7 +3,7 @@ import tempfile
 import unittest
 
 from service_fixtures import ModelService, response
-from test_source_failures import SourceService, call, finished
+from source_fixtures import SourceService, call, finished
 
 
 class InformationRetrievalTests(unittest.IsolatedAsyncioTestCase):

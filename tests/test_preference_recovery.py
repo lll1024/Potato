@@ -7,8 +7,8 @@ import tempfile
 import unittest
 from contextlib import closing
 
-from test_recovery import ExternalServices, process
-from test_trace import wait_finished
+from process_fixtures import ExternalServices, process
+from http_fixtures import wait_finished
 
 
 class PreferenceServices(ExternalServices):

@@ -1,4 +1,4 @@
-"""分阶段检查 module 归属、公开导出和依赖；规则见 docs/modules/migration.md。"""
+"""检查全仓库 module 归属、公开导出和依赖；规则见 docs/modules/migration.md。"""
 import argparse
 import ast
 from importlib.util import resolve_name
@@ -97,10 +97,6 @@ def python_imports(root, relative):
     return {"imports": imports, "exports": exports}
 
 
-def import_key(edge):
-    return edge["target"] + ":" + ",".join(sorted(edge["names"]))
-
-
 def inspect(root, manifest):
     paths = active_files(root)
     modules = manifest["modules"]
@@ -108,7 +104,7 @@ def inspect(root, manifest):
     assigned = manifest.get("files", {})
     errors, ownership, info = [], {}, {}
     for path in paths:
-        entry = legacy.get(path) or assigned.get(path)
+        entry = assigned.get(path)
         for name, module in modules.items():
             if any(path.startswith(module[side] + "/") for side in ("backend", "frontend")):
                 entry = {"owner": name, "role": "production"}
@@ -120,12 +116,11 @@ def inspect(root, manifest):
             continue
         if entry["owner"] not in {*modules, "assembly", "support", "tooling", "integration", "compatibility"}:
             errors.append(f"{path}: 未知 module 归属 {entry['owner']}")
+        if entry["role"] == "internal-test" and entry["owner"] not in modules:
+            errors.append(f"{path}: 内部测试必须明确归属一个业务 module")
         ownership[path] = entry
-    for path, entry in legacy.items():
-        if path not in paths:
-            errors.append(f"{path}: 旧实现已移除，请删除对应迁移豁免")
-        if not entry.get("remove_by"):
-            errors.append(f"{path}: 缺少迁移豁免移除任务")
+    if legacy:
+        errors.append("迁移已完成，不允许登记迁移豁免")
     for path in paths:
         if path.endswith(".py"):
             info[path] = python_imports(root, path)
@@ -153,7 +148,7 @@ def inspect(root, manifest):
                 errors.append(f"{entry}: 公开入口须有显式导出（Python __all__ / TS named exports），禁止星号导出")
             public[entry] = set(declarations.get("exports") or [])
     for path, entry in assigned.items():
-        if entry.get("role") == "support" and path in info:
+        if entry.get("role") in ("support", "test-support") and path in info:
             public[path] = set(info[path].get("exports") or [])
     graph = {name: set() for name in modules}
     for path, data in info.items():
@@ -162,8 +157,6 @@ def inspect(root, manifest):
         source = ownership[path]
         for edge in data["imports"]:
             target = edge["target"]
-            if path in legacy and import_key(edge) in legacy[path].get("imports", []):
-                continue
             if target == "<dynamic>":
                 errors.append(f"{path}: 动态导入无法检查公开入口，请使用静态路径")
                 continue
@@ -171,6 +164,8 @@ def inspect(root, manifest):
                 errors.append(f"{path} -> {target}: 目标缺少归属")
                 continue
             destination = ownership[target]
+            if destination["role"] == "test-support" and source["role"] in ("production", "assembly", "support"):
+                errors.append(f"{path} -> {target}: 生产与装配不得依赖测试支撑")
             same_module = source["owner"] == destination["owner"]
             internal = source["role"] in ("production", "internal-test", "tooling")
             if same_module and internal:
@@ -210,7 +205,7 @@ def main():
     for error in errors:
         print(error)
     if not errors:
-        print(f"公开入口检查通过；旧实现豁免 {len(manifest.get('legacy', {}))} 项，逐项移除任务见 architecture.json。")
+        print("全仓库公开入口、依赖方向与无环检查通过；无迁移豁免。")
     return bool(errors)
 
 

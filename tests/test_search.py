@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 from service_fixtures import ModelService, response
-from test_trace import serving, wait_finished
+from http_fixtures import serving, wait_finished
 
 
 class PayloadSearchTests(unittest.IsolatedAsyncioTestCase):
@@ -68,7 +68,7 @@ class PayloadSearchTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual((await client.get('/api/payloads/'+payload_id,params={'offset':total,'limit':257})).json()['text'],'')
 
     async def test_search_includes_tool_parameters_service_fill_and_errors_without_new_calls(self):
-        from test_tool_trace import serving_tools
+        from http_fixtures import serving_tools
         from service_fixtures import MapService
         from mcp.types import CallToolResult, TextContent
         class Maps(MapService):

@@ -1,11 +1,14 @@
 """从 HTTP/SSE 与真实查询循环验证上下文容量。"""
+import json
 import os
 import tempfile
 import unittest
 from unittest.mock import patch
 
+from travel_app.planning import plan
+from travel_app.local_records import PlanningSeed
 from service_fixtures import ModelService, response
-from test_trace import serving, wait_finished
+from http_fixtures import serving, wait_finished
 
 
 class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
@@ -132,7 +135,7 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
         from typing import cast
         from anthropic import AsyncAnthropic
         from mcp import Client
-        from planning_fixtures import agent_loop
+
         from travel_app.retrieval import Retrieval
         from travel_app.context import ContextPolicy
         from service_fixtures import MapService
@@ -146,7 +149,13 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
         model = ModelService([response([{"type": "tool_use", "id": "place", "name": "maps_text_search",
                           "input": {"keywords": "西湖", "city": "杭州"}}], "tool_use")])
         history = [{"role": "user", "content": "查杭州西湖"}]
-        answer = await agent_loop(history, cast(AsyncAnthropic, model), tools, "test-model", context_policy=ContextPolicy(40000))
+        planning_result = await plan(
+            history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+            context_policy=ContextPolicy(40000),
+        )
+        answer = planning_result.answer
+        history[:] = json.loads(planning_result.material.messages_json)
         self.assertEqual(len(model.requests), 1)
         self.assertIn("安全预算", answer)
         self.assertEqual(history[1]["content"][0]["id"], "place")
@@ -165,7 +174,7 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
         from typing import cast
         from anthropic import AsyncAnthropic
         from mcp import Client
-        from planning_fixtures import agent_loop
+
         from travel_app.retrieval import Retrieval
         from travel_app.context import ContextPolicy
         from service_fixtures import MapService
@@ -181,7 +190,13 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
             await tools.discover()
             model = ModelService([])
             kwargs = {"preference_background": huge} if component == "preferences" else {"previous_source_materials": [{"content": huge}]} if component == "materials" else {}
-            answer = await agent_loop([{"role": "user", "content": "杭州旅行"}], cast(AsyncAnthropic, model), tools, "test-model", context_policy=ContextPolicy(40000), **kwargs)
+            planning_result = await plan(
+                '杭州旅行', cast(AsyncAnthropic, model), tools, "test-model",
+                seed=PlanningSeed(source_materials_json=json.dumps(kwargs.pop("previous_source_materials", []), ensure_ascii=False)),
+                context_policy=ContextPolicy(40000),
+                **kwargs,
+            )
+            answer = planning_result.answer
             with self.subTest(component=component):
                 self.assertIn("安全预算", answer)
                 self.assertEqual(model.requests, [])
@@ -191,17 +206,22 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
         from unittest.mock import AsyncMock
         from anthropic import AsyncAnthropic
         from mcp import Client
-        from planning_fixtures import agent_loop
+
         from travel_app.retrieval import Retrieval
         from travel_app.context import ContextPolicy
         from service_fixtures import MapService
-        from test_model_retry import RetryModel
+        from model_fixtures import RetryModel
         first = response([])
         first.usage = type(first.usage).model_validate({"input_tokens": 60000, "output_tokens": 1})
         model = RetryModel([first, response([{"type": "text", "text": "不应发送"}])])
         tools = Retrieval(cast(Client, MapService()))
         await tools.discover()
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            answer = await agent_loop([{"role": "user", "content": "杭州旅行"}], cast(AsyncAnthropic, model), tools, "test-model", context_policy=ContextPolicy(40000))
+            planning_result = await plan(
+                '杭州旅行', cast(AsyncAnthropic, model), tools, "test-model",
+                seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
+                context_policy=ContextPolicy(40000),
+            )
+            answer = planning_result.answer
         self.assertIn("安全预算", answer)
         self.assertEqual(len(model.requests), 1)

@@ -379,6 +379,10 @@ async def _execute_plan(
                 reason = requested_reason()
                 break
             blocked = await context.prepare_request(parameters, step=ordinal, attempt=attempt, recovering=context_recovery, final=finalizing)
+            if stop_requested and stop_requested.is_set():
+                stopped = "已停止本轮查询，尚未完成的信息待核实。"
+                reason = requested_reason()
+                break
             if not finalizing and not budget.remaining_requests():
                 if context.summary_blocked:
                     stopped = "摘要服务不可用，已停止本轮查询。"
@@ -389,10 +393,6 @@ async def _execute_plan(
             if blocked:
                 stopped = "完整模型输入超过安全预算，已停止本轮查询；请缩小需求范围或核对 MODEL_CONTEXT_WINDOW。"
                 reason = blocked
-                break
-            if stop_requested and stop_requested.is_set():
-                stopped = "已停止本轮查询，尚未完成的信息待核实。"
-                reason = requested_reason()
                 break
             budget.next_request_ordinal(final=finalizing)
             request_id = uuid4().hex

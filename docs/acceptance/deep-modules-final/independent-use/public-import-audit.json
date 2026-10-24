@@ -1,0 +1,185 @@
+{
+  "before": {
+    "script": "/tmp/potato86-independent-use/public_use_after_contract-before-import-fix.py",
+    "script_sha256": "e9fd5f010eb92806b98f6bb8db343a06093bc62eb93724fda0e4d20ac7d6afdb",
+    "project_imports": [
+      {
+        "module": "travel_app.planning",
+        "name": "plan",
+        "public_entry": "/Users/jarviliu/projects/travel/travel_app/planning/__init__.py",
+        "in_all": true,
+        "entry_sha256": "22116d6560f9afaeee1bbbedb72afb50781d5dd9e2ed24142c1b27b8b1710906"
+      },
+      {
+        "module": "travel_app.planning",
+        "name": "ContextPolicy",
+        "public_entry": "/Users/jarviliu/projects/travel/travel_app/planning/__init__.py",
+        "in_all": false,
+        "entry_sha256": "22116d6560f9afaeee1bbbedb72afb50781d5dd9e2ed24142c1b27b8b1710906"
+      },
+      {
+        "module": "travel_app.retrieval",
+        "name": "Retrieval",
+        "public_entry": "/Users/jarviliu/projects/travel/travel_app/retrieval/__init__.py",
+        "in_all": true,
+        "entry_sha256": "5f3c4523bc98d73b706d59db3a992cba57d947920fc0ac57d81d07165bd4d33b"
+      },
+      {
+        "module": "travel_app.local_records",
+        "name": "LocalRecords",
+        "public_entry": "/Users/jarviliu/projects/travel/travel_app/local_records/__init__.py",
+        "in_all": true,
+        "entry_sha256": "50039c99511bcee23b38d7f142d232a281eb782f5214fd60f8692c725512a89f"
+      }
+    ],
+    "external_imports": [
+      {
+        "module": "asyncio",
+        "classification": "标准库或第三方 SDK，非本仓库能力入口"
+      },
+      {
+        "module": "json",
+        "classification": "标准库或第三方 SDK，非本仓库能力入口"
+      },
+      {
+        "module": "tempfile",
+        "classification": "标准库或第三方 SDK，非本仓库能力入口"
+      },
+      {
+        "module": "pathlib",
+        "names": [
+          "Path"
+        ],
+        "classification": "标准库或第三方 SDK，非本仓库能力入口"
+      },
+      {
+        "module": "types",
+        "names": [
+          "SimpleNamespace"
+        ],
+        "classification": "标准库或第三方 SDK，非本仓库能力入口"
+      },
+      {
+        "module": "datetime",
+        "names": [
+          "datetime",
+          "timezone"
+        ],
+        "classification": "标准库或第三方 SDK，非本仓库能力入口"
+      },
+      {
+        "module": "anthropic.types",
+        "names": [
+          "Message",
+          "Usage",
+          "TextBlock",
+          "ToolUseBlock"
+        ],
+        "classification": "标准库或第三方 SDK，非本仓库能力入口"
+      },
+      {
+        "module": "mcp.types",
+        "names": [
+          "Tool",
+          "ListToolsResult",
+          "CallToolResult",
+          "TextContent"
+        ],
+        "classification": "标准库或第三方 SDK，非本仓库能力入口"
+      }
+    ],
+    "all_project_imports_explicitly_exported": false
+  },
+  "after": {
+    "script": "/tmp/potato86-independent-use/public_use_after_contract.py",
+    "script_sha256": "6725cee4f01108b4287b23a35d763e823d4704963ae72f79861070efc89f64cc",
+    "project_imports": [
+      {
+        "module": "travel_app.planning",
+        "name": "plan",
+        "public_entry": "/Users/jarviliu/projects/travel/travel_app/planning/__init__.py",
+        "in_all": true,
+        "entry_sha256": "22116d6560f9afaeee1bbbedb72afb50781d5dd9e2ed24142c1b27b8b1710906"
+      },
+      {
+        "module": "travel_app.context",
+        "name": "ContextPolicy",
+        "public_entry": "/Users/jarviliu/projects/travel/travel_app/context/__init__.py",
+        "in_all": true,
+        "entry_sha256": "6a9f00ff3e4d6fa69400fcd40f71dc62b5807a5a17e4ce01bf45664aa38a9f42"
+      },
+      {
+        "module": "travel_app.retrieval",
+        "name": "Retrieval",
+        "public_entry": "/Users/jarviliu/projects/travel/travel_app/retrieval/__init__.py",
+        "in_all": true,
+        "entry_sha256": "5f3c4523bc98d73b706d59db3a992cba57d947920fc0ac57d81d07165bd4d33b"
+      },
+      {
+        "module": "travel_app.local_records",
+        "name": "LocalRecords",
+        "public_entry": "/Users/jarviliu/projects/travel/travel_app/local_records/__init__.py",
+        "in_all": true,
+        "entry_sha256": "50039c99511bcee23b38d7f142d232a281eb782f5214fd60f8692c725512a89f"
+      }
+    ],
+    "external_imports": [
+      {
+        "module": "asyncio",
+        "classification": "标准库或第三方 SDK，非本仓库能力入口"
+      },
+      {
+        "module": "json",
+        "classification": "标准库或第三方 SDK，非本仓库能力入口"
+      },
+      {
+        "module": "tempfile",
+        "classification": "标准库或第三方 SDK，非本仓库能力入口"
+      },
+      {
+        "module": "pathlib",
+        "names": [
+          "Path"
+        ],
+        "classification": "标准库或第三方 SDK，非本仓库能力入口"
+      },
+      {
+        "module": "types",
+        "names": [
+          "SimpleNamespace"
+        ],
+        "classification": "标准库或第三方 SDK，非本仓库能力入口"
+      },
+      {
+        "module": "datetime",
+        "names": [
+          "datetime",
+          "timezone"
+        ],
+        "classification": "标准库或第三方 SDK，非本仓库能力入口"
+      },
+      {
+        "module": "anthropic.types",
+        "names": [
+          "Message",
+          "Usage",
+          "TextBlock",
+          "ToolUseBlock"
+        ],
+        "classification": "标准库或第三方 SDK，非本仓库能力入口"
+      },
+      {
+        "module": "mcp.types",
+        "names": [
+          "Tool",
+          "ListToolsResult",
+          "CallToolResult",
+          "TextContent"
+        ],
+        "classification": "标准库或第三方 SDK，非本仓库能力入口"
+      }
+    ],
+    "all_project_imports_explicitly_exported": true
+  },
+  "scope": "仓库能力导入逐项以公开入口 __all__ 核对；标准库和第三方 SDK 列入清单但不套用本仓库导出约束"
+}

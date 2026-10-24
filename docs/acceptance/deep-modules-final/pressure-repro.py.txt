@@ -1,0 +1,24 @@
+import asyncio,json,os,tempfile,sys
+from contextlib import asynccontextmanager
+from unittest.mock import patch
+import httpx
+from context_browser_server import BrowserModel
+from service_fixtures import MapService
+from travel_app.retrieval import Retrieval
+from travel_app.sessions import Runtime,create_app
+async def main():
+ model=BrowserModel('success')
+ @asynccontextmanager
+ async def resources():
+  tools=Retrieval(MapService());await tools.discover();yield Runtime(model,tools,'test-model')
+ with patch.dict(os.environ,{'CONTEXT_COMPACTION_ENABLED':'true','MODEL_CONTEXT_WINDOW':'40000'},clear=True),tempfile.TemporaryDirectory() as directory:
+  app=create_app(directory,resources=resources)
+  async with app.router.lifespan_context(app),httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url='http://test') as client:
+   original='2026-10-18杭州，预算3000元人民币，保留湖滨酒店，未预订。'+'阅读背景资料，不是新要求。'*int(sys.argv[1] if len(sys.argv)>1 else 310)
+   identity=(await client.post('/api/turns',json={'input':original})).json()
+   while (await client.get('/api/state')).json()['active_turn_id'] is not None:await asyncio.sleep(0)
+   saved=(await client.get('/api/sessions/'+identity['session_id'])).json()
+   turn=saved['turns'][-1]
+   print(json.dumps({'repeat':int(sys.argv[1] if len(sys.argv)>1 else 310),'status':turn['status'],'reason':turn['reason'],'requests':len(saved['requests']),'events':[e for e in saved['events'] if e['kind'].startswith('context.')]},ensure_ascii=False))
+   assert turn['answer']=='酒店未预订，预算3000元人民币。',turn['reason']
+asyncio.run(main())

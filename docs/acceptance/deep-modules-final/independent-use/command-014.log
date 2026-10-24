@@ -1,0 +1,283 @@
+test_corrupt_protocol_aborts_instead_of_leaking_a_runtime_error (test_context_contracts.ContextContractsTests.test_corrupt_protocol_aborts_instead_of_leaking_a_runtime_error) ... ok
+test_corrupt_saved_context_aborts_at_the_recovery_boundary (test_context_contracts.ContextContractsTests.test_corrupt_saved_context_aborts_at_the_recovery_boundary) ... ok
+test_mismatched_tool_results_do_not_modify_either_saved_view (test_context_contracts.ContextContractsTests.test_mismatched_tool_results_do_not_modify_either_saved_view) ... ok
+test_response_and_tool_results_share_one_protocol_and_continuation (test_context_contracts.ContextContractsTests.test_response_and_tool_results_share_one_protocol_and_continuation) ... ok
+test_history_reads_completed_batch_prefix_without_duplicating_protocol (test_context_contracts.ContextRequestTests.test_history_reads_completed_batch_prefix_without_duplicating_protocol) ... ok
+test_over_limit_recovery_requires_smaller_input_and_is_once_per_step (test_context_contracts.ContextRequestTests.test_over_limit_recovery_requires_smaller_input_and_is_once_per_step) ... ok
+test_request_copy_cannot_change_protocol_or_continued_dates (test_context_contracts.ContextRequestTests.test_request_copy_cannot_change_protocol_or_continued_dates) ... ok
+test_actual_retry_is_checked_again_after_returned_usage_calibrates_upwards (test_context_budget.ContextBudgetTests.test_actual_retry_is_checked_again_after_returned_usage_calibrates_upwards) ... ok
+test_budget_edge_covers_full_system_and_chinese_input (test_context_budget.ContextBudgetTests.test_budget_edge_covers_full_system_and_chinese_input) ... ok
+test_enabled_missing_capacity_ends_without_sending_and_keeps_input (test_context_budget.ContextBudgetTests.test_enabled_missing_capacity_ends_without_sending_and_keeps_input) ... ok
+test_invalid_or_nonpositive_capacity_has_the_same_diagnosis (test_context_budget.ContextBudgetTests.test_invalid_or_nonpositive_capacity_has_the_same_diagnosis) ... ok
+test_large_tool_result_stops_before_next_request_and_keeps_complete_pair (test_context_budget.ContextBudgetTests.test_large_tool_result_stops_before_next_request_and_keeps_complete_pair) ... ok
+test_low_pressure_preserves_protocol_and_missing_usage_is_unknown (test_context_budget.ContextBudgetTests.test_low_pressure_preserves_protocol_and_missing_usage_is_unknown) ... ok
+test_model_view_replacement_does_not_change_original_history (test_context_budget.ContextBudgetTests.test_model_view_replacement_does_not_change_original_history) ... ok
+test_oversized_chinese_json_is_not_sent_or_truncated (test_context_budget.ContextBudgetTests.test_oversized_chinese_json_is_not_sent_or_truncated) ... ok
+test_preferences_tool_declarations_and_saved_materials_are_in_budget (test_context_budget.ContextBudgetTests.test_preferences_tool_declarations_and_saved_materials_are_in_budget) ... ok
+test_usage_calibration_counts_official_cache_but_not_ambiguous_compatibility_cache (test_context_budget.ContextBudgetTests.test_usage_calibration_counts_official_cache_but_not_ambiguous_compatibility_cache) ... ok
+test_web_startup_configuration_error_is_actionable (test_context_budget.ContextBudgetTests.test_web_startup_configuration_error_is_actionable) ... ok
+test_credentials_in_service_content_never_reach_the_model (test_agent.PlaceQueryTests.test_credentials_in_service_content_never_reach_the_model) ... ok
+test_discovery_reads_all_pages_and_preserves_detail_schema (test_agent.PlaceQueryTests.test_discovery_reads_all_pages_and_preserves_detail_schema) ... ok
+test_only_place_tools_are_available_and_forbidden_calls_are_rejected (test_agent.PlaceQueryTests.test_only_place_tools_are_available_and_forbidden_calls_are_rejected) ... ok
+test_place_query_returns_answer_and_grounded_tool_result (test_agent.PlaceQueryTests.test_place_query_returns_answer_and_grounded_tool_result) ... ok
+test_round_budget_stops_repeated_model_requests (test_agent.PlaceQueryTests.test_round_budget_stops_repeated_model_requests) ... ok
+test_separate_histories_do_not_share_user_conditions (test_agent.PlaceQueryTests.test_separate_histories_do_not_share_user_conditions) ... ok
+test_startup_refuses_a_service_without_place_tools (test_agent.PlaceQueryTests.test_startup_refuses_a_service_without_place_tools) ... ok
+test_timed_out_query_is_returned_as_an_error (test_agent.PlaceQueryTests.test_timed_out_query_is_returned_as_an_error) ... ok
+test_tool_budget_stops_a_batch_without_extra_calls (test_agent.PlaceQueryTests.test_tool_budget_stops_a_batch_without_extra_calls) ... ok
+test_invalid_saved_context_aborts_before_external_calls (test_agent.PlanningContractTests.test_invalid_saved_context_aborts_before_external_calls) ... ok
+test_record_abort_before_request_prevents_model_call_and_returns_no_result (test_agent.PlanningContractTests.test_record_abort_before_request_prevents_model_call_and_returns_no_result) ... ok
+test_result_contains_terminal_state_without_observer_and_frozen_save_material (test_agent.PlanningContractTests.test_result_contains_terminal_state_without_observer_and_frozen_save_material) ... ok
+test_terminal_observation_is_not_the_source_of_result_state (test_agent.PlanningContractTests.test_terminal_observation_is_not_the_source_of_result_state) ... ok
+test_128_tools_share_map_web_history_budget_and_failed_calls_count (test_call_budget.CallBudgetTests.test_128_tools_share_map_web_history_budget_and_failed_calls_count) ... HTTP Request: POST http://sources.test/mcp "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://sources.test/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/fbb297e2160a42418ec1baf68f56d703 "HTTP/1.1 200 OK"
+ok
+test_cli_uses_final_reserve_and_next_turn_resets (test_call_budget.CallBudgetTests.test_cli_uses_final_reserve_and_next_turn_resets) ... ok
+test_final_complete_input_is_checked_without_summary_or_recovery (test_call_budget.CallBudgetTests.test_final_complete_input_is_checked_without_summary_or_recovery) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 53116)>,)> is serving
+Executing <Task finished name='Task-565' coro=<TurnRuntime._run_turn() done, defined at /private/tmp/potato86-independent-use/source/travel_app/sessions/runtime.py:84> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.880 seconds
+HTTP Request: POST http://127.0.0.1:53116/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53116/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53116/api/sessions/c0e9261bf75a43c9865116f78e974e52 "HTTP/1.1 200 OK"
+ok
+test_final_failure_invalid_or_truncated_ends_without_retry (test_call_budget.CallBudgetTests.test_final_failure_invalid_or_truncated_ends_without_retry) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 53123)>,)> is serving
+Executing <Task finished name='Task-590' coro=<TurnRuntime._run_turn() done, defined at /private/tmp/potato86-independent-use/source/travel_app/sessions/runtime.py:84> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.397 seconds
+HTTP Request: POST http://127.0.0.1:53123/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53123/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53123/api/sessions/f182257b99284c5888ce717d8209bc83 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 53130)>,)> is serving
+Executing <Task finished name='Task-609' coro=<TurnRuntime._run_turn() done, defined at /private/tmp/potato86-independent-use/source/travel_app/sessions/runtime.py:84> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.441 seconds
+HTTP Request: POST http://127.0.0.1:53130/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53130/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53130/api/sessions/a707d7b5926d401aa5c3e9b0c25cdfb5 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 53137)>,)> is serving
+Executing <Task finished name='Task-628' coro=<TurnRuntime._run_turn() done, defined at /private/tmp/potato86-independent-use/source/travel_app/sessions/runtime.py:84> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.386 seconds
+HTTP Request: POST http://127.0.0.1:53137/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53137/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53137/api/sessions/bdd17bc4571f43319a6d0830e96b1a71 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 53144)>,)> is serving
+Executing <Task finished name='Task-647' coro=<TurnRuntime._run_turn() done, defined at /private/tmp/potato86-independent-use/source/travel_app/sessions/runtime.py:84> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.385 seconds
+HTTP Request: POST http://127.0.0.1:53144/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53144/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53144/api/sessions/00103b7ebc8c446abd09331e7e1c34dd "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 53151)>,)> is serving
+Executing <Task finished name='Task-666' coro=<TurnRuntime._run_turn() done, defined at /private/tmp/potato86-independent-use/source/travel_app/sessions/runtime.py:84> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.444 seconds
+HTTP Request: POST http://127.0.0.1:53151/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53151/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53151/api/sessions/91aa9b64767941af9b31ca5f6d85603a "HTTP/1.1 200 OK"
+ok
+test_final_start_storage_failure_preserves_saved_material_without_dispatch_or_replay (test_call_budget.CallBudgetTests.test_final_start_storage_failure_preserves_saved_material_without_dispatch_or_replay) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 53158)>,)> is serving
+HTTP Request: POST http://127.0.0.1:53158/api/turns "HTTP/1.1 202 Accepted"
+Executing <Task pending name='Task-691' coro=<TurnRuntime._run_turn() running at /private/tmp/potato86-independent-use/source/travel_app/sessions/runtime.py:86> wait_for=<Future pending cb=[Task.task_wakeup()] created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py:460> created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.459 seconds
+HTTP Request: GET http://127.0.0.1:53158/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53158/api/sessions/795030fc13124f19b2a7cda4e62260cc "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 53165)>,)> is serving
+HTTP Request: GET http://127.0.0.1:53165/api/sessions/795030fc13124f19b2a7cda4e62260cc "HTTP/1.1 200 OK"
+ok
+test_model_request_63_does_not_dispatch_and_64_summarizes_then_restart_resets (test_call_budget.CallBudgetTests.test_model_request_63_does_not_dispatch_and_64_summarizes_then_restart_resets) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 53168)>,)> is serving
+Executing <Task finished name='Task-714' coro=<TurnRuntime._run_turn() done, defined at /private/tmp/potato86-independent-use/source/travel_app/sessions/runtime.py:84> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.426 seconds
+HTTP Request: POST http://127.0.0.1:53168/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53168/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53168/api/sessions/30e5bbd85fb74026825b29b11a2ded47 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 53177)>,)> is serving
+HTTP Request: GET http://127.0.0.1:53177/api/sessions/30e5bbd85fb74026825b29b11a2ded47 "HTTP/1.1 200 OK"
+Executing <Task finished name='Task-735' coro=<TurnRuntime._run_turn() done, defined at /private/tmp/potato86-independent-use/source/travel_app/sessions/runtime.py:84> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.122 seconds
+HTTP Request: POST http://127.0.0.1:53177/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53177/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53177/api/sessions/30e5bbd85fb74026825b29b11a2ded47 "HTTP/1.1 200 OK"
+ok
+test_retries_and_recovery_summary_share_actual_requests_and_reserve_final (test_call_budget.CallBudgetTests.test_retries_and_recovery_summary_share_actual_requests_and_reserve_final) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 53186)>,)> is serving
+HTTP Request: POST http://127.0.0.1:53186/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53186/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53186/api/sessions/f143e36cac064bdd80542cfd0fc6bf6f "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:53186/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53186/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53186/api/sessions/f143e36cac064bdd80542cfd0fc6bf6f "HTTP/1.1 200 OK"
+ok
+test_stop_inflight_final_request_keeps_slot_and_failure_facts (test_call_budget.CallBudgetTests.test_stop_inflight_final_request_keeps_slot_and_failure_facts) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 53199)>,)> is serving
+Executing <Task pending name='Task-801' coro=<TurnRuntime._run_turn() running at /private/tmp/potato86-independent-use/source/travel_app/sessions/runtime.py:86> wait_for=<Future pending cb=[Task.task_wakeup()] created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py:460> created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.434 seconds
+HTTP Request: POST http://127.0.0.1:53199/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://127.0.0.1:53199/api/turns/26c23d35ed324b488e038d6570991351/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53199/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:53199/api/turns "HTTP/1.1 409 Conflict"
+HTTP Request: GET http://127.0.0.1:53199/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53199/api/sessions/fc7c94c65e7941bfb66cfbbe0d1104e5 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53199/api/state "HTTP/1.1 200 OK"
+ok
+test_summary_at_request_63_cannot_take_final_reserve_or_recover (test_call_budget.CallBudgetTests.test_summary_at_request_63_cannot_take_final_reserve_or_recover) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 53214)>,)> is serving
+HTTP Request: POST http://127.0.0.1:53214/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53214/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53214/api/sessions/eacb7a6c7dce4db18c99030660d8dd4a "HTTP/1.1 200 OK"
+Executing <Task finished name='Task-850' coro=<TurnRuntime._run_turn() done, defined at /private/tmp/potato86-independent-use/source/travel_app/sessions/runtime.py:84> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 1.425 seconds
+HTTP Request: POST http://127.0.0.1:53214/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53214/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53214/api/sessions/eacb7a6c7dce4db18c99030660d8dd4a "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 53227)>,)> is serving
+HTTP Request: POST http://127.0.0.1:53227/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53227/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53227/api/sessions/5ed593902aa54cc694cfa4cc3558e364 "HTTP/1.1 200 OK"
+Executing <Task finished name='Task-885' coro=<TurnRuntime._run_turn() done, defined at /private/tmp/potato86-independent-use/source/travel_app/sessions/runtime.py:84> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 1.510 seconds
+HTTP Request: POST http://127.0.0.1:53227/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53227/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53227/api/sessions/5ed593902aa54cc694cfa4cc3558e364 "HTTP/1.1 200 OK"
+ok
+
+----------------------------------------------------------------------
+Ran 40 tests in 15.513s
+
+OK

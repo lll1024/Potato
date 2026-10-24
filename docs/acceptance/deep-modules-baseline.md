@@ -16,7 +16,9 @@ git archive --format=tar --output=/tmp/potato-80-baseline.tar 4e01678fdb036f034d
 mkdir -p /tmp/potato-80-baseline
 tar -xf /tmp/potato-80-baseline.tar -C /tmp/potato-80-baseline
 cp -R frontend/dist /tmp/potato-80-baseline/frontend/dist
+git show 81ed92f:tests/compatibility/entrypoint.py > /tmp/potato-80-entrypoint.py
 PYTHONPATH=tests .venv/bin/python -m compatibility.capture \
+  --entrypoint /tmp/potato-80-entrypoint.py \
   --root /tmp/potato-80-baseline \
   --source-commit 4e01678fdb036f034d72a858fadb226ea239a0c1 \
   --output /tmp/potato-80-regenerated

@@ -1,0 +1,63 @@
+{
+  "before": [
+    {
+      "module": "travel_app.planning",
+      "name": "plan",
+      "public_entry": "/Users/jarviliu/projects/travel/travel_app/planning/__init__.py",
+      "in_all": true,
+      "entry_sha256": "22116d6560f9afaeee1bbbedb72afb50781d5dd9e2ed24142c1b27b8b1710906"
+    },
+    {
+      "module": "travel_app.planning",
+      "name": "ContextPolicy",
+      "public_entry": "/Users/jarviliu/projects/travel/travel_app/planning/__init__.py",
+      "in_all": false,
+      "entry_sha256": "22116d6560f9afaeee1bbbedb72afb50781d5dd9e2ed24142c1b27b8b1710906"
+    },
+    {
+      "module": "travel_app.retrieval",
+      "name": "Retrieval",
+      "public_entry": "/Users/jarviliu/projects/travel/travel_app/retrieval/__init__.py",
+      "in_all": true,
+      "entry_sha256": "5f3c4523bc98d73b706d59db3a992cba57d947920fc0ac57d81d07165bd4d33b"
+    },
+    {
+      "module": "travel_app.local_records",
+      "name": "LocalRecords",
+      "public_entry": "/Users/jarviliu/projects/travel/travel_app/local_records/__init__.py",
+      "in_all": true,
+      "entry_sha256": "50039c99511bcee23b38d7f142d232a281eb782f5214fd60f8692c725512a89f"
+    }
+  ],
+  "after": [
+    {
+      "module": "travel_app.planning",
+      "name": "plan",
+      "public_entry": "/Users/jarviliu/projects/travel/travel_app/planning/__init__.py",
+      "in_all": true,
+      "entry_sha256": "22116d6560f9afaeee1bbbedb72afb50781d5dd9e2ed24142c1b27b8b1710906"
+    },
+    {
+      "module": "travel_app.context",
+      "name": "ContextPolicy",
+      "public_entry": "/Users/jarviliu/projects/travel/travel_app/context/__init__.py",
+      "in_all": true,
+      "entry_sha256": "6a9f00ff3e4d6fa69400fcd40f71dc62b5807a5a17e4ce01bf45664aa38a9f42"
+    },
+    {
+      "module": "travel_app.retrieval",
+      "name": "Retrieval",
+      "public_entry": "/Users/jarviliu/projects/travel/travel_app/retrieval/__init__.py",
+      "in_all": true,
+      "entry_sha256": "5f3c4523bc98d73b706d59db3a992cba57d947920fc0ac57d81d07165bd4d33b"
+    },
+    {
+      "module": "travel_app.local_records",
+      "name": "LocalRecords",
+      "public_entry": "/Users/jarviliu/projects/travel/travel_app/local_records/__init__.py",
+      "in_all": true,
+      "entry_sha256": "50039c99511bcee23b38d7f142d232a281eb782f5214fd60f8692c725512a89f"
+    }
+  ],
+  "passed": true
+}

@@ -4,15 +4,14 @@ import json
 import tempfile
 import unittest
 
-import test_preferences as support
-from test_preferences import Clock, PreferenceModel
+from preference_fixtures import PreferenceHarness as support, Clock, PreferenceModel
 
 
 class ManagementTests(unittest.IsolatedAsyncioTestCase):
     def service(self, directory, model, clock):
-        return support.PreferenceTests().service(directory, model, clock)
+        return support().service(directory, model, clock)
 
-    finish = support.PreferenceTests.finish
+    finish = support.finish
 
     async def test_edit_is_versioned_persistent_and_immediately_used_in_new_conversations(self):
         model, clock = PreferenceModel(), Clock()
@@ -151,7 +150,7 @@ class ManagementTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn(pending['turn_id'], [i['turn_id'] for i in json.loads(extracts[-1]['messages'][0]['content'])['new_inputs']])
 
     async def test_manual_edit_resolves_saved_ambiguity_persistently(self):
-        from test_preference_changes import ChangesModel, add, targeted
+        from preference_fixtures import ChangesModel, add, targeted
         model, clock = ChangesModel(), Clock()
         model.suggest = lambda payload: {'changes': [add(payload)]}
         with tempfile.TemporaryDirectory() as directory:
@@ -172,7 +171,7 @@ class ManagementTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual([p['content'] for p in state['preferences']], ['喜欢清淡口味'])
 
     async def test_late_targeted_update_and_ambiguity_cannot_undo_management(self):
-        from test_preference_changes import ChangesModel, add, targeted
+        from preference_fixtures import ChangesModel, add, targeted
         for management in ('edit', 'delete'):
             for operation in ('update', 'ambiguity'):
                 with self.subTest(management=management, operation=operation):

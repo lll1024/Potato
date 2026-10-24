@@ -9,7 +9,8 @@ import unittest
 
 import httpx
 
-from test_recovery import ExternalServices, free_port
+from process_fixtures import ExternalServices, free_port
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -49,7 +50,7 @@ class WebEntrypointTests(unittest.IsolatedAsyncioTestCase):
                         self.assertNotIn('KeyboardInterrupt', output)
                         self.assertNotIn('test-key', output)
                     # 同目录重新打开，证明锁已释放，已保存终局不恢复为未知。
-                    from test_recovery import process
+                    from process_fixtures import process
                     async with process(directory, url) as (_, client, _):
                         saved = (await client.get('/api/sessions/' + accepted['session_id'])).json()
                         self.assertEqual(saved['turns'][0]['status'], 'completed')

@@ -16,10 +16,12 @@ from mcp.types import CallToolResult, CONNECTION_CLOSED, HEADER_MISMATCH, TextCo
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
-from planning_fixtures import agent_loop
+from travel_app.planning import plan
+from travel_app.local_records import PlanningSeed
 from travel_app.planning import run_cli
 from travel_app.retrieval import MapHTTPClient as AmapHTTPClient
 from travel_app.retrieval import Retrieval
+
 from service_fixtures import cli_retrieval, ModelService, response
 
 
@@ -42,10 +44,11 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
                 async with Client(streamable_http_client("http://127.0.0.1:8000/mcp", http_client=http_client)) as client:
                     tools = Retrieval(client, http_client=http_client)
                     await tools.discover()
-                    answer = await agent_loop(
-                        [{"role": "user", "content": "查杭州西湖"}],
-                        cast(AsyncAnthropic, model), tools, "test-model",
+                    planning_result = await plan(
+                        '查杭州西湖', cast(AsyncAnthropic, model), tools, "test-model",
+                        seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
                     )
+                    answer = planning_result.answer
                     self.assertEqual(tools.capabilities.map_status, "")
 
         self.assertIn("杭州市西湖区", answer)
@@ -99,8 +102,12 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
                         async with Client(transport) as client:
                             tools = Retrieval(client, tool_timeout=0.1, http_client=http_client)
                             await tools.discover()
-                            answer = await agent_loop(history, cast(AsyncAnthropic, model), tools,
-                                                      "test-model")
+                            planning_result = await plan(
+                                history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+                                seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+                            )
+                            answer = planning_result.answer
+                            history[:] = json.loads(planning_result.material.messages_json)
 
                 self.assertEqual(len(sent), 2)
                 self.assertIn("地图查询已暂停", answer)
@@ -181,8 +188,12 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
                 async with Client(transport) as client:
                     tools = Retrieval(client)
                     await tools.discover()
-                    await agent_loop(history, cast(AsyncAnthropic, model), tools,
-                                     "test-model", max_tool_calls=1)
+                    planning_result = await plan(
+                        history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+                        seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+                        max_tool_calls=1,
+                    )
+                    history[:] = json.loads(planning_result.material.messages_json)
 
         self.assertEqual(len(tool_requests), 1)
         self.assertTrue(history[-2]["content"][0]["is_error"])
@@ -263,10 +274,11 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
         async with Client(server) as client:
             tools = Retrieval(client)
             await tools.discover()
-            answer = await agent_loop(
-                [{"role": "user", "content": "查询杭州三天每天三个地点的详情"}],
-                cast(AsyncAnthropic, model), tools, "test-model",
+            planning_result = await plan(
+                '查询杭州三天每天三个地点的详情', cast(AsyncAnthropic, model), tools, "test-model",
+                seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
             )
+            answer = planning_result.answer
 
         self.assertEqual(len(calls), 18)
         self.assertEqual(len(model.requests), 7)
@@ -350,10 +362,11 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
         async with Client(server) as client:
             tools = Retrieval(client)
             await tools.discover()
-            answer = await agent_loop(
-                [{"role": "user", "content": "查询杭州西湖的详情"}],
-                cast(AsyncAnthropic, model), tools, "test-model",
+            planning_result = await plan(
+                '查询杭州西湖的详情', cast(AsyncAnthropic, model), tools, "test-model",
+                seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
             )
+            answer = planning_result.answer
 
         self.assertIn("杭州市西湖区", answer)
         self.assertEqual(
@@ -387,10 +400,11 @@ class SDKIntegrationTests(unittest.IsolatedAsyncioTestCase):
                 async with Client(transport, read_timeout_seconds=2) as client:
                     tools = Retrieval(client)
                     await tools.discover()
-                    answer = await agent_loop(
-                        [{"role": "user", "content": "查询杭州西湖"}],
-                        cast(AsyncAnthropic, model), tools, "test-model",
+                    planning_result = await plan(
+                        '查询杭州西湖', cast(AsyncAnthropic, model), tools, "test-model",
+                        seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
                     )
+                    answer = planning_result.answer
 
         self.assertTrue(http_client.is_closed)
         self.assertIn("杭州市西湖区", answer)

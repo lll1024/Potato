@@ -9,11 +9,11 @@ from anthropic import AsyncAnthropic
 from anthropic.types import Message
 from mcp import Client
 
-from travel_app.retrieval import Retrieval
-from planning_fixtures import agent_loop
 from travel_app.planning import plan
-from travel_app.context import PlanningSeed, RecordAbort
+from travel_app.local_records import PlanningSeed
+from travel_app.retrieval import Retrieval
 
+from travel_app.context import RecordAbort
 
 from service_fixtures import MapService, ModelService, response
 
@@ -34,9 +34,12 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
         )
         history = [{"role": "user", "content": "查询杭州的西湖"}]
 
-        answer = await agent_loop(
-            history, cast(AsyncAnthropic, model), tools, "test-model"
+        planning_result = await plan(
+            history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
         )
+        answer = planning_result.answer
+        history[:] = json.loads(planning_result.material.messages_json)
 
         self.assertEqual(answer, "查到西湖，地址为杭州市西湖区。")
         declaration = model.requests[0]["tools"][0]
@@ -68,9 +71,9 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
             response([{"type": "text", "text": "只能使用已开放的地点查询工具。"}]),
         ])
 
-        await agent_loop(
-            [{"role": "user", "content": "运行命令"}],
-            cast(AsyncAnthropic, model), tools, "test-model",
+        planning_result = await plan(
+            '运行命令', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
         )
 
         self.assertEqual(
@@ -88,13 +91,13 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
             response([{"type": "text", "text": "请提供上海的地点关键词。"}]),
         ])
 
-        await agent_loop(
-            [{"role": "user", "content": "我在杭州"}],
-            cast(AsyncAnthropic, model), tools, "test-model",
+        planning_result = await plan(
+            '我在杭州', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
         )
-        await agent_loop(
-            [{"role": "user", "content": "我在上海"}],
-            cast(AsyncAnthropic, model), tools, "test-model",
+        planning_result = await plan(
+            '我在上海', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
         )
 
         self.assertNotIn("杭州", json.dumps(model.requests[1]["messages"], ensure_ascii=False))
@@ -108,10 +111,12 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
              "input": {"keywords": "西湖", "city": "杭州"}}
         ], "tool_use")])
 
-        answer = await agent_loop(
-            [{"role": "user", "content": "查询西湖"}],
-            cast(AsyncAnthropic, model), tools, "test-model", max_rounds=1,
+        planning_result = await plan(
+            '查询西湖', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
+            max_rounds=1,
         )
+        answer = planning_result.answer
 
         self.assertEqual(len(model.requests), 1)
         self.assertIn("上限", answer)
@@ -148,9 +153,9 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
         await tools.discover()
         model = ModelService([response([{"type": "text", "text": "请输入地点。"}])])
 
-        await agent_loop(
-            [{"role": "user", "content": "查询地点"}],
-            cast(AsyncAnthropic, model), tools, "test-model",
+        planning_result = await plan(
+            '查询地点', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
         )
 
         declarations = model.requests[0]["tools"]
@@ -177,9 +182,13 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
         ], "tool_use"), response([{"type": "text", "text": "只整理已取得地点，另一个查询未执行。"}])])
         history = [{"role": "user", "content": "查询西湖"}]
 
-        answer = await agent_loop(
-            history, cast(AsyncAnthropic, model), tools, "test-model", max_tool_calls=1
+        planning_result = await plan(
+            history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+            max_tool_calls=1,
         )
+        answer = planning_result.answer
+        history[:] = json.loads(planning_result.material.messages_json)
 
         self.assertEqual(service.calls, 1)
         self.assertEqual(len(model.requests), 2)
@@ -203,10 +212,11 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
             response([{"type": "text", "text": "地点查询超时，结果待核实。"}]),
         ])
 
-        answer = await agent_loop(
-            [{"role": "user", "content": "查询杭州西湖"}],
-            cast(AsyncAnthropic, model), tools, "test-model",
+        planning_result = await plan(
+            '查询杭州西湖', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
         )
+        answer = planning_result.answer
 
         result = model.requests[1]["messages"][-1]["content"][0]
         self.assertTrue(result["is_error"])
@@ -237,9 +247,9 @@ class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
             response([{"type": "text", "text": "地图服务暂时不可用。"}]),
         ])
 
-        await agent_loop(
-            [{"role": "user", "content": "查询杭州西湖"}],
-            cast(AsyncAnthropic, model), tools, "test-model",
+        planning_result = await plan(
+            '查询杭州西湖', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
         )
 
         self.assertNotIn(key, json.dumps(model.requests))

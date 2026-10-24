@@ -4,8 +4,10 @@ import json
 import tempfile
 import unittest
 
+from travel_app.planning import plan
+from travel_app.local_records import PlanningSeed
 from service_fixtures import cli_retrieval, ModelService, response
-from test_trace import serving, wait_finished
+from http_fixtures import serving, wait_finished
 
 
 def call(name, arguments, identifier="history"):
@@ -180,7 +182,7 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
         from anthropic import AsyncAnthropic
         from mcp import Client
         from travel_app.retrieval import Retrieval
-        from planning_fixtures import agent_loop
+
         from service_fixtures import MapService
         class CountingMap(MapService):
             def __init__(self):
@@ -198,7 +200,12 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
         events = []
         async def observe(kind, data):
             events.append((kind, data))
-        await agent_loop([{"role": "user", "content": "酒店"}], cast(AsyncAnthropic, model), tools, "test-model", max_tool_calls=1, observer=observe)
+        planning_result = await plan(
+            '酒店', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
+            max_tool_calls=1,
+            observer=observe,
+        )
         self.assertEqual(external.calls, [])
         statuses = [kind for kind, data in events if kind in ("tool.completed", "tool.not_executed")]
         self.assertEqual(statuses, ["tool.completed", "tool.not_executed"])
@@ -213,7 +220,7 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
         from mcp.server import MCPServer
         from travel_app.retrieval import Retrieval
         from service_fixtures import MapService
-        from test_source_failures import finished
+        from source_fixtures import finished
         from travel_app.sessions import Runtime, create_app
         sources = MCPServer("历史资料边界")
         @sources.tool(name="web_search_exa")
@@ -257,7 +264,7 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
         from anthropic import AsyncAnthropic
         from mcp import Client
         from travel_app.retrieval import Retrieval
-        from planning_fixtures import agent_loop
+
         from service_fixtures import MapService
         class CountingMap(MapService):
             def __init__(self):
@@ -271,5 +278,9 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
         proposed = [{"type": "tool_use", "id": f"recall-{index}", "name": "session_history_search", "input": {"query": "酒店"}} for index in range(10)]
         proposed.append({"type": "tool_use", "id": "map", "name": "maps_text_search", "input": {"keywords": "酒店", "city": "杭州"}})
         model = ModelService([response(proposed, "tool_use")])
-        await agent_loop([{"role": "user", "content": "酒店"}], cast(AsyncAnthropic, model), tools, "test-model", max_tool_calls=9)
+        planning_result = await plan(
+            '酒店', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
+            max_tool_calls=9,
+        )
         self.assertEqual(external.calls, ["maps_text_search"])

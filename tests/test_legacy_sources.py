@@ -5,8 +5,9 @@ import tempfile
 import unittest
 
 from travel_app.local_records import LocalRecords as Store, TurnMaterial
+
 from service_fixtures import ModelService, response
-from test_source_failures import SourceService, finished
+from source_fixtures import SourceService, finished
 
 
 class LegacySourceTests(unittest.IsolatedAsyncioTestCase):

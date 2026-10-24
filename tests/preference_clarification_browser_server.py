@@ -1,6 +1,5 @@
 """正式页面的歧义新轮次验收；模型为可控外部替身。"""
 import asyncio
-import json
 from pathlib import Path
 import socket
 import sys
@@ -14,10 +13,10 @@ import uvicorn
 from anthropic import AsyncAnthropic
 from mcp import Client
 from travel_app.retrieval import Retrieval
-from service_fixtures import MapService, response
-from test_preference_changes import ChangesModel, add, targeted
-from test_preferences import Clock
 from travel_app.sessions import Runtime, create_app
+
+from service_fixtures import MapService, response
+from preference_fixtures import ChangesModel, add, targeted, Clock
 
 
 async def main():

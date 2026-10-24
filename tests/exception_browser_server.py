@@ -15,10 +15,11 @@ from anthropic import AsyncAnthropic
 from mcp import Client
 
 from travel_app.retrieval import Retrieval
-from service_fixtures import response
-from test_exception_experience import FailingAfterTools, call
-from test_itinerary import ItineraryMapService, map_result
 from travel_app.sessions import Runtime, create_app
+
+from service_fixtures import response
+from model_fixtures import FailingAfterTools, call
+from itinerary_fixtures import ItineraryMapService, map_result
 
 
 async def main():

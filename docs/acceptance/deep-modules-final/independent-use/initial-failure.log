@@ -1,0 +1,59 @@
+{
+  "kind": "tool.pending",
+  "data": {
+    "tool_call_id": "38bd3a9656824b5fa5b5f3e0e0792cef",
+    "request_id": "155e0c420e3243a1b7eec6a89e8064ef",
+    "ordinal": 1,
+    "tool_use_id": "local-query-1",
+    "name": "maps_text_search",
+    "arguments": {
+      "keywords": "西湖",
+      "city": "杭州"
+    },
+    "status": "pending",
+    "proposed_at": "2026-10-24T01:30:05.149977+00:00",
+    "call_started": false,
+    "call_duration_ms": null,
+    "wait_duration_ms": null,
+    "total_duration_ms": null
+  }
+}
+{
+  "kind": "tool.running",
+  "data": {
+    "status": "running",
+    "call_started": true,
+    "call_started_at": "2026-10-24T01:30:05.150476+00:00",
+    "started_at": "2026-10-24T01:30:05.150467+00:00",
+    "wait_duration_ms": 0.006417278200387955,
+    "tool_call_id": "38bd3a9656824b5fa5b5f3e0e0792cef",
+    "request_id": "155e0c420e3243a1b7eec6a89e8064ef"
+  }
+}
+{
+  "kind": "tool.failed",
+  "data": {
+    "started_at": "2026-10-24T01:30:05.150467+00:00",
+    "call_started": true,
+    "wait_duration_ms": 0.006417278200387955,
+    "call_duration_ms": 0.006250105798244476,
+    "service": null,
+    "error": {
+      "category": "AttributeError",
+      "message": "'ScriptedMCP' object has no attribute 'session'"
+    },
+    "call_finished_at": "2026-10-24T01:30:05.150842+00:00",
+    "finished_at": "2026-10-24T01:30:05.150853+00:00",
+    "total_duration_ms": 0.38837501779198647,
+    "failure_category": "error",
+    "reason": null,
+    "result": {
+      "type": "tool_result",
+      "tool_use_id": "local-query-1",
+      "content": "地图查询失败，请检查参数或服务状态，结果待核实。",
+      "is_error": true
+    },
+    "tool_call_id": "38bd3a9656824b5fa5b5f3e0e0792cef",
+    "request_id": "155e0c420e3243a1b7eec6a89e8064ef"
+  }
+}

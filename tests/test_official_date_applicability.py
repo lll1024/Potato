@@ -12,15 +12,15 @@ from mcp import Client
 from mcp.server import MCPServer
 
 from travel_app.retrieval import Retrieval
+from travel_app.sessions import Runtime, create_app
+
 from exa_fixtures import source_text
 from service_fixtures import MapService, ModelService, response
-import test_history
-from test_travel_dates import context_from_request
-from travel_app.sessions import Runtime, create_app
+from date_fixtures import HistoryHarness, context_from_request
 
 
 class OfficialDateApplicabilityTests(unittest.IsolatedAsyncioTestCase):
-    finish = test_history.HistoryTests.finish
+    finish = HistoryHarness.finish
     moment = datetime.fromisoformat("2026-10-09T23:59:59+08:00")
 
     @asynccontextmanager

@@ -1,6 +1,6 @@
 """通过查询循环和公开持久接口验证模型请求重试。"""
+import json
 import asyncio
-import copy
 from email.utils import formatdate
 from datetime import datetime
 import unittest
@@ -9,32 +9,17 @@ from unittest.mock import AsyncMock, patch
 from typing import cast
 
 import httpx2
-from anthropic import APIConnectionError, APIStatusError, APITimeoutError, AsyncAnthropic
+from anthropic import APITimeoutError, AsyncAnthropic
 from mcp import Client
 
-from planning_fixtures import agent_loop
+from travel_app.planning import plan
+from travel_app.local_records import PlanningSeed
 from travel_app.retrieval import Retrieval
+
 from service_fixtures import MapService, ModelService, response
-from test_trace import serving, wait_finished
-from test_storage import fail_event, wait_state
-
-
-class RetryModel(ModelService):
-    async def create(self, **parameters):
-        self.requests.append(copy.deepcopy(parameters))
-        reply = next(self.replies)
-        if isinstance(reply, Exception):
-            raise reply
-        return reply
-
-
-def connection_error():
-    return APIConnectionError(request=httpx2.Request("POST", "https://model.example.test"))
-
-
-def status_error(status, body=None, headers=None):
-    return APIStatusError("provider failed", response=httpx2.Response(status,
-        request=httpx2.Request("POST", "https://model.example.test"), headers=headers), body=body)
+from http_fixtures import serving, wait_finished, wait_state
+from record_faults import fail_event
+from model_fixtures import RetryModel, connection_error, status_error
 
 
 class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
@@ -63,8 +48,14 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
             events.append((kind, data))
 
         messages = [{"role": "user", "content": "帮我规划明天旅行"}]
-        answer = await agent_loop(messages, cast(AsyncAnthropic, model), tools, "test-model",
-                                  max_rounds=1, observer=observe)
+        planning_result = await plan(
+            messages[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps(messages[:-1], ensure_ascii=False)),
+            max_rounds=1,
+            observer=observe,
+        )
+        answer = planning_result.answer
+        messages[:] = json.loads(planning_result.material.messages_json)
         self.assertEqual(answer, "请提供城市。")
         self.assertEqual(model.requests[0], model.requests[1])
         self.assertEqual([item["role"] for item in messages], ["user", "assistant"])
@@ -106,8 +97,11 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
                     events.append((kind, data))
 
                 with patch("asyncio.sleep", new_callable=AsyncMock):
-                    await agent_loop([{"role": "user", "content": "查地点"}],
-                        cast(AsyncAnthropic, model), tools, "test", observer=observe)
+                    planning_result = await plan(
+                        '查地点', cast(AsyncAnthropic, model), tools, "test",
+                        seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
+                        observer=observe,
+                    )
                 failure = next(data["error"] for kind, data in events if kind == "request.failed")
                 self.assertEqual(failure["code"], code)
                 self.assertEqual(len(model.requests), 2 if retried else 1)
@@ -125,8 +119,10 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
                 with patch("travel_app.model_retry.time.time", return_value=2000), \
                      patch("travel_app.model_retry.random.random", return_value=0.5), \
                      patch("asyncio.sleep", new_callable=AsyncMock) as sleep:
-                    await agent_loop([{"role": "user", "content": "查地点"}],
-                                     cast(AsyncAnthropic, model), tools, "test")
+                    planning_result = await plan(
+                        '查地点', cast(AsyncAnthropic, model), tools, "test",
+                        seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
+                    )
                 self.assertEqual([call.args[0] for call in sleep.await_args_list], [] if delay is None else [delay])
                 self.assertEqual(len(model.requests), 1 if delay is None else 2)
 
@@ -135,8 +131,11 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
         tools = Retrieval(cast(Client, MapService()))
         await tools.discover()
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            answer = await agent_loop([{"role": "user", "content": "查地点"}],
-                                     cast(AsyncAnthropic, model), tools, "test")
+            planning_result = await plan(
+                '查地点', cast(AsyncAnthropic, model), tools, "test",
+                seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
+            )
+            answer = planning_result.answer
         self.assertEqual(answer, "已恢复")
         self.assertEqual(model.requests[0], model.requests[1])
 
@@ -178,8 +177,12 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
 
             with patch("travel_app.model_retry.random.random", return_value=random_value), \
                  patch("asyncio.sleep", new_callable=AsyncMock) as sleep:
-                await agent_loop([{"role": "user", "content": "查地点"}],
-                    cast(AsyncAnthropic, model), tools, "test", max_rounds=1, observer=observe)
+                planning_result = await plan(
+                    '查地点', cast(AsyncAnthropic, model), tools, "test",
+                    seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
+                    max_rounds=1,
+                    observer=observe,
+                )
             self.assertEqual(len(model.requests), 6)
             self.assertEqual([call.args[0] for call in sleep.await_args_list], delays)
             self.assertEqual(events[-1][1]["status"], "failed")
@@ -199,9 +202,15 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
             return datetime.fromisoformat("2026-10-12T23:59:59+08:00")
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            answer = await agent_loop([{"role": "user", "content": "明天查杭州西湖"}],
-                cast(AsyncAnthropic, model), tools, "test", max_rounds=2, max_tool_calls=2,
-                clock=clock, preference_background="住宿喜好：经济型酒店")
+            planning_result = await plan(
+                '明天查杭州西湖', cast(AsyncAnthropic, model), tools, "test",
+                seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
+                max_rounds=2,
+                max_tool_calls=2,
+                clock=clock,
+                preference_background="住宿喜好：经济型酒店",
+            )
+            answer = planning_result.answer
         self.assertEqual(answer, "西湖")
         self.assertEqual(dates, ["read"])
         self.assertEqual(len(model.requests), 12)
@@ -223,8 +232,12 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
                         stop.set()
 
                 model = RetryModel([connection_error()])
-                await agent_loop([{"role": "user", "content": "查地点"}],
-                    cast(AsyncAnthropic, model), tools, "test", observer=observe, stop_requested=stop)
+                planning_result = await plan(
+                    '查地点', cast(AsyncAnthropic, model), tools, "test",
+                    seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
+                    observer=observe,
+                    stop_requested=stop,
+                )
                 self.assertEqual(len(model.requests), 1)
                 self.assertEqual(events[-1][1]["reason"], "model_error" if boundary == "request.failed" else "user_stop")
 

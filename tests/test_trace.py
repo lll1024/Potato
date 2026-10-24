@@ -1,60 +1,13 @@
 """从公开 HTTP/SSE 验证真实查询循环的模型执行轨迹。"""
 import asyncio
 import json
-import socket
 import tempfile
 import unittest
-from contextlib import asynccontextmanager
-from typing import cast
 
-import httpx
 import httpx2
-import uvicorn
-from anthropic import AsyncAnthropic
-from mcp import Client
 
-from travel_app.retrieval import Retrieval
-from service_fixtures import MapService, ModelService, response
-from travel_app.sessions import Runtime, create_app
-
-
-@asynccontextmanager
-async def serving(directory, model, *, maps=None, sources=None):
-    @asynccontextmanager
-    async def resources():
-        tools = Retrieval(cast(Client, maps if maps is not None else MapService()), api_key="known-secret")
-        await tools.discover()
-        if sources is not None:
-            tools = Retrieval(cast(Client, maps if maps is not None else MapService()), source_client=cast(Client, sources), api_key="known-secret", source_interval=0)
-            await tools.discover()
-            yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
-        else:
-            yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
-    app = create_app(directory, resources=resources)
-    sock = socket.socket()
-    sock.bind(("127.0.0.1", 0))
-    port = sock.getsockname()[1]
-    server = uvicorn.Server(uvicorn.Config(app, log_level="critical", access_log=False))
-    task = asyncio.create_task(server.serve(sockets=[sock]))
-    try:
-        while not server.started and not task.done():
-            await asyncio.sleep(0)
-        async with httpx.AsyncClient(base_url=f"http://127.0.0.1:{port}") as client:
-            yield client
-    finally:
-        server.should_exit = True
-        await task
-        sock.close()
-
-
-async def wait_finished(client, session_id, turn_id=None):
-    async with client.stream("GET", "/api/events?after=0") as stream:
-        async for line in stream.aiter_lines():
-            if line.startswith("data:"):
-                event = json.loads(line[5:])
-                if event.get("session_id") == session_id and event["kind"] == "turn.finished" and (turn_id is None or event["turn_id"] == turn_id):
-                    return (await client.get("/api/sessions/" + session_id)).json()
-    raise AssertionError("没有收到轮次结束事件")
+from service_fixtures import ModelService, response
+from http_fixtures import serving, wait_finished
 
 
 class ModelTraceTests(unittest.IsolatedAsyncioTestCase):

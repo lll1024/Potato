@@ -10,15 +10,15 @@ from anthropic import AsyncAnthropic
 from mcp import Client
 
 from travel_app.retrieval import Retrieval
-from service_fixtures import MapService
-import test_preferences
-from test_preferences import Clock, PreferenceModel
-from test_travel_dates import context_from_request
 from travel_app.sessions import Runtime, create_app
+
+from service_fixtures import MapService
+from preference_fixtures import PreferenceHarness, Clock, PreferenceModel
+from date_fixtures import context_from_request
 
 
 class IntegratedTravelContextTests(unittest.IsolatedAsyncioTestCase):
-    finish = test_preferences.PreferenceTests.finish
+    finish = PreferenceHarness.finish
 
     async def test_saved_preferences_and_trip_dates_survive_restart_with_sources_unavailable(self):
         model, idle_clock = PreferenceModel(), Clock()

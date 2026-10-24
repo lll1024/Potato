@@ -1,0 +1,14 @@
+
+> travel-local-ui@0.1.0 build
+> tsc -b && vite build
+
+vite v8.3.3 building client environment for production...
+transforming...
+✓ 296 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.41 kB │ gzip:   0.30 kB
+dist/assets/index-DdEmltrc.css   23.48 kB │ gzip:   5.49 kB
+dist/assets/index-CgWRvkbf.js   419.00 kB │ gzip: 130.27 kB
+
+✓ built in 95ms

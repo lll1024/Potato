@@ -5,9 +5,10 @@ import unittest
 from unittest.mock import patch
 
 from service_fixtures import cli_retrieval, response
-from test_context_summary import submit, summary_response
-from test_model_retry import RetryModel, status_error
-from test_trace import serving
+from context_fixtures import submit, summary_response
+from model_fixtures import RetryModel, status_error
+from http_fixtures import serving
+
 
 ENV = {"CONTEXT_COMPACTION_ENABLED": "true", "MODEL_CONTEXT_WINDOW": "100000"}
 OLD = "2026-10-18 杭州旅行，预算3000元，指定西湖酒店。" + "史" * 3900
@@ -72,7 +73,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual([r["attempt"] for r in travels], list(range(1, 8)))
 
     async def test_recovery_does_not_repeat_completed_map_queries(self):
-        from test_context_incremental import LargeMaps
+        from context_fixtures import LargeMaps
         class CountingMaps(LargeMaps):
             def __init__(self):
                 self.calls = 0
@@ -97,7 +98,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_stop_inflight_recovery_summary_preserves_real_usage_and_skips_retry(self):
         import asyncio
-        from test_trace import wait_finished
+        from http_fixtures import wait_finished
         entered, release = asyncio.Event(), asyncio.Event()
         class WaitingModel(RetryModel):
             async def create(self, **kwargs):
@@ -134,7 +135,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
                     self.assertFalse(any(e["kind"].startswith("context.recovery") or e["kind"] == "context.summary_started" for e in saved["events"]))
 
     async def test_pressure_and_recovery_share_four_summary_calls_and_auth_blocks_whole_turn(self):
-        from test_context_summary import ENV as SMALL_ENV, OLD as PRESSURE_OLD
+        from context_fixtures import ENV as SMALL_ENV, OLD as PRESSURE_OLD
         invalid = response([{"type": "text", "text": "{}"}])
         for before, recovery, summaries in [([invalid, invalid], [invalid, invalid], 4),
                                             ([status_error(401)], [], 1),

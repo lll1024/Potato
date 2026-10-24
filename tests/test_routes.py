@@ -7,8 +7,10 @@ import unittest
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from planning_fixtures import agent_loop
+from travel_app.planning import plan
+from travel_app.local_records import PlanningSeed
 from travel_app.retrieval import Retrieval
+
 from service_fixtures import ModelService, response
 
 
@@ -118,9 +120,9 @@ class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
         await tools.discover()
         model = ModelService([response([{"type": "text", "text": "请提供起终点。"}])])
 
-        await agent_loop(
-            [{"role": "user", "content": "比较交通路线"}],
-            cast(AsyncAnthropic, model), tools, "test-model",
+        planning_result = await plan(
+            '比较交通路线', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
         )
 
         self.assertEqual(
@@ -153,7 +155,12 @@ class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
             {"role": "user", "content": "杭州东站到上城区湖滨路1号，比较交通方式。"},
         ]
 
-        answer = await agent_loop(history, cast(AsyncAnthropic, model), tools, "test-model")
+        planning_result = await plan(
+            history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+        )
+        answer = planning_result.answer
+        history[:] = json.loads(planning_result.material.messages_json)
 
         self.assertIn("四种交通方式", answer)
         self.assertEqual(model.requests[0]["messages"], history[:3])
@@ -213,9 +220,9 @@ class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
             response([{"type": "text", "text": "驾车30分钟、12公里；公交及费用待核实。"}]),
         ])
 
-        await agent_loop(
-            [{"role": "user", "content": "杭州东站到上城区湖滨路1号，比较公交和驾车。"}],
-            cast(AsyncAnthropic, model), tools, "test-model",
+        planning_result = await plan(
+            '杭州东站到上城区湖滨路1号，比较公交和驾车。', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
         )
 
         results = {result["tool_use_id"]: result for result in
@@ -242,9 +249,9 @@ class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
             response([{"type": "text", "text": "请选择杭州东站或杭州东站东广场。"}]),
         ])
 
-        await agent_loop(
-            [{"role": "user", "content": "杭州东站去湖滨路1号怎么走？"}],
-            cast(AsyncAnthropic, model), tools, "test-model",
+        planning_result = await plan(
+            '杭州东站去湖滨路1号怎么走？', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
         )
 
         result = model.requests[1]["messages"][-1]["content"][0]
@@ -266,7 +273,11 @@ class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
             {"role": "user", "content": "去龙翔桥地铁站怎么走？"},
         ]
 
-        await agent_loop(history, cast(AsyncAnthropic, model), tools, "test-model")
+        planning_result = await plan(
+            history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+        )
+        history[:] = json.loads(planning_result.material.messages_json)
 
         self.assertEqual(model.requests[0]["messages"], history[:3])
         self.assertEqual(service.calls, [])
@@ -280,9 +291,9 @@ class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
             response([{"type": "text", "text": "不能通过打车链接查询交通路线或费用。"}]),
         ])
 
-        await agent_loop(
-            [{"role": "user", "content": "生成打车链接"}],
-            cast(AsyncAnthropic, model), tools, "test-model",
+        planning_result = await plan(
+            '生成打车链接', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
         )
 
         self.assertEqual(service.calls, [])

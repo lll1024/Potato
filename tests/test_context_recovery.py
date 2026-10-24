@@ -4,11 +4,11 @@ import json
 import os
 import tempfile
 import unittest
-from service_fixtures import cli_retrieval
 from unittest.mock import patch
 
-from test_recovery import ExternalServices, process
-from test_trace import wait_finished
+from service_fixtures import cli_retrieval
+from process_fixtures import ExternalServices, process
+from http_fixtures import wait_finished
 
 
 class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
@@ -75,8 +75,8 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
         import sqlite3
         from pathlib import Path
         from service_fixtures import ModelService, response
-        from test_trace import serving
-        from test_storage import wait_state
+        from http_fixtures import serving
+        from http_fixtures import wait_state
         entered, release = asyncio.Event(), asyncio.Event()
         class WaitingModel(ModelService):
             async def create(self, **kwargs):
@@ -103,7 +103,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(len(model.requests), 2)
 
     async def test_killed_summary_or_adopted_candidate_restores_previous_saved_version(self):
-        from test_context_summary import ENV, OLD
+        from context_fixtures import ENV, OLD
         for boundary in ('summary_inflight', 'adopted'):
             with self.subTest(boundary=boundary), patch.dict(os.environ, ENV, clear=True), tempfile.TemporaryDirectory() as directory:
                 summary_calls = 0
@@ -163,8 +163,9 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
     async def test_storage_boundaries_then_process_exit_do_not_promote_candidate(self):
         import sqlite3
         from pathlib import Path
-        from test_context_summary import ENV, OLD
-        from test_storage import fail_event, wait_state
+        from context_fixtures import ENV, OLD
+        from record_faults import fail_event
+        from http_fixtures import wait_state
         for boundary in ('context.candidate', 'context.adopted', 'context.saved', 'turn.finished'):
             with self.subTest(boundary=boundary), patch.dict(os.environ, ENV, clear=True), tempfile.TemporaryDirectory() as directory:
                 summaries = 0
@@ -262,7 +263,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
         from contextlib import asynccontextmanager, redirect_stdout
         from travel_app.planning import run_cli
         from service_fixtures import MapService, ModelService, response
-        from test_context_summary import ENV, OLD
+        from context_fixtures import ENV, OLD
         entered = asyncio.Event()
         class WaitingModel(ModelService):
             async def create(self, **kwargs):
@@ -298,8 +299,8 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
         import sqlite3
         from pathlib import Path
         from service_fixtures import ModelService, response
-        from test_trace import serving
-        from test_storage import wait_state
+        from http_fixtures import serving
+        from http_fixtures import wait_state
         model = ModelService([response([{"type": "text", "text": "上轮完成"}])])
         with tempfile.TemporaryDirectory() as directory:
             async with serving(directory, model) as client:

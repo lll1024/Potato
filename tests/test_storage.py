@@ -7,20 +7,8 @@ from contextlib import closing
 from pathlib import Path
 
 from service_fixtures import ModelService, response
-from test_trace import serving, wait_finished
-
-
-def fail_event(directory, kind):
-    with closing(sqlite3.connect(Path(directory) / "travel.sqlite3")) as database, database:
-        database.execute("CREATE TRIGGER fail_event BEFORE INSERT ON events WHEN NEW.kind='" + kind + "' BEGIN SELECT RAISE(ABORT,'password=storage-secret'); END")
-
-
-async def wait_state(client, predicate):
-    async def poll():
-        while True:
-            state=(await client.get('/api/state')).json()
-            if predicate(state): return state
-    return await asyncio.wait_for(poll(),3)
+from http_fixtures import serving, wait_finished, wait_state
+from record_faults import fail_event
 
 
 class StorageTests(unittest.IsolatedAsyncioTestCase):
@@ -129,7 +117,7 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_tool_boundaries_rollback_and_stop_following_calls(self):
         from service_fixtures import MapService
-        from test_tool_trace import serving_tools, tool_reply
+        from http_fixtures import serving_tools, tool_reply
         for kind in ('tool.pending','tool.running','tool.waiting','tool.completed','tool.failed'):
             with self.subTest(kind=kind),tempfile.TemporaryDirectory() as directory:
                 entered,release=asyncio.Event(),asyncio.Event()
@@ -259,7 +247,7 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
         from contextlib import redirect_stdout,redirect_stderr
         from types import SimpleNamespace
         from service_fixtures import MapService
-        from test_tool_trace import serving_tools
+        from http_fixtures import serving_tools
         from urllib.parse import quote,quote_plus
         secret='known-secret'
         original='https://example.test/?key='+secret
@@ -304,7 +292,7 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_real_sdk_process_restart_preserves_only_committed_tool_facts_and_complete_context(self):
         import signal
-        from test_recovery import ExternalServices,process
+        from process_fixtures import ExternalServices, process
         external=ExternalServices()
         with tempfile.TemporaryDirectory() as directory:
             async with external.serving() as url:
@@ -349,7 +337,7 @@ class StorageTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_unexecuted_backfill_failure_keeps_pending_fact_and_no_followup_query(self):
         from service_fixtures import MapService
-        from test_tool_trace import serving_tools,tool_reply
+        from http_fixtures import serving_tools, tool_reply
         entered,release=asyncio.Event(),asyncio.Event()
         class WaitingMaps(MapService):
             calls=0

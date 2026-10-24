@@ -15,8 +15,9 @@ import tempfile
 import httpx
 from fastapi.responses import JSONResponse
 
-from test_recovery import ExternalServices, free_port
-from test_trace import wait_finished
+from process_fixtures import ExternalServices, free_port
+from http_fixtures import wait_finished
+
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / "tests/fixtures/deep-modules"
@@ -96,9 +97,9 @@ class ScenarioServices(ExternalServices):
 
 
 @asynccontextmanager
-async def service(root, directory, external, clock_file):
+async def service(root, directory, external, clock_file, entrypoint=Path(__file__).with_name("entrypoint.py")):
     port = free_port()
-    child = await asyncio.create_subprocess_exec(sys.executable, str(Path(__file__).with_name("entrypoint.py")),
+    child = await asyncio.create_subprocess_exec(sys.executable, str(entrypoint),
         "web", str(root), external, str(directory), str(port), str(clock_file), cwd=directory,
         env={**os.environ, "PYTHONPATH": str(root)}, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
     assert child.stdout is not None
@@ -157,14 +158,14 @@ async def submit(client, text, session=None):
     return identity
 
 
-async def capture(root, directory):
+async def capture(root, directory, *, entrypoint=Path(__file__).with_name("entrypoint.py")):
     directory.mkdir(parents=True, exist_ok=True)
     clock_file = directory / "clock.txt"
     clock_file.write_text("10000")
     external = ScenarioServices()
     result = {}
     async with external.serving() as url:
-        async with service(root, directory, url, clock_file) as (_, client):
+        async with service(root, directory, url, clock_file, entrypoint) as (_, client):
             normal = await submit(client, "地图查询杭州西湖，2026-10-24出行")
             result["normal"] = await snapshot(client, normal["session_id"])
             # 真实压缩产生有效上下文版本，再由后台闲置流程生成偏好。
@@ -197,7 +198,7 @@ async def capture(root, directory):
         external.entered.clear()
         external.release.clear()
         external.mode = "restart"
-        async with service(root, directory, url, clock_file) as (child, client):
+        async with service(root, directory, url, clock_file, entrypoint) as (child, client):
             interrupted = (await client.post("/api/turns", json={"input": "进程中断", "submission_id": "interrupted"})).json()
             await asyncio.wait_for(external.entered.wait(), 10)
             result["before_kill"] = await snapshot(client, interrupted["session_id"])
@@ -206,14 +207,14 @@ async def capture(root, directory):
             external.release.set()
         calls = len(external.model_calls)
         external.mode = "normal"
-        async with service(root, directory, url, clock_file) as (_, client):
+        async with service(root, directory, url, clock_file, entrypoint) as (_, client):
             result["recovered"] = await snapshot(client, interrupted["session_id"])
             assert len(external.model_calls) == calls, "重启不得重放模型请求"
             assert (await client.get("/api/submissions/interrupted")).json() == interrupted
             await submit(client, "恢复后继续", compacted["session_id"])
             result["continued"] = await snapshot(client, compacted["session_id"])
         # 调用真实根 CLI，两轮同进程续聊；CLI 不写 Web 历史。
-        cli = await asyncio.create_subprocess_exec(sys.executable, str(Path(__file__).with_name("entrypoint.py")),
+        cli = await asyncio.create_subprocess_exec(sys.executable, str(entrypoint),
             "cli", str(root), url, cwd=directory, env={**os.environ, "PYTHONPATH": str(root)},
             stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
         stdout, stderr = await asyncio.wait_for(cli.communicate("地图查询杭州西湖\n保留日期继续\nq\n".encode()), 20)
@@ -234,10 +235,12 @@ async def main():
     parser.add_argument("--root", type=Path, default=ROOT)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--source-commit", required=True, help="导出树的真实提交；工作区采集写 working-tree")
+    parser.add_argument("--entrypoint", type=Path, default=Path(__file__).with_name("entrypoint.py"),
+                        help="历史基线重采集可显式指定固定提交导出的装配脚本；当前树只用公开入口")
     arguments = parser.parse_args()
     arguments.output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as directory:
-        data = await capture(arguments.root.resolve(), Path(directory))
+        data = await capture(arguments.root.resolve(), Path(directory), entrypoint=arguments.entrypoint.resolve())
         write_json(arguments.output / "behavior.json.gz", data)
         with sqlite3.connect(Path(directory) / "travel.sqlite3") as database:
             dump = "\n".join(database.iterdump()).encode()

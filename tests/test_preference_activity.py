@@ -11,10 +11,10 @@ from anthropic import AnthropicError, AsyncAnthropic
 from mcp import Client
 
 from travel_app.retrieval import Retrieval
-from service_fixtures import MapService, response
-from test_preferences import Clock, PreferenceModel
-import test_preferences as preference_helpers
 from travel_app.sessions import Runtime, create_app
+
+from service_fixtures import MapService, response
+from preference_fixtures import PreferenceHarness, Clock, PreferenceModel
 
 
 class ActivityModel(PreferenceModel):
@@ -52,8 +52,8 @@ class ActivityModel(PreferenceModel):
 
 
 class PreferenceActivityTests(unittest.IsolatedAsyncioTestCase):
-    service = preference_helpers.PreferenceTests.service
-    finish = preference_helpers.PreferenceTests.finish
+    service = PreferenceHarness.service
+    finish = PreferenceHarness.finish
 
     async def settle(self):
         for _ in range(30):

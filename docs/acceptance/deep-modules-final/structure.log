@@ -1,0 +1,17 @@
+全仓库公开入口、依赖方向与无环检查通过；无迁移豁免。
+test_assembly_cannot_use_private_implementation (test_module_boundaries.ModuleBoundaryTests.test_assembly_cannot_use_private_implementation) ... ok
+test_finished_migration_rejects_legacy_exemptions (test_module_boundaries.ModuleBoundaryTests.test_finished_migration_rejects_legacy_exemptions) ... ok
+test_frontend_exports_reexports_private_paths_and_dynamic_imports (test_module_boundaries.ModuleBoundaryTests.test_frontend_exports_reexports_private_paths_and_dynamic_imports) ... ok
+test_frontend_validation_entry_obeys_public_and_internal_boundaries (test_module_boundaries.ModuleBoundaryTests.test_frontend_validation_entry_obeys_public_and_internal_boundaries) ... ok
+test_internal_tests_require_a_real_module_owner (test_module_boundaries.ModuleBoundaryTests.test_internal_tests_require_a_real_module_owner) ... ok
+test_new_unowned_file_and_missing_public_exports_fail (test_module_boundaries.ModuleBoundaryTests.test_new_unowned_file_and_missing_public_exports_fail) ... ok
+test_owned_internal_test_can_use_private_seam_but_external_test_cannot (test_module_boundaries.ModuleBoundaryTests.test_owned_internal_test_can_use_private_seam_but_external_test_cannot) ... ok
+test_public_import_passes_and_private_or_undeclared_import_fails (test_module_boundaries.ModuleBoundaryTests.test_public_import_passes_and_private_or_undeclared_import_fails) ... ok
+test_reverse_dependency_and_cycle_fail (test_module_boundaries.ModuleBoundaryTests.test_reverse_dependency_and_cycle_fail) ... ok
+test_shared_support_has_explicit_exports_and_no_reverse_dependency (test_module_boundaries.ModuleBoundaryTests.test_shared_support_has_explicit_exports_and_no_reverse_dependency) ... ok
+test_validation_support_is_public_but_not_a_production_dependency (test_module_boundaries.ModuleBoundaryTests.test_validation_support_is_public_but_not_a_production_dependency) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 2.588s
+
+OK

@@ -7,19 +7,7 @@ import sqlite3
 from pathlib import Path
 
 from service_fixtures import ModelService, response
-from test_trace import serving, wait_finished
-
-
-async def notices(client, path, headers=None):
-    result = []
-    async with client.stream("GET", path, headers=headers) as stream:
-        async for line in stream.aiter_lines():
-            if line.startswith("data:"):
-                event = json.loads(line[5:])
-                result.append(event)
-                if event["kind"] == "service.state":
-                    return result
-    raise AssertionError("没有收到当前服务状态")
+from http_fixtures import serving, wait_finished, notices
 
 
 class ReconnectTests(unittest.IsolatedAsyncioTestCase):

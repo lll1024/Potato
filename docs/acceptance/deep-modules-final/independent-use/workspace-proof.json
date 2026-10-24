@@ -1,0 +1,13 @@
+{
+  "temporary_changed_files": [
+    "travel_app/context/runtime.py"
+  ],
+  "temporary_callers_unchanged": true,
+  "original_changed_since_copy": [
+    "docs/modules/retrieval.md"
+  ],
+  "concurrent_change_owner": "主代理根据初次失败补充 retrieval 公开装配协议",
+  "original_experiment_target_unchanged": true,
+  "temporary_source": "/tmp/potato86-independent-use/source",
+  "source_deleted": true
+}

@@ -5,7 +5,8 @@ import unittest
 
 from travel_app.local_records import LocalRecords, PreferenceState, TurnMaterial
 from travel_app.preferences import Preferences
-from test_preferences import Clock, PreferenceModel
+
+from preference_fixtures import Clock, PreferenceModel
 
 
 class PreferenceContractTests(unittest.IsolatedAsyncioTestCase):

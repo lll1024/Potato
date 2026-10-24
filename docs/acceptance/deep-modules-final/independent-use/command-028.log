@@ -1,0 +1,29 @@
+PUBLIC CAPABILITIES Capabilities(declarations=[{'name': 'maps_text_search', 'description': '本机脚本地点查询', 'input_schema': {'type': 'object', 'properties': {'keywords': {'type': 'string'}, 'city': {'type': 'string'}}, 'required': ['keywords']}}], map_status='', source_status=None, map_pause_reason=None)
+{
+  "first": {
+    "status": "completed",
+    "reason": null,
+    "answer_source": "model",
+    "tool_error_count": 0
+  },
+  "continuation": {
+    "status": "completed",
+    "reason": null,
+    "answer_source": "model",
+    "tool_error_count": 0
+  },
+  "model_calls": 3,
+  "mcp_calls": [
+    {
+      "name": "maps_text_search",
+      "arguments": {
+        "keywords": "西湖",
+        "city": "杭州"
+      }
+    }
+  ],
+  "saved": true,
+  "sqlite_real": true,
+  "sqlite_size": 204800,
+  "observations": 13
+}

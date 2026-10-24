@@ -1,6 +1,5 @@
 """通过公开 HTTP 对话入口核对固定时间、旅行日期与异常天气资料。"""
 import asyncio
-import json
 import tempfile
 import unittest
 from contextlib import asynccontextmanager
@@ -12,12 +11,10 @@ from anthropic import AsyncAnthropic
 from mcp import Client
 
 from travel_app.retrieval import Retrieval
-from service_fixtures import cli_retrieval, MapService, ModelService, response
 from travel_app.sessions import Runtime, create_app
 
-
-def context_from_request(request):
-    return json.loads(request["system"].split("<travel_date_context>")[1].split("</travel_date_context>")[0])
+from service_fixtures import cli_retrieval, MapService, ModelService, response
+from date_fixtures import context_from_request
 
 
 class TravelDatesTests(unittest.IsolatedAsyncioTestCase):
@@ -152,8 +149,8 @@ class TravelDatesTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(contexts[2]["travel_dates"]["start_date"], "2027-01-02")
 
     async def test_failed_answer_weather_uses_resolved_relative_date_range(self):
-        from test_exception_experience import FailingAfterTools
-        from test_itinerary import ItineraryMapService, map_result
+        from model_fixtures import FailingAfterTools
+        from itinerary_fixtures import ItineraryMapService, map_result
         for covered, expected in [
             (["2026-10-10"], "超出"),
             (["2026-10-10", "2026-10-10-invalid"], "超出"),

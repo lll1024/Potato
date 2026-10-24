@@ -1,47 +1,16 @@
 """通过公开 HTTP 验证助手会话历史与完整协议续聊。"""
 
 import asyncio
-from contextlib import asynccontextmanager
 import tempfile
-from typing import cast
 import unittest
 
-import httpx
-from anthropic import AsyncAnthropic, AnthropicError
-from mcp import Client
+from anthropic import AnthropicError
 
-from travel_app.retrieval import Retrieval
-from service_fixtures import MapService, ModelService, response
-from travel_app.sessions import Runtime, create_app
+from service_fixtures import ModelService, response
+from date_fixtures import HistoryHarness
 
 
-class HistoryTests(unittest.IsolatedAsyncioTestCase):
-    @asynccontextmanager
-    async def service(self, directory, model, maps=None):
-        @asynccontextmanager
-        async def resources():
-            tools = Retrieval(cast(Client, maps or MapService()))
-            await tools.discover()
-            yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
-        app = create_app(directory, resources=resources)
-        async with app.router.lifespan_context(app):
-            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
-                yield client
-
-    async def finish(self, client, text, session_id=None):
-        body = {"input": text}
-        if session_id:
-            body["session_id"] = session_id
-        accepted = await client.post("/api/turns", json=body)
-        self.assertEqual(accepted.status_code, 202)
-        identity = accepted.json()
-        for _ in range(100):
-            snapshot = (await client.get("/api/sessions/" + identity["session_id"])).json()
-            if any(turn["turn_id"] == identity["turn_id"] and turn["status"] != "running" for turn in snapshot["turns"]):
-                return identity, snapshot
-            await asyncio.sleep(.01)
-        self.fail("对话轮次未结束")
-
+class HistoryTests(HistoryHarness, unittest.IsolatedAsyncioTestCase):
     async def test_restart_continues_complete_protocol_context_without_replaying_history(self):
         model = ModelService([
             response([{"type": "tool_use", "id": "west-lake", "name": "maps_text_search", "input": {"keywords": "西湖", "city": "杭州"}}], "tool_use"),

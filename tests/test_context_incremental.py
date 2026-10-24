@@ -4,18 +4,11 @@ import json
 import os
 import tempfile
 import unittest
-from types import SimpleNamespace
 from unittest.mock import patch
 
-from service_fixtures import MapService, ModelService, response
-from test_context_summary import ENV, submit
-from test_trace import serving
-
-
-class LargeMaps(MapService):
-    async def call_tool(self, name, arguments):
-        return SimpleNamespace(content=[SimpleNamespace(type="text", text="来源2026-10-18，价格待核实、未预订。" + "资" * 1600)],
-                               structured_content=None, is_error=False)
+from service_fixtures import ModelService, response
+from context_fixtures import ENV, submit, LargeMaps
+from http_fixtures import serving
 
 
 class IncrementalModel(ModelService):

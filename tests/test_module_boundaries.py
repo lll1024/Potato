@@ -95,13 +95,38 @@ class ModuleBoundaryTests(unittest.TestCase):
         files["travel_app/common.py"] += "from travel_app.planning import run\n"
         self.assertIn("反向依赖", self.check(files, assignments=assignments).stdout)
 
-    def test_legacy_exception_only_covers_frozen_import_and_expires_with_file(self):
+    def test_finished_migration_rejects_legacy_exemptions(self):
         files = self.backend("")
         files["travel_app/old.py"] = "from travel_app.planning.engine import run\n"
-        legacy = {"travel_app/old.py": {"owner": "sessions", "role": "production", "remove_by": "#81",
+        legacy = {"travel_app/old.py": {"owner": "sessions", "role": "production", "remove_by": "#86",
                   "imports": ["travel_app/planning/engine.py:run"]}}
-        self.assertEqual(self.check(files, legacy=legacy).returncode, 0)
-        files["travel_app/old.py"] += "from travel_app.planning import engine\n"
-        self.assertIn("公开", self.check(files, legacy=legacy).stdout)
-        del files["travel_app/old.py"]
-        self.assertIn("删除对应迁移豁免", self.check(files, legacy=legacy).stdout)
+        result = self.check(files, legacy=legacy)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("迁移豁免", result.stdout)
+
+    def test_internal_tests_require_a_real_module_owner(self):
+        files = self.backend("")
+        files["tests/test_internal.py"] = ""
+        assignments = {"tests/test_internal.py": {"owner": "integration", "role": "internal-test"}}
+        self.assertIn("内部测试", self.check(files, assignments=assignments).stdout)
+
+    def test_validation_support_is_public_but_not_a_production_dependency(self):
+        files = self.backend("")
+        files["tests/fixtures.py"] = "from travel_app.planning import run\n__all__ = ['run']\n"
+        files["tests/test_caller.py"] = "from fixtures import run\n"
+        assignments = {"tests/fixtures.py": {"owner": "integration", "role": "test-support"},
+                       "tests/test_caller.py": {"owner": "integration", "role": "caller-test"}}
+        self.assertEqual(self.check(files, assignments=assignments).returncode, 0)
+        files["travel_app/sessions/__init__.py"] += "from tests.fixtures import run\n"
+        self.assertIn("测试支撑", self.check(files, assignments=assignments).stdout)
+
+    def test_frontend_validation_entry_obeys_public_and_internal_boundaries(self):
+        files = {"frontend/src/sessions/index.ts": "export {run} from './engine';",
+                 "frontend/src/sessions/engine.ts": "export const run = () => {};",
+                 "frontend/tests/check.mjs": "import {run} from '../src/sessions';"}
+        assignments = {"frontend/tests/check.mjs": {"owner": "integration", "role": "caller-test"}}
+        self.assertEqual(self.check(files, assignments=assignments).returncode, 0)
+        files["frontend/tests/check.mjs"] = "import {run} from '../src/sessions/engine';"
+        self.assertIn("公开", self.check(files, assignments=assignments).stdout)
+        assignments["frontend/tests/check.mjs"] = {"owner": "sessions", "role": "internal-test"}
+        self.assertEqual(self.check(files, assignments=assignments).returncode, 0)

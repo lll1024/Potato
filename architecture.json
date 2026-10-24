@@ -43,461 +43,7 @@
       "depends": []
     }
   },
-  "legacy": {
-    "frontend/playwright.config.ts": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": []
-    },
-    "frontend/tests/presentation.test.mjs": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "<dynamic>:"
-      ]
-    },
-    "frontend/tests/ui/context-compaction-live.spec.ts": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": []
-    },
-    "frontend/tests/ui/conversation.spec.ts": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": []
-    },
-    "frontend/tests/ui/history.spec.ts": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": []
-    },
-    "frontend/tests/ui/preferences-clarification-live.spec.ts": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": []
-    },
-    "frontend/tests/ui/preferences-management.spec.ts": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": []
-    },
-    "frontend/tests/ui/preferences-recovery-live.spec.ts": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": []
-    },
-    "frontend/tests/ui/preferences.spec.ts": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": []
-    },
-    "frontend/tests/ui/recovery-live.spec.ts": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": []
-    },
-    "frontend/tests/ui/recovery.spec.ts": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": []
-    },
-    "frontend/vite.config.ts": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": []
-    },
-    "tests/compatibility/capture.py": {
-      "owner": "compatibility",
-      "role": "tooling",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_recovery.py:ExternalServices,free_port",
-        "tests/test_trace.py:wait_finished"
-      ]
-    },
-    "tests/compatibility/entrypoint.py": {
-      "owner": "compatibility",
-      "role": "tooling",
-      "remove_by": "#86",
-      "imports": [
-        "travel_app/__init__.py:agent,travel_tools,web",
-        "travel_app/__init__.py:agent",
-        "travel_app/__init__.py:web",
-        "travel_app/__init__.py:travel_tools"
-      ]
-    },
-    "tests/context_browser_server.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#82",
-      "imports": []
-    },
-    "tests/context_semantic_eval.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#82",
-      "imports": [
-        "tests/test_preferences.py:Clock"
-      ]
-    },
-    "tests/exception_browser_server.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_exception_experience.py:FailingAfterTools,call",
-        "tests/test_itinerary.py:ItineraryMapService,map_result"
-      ]
-    },
-    "tests/test_acceptance.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_reconnect.py:notices",
-        "tests/test_tool_trace.py:serving_tools",
-        "tests/test_trace.py:wait_finished"
-      ]
-    },
-    "tests/test_call_budget.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_context_summary.py:OLD,submit,summary_response",
-        "tests/test_model_retry.py:RetryModel,status_error",
-        "tests/test_source_failures.py:SourceService,call,finished",
-        "tests/test_storage.py:fail_event,wait_state",
-        "tests/test_trace.py:serving,wait_finished"
-      ]
-    },
-    "tests/test_context_budget.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#82",
-      "imports": [
-        "tests/test_model_retry.py:RetryModel",
-        "tests/test_trace.py:serving,wait_finished"
-      ]
-    },
-    "tests/test_context_incremental.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#82",
-      "imports": [
-        "tests/test_context_summary.py:ENV,submit",
-        "tests/test_trace.py:serving",
-        "travel_app/context/view.py:TokenMeter"
-      ]
-    },
-    "tests/test_context_limit_recovery.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#82",
-      "imports": [
-        "tests/test_context_incremental.py:LargeMaps",
-        "tests/test_context_summary.py:ENV,OLD",
-        "tests/test_context_summary.py:submit,summary_response",
-        "tests/test_model_retry.py:RetryModel,status_error",
-        "tests/test_trace.py:serving",
-        "tests/test_trace.py:wait_finished"
-      ]
-    },
-    "tests/test_context_organization.py": {
-      "owner": "context",
-      "role": "internal-test",
-      "remove_by": "#82",
-      "imports": [
-        "tests/test_trace.py:serving,wait_finished"
-      ]
-    },
-    "tests/test_context_recovery.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#82",
-      "imports": [
-        "tests/test_context_summary.py:ENV,OLD",
-        "tests/test_recovery.py:ExternalServices,process",
-        "tests/test_storage.py:fail_event,wait_state",
-        "tests/test_storage.py:wait_state",
-        "tests/test_trace.py:serving",
-        "tests/test_trace.py:wait_finished"
-      ]
-    },
-    "tests/test_context_summary.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#82",
-      "imports": [
-        "tests/test_model_retry.py:RetryModel,connection_error",
-        "tests/test_model_retry.py:RetryModel,status_error",
-        "tests/test_storage.py:fail_event,wait_state",
-        "tests/test_trace.py:serving,wait_finished"
-      ]
-    },
-    "tests/test_exception_experience.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_itinerary.py:ItineraryMapService,map_result",
-        "tests/test_tool_trace.py:serving_tools",
-        "tests/test_trace.py:wait_finished"
-      ]
-    },
-    "tests/test_failures.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "travel_app/limits.py:MAX_MODEL_REQUESTS"
-      ]
-    },
-    "tests/test_information_retrieval.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_source_failures.py:SourceService,call,finished"
-      ]
-    },
-    "tests/test_itinerary.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_dining.py:tool_call"
-      ]
-    },
-    "tests/test_legacy_sources.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_source_failures.py:SourceService,finished"
-      ]
-    },
-    "tests/test_model_retry.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_storage.py:fail_event,wait_state",
-        "tests/test_trace.py:serving,wait_finished"
-      ]
-    },
-    "tests/test_official_date_applicability.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/exa_fixtures.py:source_text",
-        "tests/test_history.py:",
-        "tests/test_history.py:HistoryTests",
-        "tests/test_travel_dates.py:context_from_request"
-      ]
-    },
-    "tests/test_query_batching.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_source_failures.py:SourceService,call,finished"
-      ]
-    },
-    "tests/test_search.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_tool_trace.py:serving_tools",
-        "tests/test_trace.py:serving,wait_finished"
-      ]
-    },
-    "tests/test_session_history.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#82",
-      "imports": [
-        "tests/test_source_failures.py:finished",
-        "tests/test_trace.py:serving,wait_finished"
-      ]
-    },
-    "tests/test_source_failures.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/exa_fixtures.py:source_text"
-      ]
-    },
-    "tests/test_spec28_integration.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_preferences.py:",
-        "tests/test_preferences.py:Clock,PreferenceModel",
-        "tests/test_preferences.py:PreferenceTests",
-        "tests/test_travel_dates.py:context_from_request"
-      ]
-    },
-    "tests/test_tool_concurrency.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_source_failures.py:SourceService,call,finished",
-        "tests/test_storage.py:fail_event"
-      ]
-    },
-    "tests/test_travel_date_continuation.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_exception_experience.py:FailingAfterTools",
-        "tests/test_history.py:",
-        "tests/test_history.py:HistoryTests",
-        "tests/test_itinerary.py:ItineraryMapService,map_result",
-        "tests/test_storage.py:fail_event",
-        "tests/test_travel_dates.py:context_from_request"
-      ]
-    },
-    "tests/test_travel_date_corrections.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_exception_experience.py:FailingAfterTools",
-        "tests/test_itinerary.py:ItineraryMapService,map_result",
-        "tests/test_travel_date_continuation.py:",
-        "tests/test_travel_date_continuation.py:TravelDateContinuationTests",
-        "tests/test_travel_dates.py:context_from_request"
-      ]
-    },
-    "tests/test_travel_dates.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_exception_experience.py:FailingAfterTools",
-        "tests/test_itinerary.py:ItineraryMapService,map_result"
-      ]
-    },
-    "travel_app/__init__.py": {
-      "owner": "support",
-      "role": "production",
-      "remove_by": "#86",
-      "imports": []
-    },
-    "tests/recovery_process.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": []
-    },
-    "tests/test_history.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": []
-    },
-    "tests/test_reconnect.py": {
-      "owner": "integration",
-      "role": "internal-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_trace.py:serving,wait_finished"
-      ]
-    },
-    "tests/test_recovery.py": {
-      "owner": "integration",
-      "role": "internal-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_trace.py:wait_finished"
-      ]
-    },
-    "tests/test_stop.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_tool_trace.py:serving_tools,tool_reply",
-        "tests/test_trace.py:wait_finished"
-      ]
-    },
-    "tests/test_storage.py": {
-      "owner": "integration",
-      "role": "internal-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_recovery.py:ExternalServices,process",
-        "tests/test_tool_trace.py:serving_tools",
-        "tests/test_tool_trace.py:serving_tools,tool_reply",
-        "tests/test_trace.py:serving,wait_finished"
-      ]
-    },
-    "tests/test_submissions.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_trace.py:serving",
-        "tests/test_trace.py:serving,wait_finished"
-      ]
-    },
-    "tests/test_tool_trace.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_trace.py:wait_finished"
-      ]
-    },
-    "tests/test_trace.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": []
-    },
-    "tests/test_web.py": {
-      "owner": "integration",
-      "role": "caller-test",
-      "remove_by": "#86",
-      "imports": []
-    },
-    "tests/test_web_entrypoint.py": {
-      "owner": "integration",
-      "role": "internal-test",
-      "remove_by": "#86",
-      "imports": [
-        "tests/test_recovery.py:ExternalServices,free_port",
-        "tests/test_recovery.py:process"
-      ]
-    },
-    "tests/web_main_process.py": {
-      "owner": "integration",
-      "role": "internal-test",
-      "remove_by": "#86",
-      "imports": [
-        "travel_app/__init__.py:web"
-      ]
-    }
-  },
+  "legacy": {},
   "files": {
     "scripts/check_modules.py": {
       "owner": "tooling",
@@ -565,55 +111,55 @@
     },
     "tests/preference_browser_server.py": {
       "owner": "integration",
-      "role": "internal-test"
+      "role": "caller-test"
     },
     "tests/preference_clarification_browser_server.py": {
       "owner": "integration",
-      "role": "internal-test"
+      "role": "caller-test"
     },
     "tests/preference_semantic_eval.py": {
       "owner": "integration",
-      "role": "internal-test"
+      "role": "caller-test"
     },
     "tests/test_preference_activity.py": {
       "owner": "integration",
-      "role": "internal-test"
+      "role": "caller-test"
     },
     "tests/test_preference_changes.py": {
       "owner": "integration",
-      "role": "internal-test"
+      "role": "caller-test"
     },
     "tests/test_preference_clarification.py": {
       "owner": "integration",
-      "role": "internal-test"
+      "role": "caller-test"
     },
     "tests/test_preference_management.py": {
       "owner": "integration",
-      "role": "internal-test"
+      "role": "caller-test"
     },
     "tests/test_preference_recovery.py": {
       "owner": "integration",
-      "role": "internal-test"
+      "role": "caller-test"
     },
     "tests/test_preference_retry.py": {
       "owner": "integration",
-      "role": "internal-test"
+      "role": "caller-test"
     },
     "tests/test_preference_review_fixes.py": {
       "owner": "integration",
-      "role": "internal-test"
+      "role": "caller-test"
     },
     "tests/test_preferences.py": {
       "owner": "integration",
-      "role": "internal-test"
+      "role": "caller-test"
     },
     "tests/test_preference_contracts.py": {
       "owner": "integration",
-      "role": "internal-test"
+      "role": "caller-test"
     },
     "tests/exa_fixtures.py": {
       "owner": "integration",
-      "role": "caller-test"
+      "role": "test-support"
     },
     "tests/information_retrieval_eval.py": {
       "owner": "integration",
@@ -661,15 +207,269 @@
     },
     "tests/service_fixtures.py": {
       "owner": "integration",
-      "role": "support"
-    },
-    "tests/planning_fixtures.py": {
-      "owner": "integration",
-      "role": "support"
+      "role": "test-support"
     },
     "tests/test_retrieval_contracts.py": {
       "owner": "integration",
       "role": "caller-test"
+    },
+    "frontend/playwright.config.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/presentation.test.mjs": {
+      "owner": "sessions",
+      "role": "internal-test",
+      "seam": "回答、时间线及上下文状态的静态呈现"
+    },
+    "frontend/tests/ui/context-compaction-live.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/ui/conversation.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/ui/history.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/ui/preferences-clarification-live.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/ui/preferences-management.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/ui/preferences-recovery-live.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/ui/preferences.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/ui/recovery-live.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/ui/recovery.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/vite.config.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/compatibility/capture.py": {
+      "owner": "compatibility",
+      "role": "tooling"
+    },
+    "tests/compatibility/entrypoint.py": {
+      "owner": "compatibility",
+      "role": "tooling"
+    },
+    "tests/context_browser_server.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/context_semantic_eval.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/exception_browser_server.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_acceptance.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_call_budget.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_context_budget.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_context_incremental.py": {
+      "owner": "context",
+      "role": "internal-test",
+      "seam": "TokenMeter：保留原固定容量与精确计量的内部故障/增量回归"
+    },
+    "tests/test_context_limit_recovery.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_context_organization.py": {
+      "owner": "context",
+      "role": "internal-test"
+    },
+    "tests/test_context_recovery.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_context_summary.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_exception_experience.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_failures.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_information_retrieval.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_itinerary.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_legacy_sources.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_model_retry.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_official_date_applicability.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_query_batching.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_search.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_session_history.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_source_failures.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_spec28_integration.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_tool_concurrency.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_travel_date_continuation.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_travel_date_corrections.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_travel_dates.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "travel_app/__init__.py": {
+      "owner": "support",
+      "role": "support"
+    },
+    "tests/recovery_process.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_history.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_reconnect.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_recovery.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_stop.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_storage.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_submissions.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_tool_trace.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_trace.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_web.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_web_entrypoint.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/web_main_process.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/http_fixtures.py": {
+      "owner": "integration",
+      "role": "test-support"
+    },
+    "tests/process_fixtures.py": {
+      "owner": "integration",
+      "role": "test-support"
+    },
+    "tests/record_faults.py": {
+      "owner": "integration",
+      "role": "test-support"
+    },
+    "tests/model_fixtures.py": {
+      "owner": "integration",
+      "role": "test-support"
+    },
+    "tests/context_fixtures.py": {
+      "owner": "integration",
+      "role": "test-support"
+    },
+    "tests/source_fixtures.py": {
+      "owner": "integration",
+      "role": "test-support"
+    },
+    "tests/preference_fixtures.py": {
+      "owner": "integration",
+      "role": "test-support"
+    },
+    "tests/itinerary_fixtures.py": {
+      "owner": "integration",
+      "role": "test-support"
+    },
+    "tests/date_fixtures.py": {
+      "owner": "integration",
+      "role": "test-support"
+    },
+    "scripts/check_docs.py": {
+      "owner": "tooling",
+      "role": "tooling"
     }
   }
 }

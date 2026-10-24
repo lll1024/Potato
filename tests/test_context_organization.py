@@ -8,7 +8,7 @@ from unittest.mock import patch
 from mcp.types import CallToolResult, TextContent
 
 from service_fixtures import MapService, ModelService, response
-from test_trace import serving, wait_finished
+from http_fixtures import serving, wait_finished
 
 
 class RepeatedMap(MapService):
@@ -39,7 +39,7 @@ class ContextOrganizationTests(unittest.IsolatedAsyncioTestCase):
             body_repeats = 80
 
         model = ModelService([query_response(), response([{"type": "text", "text": "两家同名酒店需要澄清，早餐价格条件待核实。"}])])
-        with patch.dict(os.environ, {"CONTEXT_COMPACTION_ENABLED": "true", "MODEL_CONTEXT_WINDOW": "40000"}, clear=True), patch("test_trace.MapService", PressureMap), tempfile.TemporaryDirectory() as directory:
+        with patch.dict(os.environ, {"CONTEXT_COMPACTION_ENABLED": "true", "MODEL_CONTEXT_WINDOW": "40000"}, clear=True), patch("http_fixtures.MapService", PressureMap), tempfile.TemporaryDirectory() as directory:
             async with serving(directory, model) as client:
                 accepted = (await client.post("/api/turns", json={"input": "查询杭州西湖附近酒店"})).json()
                 saved = await wait_finished(client, accepted["session_id"])
@@ -64,7 +64,7 @@ class ContextOrganizationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_low_pressure_keeps_duplicate_tool_result_unchanged(self):
         model = ModelService([query_response(), response([{"type": "text", "text": "早餐仍待核实。"}])])
-        with patch.dict(os.environ, {"CONTEXT_COMPACTION_ENABLED": "true", "MODEL_CONTEXT_WINDOW": "1000000"}, clear=True), patch("test_trace.MapService", RepeatedMap), tempfile.TemporaryDirectory() as directory:
+        with patch.dict(os.environ, {"CONTEXT_COMPACTION_ENABLED": "true", "MODEL_CONTEXT_WINDOW": "1000000"}, clear=True), patch("http_fixtures.MapService", RepeatedMap), tempfile.TemporaryDirectory() as directory:
             async with serving(directory, model) as client:
                 accepted = (await client.post("/api/turns", json={"input": "查杭州西湖附近酒店"})).json()
                 saved = await wait_finished(client, accepted["session_id"])

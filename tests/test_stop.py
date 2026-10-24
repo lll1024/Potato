@@ -11,10 +11,10 @@ from anthropic import AsyncAnthropic, AnthropicError
 from mcp import Client
 
 from travel_app.retrieval import Retrieval
-from service_fixtures import MapService, ModelService, response
-from test_trace import wait_finished
-from test_tool_trace import serving_tools, tool_reply
 from travel_app.sessions import Runtime, create_app
+
+from service_fixtures import MapService, ModelService, response
+from http_fixtures import wait_finished, serving_tools, tool_reply
 
 
 @asynccontextmanager

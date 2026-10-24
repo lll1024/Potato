@@ -1,0 +1,18 @@
+PUBLIC CAPABILITIES Capabilities(declarations=[{'name': 'maps_text_search', 'description': '本机脚本地点查询', 'input_schema': {'type': 'object', 'properties': {'keywords': {'type': 'string'}, 'city': {'type': 'string'}}, 'required': ['keywords']}}], map_status='', source_status=None, map_pause_reason=None)
+Traceback (most recent call last):
+  File "/tmp/potato86-independent-use/public_use.py", line 67, in <module>
+    asyncio.run(main())
+    ~~~~~~~~~~~^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py", line 720, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/potato86-independent-use/public_use.py", line 56, in main
+    assert len(mcp.calls)==1,mcp.calls
+           ^^^^^^^^^^^^^^^^^
+AssertionError: []

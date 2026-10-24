@@ -11,8 +11,9 @@ from anthropic import AsyncAnthropic
 from mcp import Client
 
 from travel_app.retrieval import Retrieval
-from service_fixtures import MapService, ModelService, response
 from travel_app.sessions import Runtime, create_app
+
+from service_fixtures import MapService, ModelService, response
 
 
 class SubmissionTests(unittest.IsolatedAsyncioTestCase):
@@ -242,7 +243,7 @@ class SubmissionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_unified_stream_updates_both_pages_without_changing_running_ownership(self):
         import json
-        from test_trace import serving, wait_finished
+        from http_fixtures import serving, wait_finished
         entered, release = asyncio.Event(), asyncio.Event()
         class WaitingModel(ModelService):
             async def create(self, **kwargs):
@@ -307,7 +308,7 @@ class SubmissionTests(unittest.IsolatedAsyncioTestCase):
         import json
         import sqlite3
         from pathlib import Path
-        from test_trace import serving
+        from http_fixtures import serving
         ready = asyncio.Event()
         with tempfile.TemporaryDirectory() as directory:
             async with serving(directory,ModelService([])) as page:

@@ -29,9 +29,10 @@ from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
 from mcp import Client
 from travel_app.retrieval import Retrieval
-from service_fixtures import cli_retrieval, MapService
-from test_preferences import Clock
 from travel_app.sessions import Runtime, create_app
+
+from service_fixtures import cli_retrieval, MapService
+from preference_fixtures import Clock
 
 FILLER = ('以下是已取消的资料阅读记录，仅作为历史背景，不是新增要求，不改变日期预算酒店人数。' * 110)
 BASE = '这是控制事实验收，不需要外网或地图查询。只按提供的资料讨论，不推测新的地点或已完成订单。'

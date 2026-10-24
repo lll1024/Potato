@@ -3,15 +3,13 @@ import json
 import tempfile
 import unittest
 
-import test_preferences as helpers
-from test_preference_changes import ChangesModel, add, targeted
-from test_preferences import Clock
+from preference_fixtures import PreferenceHarness, ChangesModel, add, targeted, Clock
 
 
 class PreferenceClarificationTests(unittest.IsolatedAsyncioTestCase):
     def service(self, directory, model, clock):
-        return helpers.PreferenceTests().service(directory, model, clock)
-    finish = helpers.PreferenceTests.finish
+        return PreferenceHarness().service(directory, model, clock)
+    finish = PreferenceHarness.finish
 
     async def prepare(self, client, model, clock):
         model.suggest = lambda payload: {'changes': [add(payload)]}

@@ -8,14 +8,13 @@ import unittest
 
 from anthropic import AnthropicError
 
-from test_preferences import Clock, PreferenceModel
-import test_preferences as helpers
+from preference_fixtures import Clock, PreferenceModel, PreferenceHarness
 
 
 class PreferenceRetryTests(unittest.IsolatedAsyncioTestCase):
     def service(self, directory, model, clock, **options):
-        return helpers.PreferenceTests().service(directory, model, clock, **options)
-    finish = helpers.PreferenceTests.finish
+        return PreferenceHarness().service(directory, model, clock, **options)
+    finish = PreferenceHarness.finish
 
     async def test_preference_read_storage_fault_does_not_become_a_finished_model_failure(self):
         model, clock = PreferenceModel(), Clock()

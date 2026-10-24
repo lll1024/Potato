@@ -6,6 +6,8 @@ status: accepted
 
 2026-10-23，用户提出将整个仓库组织为若干职责清晰的深 module，希望只掌握各 module 的公开 interface 即可理解项目整体，并让 Codex 据此按需展开 implementation。用户已逐项确认下述取舍并确认整体理解，设计状态为 accepted；同日调用 to-spec 发布[实施规格 #79](https://github.com/lll1024/Potato/issues/79)，于同日通过 implement #80 进入行为基线与迁移校验阶段。
 
+2026-10-24 实施状态：#80–#85 的生产能力现已迁入六个目录，#86 清除活动迁移豁免并统一导航；当前公开协作从[仓库总览](../modules/README.md)进入，最终验证与限制见[集成验收](../acceptance/deep-modules-final.md)。下文中的阶段描述保留决策及任务拆分时的历史背景，不能替代当前验收结论。
+
 ## 已确认的取舍
 
 顶层 module 优先围绕完整能力组织，允许确有共享职责的技术 module。例如，旅行者偏好的提取、保存和管理共同构成一项能力；其内部可以包含前后端 implementation，并通过明确的公开契约协作。跨前后端不强求只有一个代码入口，具体 module 划分继续依据代码中的职责与耦合确定。
@@ -88,7 +90,7 @@ status: accepted
 
 ## 与既有决策的关系
 
-[ADR 0006](0006-backend-package-and-execution-responsibilities.md) 选择单个浅层 `travel_app/` 包。本记录替代其中保持浅层包的目录取舍，改为每个后端 module 使用独立目录与显式公开入口；设计已确认，当前仅完成 #80 基线准备及记录契约先行整理，六项能力的完整迁移尚未完成。ADR 0006 中上下文维护、轮次运行与存储事务各自集中的职责，以及其他既有领域行为约定，继续保留。
+[ADR 0006](0006-backend-package-and-execution-responsibilities.md) 选择单个浅层 `travel_app/` 包。本记录替代其中保持浅层包的目录取舍，改为每个后端 module 使用独立目录与显式公开入口；设计和迁移已按 #80–#86 推进，当前状态以开头的总览及集成验收为准。ADR 0006 中上下文维护、轮次运行与存储事务各自集中的职责，以及其他既有领域行为约定，继续保留。
 
 ## 设计阶段
 

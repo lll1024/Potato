@@ -22,8 +22,9 @@ from travel_app.retrieval import MapHTTPClient as AmapHTTPClient
 from travel_app.retrieval import Retrieval
 from travel_app.retrieval import SourceHTTPClient
 from travel_app.sessions import Runtime, create_app
+
 from service_fixtures import ModelService, response
-from test_source_failures import SourceService, call, finished
+from source_fixtures import SourceService, call, finished
 
 
 class ControlledServices(SourceService):
@@ -415,7 +416,7 @@ class ToolConcurrencyTests(unittest.IsolatedAsyncioTestCase):
                 self.assertTrue((await client.get("/api/state")).json()["accepting"])
 
     async def test_running_state_storage_failure_prevents_dispatch_and_drains_inflight(self):
-        from test_storage import fail_event
+        from record_faults import fail_event
         service = ControlledServices(interval=0.4)
         model = ModelService([response([map_block(0), *[web_block(i) for i in range(12)]], "tool_use")])
         with tempfile.TemporaryDirectory() as directory:

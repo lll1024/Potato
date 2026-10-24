@@ -1,29 +1,13 @@
 """真实 HTTP/SSE、SQLite 与可控外部模型验证旧轮次摘要。测试容量刻意小于本机 1M。"""
 import asyncio
-import json
 import os
 import tempfile
 import unittest
 from unittest.mock import patch
+
 from service_fixtures import cli_retrieval, ModelService, response
-from test_trace import serving, wait_finished
-
-ENV = {"CONTEXT_COMPACTION_ENABLED": "true", "MODEL_CONTEXT_WINDOW": "40000"}
-OLD = "2026-10-18 杭州旅行，预算3000元，保留西湖酒店。" + "中" * 3900
-
-
-def summary_response(**changes):
-    value = {"travel_conditions": {"budget": "3000元", "hotel": "西湖酒店"},
-             "confirmed_itinerary": [], "corrections": [], "unresolved": ["早餐价格待核实"],
-             "sources": [{"record_id": "message:1", "verification": "用户要求"},
-                         {"record_id": "message:2", "verification": "未预订"}]}
-    value.update(changes)
-    return response([{"type": "text", "text": json.dumps(value, ensure_ascii=False)}])
-
-
-async def submit(client, text, session=None):
-    accepted = (await client.post("/api/turns", json={"input": text, "session_id": session})).json()
-    return await wait_finished(client, accepted["session_id"], accepted["turn_id"])
+from http_fixtures import serving, wait_finished
+from context_fixtures import ENV, OLD, summary_response, submit
 
 
 class ContextSummaryTests(unittest.IsolatedAsyncioTestCase):
@@ -82,29 +66,30 @@ class ContextSummaryTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(saved["turns"][-1]["messages"][0]["content"], OLD)
 
     async def test_stop_inflight_summary_records_return_without_adoption_or_next_call(self):
-        entered, release = asyncio.Event(), asyncio.Event()
-        class WaitingModel(ModelService):
-            async def create(self, **kwargs):
-                if "整理旅行状态" in kwargs["system"]:
-                    entered.set()
-                    await release.wait()
-                return await super().create(**kwargs)
-        model = WaitingModel([response([{"type": "text", "text": "酒店未预订。"}]), summary_response()])
-        with patch.dict(os.environ, ENV, clear=True), tempfile.TemporaryDirectory() as directory:
-            async with serving(directory, model) as client:
-                first = await submit(client, OLD)
-                accepted = (await client.post("/api/turns", json={"input": "继续", "session_id": first["session"]["session_id"]})).json()
-                await asyncio.wait_for(entered.wait(), 2)
-                try:
-                    await client.post("/api/turns/" + accepted["turn_id"] + "/stop")
-                finally:
-                    release.set()
-                saved = await wait_finished(client, accepted["session_id"], accepted["turn_id"])
-                self.assertEqual(saved["turns"][-1]["reason"], "user_stop")
-                self.assertEqual(saved["requests"][-1]["status"], "completed")
-                self.assertIsNotNone(saved["requests"][-1]["usage"])
-                self.assertEqual(len(model.requests), 2)
-                self.assertFalse(any(event["kind"] in ("context.adopted", "context.saved") for event in saved["events"]))
+        for current_input in ("继续", "继续" + "中" * 1800):
+            entered, release = asyncio.Event(), asyncio.Event()
+            class WaitingModel(ModelService):
+                async def create(self, **kwargs):
+                    if "整理旅行状态" in kwargs["system"]:
+                        entered.set()
+                        await release.wait()
+                    return await super().create(**kwargs)
+            model = WaitingModel([response([{"type": "text", "text": "酒店未预订。"}]), summary_response()])
+            with patch.dict(os.environ, ENV, clear=True), tempfile.TemporaryDirectory() as directory:
+                async with serving(directory, model) as client:
+                    first = await submit(client, OLD)
+                    accepted = (await client.post("/api/turns", json={"input": current_input, "session_id": first["session"]["session_id"]})).json()
+                    await asyncio.wait_for(entered.wait(), 2)
+                    try:
+                        await client.post("/api/turns/" + accepted["turn_id"] + "/stop")
+                    finally:
+                        release.set()
+                    saved = await wait_finished(client, accepted["session_id"], accepted["turn_id"])
+                    self.assertEqual(saved["turns"][-1]["reason"], "user_stop")
+                    self.assertEqual(saved["requests"][-1]["status"], "completed")
+                    self.assertIsNotNone(saved["requests"][-1]["usage"])
+                    self.assertEqual(len(model.requests), 2)
+                    self.assertFalse(any(event["kind"] in ("context.adopted", "context.saved") for event in saved["events"]))
 
     async def test_candidate_storage_failure_stops_before_next_request(self):
         import sqlite3
@@ -154,7 +139,7 @@ class ContextSummaryTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(len(saved["tool_calls"]), 2)
 
     async def test_auth_and_quota_do_not_retry_summary(self):
-        from test_model_retry import RetryModel, status_error
+        from model_fixtures import RetryModel, status_error
         for error in (status_error(401), status_error(402)):
             with self.subTest(status=error.status_code), patch.dict(os.environ, ENV, clear=True), tempfile.TemporaryDirectory() as directory:
                 model = RetryModel([response([{"type": "text", "text": "酒店未预订。"}]), error,
@@ -214,7 +199,8 @@ class ContextSummaryTests(unittest.IsolatedAsyncioTestCase):
         import sqlite3
         from contextlib import closing
         from pathlib import Path
-        from test_storage import fail_event, wait_state
+        from record_faults import fail_event
+        from http_fixtures import wait_state
         model = ModelService([response([{"type": "text", "text": "酒店未预订。"}]), summary_response(),
                               response([{"type": "text", "text": "继续保留酒店。"}]), summary_response(),
                               response([{"type": "text", "text": "本轮回答尚未保存。"}])])
@@ -240,7 +226,7 @@ class ContextSummaryTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(saved["turns"][1]["messages"], good["turns"][1]["messages"])
 
     async def test_summary_transport_failure_has_only_two_attempts(self):
-        from test_model_retry import RetryModel, connection_error
+        from model_fixtures import RetryModel, connection_error
         model = RetryModel([response([{"type": "text", "text": "酒店未预订。"}]), connection_error(),
                             connection_error(), response([{"type": "text", "text": "保留原输入继续。"}])])
         with patch.dict(os.environ, ENV, clear=True), tempfile.TemporaryDirectory() as directory:
@@ -253,7 +239,7 @@ class ContextSummaryTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(len(model.requests), 4)
 
     async def test_terminal_summary_error_is_not_retried_on_later_travel_steps(self):
-        from test_model_retry import RetryModel, status_error
+        from model_fixtures import RetryModel, status_error
         query = response([{"type": "tool_use", "id": "first", "name": "maps_text_search", "input": {"keywords": "西湖", "city": "杭州"}}], "tool_use")
         model = RetryModel([response([{"type": "text", "text": "酒店未预订。"}]), status_error(402), query,
                             response([{"type": "text", "text": "保留原要求，查询完成。"}])])

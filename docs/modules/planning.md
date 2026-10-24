@@ -27,6 +27,34 @@
 
 `configured_planning(*, retrieval_factory=None)` 检查配置并管理生产模型与查询连接，返回 `PlanningResources(client, tools, model)`；Web 将它装入会话运行资源，CLI 复用同一模型装配。可注入查询资源工厂重定向外部响应，默认连接与超时不变。`run_cli(..., retrieval_factory=None, model_client_factory=None)`、`main(*, load_environment=None, cli_runner=None)` 提供根入口的显式装配 seam；模型客户端工厂只替换连接资源，实际调用、重试、摘要和预算仍走生产 implementation；它们不替换规划、查询、上下文或保存 implementation。
 
+生产装配从项目根 `.env` 加载环境（覆盖已有同名环境），默认静态资源与工作目录解析见[会话](sessions.md)。需要 `AMAP_MAPS_API_KEY`、`MODEL_ID` 及模型认证；`ANTHROPIC_BASE_URL` 可指定兼容服务，提供时使用 `ANTHROPIC_API_KEY`，否则也可用 `ANTHROPIC_AUTH_TOKEN`。模型请求超时 60 秒，SDK 自动重试关闭，由规划执行有界重试；配置错误由启动入口诊断。`configured_planning` 本身消费当前环境，不额外读取 `.env`。
+
+`run_cli(api_key, *, check_amap=False, clock=None, retrieval_factory=None, model_client_factory=None)` 在上下文管理器内打开查询与模型资源；`retrieval_factory(api_key, *, include_sources=True, secrets=())` 产出已发现的 `Retrieval`。`model_client_factory` 接受 Anthropic 客户端同形构造参数并返回异步上下文管理器。`check_amap=True` 仅调用地图检查，跳过模型、网页及偏好后台；普通 CLI 输入 `q` 退出，同一进程的续聊自动使用延续凭证。
+
+`configured_planning(...)` 返回异步上下文管理器，必须用 `async with`；其产出不可变 `PlanningResources(client: AsyncAnthropic, tools: Retrieval, model: str)`。`retrieval_factory` 同样返回异步上下文管理器。最小生产调用（环境已配置）为：
+
+```python
+from travel_app.planning import configured_planning, plan
+
+async def answer(text):
+    async with configured_planning() as ready:
+        result = await plan(text, ready.client, ready.tools, ready.model)
+        return result.answer, result.status, result.reason
+```
+
+`PlanningResult` 是不可变记录值；`answer: str`、`status: str`、`reason: str | None`、`answer_source: str`、`tool_error_count: int`、`material: TurnMaterial`、`continuation: Continuation`。调用方消费返回值，不自行构造结果或拆开延续凭证。`stop_reason` 可为字符串或无参同步回调，默认 `user_stop`；会话退出使用 `service_shutdown`，记录故障设置 `storage_failure` 并以 `RecordAbort` 中止。
+
+| 结果类别 | `status` 与 `reason` |
+| --- | --- |
+| 正常最终回答 | `completed` / `None` |
+| 输出截断 | `terminated` / `output_limit` |
+| 停止或预算 | `terminated` / `user_stop`、`service_shutdown`、`budget`，或装配提供的停止原因 |
+| 上下文启动或安全容量阻止 | `terminated` / `context_configuration`、`context_budget` |
+| 普通模型失败或未预期执行失败 | `failed` / `model_error`、`execution_error` |
+| 明确超限恢复失败 | `failed` / `context_window_exceeded`、`context_recovery_unavailable` |
+
+模型事实的 `error.code` 与轮次 `reason` 各有用途：网络、超时、429、5xx、空响应分别为 `TRANSPORT`、`TIMEOUT`、`RATE_LIMIT`、`SERVER`、`EMPTY_RESPONSE`，普通步骤最多追加 5 次尝试，仍受整轮预算约束；401/403 为 `AUTH`、额度不足为 `QUOTA`、非法请求为 `INVALID_REQUEST`，不普通重试。明确超限为 `CONTEXT_WINDOW_EXCEEDED`，走一次上下文恢复。其他 HTTP 状态为 `HTTP_<状态码>`，非模型调用阶段或未知错误为 `UNKNOWN`。普通退避从 0.5 秒指数增长、±10% 抖动且最多 10 秒；服务给出有效正数 `Retry-After` 时优先使用，超过 10 秒不继续等待。最终收尾没有普通重试。上层通常只需消费结构化轮次结果，界面诊断可另展示真实请求事实。
+
 `max_rounds`、`max_tool_calls` 可收紧原有运行限额，分别受 80 和 128 硬上限限制；`context_policy` 可注入公开 `ContextPolicy`，省略时仍读取原环境配置。既有受限运行测试通过此入口执行，不再需要生产 `agent_loop` 适配。资料获取实例的可用状态保留到连接生命周期结束，整轮工具和实际模型预算在每次 `plan` 重建。
 
 模型步骤在 [runtime.py](../../travel_app/planning/runtime.py)；[batch.py](../../travel_app/planning/batch.py)统一登记调用身份、按提出顺序预留工具额度、切分连续外部段、等待历史屏障并按原序收齐一次完整结果；模型步骤不持有分段拼接或供应商状态。历史回读将前段真实结果与后段占位一并交给上下文，按完整请求余量分页。外部段未启动沿用原预留计数，历史局部上限拒绝不消耗总账；实际失败照常计数。

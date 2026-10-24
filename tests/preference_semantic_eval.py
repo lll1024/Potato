@@ -20,9 +20,10 @@ from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
 from mcp import Client
 from travel_app.retrieval import Retrieval
-from service_fixtures import MapService
-from test_preferences import Clock
 from travel_app.sessions import Runtime, create_app
+
+from service_fixtures import MapService
+from preference_fixtures import Clock
 
 
 class Evaluation:

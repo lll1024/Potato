@@ -3,37 +3,17 @@ import asyncio
 import json
 import tempfile
 import unittest
-from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import cast
 
-import httpx
-from anthropic import AsyncAnthropic
-from mcp import Client
-
-from travel_app.retrieval import Retrieval
 from service_fixtures import cli_retrieval, MapService, ModelService, response
-import test_history
-from test_travel_dates import context_from_request
-from travel_app.sessions import Runtime, create_app
+from date_fixtures import HistoryHarness, context_from_request, DateSessionHarness
 
 
-class TravelDateContinuationTests(unittest.IsolatedAsyncioTestCase):
-    finish = test_history.HistoryTests.finish
+class TravelDateContinuationTests(DateSessionHarness, unittest.IsolatedAsyncioTestCase):
+    finish = HistoryHarness.finish
     moment = datetime.fromisoformat("2026-10-09T23:59:59+08:00")
 
-    @asynccontextmanager
-    async def service(self, directory, model, maps=None) -> AsyncIterator[httpx.AsyncClient]:
-        @asynccontextmanager
-        async def resources():
-            tools = Retrieval(cast(Client, maps or MapService()))
-            await tools.discover()
-            yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
-        app = create_app(directory, resources=resources, clock=lambda: self.moment)
-        async with app.router.lifespan_context(app):
-            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
-                yield client
 
     async def test_trip_dates_survive_midnight_and_restart_without_reinterpreting_history(self):
         for text, start, end in [
@@ -106,7 +86,7 @@ class TravelDateContinuationTests(unittest.IsolatedAsyncioTestCase):
         import sqlite3
         from contextlib import closing
         from pathlib import Path
-        from test_storage import fail_event
+        from record_faults import fail_event
 
         model = ModelService([response([{"type": "text", "text": "测试模型回答"}]) for _ in range(3)])
         with tempfile.TemporaryDirectory() as directory:
@@ -169,7 +149,7 @@ class TravelDateContinuationTests(unittest.IsolatedAsyncioTestCase):
         import sqlite3
         from contextlib import closing
         from pathlib import Path
-        from test_storage import fail_event
+        from record_faults import fail_event
 
         initial = ModelService([response([{"type": "text", "text": "测试模型回答"}])])
         next_model = ModelService([response([{"type": "text", "text": "测试模型回答"}])])
@@ -199,8 +179,8 @@ class TravelDateContinuationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(context_from_request(next_model.requests[0])["travel_dates"]["end_date"], "2026-10-11")
 
     async def test_changed_dates_and_failed_weather_materials_use_the_same_full_range(self):
-        from test_exception_experience import FailingAfterTools
-        from test_itinerary import ItineraryMapService, map_result
+        from model_fixtures import FailingAfterTools
+        from itinerary_fixtures import ItineraryMapService, map_result
 
         first_model = ModelService([response([{"type": "text", "text": "测试模型回答"}])])
         weather_request = response([{"type": "tool_use", "id": "weather", "name": "maps_weather",
