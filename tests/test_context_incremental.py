@@ -4,18 +4,11 @@ import json
 import os
 import tempfile
 import unittest
-from types import SimpleNamespace
 from unittest.mock import patch
 
-from test_agent import MapService, ModelService, response
-from test_context_summary import ENV, submit
-from test_trace import serving
-
-
-class LargeMaps(MapService):
-    async def call_tool(self, name, arguments):
-        return SimpleNamespace(content=[SimpleNamespace(type="text", text="来源2026-10-18，价格待核实、未预订。" + "资" * 1600)],
-                               structured_content=None, is_error=False)
+from service_fixtures import ModelService, response
+from context_fixtures import ENV, submit, LargeMaps
+from http_fixtures import serving
 
 
 class IncrementalModel(ModelService):
@@ -76,8 +69,8 @@ class IncrementalContextTests(unittest.IsolatedAsyncioTestCase):
                     self.assertTrue(ref.startswith("message:"))
 
     async def test_oversized_history_batches_merge_correction_and_keep_deterministic_dates(self):
-        from travel_app.model_context import TokenMeter
-        from travel_app.travel_dates import saved_date_context
+        from travel_app.context.view import TokenMeter
+        from travel_app.context import saved_date_context
         model = IncrementalModel(groups=0)
         with patch.dict(os.environ, {"CONTEXT_COMPACTION_ENABLED": "false"}, clear=True), tempfile.TemporaryDirectory() as directory:
             async with serving(directory, model) as client:

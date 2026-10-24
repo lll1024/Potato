@@ -4,8 +4,10 @@ import json
 import tempfile
 import unittest
 
-from test_agent import ModelService, response
-from test_trace import serving, wait_finished
+from travel_app.planning import plan
+from travel_app.local_records import PlanningSeed
+from service_fixtures import cli_retrieval, ModelService, response
+from http_fixtures import serving, wait_finished
 
 
 def call(name, arguments, identifier="history"):
@@ -89,8 +91,8 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
         import os
         from contextlib import asynccontextmanager, redirect_stdout
         from unittest.mock import patch
-        from travel_app.agent import run_cli
-        from test_agent import MapService
+        from travel_app.planning import run_cli
+        from service_fixtures import MapService
         model = ModelService([response([{"type": "text", "text": "第二家酒店早餐 68 元，尚未预订。"}]),
             call("session_history_search", {"query": "早餐 68"}),
             call("session_history_read", {"record_id": "message:2"}),
@@ -101,8 +103,8 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
         @asynccontextmanager
         async def external_maps(*args, **kwargs):
             yield MapService()
-        with patch("travel_app.agent.Client", side_effect=external_maps), patch("travel_app.travel_tools.Client", side_effect=RuntimeError("资料服务不可用")), patch("travel_app.agent.AsyncAnthropic", side_effect=external_model), patch("travel_app.agent.streamable_http_client", return_value=None), patch("builtins.input", side_effect=["查酒店", "之前早餐多少钱", "exit"]), patch.dict(os.environ, {"MODEL_ID": "test-model"}, clear=True), redirect_stdout(io.StringIO()) as output:
-            self.assertEqual(await run_cli("test-key"), 0)
+        with patch('builtins.input', side_effect=['查酒店', '之前早餐多少钱', 'exit']), patch.dict(os.environ, {'MODEL_ID': 'test-model'}, clear=True), redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(await run_cli("test-key", retrieval_factory=cli_retrieval(external_maps, RuntimeError('资料服务不可用')), model_client_factory=external_model), 0)
         page = json.loads(model.requests[3]["messages"][-1]["content"][0]["content"])
         self.assertIn("早餐 68 元", page["text"])
         self.assertEqual(page["turn_ordinal"], 1)
@@ -179,9 +181,9 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
         from typing import cast
         from anthropic import AsyncAnthropic
         from mcp import Client
-        from travel_app.amap_mcp import AmapTools
-        from travel_app.agent import agent_loop
-        from test_agent import MapService
+        from travel_app.retrieval import Retrieval
+
+        from service_fixtures import MapService
         class CountingMap(MapService):
             def __init__(self):
                 self.calls = []
@@ -189,7 +191,7 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
                 self.calls.append((name, arguments))
                 return await super().call_tool(name, arguments)
         external = CountingMap()
-        tools = AmapTools(cast(Client, external))
+        tools = Retrieval(cast(Client, external))
         await tools.discover()
         model = ModelService([response([
             {"type": "tool_use", "id": "recall", "name": "session_history_search", "input": {"query": "酒店"}},
@@ -198,7 +200,12 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
         events = []
         async def observe(kind, data):
             events.append((kind, data))
-        await agent_loop([{"role": "user", "content": "酒店"}], cast(AsyncAnthropic, model), tools, "test-model", max_tool_calls=1, observer=observe)
+        planning_result = await plan(
+            '酒店', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
+            max_tool_calls=1,
+            observer=observe,
+        )
         self.assertEqual(external.calls, [])
         statuses = [kind for kind, data in events if kind in ("tool.completed", "tool.not_executed")]
         self.assertEqual(statuses, ["tool.completed", "tool.not_executed"])
@@ -211,12 +218,10 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
         from anthropic import AsyncAnthropic
         from mcp import Client
         from mcp.server import MCPServer
-        from travel_app.amap_mcp import AmapTools
-        from travel_app.exa_mcp import ExaTools
-        from test_agent import MapService
-        from test_source_failures import finished
-        from travel_app.travel_tools import TravelTools
-        from travel_app.web import Runtime, create_app
+        from travel_app.retrieval import Retrieval
+        from service_fixtures import MapService
+        from source_fixtures import finished
+        from travel_app.sessions import Runtime, create_app
         sources = MCPServer("历史资料边界")
         @sources.tool(name="web_search_exa")
         def search(query: str, objective: str) -> str:
@@ -228,11 +233,11 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
         @asynccontextmanager
         async def resources():
             async with Client(sources) as source_client:
-                amap = AmapTools(cast(Client, MapService()))
+                amap = Retrieval(cast(Client, MapService()))
                 await amap.discover()
-                exa = ExaTools(source_client, redact=amap.redact)
-                await exa.discover()
-                yield Runtime(cast(AsyncAnthropic, model), TravelTools(amap, exa), "test-model")
+                amap = Retrieval(cast(Client, MapService()), source_client=source_client)
+                await amap.discover()
+                yield Runtime(cast(AsyncAnthropic, model), amap, "test-model")
         with tempfile.TemporaryDirectory() as directory:
             app = create_app(directory, resources=resources)
             async with app.router.lifespan_context(app):
@@ -258,9 +263,9 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
         from typing import cast
         from anthropic import AsyncAnthropic
         from mcp import Client
-        from travel_app.amap_mcp import AmapTools
-        from travel_app.agent import agent_loop
-        from test_agent import MapService
+        from travel_app.retrieval import Retrieval
+
+        from service_fixtures import MapService
         class CountingMap(MapService):
             def __init__(self):
                 self.calls = []
@@ -268,10 +273,14 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
                 self.calls.append(name)
                 return await super().call_tool(name, arguments)
         external = CountingMap()
-        tools = AmapTools(cast(Client, external))
+        tools = Retrieval(cast(Client, external))
         await tools.discover()
         proposed = [{"type": "tool_use", "id": f"recall-{index}", "name": "session_history_search", "input": {"query": "酒店"}} for index in range(10)]
         proposed.append({"type": "tool_use", "id": "map", "name": "maps_text_search", "input": {"keywords": "酒店", "city": "杭州"}})
         model = ModelService([response(proposed, "tool_use")])
-        await agent_loop([{"role": "user", "content": "酒店"}], cast(AsyncAnthropic, model), tools, "test-model", max_tool_calls=9)
+        planning_result = await plan(
+            '酒店', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
+            max_tool_calls=9,
+        )
         self.assertEqual(external.calls, ["maps_text_search"])

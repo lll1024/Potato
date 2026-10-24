@@ -1,40 +1,13 @@
 """公开接口上的变更协议验收；替身只证明协议，不证明模型语义。"""
-import json
 import tempfile
 import unittest
 
-from test_agent import response
-import test_preferences as helpers
-from test_preferences import Clock, PreferenceModel
-
-
-class ChangesModel(PreferenceModel):
-    def __init__(self):
-        super().__init__()
-        self.suggest = lambda payload: {'changes': []}
-
-    async def create(self, **kwargs):
-        if kwargs['system'].startswith('旅行者偏好提取'):
-            self.requests.append(kwargs)
-            payload = json.loads(kwargs['messages'][0]['content'])
-            return response([{'type': 'text', 'text': json.dumps(self.suggest(payload), ensure_ascii=False)}])
-        return await super().create(**kwargs)
-
-
-def add(payload, content='不吃辣', evidence='不吃辣', index=0):
-    return {'operation': 'add', 'category': 'diet', 'content': content,
-            'source_turn_id': payload['new_inputs'][index]['turn_id'], 'evidence': evidence}
-
-
-def targeted(payload, operation, content, evidence, index=0):
-    target = payload['existing_preferences'][0]
-    return {**add(payload, content, evidence, index), 'operation': operation,
-            'target_id': target['id'], 'target_version': target['version']}
+from preference_fixtures import PreferenceHarness, Clock, ChangesModel, add, targeted
 
 
 class PreferenceChangesTests(unittest.IsolatedAsyncioTestCase):
-    service = helpers.PreferenceTests.service
-    finish = helpers.PreferenceTests.finish
+    service = PreferenceHarness.service
+    finish = PreferenceHarness.finish
     async def test_duplicate_expression_keeps_one_record_and_latest_source_order(self):
         model, clock = ChangesModel(), Clock()
         model.suggest = lambda payload: {'changes': [add(payload)]}

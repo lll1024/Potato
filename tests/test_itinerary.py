@@ -1,56 +1,20 @@
 import asyncio
 import json
-from pathlib import Path
-from types import SimpleNamespace
 from typing import cast
 import unittest
-from unittest.mock import patch
 
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from travel_app.agent import agent_loop
-from travel_app.amap_mcp import AmapTools
-from test_agent import ModelService, response
-from test_dining import tool_call
+from travel_app.planning import plan
+from travel_app.local_records import PlanningSeed
+from travel_app.retrieval import Retrieval
+
+from service_fixtures import ModelService, response
+from itinerary_fixtures import tool_call, DECLARATIONS, WEATHER, ItineraryMapService, map_result
 
 
 # 天气契约来自 2026-10-08 高德实际发现；地图返回均为可控测试数据。
-FIXTURES = Path(__file__).with_name("fixtures")
-DECLARATIONS = list({tool["name"]: tool for filename in (
-    "amap_route_tools.json", "amap_dining_tools.json", "amap_weather_tools.json"
-) for tool in json.loads(FIXTURES.joinpath(filename).read_text())}.values())
-WEATHER = {
-    "city": "杭州市",
-    "forecasts": [{"date": "2026-10-09", "dayweather": "小雨", "nightweather": "阴"}],
-}
-
-
-class ItineraryMapService:
-    @property
-    def session(self):
-        return self
-
-    def __init__(self, outcomes):
-        self.outcomes = iter(outcomes)
-        self.calls = []
-
-    async def list_tools(self, *, cursor=None):
-        return SimpleNamespace(tools=[SimpleNamespace(
-            name=tool["name"], description=tool["description"],
-            input_schema=tool["input_schema"],
-        ) for tool in DECLARATIONS], next_cursor=None)
-
-    async def call_tool(self, name, arguments):
-        self.calls.append((name, arguments))
-        return next(self.outcomes)
-
-
-def map_result(data=None, *, error=False, text_only=False):
-    return SimpleNamespace(
-        content=[SimpleNamespace(type="text", text=json.dumps(data, ensure_ascii=False))],
-        structured_content=None if text_only else data, is_error=error,
-    )
 
 
 class ItineraryTests(unittest.IsolatedAsyncioTestCase):
@@ -65,7 +29,7 @@ class ItineraryTests(unittest.IsolatedAsyncioTestCase):
                 return await super().call_tool(name, arguments)
 
         service = TimedService()
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = ModelService([
             response([tool_call(f"weather-{i}", "maps_weather", {"city": "杭州"})
@@ -73,9 +37,9 @@ class ItineraryTests(unittest.IsolatedAsyncioTestCase):
             response([{"type": "text", "text": "查询完成。"}]),
         ])
 
-        await agent_loop(
-            [{"role": "user", "content": "查询杭州天气"}],
-            cast(AsyncAnthropic, model), tools, "test-model",
+        planning_result = await plan(
+            '查询杭州天气', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
         )
 
         self.assertEqual(len(service.calls), 4)
@@ -87,16 +51,16 @@ class ItineraryTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_weather_uses_discovered_contract_and_preserves_forecast_dates(self):
         service = ItineraryMapService([map_result(WEATHER, text_only=True)])
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = ModelService([
             response([tool_call("weather", "maps_weather", {"city": "杭州"})], "tool_use"),
             response([{"type": "text", "text": "查询完成。"}]),
         ])
 
-        await agent_loop(
-            [{"role": "user", "content": "2026年10月9日起在杭州旅行三天，请结合天气安排。"}],
-            cast(AsyncAnthropic, model), tools, "test-model",
+        planning_result = await plan(
+            '2026年10月9日起在杭州旅行三天，请结合天气安排。', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
         )
 
         self.assertEqual(service.calls, [("maps_weather", {"city": "杭州"})])
@@ -166,15 +130,20 @@ class ItineraryTests(unittest.IsolatedAsyncioTestCase):
                               for reply in replies[:-1] for block in reply.content]
         sequential_replies.append(replies[-1])
         for scenario, model_replies in (("批量查询", replies), ("逐条查询", sequential_replies)):
-            with self.subTest(scenario=scenario), patch("travel_app.amap_mcp.MAP_CALL_INTERVAL", 0):
+            with self.subTest(scenario=scenario):
                 service = ItineraryMapService(outcomes)
-                tools = AmapTools(cast(Client, service))
+                tools = Retrieval(cast(Client, service), map_interval=0)
                 await tools.discover()
                 model = ModelService(model_replies)
                 history = [{"role": "user", "content": "2026年10月9日起在杭州旅行三天，"
                             "每天从酒店高德坐标120.10,30.20出发，驾车，清淡不辣，请安排活动、餐饮及交通。"}]
 
-                answer = await agent_loop(history, cast(AsyncAnthropic, model), tools, "test-model")
+                planning_result = await plan(
+                    history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+                    seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+                )
+                answer = planning_result.answer
+                history[:] = json.loads(planning_result.material.messages_json)
 
                 self.assertEqual(answer, "组合查询完成。")
                 self.assertEqual(len(service.calls), 34)
@@ -205,7 +174,7 @@ class ItineraryTests(unittest.IsolatedAsyncioTestCase):
             *(map_result({**route, "paths": [{"duration": "300", "distance": "400"}]})
               for route in routes),
         ])
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = ModelService([
             response([tool_call("old", "maps_text_search",
@@ -222,11 +191,19 @@ class ItineraryTests(unittest.IsolatedAsyncioTestCase):
         ])
         history = [{"role": "user", "content": "2026年10月9日起杭州三日旅行，清淡不辣，"
                     "第一天从测试公园开始，最后去高德坐标120.14,30.24的活动地点。"}]
-        await agent_loop(history, cast(AsyncAnthropic, model), tools, "test-model")
+        planning_result = await plan(
+            history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+        )
+        history[:] = json.loads(planning_result.material.messages_json)
         history.append({"role": "user", "content": "第一天改为测试展馆，午餐换成素食，其他条件沿用。"})
         previous = json.loads(json.dumps(history))
 
-        await agent_loop(history, cast(AsyncAnthropic, model), tools, "test-model")
+        planning_result = await plan(
+            history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+        )
+        history[:] = json.loads(planning_result.material.messages_json)
 
         self.assertEqual(model.requests[2]["messages"], previous)
         self.assertEqual(model.requests[-1]["messages"][:len(previous)], previous)
@@ -253,7 +230,7 @@ class ItineraryTests(unittest.IsolatedAsyncioTestCase):
                     map_result({"pois": [place]}), weather_result,
                     map_result({"pois": [dining]}), map_result("交通查询失败", error=True),
                 ])
-                tools = AmapTools(cast(Client, service))
+                tools = Retrieval(cast(Client, service), map_interval=0)
                 await tools.discover()
                 model = ModelService([
                     response([
@@ -268,7 +245,11 @@ class ItineraryTests(unittest.IsolatedAsyncioTestCase):
                 history = [{"role": "user", "content": "2026年11月1日杭州一天旅行，从测试公园开始，"
                             "推荐途中午餐并查询交通与天气。"}]
 
-                await agent_loop(history, cast(AsyncAnthropic, model), tools, "test-model")
+                planning_result = await plan(
+                    history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+                    seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+                )
+                history[:] = json.loads(planning_result.material.messages_json)
 
                 self.assertEqual(len(service.calls), 4)
                 self.assertIn(("maps_weather", {"city": "330100"}), service.calls)

@@ -1,0 +1,17 @@
+--- a/travel_app/context/runtime.py
++++ b/travel_app/context/runtime.py
+@@ -169,8 +169,11 @@
+ 
+     async def prepare_request(self, parameters, *, step, attempt, recovering=False, final=False):
+         """更新可发送的输入；返回预算阻止原因，关闭压缩时沿用原输入。"""
+-        parameters["messages"] = copy.deepcopy(self._view.messages)
+-        measurement = self._meter.measure(parameters) if self._policy else None
++        if self._policy:
++            measurement = self._measure_view(parameters)
++        else:
++            parameters["messages"] = copy.deepcopy(self._view.messages)
++            measurement = None
+         self._measurement = measurement
+         if self._policy is None:
+             return None
+

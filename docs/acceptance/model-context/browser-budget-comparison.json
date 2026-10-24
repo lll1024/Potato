@@ -1,0 +1,61 @@
+{
+  "baseline": {
+    "root": "/tmp/issue82-baseline",
+    "status": "terminated",
+    "reason": "context_budget",
+    "model_calls": 0,
+    "checks": [
+      {
+        "estimated_tokens": 28153,
+        "raw_estimated_tokens": 28153,
+        "method": "conservative_unicode",
+        "approximate": true,
+        "calibration_factor": 1.0,
+        "window": 40000,
+        "input_budget": 28000,
+        "allowed": false,
+        "original_watermark": 1,
+        "version": 0,
+        "record_ids": [
+          "message:1"
+        ],
+        "step": 1,
+        "attempt": 1
+      }
+    ]
+  },
+  "current": {
+    "root": "/Users/jarviliu/projects/travel",
+    "status": "terminated",
+    "reason": "context_budget",
+    "model_calls": 0,
+    "checks": [
+      {
+        "estimated_tokens": 28153,
+        "raw_estimated_tokens": 28153,
+        "method": "conservative_unicode",
+        "approximate": true,
+        "calibration_factor": 1.0,
+        "window": 40000,
+        "input_budget": 28000,
+        "allowed": false,
+        "original_watermark": 1,
+        "version": 0,
+        "record_ids": [
+          "message:1"
+        ],
+        "step": 1,
+        "attempt": 1
+      }
+    ]
+  },
+  "temporary_browser_probe": {
+    "original_repeats": 310,
+    "probe_repeats": 300,
+    "window": 40000,
+    "assertions_changed": false,
+    "repository_fixture_changed": false,
+    "stop_original_repeats": 350,
+    "stop_probe_repeats": 320
+  }
+}

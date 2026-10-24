@@ -1,3 +1,4 @@
+from service_fixtures import cli_retrieval
 """显式真实模型验收：CLI/Web 公开入口，地图和网页为固定 MCP 返回。
 
 证据保存回答、公开工具轨迹和用量，不保存服务地址或凭据。
@@ -25,13 +26,10 @@ from dotenv import load_dotenv
 from mcp import Client
 from mcp.server import MCPServer
 
-from travel_app.agent import SYSTEM, run_cli
-from travel_app.amap_mcp import AmapTools
-from travel_app.exa_mcp import ExaTools
-from travel_app.travel_tools import TravelTools
-from travel_app.store import Store
-from travel_app.travel_dates import model_date_context, turn_date_context
-from travel_app.web import Runtime, create_app
+from travel_app.planning import run_cli
+from travel_app.retrieval import Retrieval
+from travel_app.local_records import LocalRecords as Store, TurnMaterial
+from travel_app.sessions import Runtime, create_app
 
 
 NOW = datetime.fromisoformat("2026-10-13T10:00:00+08:00")
@@ -112,11 +110,11 @@ async def serving(directory, model, maps, sources):
     @asynccontextmanager
     async def resources():
         async with Client(maps) as map_client, Client(sources) as source_client:
-            amap = AmapTools(map_client)
+            amap = Retrieval(map_client)
             await amap.discover()
-            exa = ExaTools(source_client, redact=amap.redact, call_interval=0)
-            await exa.discover()
-            yield Runtime(cast(AsyncAnthropic, model), TravelTools(amap, exa), os.environ["MODEL_ID"])
+            amap = Retrieval(map_client, source_client=source_client, source_interval=0)
+            await amap.discover()
+            yield Runtime(cast(AsyncAnthropic, model), amap, os.environ["MODEL_ID"])
     app = create_app(directory, resources=resources, clock=lambda: NOW)
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
@@ -149,10 +147,12 @@ def interrupted_fixture(directory):
     try:
         text = "2026年10月20日帮我核实首都博物馆开放情况。"
         identity = store.accept(text)
-        context = turn_date_context(text, NOW)
+        context = {"timezone": "Asia/Shanghai", "now": NOW.isoformat(), "today": "2026-10-13", "weekday": "星期二",
+            "travel_dates": {"status": "resolved", "start_date": "2026-10-20", "end_date": "2026-10-20",
+                "reference_time": NOW.isoformat(), "source": "explicit"}}
         store.observe_request(identity["session_id"], identity["turn_id"], "request.started", {
             "request_id": "fixture-request", "ordinal": 1, "started_at": NOW.isoformat(),
-            "input": {"system": SYSTEM + model_date_context(context), "messages": [{"role": "user", "content": text}]}})
+            "input": {"system": "<travel_date_context>" + json.dumps(context, ensure_ascii=False) + "</travel_date_context>", "messages": [{"role": "user", "content": text}]}})
         store.observe_tool(identity["session_id"], identity["turn_id"], "tool.completed", {
             "tool_call_id": "fixture-source", "request_id": "fixture-request", "ordinal": 1,
             "name": "web_fetch_exa", "provider": "exa", "finished_at": NOW.isoformat(),
@@ -196,11 +196,8 @@ async def cli(real):
     async def model_context(**kwargs):
         yield model
     output = io.StringIO()
-    with patch("travel_app.agent.Client", side_effect=lambda *args, **kwargs: Client(maps)), \
-         patch("travel_app.travel_tools.Client", side_effect=lambda *args, **kwargs: Client(sources)), \
-         patch("travel_app.agent.AsyncAnthropic", side_effect=model_context), \
-         patch("builtins.input", side_effect=[PLAN, "exit"]), redirect_stdout(output):
-        exit_code = await run_cli("controlled-map-key", clock=lambda: NOW)
+    with patch('builtins.input', side_effect=[PLAN, 'exit']), redirect_stdout(output):
+        exit_code = await run_cli("controlled-map-key", clock=lambda: NOW, retrieval_factory=cli_retrieval(lambda *args, **kwargs: Client(maps), lambda *args, **kwargs: Client(sources)), model_client_factory=model_context)
     return {"case": "cli", "entry": "run_cli", "exit_code": exit_code, "answer": output.getvalue(),
         "source_calls": source_calls, "requests": model.requests}
 

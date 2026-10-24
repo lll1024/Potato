@@ -7,9 +7,11 @@ import unittest
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from travel_app.agent import agent_loop
-from travel_app.amap_mcp import AmapTools
-from test_agent import ModelService, response
+from travel_app.planning import plan
+from travel_app.local_records import PlanningSeed
+from travel_app.retrieval import Retrieval
+
+from service_fixtures import ModelService, response
 
 
 # 2026-10-08 从高德实际 list_tools 返回中保留的本任务工具契约。
@@ -114,13 +116,13 @@ class RouteMapService:
 
 class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
     async def test_route_capabilities_use_discovered_schemas(self):
-        tools = AmapTools(cast(Client, RouteMapService()))
+        tools = Retrieval(cast(Client, RouteMapService()))
         await tools.discover()
         model = ModelService([response([{"type": "text", "text": "请提供起终点。"}])])
 
-        await agent_loop(
-            [{"role": "user", "content": "比较交通路线"}],
-            cast(AsyncAnthropic, model), tools, "test-model",
+        planning_result = await plan(
+            '比较交通路线', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
         )
 
         self.assertEqual(
@@ -130,7 +132,7 @@ class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_confirmed_places_feed_all_route_results_back_to_model(self):
         service = RouteMapService()
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         routes = {name: {"origin": ORIGIN, "destination": DESTINATION} for name in [
             "maps_direction_walking", "maps_direction_bicycling", "maps_direction_driving",
@@ -153,7 +155,12 @@ class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
             {"role": "user", "content": "杭州东站到上城区湖滨路1号，比较交通方式。"},
         ]
 
-        answer = await agent_loop(history, cast(AsyncAnthropic, model), tools, "test-model")
+        planning_result = await plan(
+            history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+        )
+        answer = planning_result.answer
+        history[:] = json.loads(planning_result.material.messages_json)
 
         self.assertIn("四种交通方式", answer)
         self.assertEqual(model.requests[0]["messages"], history[:3])
@@ -192,7 +199,7 @@ class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_failed_route_does_not_drop_verified_route_or_invent_cost(self):
         service = RouteMapService(failed_route="maps_direction_transit_integrated")
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = ModelService([
             response([
@@ -213,9 +220,9 @@ class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
             response([{"type": "text", "text": "驾车30分钟、12公里；公交及费用待核实。"}]),
         ])
 
-        await agent_loop(
-            [{"role": "user", "content": "杭州东站到上城区湖滨路1号，比较公交和驾车。"}],
-            cast(AsyncAnthropic, model), tools, "test-model",
+        planning_result = await plan(
+            '杭州东站到上城区湖滨路1号，比较公交和驾车。', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
         )
 
         results = {result["tool_use_id"]: result for result in
@@ -233,7 +240,7 @@ class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_ambiguous_places_reach_model_before_clarification(self):
         service = RouteMapService(ambiguous=True)
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = ModelService([
             response([tool_call("candidates", "maps_text_search",
@@ -242,9 +249,9 @@ class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
             response([{"type": "text", "text": "请选择杭州东站或杭州东站东广场。"}]),
         ])
 
-        await agent_loop(
-            [{"role": "user", "content": "杭州东站去湖滨路1号怎么走？"}],
-            cast(AsyncAnthropic, model), tools, "test-model",
+        planning_result = await plan(
+            '杭州东站去湖滨路1号怎么走？', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
         )
 
         result = model.requests[1]["messages"][-1]["content"][0]
@@ -257,7 +264,7 @@ class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_clarification_keeps_known_conditions_without_map_calls(self):
         service = RouteMapService()
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = ModelService([response([{"type": "text", "text": "请提供起点。"}])])
         history = [
@@ -266,23 +273,27 @@ class RouteComparisonTests(unittest.IsolatedAsyncioTestCase):
             {"role": "user", "content": "去龙翔桥地铁站怎么走？"},
         ]
 
-        await agent_loop(history, cast(AsyncAnthropic, model), tools, "test-model")
+        planning_result = await plan(
+            history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+        )
+        history[:] = json.loads(planning_result.material.messages_json)
 
         self.assertEqual(model.requests[0]["messages"], history[:3])
         self.assertEqual(service.calls, [])
 
     async def test_taxi_app_link_is_not_available_as_a_verified_route(self):
         service = RouteMapService()
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = ModelService([
             response([tool_call("taxi", "maps_schema_take_taxi", {})], "tool_use"),
             response([{"type": "text", "text": "不能通过打车链接查询交通路线或费用。"}]),
         ])
 
-        await agent_loop(
-            [{"role": "user", "content": "生成打车链接"}],
-            cast(AsyncAnthropic, model), tools, "test-model",
+        planning_result = await plan(
+            '生成打车链接', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
         )
 
         self.assertEqual(service.calls, [])

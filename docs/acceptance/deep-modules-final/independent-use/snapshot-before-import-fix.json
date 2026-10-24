@@ -1,0 +1,497 @@
+{
+  "tool_calls": [
+    {
+      "tool_call_id": "d47bd379182e49c19bd4a6d7b0692b77",
+      "request_id": "79896ba1f8bc484980c468a650976f02",
+      "ordinal": 1,
+      "tool_use_id": "local-query-1",
+      "name": "maps_text_search",
+      "status": "completed",
+      "proposed_at": "2026-10-24T01:32:17.443172+00:00",
+      "call_started": true,
+      "call_duration_ms": 0.030332710593938828,
+      "wait_duration_ms": 0.006666872650384903,
+      "total_duration_ms": 0.4344168119132519,
+      "arguments_payload_id": "5a303c4fb54e4b97bfbc1e970a87ccda",
+      "call_started_at": "2026-10-24T01:32:17.443657+00:00",
+      "started_at": "2026-10-24T01:32:17.443647+00:00",
+      "call_finished_at": "2026-10-24T01:32:17.444023+00:00",
+      "sdk_is_error": false,
+      "finished_at": "2026-10-24T01:32:17.444080+00:00",
+      "failure_category": null,
+      "reason": null,
+      "service_payload_id": "761d7da5e3174c418e337421baeadf16",
+      "result_payload_id": "205ae54c633f450ba1f5c9a60de73272",
+      "turn_id": "f571dad9445e4e60978d79255927977a"
+    }
+  ],
+  "usage_summary": {
+    "cache_creation_input_tokens": {
+      "value": null,
+      "known_count": 0,
+      "request_count": 2
+    },
+    "cache_read_input_tokens": {
+      "value": null,
+      "known_count": 0,
+      "request_count": 2
+    },
+    "input_tokens": {
+      "value": 200,
+      "known_count": 2,
+      "request_count": 2
+    },
+    "output_tokens": {
+      "value": 80,
+      "known_count": 2,
+      "request_count": 2
+    }
+  },
+  "requests": [
+    {
+      "request_id": "79896ba1f8bc484980c468a650976f02",
+      "session_id": "8b3dbdf605cb449482f216a9dd2426ad",
+      "turn_id": "f571dad9445e4e60978d79255927977a",
+      "ordinal": 1,
+      "status": "completed",
+      "started_at": "2026-10-24T01:32:17.436860+00:00",
+      "finished_at": "2026-10-24T01:32:17.442296+00:00",
+      "duration_ms": 4.94795897975564,
+      "input_payload_id": "4b2c916f66d74f67b39187a7ac86006f",
+      "response_payload_id": "c3efa0f037fa4f238ed6caab76f7af68",
+      "error_payload_id": null,
+      "usage": {
+        "input_tokens": 100,
+        "output_tokens": 40
+      },
+      "usage_state": "returned",
+      "step": 1,
+      "attempt": 1,
+      "retry_id": "33b53a25ba354cb697b44a268d2bb6fa",
+      "purpose": "travel"
+    },
+    {
+      "request_id": "e1d70b9361404ebab3500ad48229b1d2",
+      "session_id": "8b3dbdf605cb449482f216a9dd2426ad",
+      "turn_id": "f571dad9445e4e60978d79255927977a",
+      "ordinal": 2,
+      "status": "completed",
+      "started_at": "2026-10-24T01:32:17.447671+00:00",
+      "finished_at": "2026-10-24T01:32:17.448932+00:00",
+      "duration_ms": 0.7471665740013123,
+      "input_payload_id": "8c4af1be04104dd188aeb96f6aa8d0fa",
+      "response_payload_id": "9d0b396d38534be5bb2ac3c55ea5c25a",
+      "error_payload_id": null,
+      "usage": {
+        "input_tokens": 100,
+        "output_tokens": 40
+      },
+      "usage_state": "returned",
+      "step": 2,
+      "attempt": 1,
+      "retry_id": "cd508959ff734c05b17865780cb71d6a",
+      "purpose": "travel"
+    }
+  ],
+  "cursor": 14,
+  "stream_id": "2cbf9511b6bd4d47be06d8a58689c676",
+  "schema_version": 1,
+  "session": {
+    "session_id": "8b3dbdf605cb449482f216a9dd2426ad",
+    "title": "杭州西湖一天步行游览",
+    "created_at": "2026-10-24T01:32:17.430418+00:00",
+    "updated_at": "2026-10-24T01:32:17.450371+00:00"
+  },
+  "turns": [
+    {
+      "turn_id": "f571dad9445e4e60978d79255927977a",
+      "session_id": "8b3dbdf605cb449482f216a9dd2426ad",
+      "ordinal": 1,
+      "input": "杭州西湖一天步行游览",
+      "status": "completed",
+      "reason": null,
+      "answer": "建议在西湖步行游览；开放和预约信息仍待核实。",
+      "answer_source": "model",
+      "tool_error_count": 0,
+      "created_at": "2026-10-24T01:32:17.430418+00:00",
+      "finished_at": "2026-10-24T01:32:17.450371+00:00",
+      "duration_ms": 0.0,
+      "messages": [
+        {
+          "role": "user",
+          "content": "杭州西湖一天步行游览"
+        },
+        {
+          "role": "assistant",
+          "content": [
+            {
+              "id": "local-query-1",
+              "caller": null,
+              "input": {
+                "keywords": "西湖",
+                "city": "杭州"
+              },
+              "name": "maps_text_search",
+              "type": "tool_use",
+              "toolset_name": null
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "tool_result",
+              "tool_use_id": "local-query-1",
+              "content": "{\"text\": [\"{\\\"pois\\\": [{\\\"name\\\": \\\"西湖\\\", \\\"location\\\": \\\"120.15,30.24\\\"}]}\"], \"data\": null}",
+              "is_error": false
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "content": [
+            {
+              "citations": null,
+              "text": "建议在西湖步行游览；开放和预约信息仍待核实。",
+              "type": "text"
+            }
+          ]
+        }
+      ],
+      "input_payload_id": "147b69ee6e3444ee8334e3e6414ba990",
+      "answer_payload_id": "1fe5e11929444e6b9f02d3aeb0300476",
+      "model_error_code": null,
+      "travel_date_context": {
+        "timezone": "Asia/Shanghai",
+        "now": "2026-10-24T08:00:00+08:00",
+        "today": "2026-10-24",
+        "weekday": "星期六",
+        "travel_dates": {
+          "status": "unspecified"
+        }
+      },
+      "query_materials": [],
+      "unreadable_query_count": 0,
+      "usage_summary": {
+        "cache_creation_input_tokens": {
+          "value": null,
+          "known_count": 0,
+          "request_count": 2
+        },
+        "cache_read_input_tokens": {
+          "value": null,
+          "known_count": 0,
+          "request_count": 2
+        },
+        "input_tokens": {
+          "value": 200,
+          "known_count": 2,
+          "request_count": 2
+        },
+        "output_tokens": {
+          "value": 80,
+          "known_count": 2,
+          "request_count": 2
+        }
+      }
+    }
+  ],
+  "events": [
+    {
+      "event_id": "e434b2dd58934d24a435f2c76fbfb458",
+      "session_id": "8b3dbdf605cb449482f216a9dd2426ad",
+      "turn_id": "f571dad9445e4e60978d79255927977a",
+      "sequence": 1,
+      "kind": "turn.accepted",
+      "timestamp": "2026-10-24T01:32:17.430766+00:00",
+      "request_id": null,
+      "tool_call_id": null,
+      "data": {
+        "input_summary": "杭州西湖一天步行游览"
+      },
+      "cursor": 1
+    },
+    {
+      "event_id": "9d7098cfd8354e5b9e8dab4e0ffe8e88",
+      "session_id": "8b3dbdf605cb449482f216a9dd2426ad",
+      "turn_id": "f571dad9445e4e60978d79255927977a",
+      "sequence": 2,
+      "kind": "context.date",
+      "timestamp": "2026-10-24T01:32:17.433289+00:00",
+      "request_id": null,
+      "tool_call_id": null,
+      "data": {
+        "date_context": {
+          "timezone": "Asia/Shanghai",
+          "now": "2026-10-24T08:00:00+08:00",
+          "today": "2026-10-24",
+          "weekday": "星期六",
+          "travel_dates": {
+            "status": "unspecified"
+          }
+        }
+      },
+      "cursor": 2
+    },
+    {
+      "event_id": "d89b0f896c264b02975e3a000782c1bb",
+      "session_id": "8b3dbdf605cb449482f216a9dd2426ad",
+      "turn_id": "f571dad9445e4e60978d79255927977a",
+      "sequence": 3,
+      "kind": "context.checked",
+      "timestamp": "2026-10-24T01:32:17.436537+00:00",
+      "request_id": null,
+      "tool_call_id": null,
+      "data": {
+        "estimated_tokens": 19010,
+        "raw_estimated_tokens": 19010,
+        "method": "conservative_unicode",
+        "approximate": true,
+        "calibration_factor": 1.0,
+        "window": 100000,
+        "input_budget": 82000,
+        "allowed": true,
+        "original_watermark": 1,
+        "version": 0,
+        "record_ids": [
+          "message:1"
+        ],
+        "step": 1,
+        "attempt": 1
+      },
+      "cursor": 3
+    },
+    {
+      "event_id": "b02b6c75676e492dbd29ca29c4f7d664",
+      "session_id": "8b3dbdf605cb449482f216a9dd2426ad",
+      "turn_id": "f571dad9445e4e60978d79255927977a",
+      "sequence": 4,
+      "kind": "request.started",
+      "timestamp": "2026-10-24T01:32:17.437076+00:00",
+      "request_id": "79896ba1f8bc484980c468a650976f02",
+      "tool_call_id": null,
+      "data": {
+        "ordinal": 1,
+        "status": "running",
+        "input_payload_id": "4b2c916f66d74f67b39187a7ac86006f",
+        "step": 1,
+        "attempt": 1,
+        "retry_id": "33b53a25ba354cb697b44a268d2bb6fa",
+        "purpose": "travel"
+      },
+      "cursor": 4
+    },
+    {
+      "event_id": "a1292b1c8da8483396a0fb35dd23da23",
+      "session_id": "8b3dbdf605cb449482f216a9dd2426ad",
+      "turn_id": "f571dad9445e4e60978d79255927977a",
+      "sequence": 5,
+      "kind": "context.usage",
+      "timestamp": "2026-10-24T01:32:17.442454+00:00",
+      "request_id": "79896ba1f8bc484980c468a650976f02",
+      "tool_call_id": null,
+      "data": {
+        "request_id": "79896ba1f8bc484980c468a650976f02",
+        "input_tokens_for_calibration": 100,
+        "input_usage_semantics": "input_tokens_returned_cache_unknown",
+        "calibration_factor": 1.0
+      },
+      "cursor": 5
+    },
+    {
+      "event_id": "21798eb891d840059eaa89af9f871b30",
+      "session_id": "8b3dbdf605cb449482f216a9dd2426ad",
+      "turn_id": "f571dad9445e4e60978d79255927977a",
+      "sequence": 6,
+      "kind": "request.completed",
+      "timestamp": "2026-10-24T01:32:17.442913+00:00",
+      "request_id": "79896ba1f8bc484980c468a650976f02",
+      "tool_call_id": null,
+      "data": {
+        "status": "completed",
+        "response_payload_id": "c3efa0f037fa4f238ed6caab76f7af68",
+        "duration_ms": 4.94795897975564,
+        "usage_state": "returned"
+      },
+      "cursor": 6
+    },
+    {
+      "event_id": "8bd1e9a09cb94ebfae509ee08b2d619f",
+      "session_id": "8b3dbdf605cb449482f216a9dd2426ad",
+      "turn_id": "f571dad9445e4e60978d79255927977a",
+      "sequence": 7,
+      "kind": "tool.pending",
+      "timestamp": "2026-10-24T01:32:17.443319+00:00",
+      "request_id": "79896ba1f8bc484980c468a650976f02",
+      "tool_call_id": "d47bd379182e49c19bd4a6d7b0692b77",
+      "data": {
+        "tool_call_id": "d47bd379182e49c19bd4a6d7b0692b77",
+        "request_id": "79896ba1f8bc484980c468a650976f02",
+        "ordinal": 1,
+        "tool_use_id": "local-query-1",
+        "name": "maps_text_search",
+        "status": "pending",
+        "proposed_at": "2026-10-24T01:32:17.443172+00:00",
+        "call_started": false,
+        "call_duration_ms": null,
+        "wait_duration_ms": null,
+        "total_duration_ms": null,
+        "arguments_payload_id": "5a303c4fb54e4b97bfbc1e970a87ccda"
+      },
+      "cursor": 7
+    },
+    {
+      "event_id": "c999aeb2960e4cbbb3a72e0149b60eb5",
+      "session_id": "8b3dbdf605cb449482f216a9dd2426ad",
+      "turn_id": "f571dad9445e4e60978d79255927977a",
+      "sequence": 8,
+      "kind": "tool.running",
+      "timestamp": "2026-10-24T01:32:17.443767+00:00",
+      "request_id": "79896ba1f8bc484980c468a650976f02",
+      "tool_call_id": "d47bd379182e49c19bd4a6d7b0692b77",
+      "data": {
+        "status": "running",
+        "call_started": true,
+        "call_started_at": "2026-10-24T01:32:17.443657+00:00",
+        "started_at": "2026-10-24T01:32:17.443647+00:00",
+        "wait_duration_ms": 0.006666872650384903,
+        "tool_call_id": "d47bd379182e49c19bd4a6d7b0692b77",
+        "request_id": "79896ba1f8bc484980c468a650976f02"
+      },
+      "cursor": 8
+    },
+    {
+      "event_id": "eeee2d8e57f740019b8f54e19eb5d373",
+      "session_id": "8b3dbdf605cb449482f216a9dd2426ad",
+      "turn_id": "f571dad9445e4e60978d79255927977a",
+      "sequence": 9,
+      "kind": "tool.completed",
+      "timestamp": "2026-10-24T01:32:17.444233+00:00",
+      "request_id": "79896ba1f8bc484980c468a650976f02",
+      "tool_call_id": "d47bd379182e49c19bd4a6d7b0692b77",
+      "data": {
+        "started_at": "2026-10-24T01:32:17.443647+00:00",
+        "call_started": true,
+        "wait_duration_ms": 0.006666872650384903,
+        "call_duration_ms": 0.030332710593938828,
+        "call_finished_at": "2026-10-24T01:32:17.444023+00:00",
+        "sdk_is_error": false,
+        "finished_at": "2026-10-24T01:32:17.444080+00:00",
+        "total_duration_ms": 0.4344168119132519,
+        "failure_category": null,
+        "reason": null,
+        "tool_call_id": "d47bd379182e49c19bd4a6d7b0692b77",
+        "request_id": "79896ba1f8bc484980c468a650976f02",
+        "service_payload_id": "761d7da5e3174c418e337421baeadf16",
+        "result_payload_id": "205ae54c633f450ba1f5c9a60de73272",
+        "status": "completed"
+      },
+      "cursor": 9
+    },
+    {
+      "event_id": "a16df1c749f346a0bd275926ecc6165b",
+      "session_id": "8b3dbdf605cb449482f216a9dd2426ad",
+      "turn_id": "f571dad9445e4e60978d79255927977a",
+      "sequence": 10,
+      "kind": "context.checked",
+      "timestamp": "2026-10-24T01:32:17.447290+00:00",
+      "request_id": null,
+      "tool_call_id": null,
+      "data": {
+        "estimated_tokens": 19315,
+        "raw_estimated_tokens": 19315,
+        "method": "conservative_unicode",
+        "approximate": true,
+        "calibration_factor": 1.0,
+        "window": 100000,
+        "input_budget": 82000,
+        "allowed": true,
+        "original_watermark": 3,
+        "version": 0,
+        "record_ids": [
+          "message:1",
+          "message:2",
+          "message:3"
+        ],
+        "step": 2,
+        "attempt": 1
+      },
+      "cursor": 10
+    },
+    {
+      "event_id": "308fdbb3fa7140c0a19031b7174c0fef",
+      "session_id": "8b3dbdf605cb449482f216a9dd2426ad",
+      "turn_id": "f571dad9445e4e60978d79255927977a",
+      "sequence": 11,
+      "kind": "request.started",
+      "timestamp": "2026-10-24T01:32:17.447885+00:00",
+      "request_id": "e1d70b9361404ebab3500ad48229b1d2",
+      "tool_call_id": null,
+      "data": {
+        "ordinal": 2,
+        "status": "running",
+        "input_payload_id": "8c4af1be04104dd188aeb96f6aa8d0fa",
+        "step": 2,
+        "attempt": 1,
+        "retry_id": "cd508959ff734c05b17865780cb71d6a",
+        "purpose": "travel"
+      },
+      "cursor": 11
+    },
+    {
+      "event_id": "b89397b921bd42eea7d37ab63b90c0ab",
+      "session_id": "8b3dbdf605cb449482f216a9dd2426ad",
+      "turn_id": "f571dad9445e4e60978d79255927977a",
+      "sequence": 12,
+      "kind": "context.usage",
+      "timestamp": "2026-10-24T01:32:17.449015+00:00",
+      "request_id": "e1d70b9361404ebab3500ad48229b1d2",
+      "tool_call_id": null,
+      "data": {
+        "request_id": "e1d70b9361404ebab3500ad48229b1d2",
+        "input_tokens_for_calibration": 100,
+        "input_usage_semantics": "input_tokens_returned_cache_unknown",
+        "calibration_factor": 1.0
+      },
+      "cursor": 12
+    },
+    {
+      "event_id": "56183139c25c4b4a8bacc949c59911a3",
+      "session_id": "8b3dbdf605cb449482f216a9dd2426ad",
+      "turn_id": "f571dad9445e4e60978d79255927977a",
+      "sequence": 13,
+      "kind": "request.completed",
+      "timestamp": "2026-10-24T01:32:17.449423+00:00",
+      "request_id": "e1d70b9361404ebab3500ad48229b1d2",
+      "tool_call_id": null,
+      "data": {
+        "status": "completed",
+        "response_payload_id": "9d0b396d38534be5bb2ac3c55ea5c25a",
+        "duration_ms": 0.7471665740013123,
+        "usage_state": "returned"
+      },
+      "cursor": 13
+    },
+    {
+      "event_id": "7f01db75897647df87e6c783843ba412",
+      "session_id": "8b3dbdf605cb449482f216a9dd2426ad",
+      "turn_id": "f571dad9445e4e60978d79255927977a",
+      "sequence": 14,
+      "kind": "turn.finished",
+      "timestamp": "2026-10-24T01:32:17.450543+00:00",
+      "request_id": null,
+      "tool_call_id": null,
+      "data": {
+        "status": "completed",
+        "reason": null,
+        "answer_source": "model",
+        "tool_error_count": 0,
+        "answer_summary": "建议在西湖步行游览；开放和预约信息仍待核实。"
+      },
+      "cursor": 14
+    }
+  ],
+  "total_turns": 1,
+  "next_before": null
+}

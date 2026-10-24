@@ -6,8 +6,9 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from test_recovery import ExternalServices, process
-from test_trace import wait_finished
+from service_fixtures import cli_retrieval
+from process_fixtures import ExternalServices, process
+from http_fixtures import wait_finished
 
 
 class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
@@ -73,9 +74,9 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
     async def test_history_storage_read_failure_stops_without_saved_completion(self):
         import sqlite3
         from pathlib import Path
-        from test_agent import ModelService, response
-        from test_trace import serving
-        from test_storage import wait_state
+        from service_fixtures import ModelService, response
+        from http_fixtures import serving
+        from http_fixtures import wait_state
         entered, release = asyncio.Event(), asyncio.Event()
         class WaitingModel(ModelService):
             async def create(self, **kwargs):
@@ -102,7 +103,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(len(model.requests), 2)
 
     async def test_killed_summary_or_adopted_candidate_restores_previous_saved_version(self):
-        from test_context_summary import ENV, OLD
+        from context_fixtures import ENV, OLD
         for boundary in ('summary_inflight', 'adopted'):
             with self.subTest(boundary=boundary), patch.dict(os.environ, ENV, clear=True), tempfile.TemporaryDirectory() as directory:
                 summary_calls = 0
@@ -162,8 +163,9 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
     async def test_storage_boundaries_then_process_exit_do_not_promote_candidate(self):
         import sqlite3
         from pathlib import Path
-        from test_context_summary import ENV, OLD
-        from test_storage import fail_event, wait_state
+        from context_fixtures import ENV, OLD
+        from record_faults import fail_event
+        from http_fixtures import wait_state
         for boundary in ('context.candidate', 'context.adopted', 'context.saved', 'turn.finished'):
             with self.subTest(boundary=boundary), patch.dict(os.environ, ENV, clear=True), tempfile.TemporaryDirectory() as directory:
                 summaries = 0
@@ -259,9 +261,9 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
     async def test_cli_cancelled_summary_exits_and_new_run_has_no_previous_context(self):
         import io
         from contextlib import asynccontextmanager, redirect_stdout
-        from travel_app.agent import run_cli
-        from test_agent import MapService, ModelService, response
-        from test_context_summary import ENV, OLD
+        from travel_app.planning import run_cli
+        from service_fixtures import MapService, ModelService, response
+        from context_fixtures import ENV, OLD
         entered = asyncio.Event()
         class WaitingModel(ModelService):
             async def create(self, **kwargs):
@@ -278,8 +280,8 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
         async def external_maps(*args, **kwargs):
             yield MapService()
         output = io.StringIO()
-        with patch.dict(os.environ, {**ENV, 'MODEL_ID': 'test-model'}, clear=True), patch('travel_app.agent.Client', side_effect=external_maps), patch('travel_app.travel_tools.Client', side_effect=RuntimeError('资料服务不可用')), patch('travel_app.agent.AsyncAnthropic', side_effect=external_model), patch('travel_app.agent.streamable_http_client', return_value=None), patch('builtins.input', side_effect=[OLD, '继续']), redirect_stdout(output):
-            task = asyncio.create_task(run_cli('test-key'))
+        with patch.dict(os.environ, {**ENV, 'MODEL_ID': 'test-model'}, clear=True), patch('builtins.input', side_effect=[OLD, '继续']), redirect_stdout(output):
+            task = asyncio.create_task(run_cli('test-key', retrieval_factory=cli_retrieval(external_maps, RuntimeError('资料服务不可用')), model_client_factory=external_model))
             await asyncio.wait_for(entered.wait(), 2)
             task.cancel()
             with self.assertRaises(asyncio.CancelledError):
@@ -288,6 +290,34 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('正在整理', output.getvalue())
         self.assertNotIn('摘要已用于本轮', output.getvalue())
         model = ModelService([response([{'type': 'text', 'text': '新会话建议'}])])
-        with patch.dict(os.environ, {**ENV, 'MODEL_ID': 'test-model'}, clear=True), patch('travel_app.agent.Client', side_effect=external_maps), patch('travel_app.travel_tools.Client', side_effect=RuntimeError('资料服务不可用')), patch('travel_app.agent.AsyncAnthropic', side_effect=external_model), patch('travel_app.agent.streamable_http_client', return_value=None), patch('builtins.input', side_effect=['新会话', 'exit']), redirect_stdout(io.StringIO()):
-            self.assertEqual(await run_cli('test-key'), 0)
+        with patch.dict(os.environ, {**ENV, 'MODEL_ID': 'test-model'}, clear=True), patch('builtins.input', side_effect=['新会话', 'exit']), redirect_stdout(io.StringIO()):
+            self.assertEqual(await run_cli('test-key', retrieval_factory=cli_retrieval(external_maps, RuntimeError('资料服务不可用')), model_client_factory=external_model), 0)
         self.assertEqual(model.requests[0]['messages'], [{'role': 'user', 'content': '新会话'}])
+
+
+    async def test_invalid_saved_context_stops_acceptance_without_starting_next_model(self):
+        import sqlite3
+        from pathlib import Path
+        from service_fixtures import ModelService, response
+        from http_fixtures import serving
+        from http_fixtures import wait_state
+        model = ModelService([response([{"type": "text", "text": "上轮完成"}])])
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory, model) as client:
+                first = (await client.post("/api/turns", json={"input": "杭州旅行"})).json()
+                await wait_finished(client, first["session_id"], first["turn_id"])
+                with sqlite3.connect(Path(directory) / "travel.sqlite3") as database, database:
+                    database.execute("INSERT INTO context_versions VALUES (?,?,1,'saved',?)",
+                                     (first["session_id"], first["turn_id"], '{"version": 1}'))
+                accepted = (await client.post("/api/turns", json={
+                    "input": "继续", "session_id": first["session_id"]})).json()
+                state = await wait_state(client, lambda item: item["active_turn_id"] is None)
+                self.assertFalse(state["accepting"])
+                self.assertEqual(state["unsaved_fact"]["kind"], "turn.context")
+                self.assertEqual(len(model.requests), 1)
+                saved = (await client.get("/api/sessions/" + first["session_id"])).json()
+                self.assertEqual(saved["turns"][-1]["status"], "running")
+                self.assertFalse(any(event["turn_id"] == accepted["turn_id"] and
+                                     event["kind"] in ("request.started", "turn.finished")
+                                     for event in saved["events"]))
+                self.assertEqual((await client.post("/api/turns", json={"input": "新需求"})).status_code, 503)

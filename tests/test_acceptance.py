@@ -7,10 +7,8 @@ import unittest
 
 from mcp.types import CallToolResult, TextContent
 
-from test_agent import MapService, ModelService, response
-from test_reconnect import notices
-from test_tool_trace import serving_tools
-from test_trace import wait_finished
+from service_fixtures import MapService, ModelService, response
+from http_fixtures import notices, serving_tools, wait_finished
 
 
 class FinalAcceptanceTests(unittest.IsolatedAsyncioTestCase):

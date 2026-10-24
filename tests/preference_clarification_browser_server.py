@@ -1,6 +1,5 @@
 """正式页面的歧义新轮次验收；模型为可控外部替身。"""
 import asyncio
-import json
 from pathlib import Path
 import socket
 import sys
@@ -13,11 +12,11 @@ import httpx
 import uvicorn
 from anthropic import AsyncAnthropic
 from mcp import Client
-from travel_app.amap_mcp import AmapTools
-from test_agent import MapService, response
-from test_preference_changes import ChangesModel, add, targeted
-from test_preferences import Clock
-from travel_app.web import Runtime, create_app
+from travel_app.retrieval import Retrieval
+from travel_app.sessions import Runtime, create_app
+
+from service_fixtures import MapService, response
+from preference_fixtures import ChangesModel, add, targeted, Clock
 
 
 async def main():
@@ -32,7 +31,7 @@ async def main():
     model.create = controlled
     @asynccontextmanager
     async def resources():
-        tools = AmapTools(cast(Client, MapService()))
+        tools = Retrieval(cast(Client, MapService()))
         await tools.discover()
         yield Runtime(cast(AsyncAnthropic, model), tools, 'test-model')
     with tempfile.TemporaryDirectory() as directory:

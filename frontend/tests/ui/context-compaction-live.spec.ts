@@ -4,7 +4,7 @@ import {mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 
-const original = '2026-10-18杭州，预算3000元人民币，保留湖滨酒店，未预订。' + '阅读背景资料，不是新要求。'.repeat(310);
+const original = '2026-10-18杭州，预算3000元人民币，保留湖滨酒店，未预订。' + '阅读背景资料，不是新要求。'.repeat(300);
 async function start(directory: string, mode: string) {
   const server = spawn('../.venv/bin/python', ['../tests/context_browser_server.py', '--data-dir', directory, '--mode', mode], {cwd: process.cwd()});
   let output = '';
@@ -33,6 +33,15 @@ for (const width of [1440, 390]) {
       const input = page.getByRole('textbox', {name: '旅行需求'});
       await input.fill(original); await page.getByRole('button', {name: /^发送/}).click();
       await expect(page.getByText('酒店未预订，预算3000元人民币。', {exact: true})).toBeVisible();
+      const firstSession = (await (await page.request.get(running.url + '/api/sessions')).json()).sessions[0].session_id;
+      const firstSnapshot = await (await page.request.get(running.url + '/api/sessions/' + firstSession)).json();
+      const checked = firstSnapshot.events.find((event: {kind: string}) => event.kind === 'context.checked').data;
+      const organized = firstSnapshot.events.find((event: {kind: string}) => event.kind === 'context.organized').data;
+      expect(checked.window).toBe(40000);
+      expect(checked.input_budget).toBe(28000);
+      expect(checked.allowed).toBe(true);
+      expect(checked.estimated_tokens).toBeGreaterThan(organized.pressure_threshold);
+      expect(checked.estimated_tokens).toBeLessThanOrEqual(checked.input_budget);
       await input.fill('继续保留原条件'); await page.getByRole('button', {name: /^发送/}).click();
       await page.getByRole('button', {name: '轨迹', exact: true}).click();
       const maintenance = page.locator('.model-retries').filter({hasText: '旅行记录整理'}).last();
@@ -62,6 +71,7 @@ for (const width of [1440, 390]) {
       await page.request.post(running.url + '/api/turns/' + stopped.turn_id + '/stop');
       await page.getByRole('button', {name: '轨迹', exact: true}).click();
       await expect(page.getByRole('status').filter({hasText: '已停止'})).toBeVisible();
+      await page.getByRole('button', {name: '全部展开', exact: true}).click();
       await expect(page.locator('.model-retries').last().locator('summary')).toContainText('摘要未采用');
       await page.locator('.model-retries').last().locator('summary').click();
       await expect(page.locator('.model-retries').last()).toContainText('已停止或来源版本已变化，未采用');
@@ -78,6 +88,7 @@ for (const width of [1440, 390]) {
       await close(running.server, running.closed, 'SIGKILL');
       running = await start(directory, 'success');
       await page.goto(running.url); await selectHistory(page); await page.getByRole('button', {name: '轨迹', exact: true}).click();
+      await page.getByRole('button', {name: '全部展开', exact: true}).click();
       await expect(page.locator('.model-retries').last().locator('summary')).toContainText('摘要请求结果未知');
       await page.locator('.model-retries').last().locator('summary').click();
       await expect(page.locator('.model-retries').last()).toContainText('续聊恢复上一有效版本');

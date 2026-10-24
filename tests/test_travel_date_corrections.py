@@ -3,16 +3,15 @@ import tempfile
 import unittest
 from datetime import datetime
 
-from test_agent import ModelService, response
-import test_travel_date_continuation
-from test_travel_dates import context_from_request
+from service_fixtures import ModelService, response
+from date_fixtures import DateSessionHarness, context_from_request
 
 
 class TravelDateCorrectionTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
-        self.http = test_travel_date_continuation.TravelDateContinuationTests()
+        self.http = DateSessionHarness()
 
-    finish = test_travel_date_continuation.TravelDateContinuationTests.finish
+    finish = DateSessionHarness.finish
 
     async def conversation(self, turns):
         model = ModelService([response([{"type": "text", "text": "协议占位回答"}]) for _ in turns])
@@ -70,8 +69,8 @@ class TravelDateCorrectionTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(saved["turns"][-1]["travel_date_context"], context)
 
     async def test_duration_change_updates_end_date_and_weather_range_after_restart(self):
-        from test_exception_experience import FailingAfterTools
-        from test_itinerary import ItineraryMapService, map_result
+        from model_fixtures import FailingAfterTools
+        from itinerary_fixtures import ItineraryMapService, map_result
 
         initial = ModelService([response([{"type": "text", "text": "协议占位回答"}])])
         changed = FailingAfterTools([response([{"type": "tool_use", "id": "weather", "name": "maps_weather",

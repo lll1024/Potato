@@ -1,0 +1,337 @@
+
+### docs/modules/sessions.md
+1: # 助手会话：当前公开契约
+2: 
+3: 公开入口为 [travel_app.sessions](../../travel_app/sessions/__init__.py)。`create_app(data_dir, *, resources=..., static_dir=None, request_shutdown=None, clock=None, preference_clock=..., preference_wait=..., preference_timeout=60)` 构造现有 FastAPI 服务；根 `web.py` 调用公开 `main(*, app_factory=create_app, load_environment=load_dotenv)`，启动参数、数据目录、配置和 HTTP/SSE 协议保持。
+4: 
+5: 服务 lifespan 创建并锁定数据目录，打开本机记录、恢复已提交事实、配置外部资源，再启动会话及既有偏好后台处理；退出时停止接受输入，等待当前执行和保存收束，关闭资源并释放锁。`resources` 是异步上下文管理器，产出 `Runtime(client, tools, model)`；模型客户端及已发现的查询 adapter 在服务使用期间保持有效。已被占用的数据目录、版本不兼容及配置错误保留固定启动诊断。
+6: 
+7: 可直接使用 `TurnRuntime(records, runtime, ...)` 的 `start()`、异步 `submit(input, session_id, submission_id)`、`submission_result(submission_id)`、`stop(turn_id)`、`snapshot()` 和异步 `shutdown()`。通常使用 `create_app` 管理其生命周期。`changed` 是瞬时变化通知，不是持久游标。公开构造参数 `app_factory` 与 `load_environment` 供启动装配注入应用和环境加载，正式根入口保留默认行为。
+8: 
+9: 直接装配时，构造 `Runtime(client, tools, model)`（已配置的异步模型客户端、已发现的 `PlanningTools`、模型名），再构造 `TurnRuntime(records, runtime, *, request_shutdown=None, clock=None, preference_clock=time.time, preference_wait=asyncio.sleep, preference_timeout=60)`。先在已创建并独占的数据目录打开 `LocalRecords`、执行 `recover()`，再 `start()`；资源有效期覆盖全部运行轮次。退出必须 `await shutdown()` 后才关闭记录及外部客户端。`start()` 仅用于首次启动，不在运行中重复调用。`clock()` 返回带时区的 `datetime`，用于本轮日期解释；`preference_clock()` 返回秒数，`preference_wait(delay)` 为异步等待。`request_shutdown()` 是记录事实失败后的服务退出通知，不能提前关闭在途资源。默认使用 `create_app` 可避免自行管理目录锁及上述顺序。
+10: 
+11: `storage_failed(message, *, kind=None, turn_id=None)` 是明确的记录故障通知入口：立即拒绝新输入并向规划设置停止信号，`kind` 和 `turn_id` 关联未保存事实；仍须等待执行和 `shutdown` 收束。提交输入须非空；`submission_id` 可为 `None`，提供时使用非空、最多 128 字符的身份。HTTP 对标题、分页和输入另作格式校验，直接调用方承担相同输入约束。
+12: 
+13: 提交先核对身份，再检查接受状态和全局名额。同身份同输入返回原接受身份；冲突为 409，已删除会话的身份为 410，全局忙碌为 409，无法保存或退出为 503。直接调用抛出 `RunRejected(status_code, detail)`，HTTP 层保留相同错误映射。接受输入与偏好待处理登记共同提交后才启动后台规划；关闭网页或订阅不取消已接受任务。
+14: 
+15: 会话将记录快照及偏好背景交给 `planning.plan`，只使用其结构化终态和只读保存材料，随后一次原子保存。它不解析 `turn.finished` 观察事件，也不维护完整协议和模型视图两份状态。观察回调逐条保存请求、工具及上下文事实；保存失败抛出 `RecordAbort`，禁止后续调用。执行已返回与结果已保存分别表达：保存失败的轮次保持最后持久状态，`snapshot()` 的 `accepting=false`、`storage_error`、`unsaved_fact` 明确显示故障，不伪造完成或模型失败。
+16: 
+17: 停止只接受原轮次身份。停止期间保留全局名额，已进入外部服务的调用及保存尝试真实收束后才释放。重启不重放请求或普通重试；未完成事实按原恢复规则标识中断。
+18: 
+19: ## 查看、管理与通知
+20: 
+21: 同一 `TurnRuntime` 提供下列独立操作。HTTP 路由只校验请求格式、调用操作及转换响应，不持有分页、去重或通知循环。
+22: 
+23: | 公开操作 | 行为及 HTTP 映射 |
+24: | --- | --- |
+25: | `history(limit=50, cursor=None)` | 会话列表与不透明分页游标；`GET /api/sessions` |
+26: | `history_page(session_id, limit=50, before=None, summary=False, include_messages=True)` | 一致读取轮次、轨迹、用量及事件位置；`GET /api/sessions/{id}` |
+27: | `search(session_id, query, scope="full")` | 脱敏搜索词，返回 `matches` 定位信息；`GET /api/sessions/{id}/search` |
+28: | `payload(payload_id, offset=None, limit=8192)` | 完整载荷或分段载荷；`GET /api/payloads/{id}` |
+29: | `rename(session_id, title)` / `delete(session_id)` | 脱敏标题、管理会话并保留原身份与错误语义；`PATCH` / `DELETE /api/sessions/{id}` |
+30: | `service_snapshot()` | 当前运行状态和本机记录的一致事件位置；`GET /api/snapshot` |
+31: | `notifications(after=None, stream_id=None, last_event_id=None)` | 先校验位置，返回异步 SSE 文本迭代器；`GET /api/events` |
+32: 
+33: 读取只调用本机记录公开的一致读取操作，不取得数据库连接或安排事务。不存在的会话或载荷返回 404，非法分页或搜索范围返回 422；删除运行中的会话返回 409。读取故障停止接受输入并抛出 `RunRejected(503, detail)`；改名、删除保留各自未保存提示。`RunRejected.detail` 可以是原协议中的文本或含 `code` / `message` 的对象。
+34: 
+35: `last_event_id` 优先于初始 `after`。位置超出当前记录或 `stream_id` 不匹配时要求重新读取快照（409 `SNAPSHOT_REQUIRED`）。持久 `trace` 含事件身份和游标，瞬时 `service.state` 无持久游标；断线后从最后实际处理的位置补齐。读取通知故障只展示最后提交事实与不可用状态。关闭迭代器或 HTTP 订阅不取消后台轮次，多个页面独立订阅。
+36: 
+37: ## 前端入口与状态归属
+38: 
+39: 公开入口 [frontend/src/sessions/index.ts](../../frontend/src/sessions/index.ts) 导出 `SessionsApp`。外层 [main.tsx](../../frontend/src/main.tsx) 只装配会话界面与旅行者偏好的公开 `PreferencesView`；`SessionsApp` 接收该组件（`onBack` 回到对话），不接管偏好规则。
+40: 
+41: 提交身份、不确定接受结果、同身份核对与重试、仅清理匹配的已提交草稿、当前会话和停止目标均在会话能力内部协调。通知恢复维持最后实际处理游标，状态核对不跳过未收到事件；数据目录变化使历史、草稿、提交回调和分页请求失效。侧栏删除会话清理相应草稿与缓存，切换会话保留独立草稿与已加载历史。
+42: 
+43: 对话和执行轨迹使用各自的显示投影。[useSessionPage](../../frontend/src/sessions/useSessionPage.ts) 负责快照、分页与搜索定位请求、失效及迟到响应屏蔽；[sessionPages](../../frontend/src/sessions/sessionPages.ts) 统一按轮次和事实身份合并。刷新整轮替换相关请求、工具及事件，按快照游标保留较新事实；发现历史间隙时保留可补齐的分页前沿，迟到旧分页只补充对象，不关闭新的前沿，重复页不会重复显示；对话保留轮询，轨迹保留事件驱动刷新。滚动跟随、定位、桌面和移动显示方式保持。
+44: 
+45: 实现见 [runtime.py](../../travel_app/sessions/runtime.py)、[http.py](../../travel_app/sessions/http.py) 与 [SessionsApp.tsx](../../frontend/src/sessions/SessionsApp.tsx)。偏好生命周期通过其公开契约协作；规划资源通过旅行规划公开装配入口提供，助手会话不直接依赖资料获取 implementation。
+46: 
+47: 验证：[公开查看与管理](../../tests/test_session_contracts.py)、[提交身份](../../tests/test_submissions.py)、[原目标停止](../../tests/test_stop.py)、[保存故障](../../tests/test_storage.py)、[通知续接](../../tests/test_reconnect.py)、[真实根入口与旧数据](../../tests/test_migration_baseline.py)、[数据集与迟到分页](../../frontend/tests/ui/session-pages.spec.ts)及[浏览器交互](../../frontend/tests/ui/conversation.spec.ts)。
+
+### docs/modules/planning.md
+1: # 旅行规划：当前公开契约
+2: 
+3: 公开入口为 [travel_app.planning](../../travel_app/planning/__init__.py)。主要操作是异步 `plan(text, client, tools, model, *, seed=None, continuation=None, observer=None, stop_requested=None, stop_reason="user_stop", preference_background="", clock=None, history_records=None, max_rounds=80, max_tool_calls=128, context_policy=None)`。Web 与真实 CLI 都调用它；不创建数据库或后台偏好任务。
+4: 
+5: `client` 是已配置的 Anthropic 异步客户端；`tools` 是已发现能力的 `PlanningTools`（实际为资料获取公开的 `Retrieval` 类型）。生命周期由装配方管理。模型、地图、网页的生产连接配置及超时保持既有启动行为；调用方可以注入可控外部响应。查询能力说明、分段执行与失败语义见[资料获取契约](retrieval.md)。
+6: 
+7: `seed` 是本机记录在同一快照中读取的 `PlanningSeed`；首次对话可省略。CLI 将上次返回的 `continuation` 原样传入，不创建或拆解它；它仅在当前进程内有效，不是持久会话身份。两者互斥，同时传入抛出 `ValueError`。输入、完整协议、模型视图和已确定旅行日期由规划内部协调；调用方不追加消息或自行同步视图。偏好背景作为只读文本交入，历史原文通过同步 `history_records()` 回调按需读取。
+8: 
+9: 返回不可变 [PlanningResult](../../travel_app/planning/runtime.py)，包含：
+10: 
+11: | 字段 | 含义 |
+12: | --- | --- |
+13: | `answer` | 已脱敏回答，可能是正常回答或未完成说明 |
+14: | `status`、`reason` | 原协议的 `completed` / `terminated` / `failed` 及原因；完成时原因为 `None` |
+15: | `answer_source` | `model` 或 `application` |
+16: | `tool_error_count` | 实际失败的工具数；未启动调用不作为真实失败计数 |
+17: | `material` | 不可变 `TurnMaterial`，包含完整协议和有效上下文保存材料 |
+18: | `continuation` | CLI 使用的不透明进程内延续凭证 |
+19: 
+20: `fields()` 提供与记录终态字段相同的字典。结果直接来自执行循环的结构化返回，不由观察事件推导。`observer(kind, data)` 只承担事实记录与通知；即使没有 observer，返回值仍完整。`turn.finished` 观察不表示数据库已保存；只有本机记录的 `finish` 成功返回后，会话历史才算完成。
+21: 
+22: 完成、用户停止、服务退出、预算耗尽、模型失败保留原状态和原因。`stop_requested` 在调用边界生效，等待已启动调用的真实返回，不取消或伪造其结果。事实记录回调必须在保存失败时抛出 `RecordAbort`，并通知会话停止接受输入；该异常贯穿规划，不转换成 `model_error`。恢复记录种子失败抛出 `RecordAbort(kind="turn.context")`；生成保存材料失败抛出 `RecordAbort(kind="turn.finished")`，均不返回可保存结果。其他未预期执行异常保留 `execution_error` 及原有未完成说明。
+23: 
+24: 整轮工具 128 次、历史回读最多 8 次、实际模型请求 64 次及无工具收尾预留保持；地图串行，网页最多十个在途，重试、摘要和恢复仍共享请求预算。默认配置、旅行规则和模型可见输入未因入口变化而扩大。
+25: 
+26: `validate_configuration() -> None` 供启动装配检查模型上下文容量配置；错误为公开 `ContextConfigurationError`，可直接展示。CLI 的日期状态保存在不透明延续凭证中，观察回调只展示进度。
+27: 
+28: `configured_planning(*, retrieval_factory=None)` 检查配置并管理生产模型与查询连接，返回 `PlanningResources(client, tools, model)`；Web 将它装入会话运行资源，CLI 复用同一模型装配。可注入查询资源工厂重定向外部响应，默认连接与超时不变。`run_cli(..., retrieval_factory=None, model_client_factory=None)`、`main(*, load_environment=None, cli_runner=None)` 提供根入口的显式装配 seam；模型客户端工厂只替换连接资源，实际调用、重试、摘要和预算仍走生产 implementation；它们不替换规划、查询、上下文或保存 implementation。
+29: 
+30: 生产装配从项目根 `.env` 加载环境（覆盖已有同名环境），默认静态资源与工作目录解析见[会话](sessions.md)。需要 `AMAP_MAPS_API_KEY`、`MODEL_ID` 及模型认证；`ANTHROPIC_BASE_URL` 可指定兼容服务，提供时使用 `ANTHROPIC_API_KEY`，否则也可用 `ANTHROPIC_AUTH_TOKEN`。模型请求超时 60 秒，SDK 自动重试关闭，由规划执行有界重试；配置错误由启动入口诊断。`configured_planning` 本身消费当前环境，不额外读取 `.env`。
+31: 
+32: `run_cli(api_key, *, check_amap=False, clock=None, retrieval_factory=None, model_client_factory=None)` 在上下文管理器内打开查询与模型资源；`retrieval_factory(api_key, *, include_sources=True, secrets=())` 产出已发现的 `Retrieval`。`model_client_factory` 接受 Anthropic 客户端同形构造参数并返回异步上下文管理器。`check_amap=True` 仅调用地图检查，跳过模型、网页及偏好后台；普通 CLI 输入 `q` 退出，同一进程的续聊自动使用延续凭证。
+33: 
+34: `configured_planning(...)` 返回异步上下文管理器，必须用 `async with`；其产出不可变 `PlanningResources(client: AsyncAnthropic, tools: Retrieval, model: str)`。`retrieval_factory` 同样返回异步上下文管理器。最小生产调用（环境已配置）为：
+35: 
+36: ```python
+37: from travel_app.planning import configured_planning, plan
+38: 
+39: async def answer(text):
+40:     async with configured_planning() as ready:
+41:         result = await plan(text, ready.client, ready.tools, ready.model)
+42:         return result.answer, result.status, result.reason
+43: ```
+44: 
+45: `PlanningResult` 是不可变记录值；`answer: str`、`status: str`、`reason: str | None`、`answer_source: str`、`tool_error_count: int`、`material: TurnMaterial`、`continuation: Continuation`。调用方消费返回值，不自行构造结果或拆开延续凭证。`stop_reason` 可为字符串或无参同步回调，默认 `user_stop`；会话退出使用 `service_shutdown`，记录故障设置 `storage_failure` 并以 `RecordAbort` 中止。
+46: 
+47: | 结果类别 | `status` 与 `reason` |
+48: | --- | --- |
+49: | 正常最终回答 | `completed` / `None` |
+50: | 输出截断 | `terminated` / `output_limit` |
+51: | 停止或预算 | `terminated` / `user_stop`、`service_shutdown`、`budget`，或装配提供的停止原因 |
+52: | 上下文启动或安全容量阻止 | `terminated` / `context_configuration`、`context_budget` |
+53: | 普通模型失败或未预期执行失败 | `failed` / `model_error`、`execution_error` |
+54: | 明确超限恢复失败 | `failed` / `context_window_exceeded`、`context_recovery_unavailable` |
+55: 
+56: 模型事实的 `error.code` 与轮次 `reason` 各有用途：网络、超时、429、5xx、空响应分别为 `TRANSPORT`、`TIMEOUT`、`RATE_LIMIT`、`SERVER`、`EMPTY_RESPONSE`，普通步骤最多追加 5 次尝试，仍受整轮预算约束；401/403 为 `AUTH`、额度不足为 `QUOTA`、非法请求为 `INVALID_REQUEST`，不普通重试。明确超限为 `CONTEXT_WINDOW_EXCEEDED`，走一次上下文恢复。其他 HTTP 状态为 `HTTP_<状态码>`，非模型调用阶段或未知错误为 `UNKNOWN`。普通退避从 0.5 秒指数增长、±10% 抖动且最多 10 秒；服务给出有效正数 `Retry-After` 时优先使用，超过 10 秒不继续等待。最终收尾没有普通重试。上层通常只需消费结构化轮次结果，界面诊断可另展示真实请求事实。
+57: 
+58: `max_rounds`、`max_tool_calls` 可收紧原有运行限额，分别受 80 和 128 硬上限限制；`context_policy` 可注入公开 `ContextPolicy`，省略时仍读取原环境配置。既有受限运行测试通过此入口执行，不再需要生产 `agent_loop` 适配。资料获取实例的可用状态保留到连接生命周期结束，整轮工具和实际模型预算在每次 `plan` 重建。
+59: 
+60: 模型步骤在 [runtime.py](../../travel_app/planning/runtime.py)；[batch.py](../../travel_app/planning/batch.py)统一登记调用身份、按提出顺序预留工具额度、切分连续外部段、等待历史屏障并按原序收齐一次完整结果；模型步骤不持有分段拼接或供应商状态。历史回读将前段真实结果与后段占位一并交给上下文，按完整请求余量分页。外部段未启动沿用原预留计数，历史局部上限拒绝不消耗总账；实际失败照常计数。
+61: 
+62: [budget.py](../../travel_app/planning/budget.py)拥有工具总账与实际模型请求序号，摘要和恢复通过同一额度回调扣账，普通请求仅使用前 63 次，第 64 次预留给关闭工具的最终回答。达到预算时先等待在途返回；最终请求不再摘要、查询或重试。逻辑步骤仍独立计数。共同模型事实采集在无业务运行状态的 [model_execution.py](../../travel_app/model_execution.py)，普通重试与摘要的局部策略继续由各自能力拥有。
+63: 
+64: 完整协议、模型视图、摘要、容量和回读通过[模型上下文](context.md)管理；日期解释在 [dates.py](../../travel_app/planning/dates.py)。旧 `travel_app/agent.py`、查询 adapter 和日期文件已迁入所属能力，生产和测试调用均更新到当前入口。阶段证据见 [#83 验收](../acceptance/retrieval-planning.md)。
+65: 
+66: 验证：[规划契约测试](../../tests/test_agent.py)、[记录故障](../../tests/test_storage.py)、[调用预算](../../tests/test_call_budget.py)、[固定 Web/SSE/CLI 与旧库基线](../../tests/test_migration_baseline.py)。
+
+### docs/modules/retrieval.md
+1: # 资料获取：公开契约
+2: 
+3: 公开入口为 [travel_app.retrieval](../../travel_app/retrieval/__init__.py)。它负责地点、餐饮、交通路线、天气、网页搜索和正文资料，隐藏供应商对象、发现分页、并发名额、锁、启动间隔、暂停、超时、错误分类、内容处理和脱敏。历史搜索与原文回读属于[模型上下文](context.md)，整轮工具及模型请求预算属于[旅行规划](planning.md)。
+4: 
+5: ## 装配与能力说明
+6: 
+7: 生产启动通过异步上下文管理器（使用 `async with`）`connected_retrieval(api_key, *, secrets=(), map_url=None, source_url=None, include_sources=True)` 管理连接生命周期，得到 `Retrieval`；退出前须等待查询分段返回。默认仍使用高德 MCP 和免密钥 Exa，不携带网页服务认证头，不自动切换付费服务。地图发现失败阻止启动；网页连接或发现失败只使网页资料不可用，地图继续使用。`include_sources=False` 用于原 CLI `--check-amap` 路径，不初始化模型或网页连接。
+8: 
+9: 已有 MCP 客户端的装配方可直接构造 `Retrieval(map_client, *, source_client=None, api_key="", secrets=(), http_client=None, tool_timeout=30, source_timeout=30, source_interval=0.4, map_interval=0.4, include_source_status=False)`，再 `await discover()`。地图发现失败向上传播；网页发现失败禁用网页能力并保留地图，状态说明为网页暂不可用。`map_interval` 与 `source_interval` 供受控资源装配使用，生产默认分别保持 0.4 秒。只在装配时注入客户端；普通规划调用方不持有或读取它们。实际需要的 HTTP adapter `MapHTTPClient`、`SourceHTTPClient` 供可控 HTTP 响应和连接状态注入使用，调度仍由资料获取拥有。注入的客户端生命周期由装配方负责。
+10: 
+11: `capabilities -> Capabilities` 返回声明副本和当前能力说明：`declarations` 保留实际已发现工具的名称、描述及参数 schema；`map_status` 为地图暂停说明或空字符串；`source_status` 为网页状态说明，地图独立模式为 `None`；`map_pause_reason` 保留既有 Web 状态枚举或 `None`。消费方不根据供应商私有状态拼接能力说明。`redact(text) -> str` 统一脱敏模型输入、回答、事实和保存材料。
+12: 
+13: ## 有序外部查询分段
+14: 
+15: `await execute(queries: list[Query], *, observer=None, stop_requested=None) -> list[QueryResult]` 接收一段外部查询，不接受历史回读的调度职责。`Query(query_id: str, name: str, arguments: dict[str, Any])` 保留调用身份、工具名和原始参数；执行开始时复制输入。分段内部地图按提出顺序串行，网页搜索与正文共用最多十个在途请求；两类服务可以重叠，各自保持既有 0.4 秒启动间隔。供应商严重故障仅暂停对应能力，后续分段沿用该资源实例的暂停状态。
+16: 
+17: 每个输入对应一个同位置的 `QueryResult(query_id: str, content: str, is_error: bool, not_executed: bool = False)`。返回不可变记录值，长度、身份和顺序与输入对应；成功、实际失败和未启动明确区分。未知工具或参数错误保留普通工具失败语义；暂停、停止导致的未启动不伪报实际服务请求。网页返回保留摘录／正文区分、实际来源、查询时间及核实边界；获得资料不表示已核实或完成旅行规划。
+18: 
+19: `observer(kind, data)` 为异步事实回调，事件沿用 `tool.waiting/running/completed/failed/not_executed` 的已有字段，额外携带 `query_id` 供规划绑定整轮事实身份。事件数据与返回结果隔离。开始事实必须在进入服务前可靠保存；回调抛错时设置停止信号，禁止新启查询，等待已启动调用真实返回和全部保存尝试后传播原异常。生产记录故障回调抛出 `RecordAbort`，资料获取不依赖记录或上下文实现来识别它。普通供应商失败作为查询结果，不作为记录中止。
+20: 
+21: 停止不会取消已经发送的查询，也不会释放仍在途的运行名额。调用方须等待 `execute` 返回或抛错，再完成轮次收束；不得把停止信号视为执行已经结束。
+22: 
+23: ## 验证与内部定位
+24: 
+25: [公开契约测试](../../tests/test_retrieval_contracts.py)覆盖身份及原序、真实 MCP adapter、停止、开始事实失败、结果保存失败时等待其他真实返回，以及观察隔离；[公开 Web 并发回归](../../tests/test_tool_concurrency.py)覆盖地图串行、网页十个在途、启动间隔、故障隔离及全局名额；[混合批次与预算](../../tests/test_call_budget.py)和[固定 Web/SSE/CLI 与旧库基线](../../tests/test_migration_baseline.py)覆盖跨能力协作。
+26: 
+27: 只在修改内部时展开：[service.py](../../travel_app/retrieval/service.py)负责分段收齐与能力视图，[amap_mcp.py](../../travel_app/retrieval/amap_mcp.py)和[exa_mcp.py](../../travel_app/retrieval/exa_mcp.py)保留供应商调度、错误分类及内容处理，[connections.py](../../travel_app/retrieval/connections.py)和[source_connection.py](../../travel_app/retrieval/source_connection.py)管理生产连接。阶段证据见 [#83 验收](../acceptance/retrieval-planning.md)。
+
+### docs/modules/context.md
+1: # 模型上下文：公开契约
+2: 
+3: 公开入口为 [travel_app.context](../../travel_app/context/__init__.py)，运行类型为 [ModelContext 与 Continuation](../../travel_app/context/runtime.py)。旅行规划使用此入口；Web 和 CLI 使用上层 [planning.plan](planning.md)，不持有或双写完整协议、模型视图、水位和摘要版本。
+4: 
+5: ## 开始与配置本轮
+6: 
+7: `ModelContext.begin(text, *, seed=None, continuation=None)` 恢复上一有效上下文并追加本轮输入，返回独立的轮内上下文。`seed` 是本机记录读取的不可变 `PlanningSeed`，首次可省略；`continuation` 是上轮返回的不透明进程内凭证，只能原样传回，与 `seed` 互斥。两种输入同时提供抛出 `ValueError`；损坏的持久上下文抛出 `RecordAbort(kind="turn.context")`，不得启动查询。`ModelContext(seed)` 用于恢复已经包含当前输入的协议，不再重复追加输入。
+8: 
+9: `latest_input`、`previous_date_context`、`source_materials` 提供旅行规划所需的只读副本。旅行规划解释当前旅行要求与日期，使用既定日期解释本轮新输入；上下文不重新解释历史相对日期。调用 `configure(policy=..., model=..., client=..., tools=..., date_context=..., next_request_ordinal=..., remaining_requests=..., observer=..., stop_requested=..., history_records=None)` 后执行模型步骤。配置在本轮仅调用一次；`date_context` 是已确定日期状态的副本，不从观察事件提取日期。
+10: 
+11: `next_request_ordinal()` 同步返回本次实际请求序号，`remaining_requests()` 同步返回剩余实际请求数；两者由规划统一预算提供，不自行重置。`observer` 与 `stop_requested` 为必传关键字，可传 `None`，`history_records` 默认 `None`。`ContextPolicy(window: int, output_tokens: int = 8000)` 是不可变配置，输入预算从窗口预留输出和安全余量，错误通过 `ContextConfigurationError` 表达。
+12: 
+13: `client` 提供 Anthropic 异步 `messages.create`；`tools` 在此只需提供同步 `redact(str) -> str`。`observer(kind, data)` 是异步事实记录回调；可靠保存失败须抛出 `RecordAbort`，不转换成普通模型失败。`stop_requested` 为可选 `asyncio.Event`。`history_records()` 同步返回当前会话允许回读的原文记录；省略时只索引当前进程的原始协议，排除系统输入、请求快照和历史工具自身的回读结果。
+14: 
+15: `ContextPolicy.from_env()` 保持 `CONTEXT_COMPACTION_ENABLED`、`MODEL_CONTEXT_WINDOW` 的既有解释，关闭时返回 `None`；错误抛出 `ContextConfigurationError`。窗口不从模型名猜测。Web 装配通过上层 `planning.validate_configuration()` 进行启动检查，依赖方向仍为会话 → 规划 → 上下文。
+16: 
+17: ## 协议、容量与历史回读
+18: 
+19: | 操作 | 输入与结果 |
+20: | --- | --- |
+21: | `append_response(content)` | 已脱敏响应块；复制后同时追加完整协议和模型视图 |
+22: | `append_tool_results(results)` | 按模型提出顺序收齐的完整工具结果；身份须与上一响应一一配对，不符则抛出 `ValueError` 且不修改任一视图 |
+23: | `append_answer(answer, *, replace_response=False)` | 应用终止说明；预算收尾时替换刚追加的最终响应，统一更新两份表示 |
+24: | `await prepare_request(parameters, *, step, attempt, recovering=False, final=False)` | 将独立模型消息副本填入完整请求，执行计量、整理及必要摘要；返回 `None` 或阻止原因 `context_budget` |
+25: | `await prepare_recovery(parameters, *, request_id, step, attempt)` | 明确超限后，同一步骤最多一次整理及摘要；必须严格缩小且容纳完整请求。返回 `None`、`context_recovery_unavailable` 或重复恢复的 `context_window_exceeded` |
+26: | `await observe_usage(request_id, usage)` | 根据实际返回用量校准后续检查，缺失用量不伪造为零 |
+27: | `await recovery_started(data)` | 记录恢复请求事实并在内部补入当前版本，调用方不读取版本 |
+28: | `await read_history(name, arguments, *, parameters, completed, pending, tool_use_id, observer=None)` | `completed` 是已收齐的本批前段结果，`pending` 是后段工具身份；回读包含前段原文，并连同当前及待完成结果检查完整请求余量。返回既有工具结果结构 |
+29: 
+30: 操作表中 `*` 后参数仅按关键字传入；标记 `await` 的操作为异步，其余为同步。`parameters` 为本次完整模型请求字典，`prepare_request` 会填入消息副本，调用方可发送该字典但不持有内部视图；`completed` 是工具结果块列表，`pending` 是尚未完成的工具身份字符串列表，`tool_use_id` 为本次回读身份。`HISTORY_DECLARATIONS`、`HISTORY_TOOLS` 提供现有模型工具声明与分类。回读每轮最多 8 次，每次搜索最多 5 条、每条摘录 200 字符，读取每页最多 4000 字符；关键词、偏移、隔离、来源日期与待核实状态保持原语义。规划继续负责整轮工具预算及混合批次顺序，回读不自动执行专项信息核实。
+31: 
+32: 请求计量覆盖系统规则、日期、偏好、服务状态、工具声明、历史消息及待追加结果。`next_request_ordinal()` 从规划的真实模型额度扣账；`remaining_requests()` 返回可用于普通请求和摘要的余额，摘要不新建预算。摘要单次最多 2 次、整轮最多 4 次，同时受共享额度限制；`summary_blocked` 只读标志表示摘要认证或配额故障。最终无工具收尾不摘要、恢复或重试。
+33: 
+34: ## 保存、停止与恢复
+35: 
+36: `material(redact=lambda value: value) -> TurnMaterial` 一次冻结完整协议与有效上下文检查点；生成失败抛出 `RecordAbort(kind="turn.finished")`。`continuation() -> Continuation` 冻结当前协议、视图与已确定日期，后续上下文修改不会反向修改凭证。调用方不拆开材料双写，也不持有运行视图。记录值 `PlanningSeed`、`TurnMaterial`、`ContextCheckpoint`、`RecordAbort` 仍从此入口适配导出，字段所有权见[本机记录](local-records.md)。
+37: 
+38: 原始协议独立完整保留，整理或摘要只替换模型视图。`context.candidate` 表示候选，`context.adopted` 只表示轮内采用；只有本机记录 `finish` 原子成功后，`context.saved` 才表示续聊生效。摘要失败保留旧状态；停止后不再调用模型，在途摘要记录真实返回但不采用迟到结果。保存失败或进程退出后，由本机记录恢复上一已提交有效版本及中断资料索引，不重放工具，不重新解释旧日期。页面沿用这些事实展示真实整理、采用、保存和中断状态。
+39: 
+40: ## 验证与内部定位
+41: 
+42: [公开接口测试](../../tests/test_context_contracts.py)验证统一追加、身份配对、冻结、请求隔离、日期延续、前段回读与一次恢复；[预算](../../tests/test_context_budget.py)、[摘要](../../tests/test_context_summary.py)、[增量压缩](../../tests/test_context_incremental.py)、[超限](../../tests/test_context_limit_recovery.py)、[原文回读](../../tests/test_session_history.py)、[进程恢复及故障](../../tests/test_context_recovery.py)、[日期续聊](../../tests/test_travel_date_continuation.py)及[固定 Web/SSE/CLI 与旧库基线](../../tests/test_migration_baseline.py)覆盖真实调用链。阶段证据见 [#82 验收](../acceptance/model-context.md)。
+43: 
+44: 修改本能力内部时再展开 [runtime.py](../../travel_app/context/runtime.py) 的状态协调、[view.py](../../travel_app/context/view.py) 的视图与计量、[summary.py](../../travel_app/context/summary.py) 的摘要和采用校验、[history.py](../../travel_app/context/history.py) 的原文索引与分页。普通规划与摘要仅复用 [model_execution.py](../../travel_app/model_execution.py) 采集实际模型返回事实，重试和摘要采用仍由各自策略决定。共享模型错误识别及重试等待在 [model_retry.py](../../travel_app/model_retry.py)，不引用任何能力运行状态。普通调用无需阅读这些内部文件。
+
+### docs/modules/preferences.md
+1: # 旅行者偏好：公开契约
+2: 
+3: 后端公开入口为 [travel_app.preferences](../../travel_app/preferences/__init__.py)，前端为 [frontend/src/preferences/index.ts](../../frontend/src/preferences/index.ts)。能力同时拥有管理界面、规划背景、提取来源校验、闲置资格、输入顺序、歧义、人工管理保护、有限重试和后台生命周期。调用方不筛选批次，也不推进 pending / processing / failed / completed 状态。
+4: 
+5: ## 构造与公开操作
+6: 
+7: `Preferences(records, client, model, *, redact, clock=time.time, wait=asyncio.sleep, timeout=60, storage_failed=None, available=lambda: True)` 使用已打开的 `LocalRecords`、Anthropic 兼容异步模型客户端、模型名称和脱敏函数。它不打开第二个数据库，不管理模型连接，也不跨网络请求持有事务。时间、等待和外部客户端可以在系统边界注入。
+8: 
+9: | 操作 | 输入、结果与条件 |
+10: | --- | --- |
+11: | `snapshot()` | 一致读取现有 `schema_version: 1`、有效 `preferences`、`ambiguities` 与未完成 `processing`；字段及 HTTP 数据结构保持兼容 |
+12: | `background()` | 从同一快照生成本轮只读规划背景；包括有效偏好及仍匹配目标版本的待澄清表达。即使记录为空，也明确声明以当前有效记录为准，防止从旧助手复述恢复已删除偏好 |
+13: | `edit(id, version, content)` | 去除首尾空白并脱敏；非空且最多 2000 字。成功返回 `saved`，目标不存在返回 `missing`，版本过期返回 `conflict`。修改与撤销旧输入授权、清理目标歧义共同保存 |
+14: | `delete(id, version)` | 同样返回 `saved` / `missing` / `conflict`；删除与管理保护共同保存，原聊天保留 |
+15: | `start()` | 在本机记录完成轮次恢复后调用；内部恢复中断提取和结束资格，再启动单个后台任务。运行中重复调用不新增任务 |
+16: | `shutdown()` | 异步停止后台任务并等待退出；尚未提交的提取保留 processing 记录，下一次启动按恢复规则处理。先于关闭记录和模型资源调用 |
+17: | `stop(turn_id)` | 取消对应输入尚未提交的偏好处理；完成的偏好保留。会话只在原运行轮次停止时调用，不按页面当前选择猜测目标 |
+18: 
+19: 记录异常直接传播；Web 保留 503 存储故障映射。后台遇到 SQLite 故障时调用 `storage_failed`，会话停止接受输入，`available()` 随即变为假，后台不再发请求或写入；不把故障当作模型失败或耗尽重试。如果未提供该回调，后台异常由 `shutdown()` 传播。非法编辑内容抛出 `ValueError`；HTTP 保留严格正整数版本、422 校验、404 缺失与 409 冲突反馈。
+20: 
+21: ## 接受、结束与后台规则
+22: 
+23: 会话通过 `LocalRecords.accept(..., preference_now=...)` 原子接受输入并登记待处理记录；通过 `finish(..., preference_now=...)` 原子完成轮次与记录结束时间。会话仅提供时间和运行事实，这两项协作由本机记录共同保存。启动前先调用 `LocalRecords.recover()`，再调用偏好 `start()`；它们不重放旅行模型或工具请求。CLI 不构造本能力，也不新增后台偏好处理。
+24: 
+25: 后台每 30 秒检查可处理输入：会话最新轮次结束后连续闲置至少 3600 秒，且不存在 running / stopping 轮次，待重试时间已到，才有资格。新输入重置闲置条件；只打开网页、阅读或编辑草稿不影响资格。单处理器按输入顺序选择最早合格会话，批量提取该会话尚未完成的新输入；前台规划与后台请求独立运行，不等待偏好保存。
+26: 
+27: 只接受饮食、活动兴趣、交通与住宿的稳定本人偏好。旅行日期、单次预算、具体酒店、游玩节奏和同行人信息不保存为长期偏好。新增依据必须来自当前批次用户原文中的连续片段；少量旧聊天和截取的助手回答只能解释指代。模型语义限制保持，后端结构与来源校验不等于对自然语言含义的完美判断。
+28: 
+29: 提取失败最多发出三次请求，分别在失败后等待 30、120 秒；超时与无效结构同样计次，达到上限保存固定失败状态。重启保留已发请求次数并退避；请求期间新增输入或人工管理导致资格失效时，退回 pending 并退还该次失效资格的次数。管理冲突后的进程恢复保留至少 30 秒等待。取消输入不恢复，旧聊天从未登记的新输入不回溯处理。
+30: 
+31: 提交前由偏好模块以最新公开记录事实复核资格和版本，按用户输入顺序计算去重、合并、更新及歧义；本机记录在短写事务中再次比较条件快照并共同写入。发生新输入、停止、聊天删除或人工修改时，旧结果不能越过复核。人工管理保存旧内容、版本及当时全局输入水位；删除偏好不从旧聊天恢复，水位之后的新表达仍可明确建立偏好。删除聊天仅清除其待处理输入和来源关联，已保存偏好保留。
+32: 
+33: ## 前端与验证
+34: 
+35: `PreferencesView({onBack})` 是独立管理页；外层只装配公开组件并提供返回导航。相关类型 `Preference`、`PreferenceState` 从同一公开入口导出。管理请求、加载、空态、版本冲突反馈、刷新、编辑和删除确认集中在能力内部。透明入口继续保持原位置、点击区域，以及默认、悬停和聚焦时不可见的既有约定，参见 [ADR 0002](../adr/0002-cross-session-traveler-preferences.md)。
+36: 
+37: 实现按需展开：[生命周期与管理](../../travel_app/preferences/service.py)、[提取与背景](../../travel_app/preferences/extraction.py)、[变更规则](../../travel_app/preferences/rules.py)。持久化值与事务见[本机记录契约](local-records.md)。验证使用[公开接口与条件写入](../../tests/test_preference_contracts.py)、[闲置及停止](../../tests/test_preference_activity.py)、[管理保护](../../tests/test_preference_management.py)、[有限重试与故障](../../tests/test_preference_retry.py)、[真实进程恢复](../../tests/test_preference_recovery.py)及[浏览器管理](../../frontend/tests/ui/preferences-management.spec.ts)。
+
+### docs/modules/local-records.md
+1: # 本机记录：公开契约
+2: 
+3: 公开入口为 [travel_app.local_records](../../travel_app/local_records/__init__.py)。`LocalRecords(Path(data_dir))` 打开该目录的 `travel.sqlite3`，维护原 schema v1、外键、持久游标和数据格式；目录创建与单服务锁由会话启动负责。退出调用 `close()`。同一实例在服务事件循环中同步使用，不跨线程共享；网络调用和等待不得放进记录事务。
+4: 
+5: ## 接受、事实与共同保存
+6: 
+7: `accept(text, session_id=None, *, submission_id=None, fingerprint=None, preference_now=None)` 原子保存输入、轮次、输入载荷、接受事实、可选提交去重身份，以及偏好待处理登记。正式会话必须交入 `preference_now`；省略仅用于构造启用偏好前的旧数据。已有目标不存在时抛出 `KeyError`。提交身份内容核对、全局名额和重试规则由助手会话拥有，不要求调用方在此层自行组合事务。
+8: 
+9: `observe_request(session_id, turn_id, kind, data)`、`observe_tool(...)`、`observe_context(...)` 原子保存对应执行事实及关联载荷。开始事实成功返回后才能启动对应外部调用；调用方交入已脱敏值。SQLite 或序列化错误直接传播，会话将执行事实错误转换为公开 `RecordAbort` 并显示未保存状态。真实调用返回未保存时，重启仍只承认最后已提交事实。
+10: 
+11: `finish(session_id, turn_id, answer, material, outcome, duration_ms, *, preference_now=None)` 共同提交回答、终态、完整协议、偏好结束资格、已采用上下文版本的晋升和完成事实。`material` 必须是规划返回的 `TurnMaterial`；`outcome` 为 `PlanningResult.fields()`。`answer` 和材料均须已脱敏。正式会话交入结束时的 `preference_now`。事务失败全部回滚，不出现回答已保存而上下文或偏好资格未提交的半成功；成功返回才表示保存完成。
+12: 
+13: ## 记录值
+14: 
+15: [values.py](../../travel_app/local_records/values.py) 定义不携带运行对象的不可变值：
+16: 
+17: | 类型 | 字段与用途 |
+18: | --- | --- |
+19: | `ContextCheckpoint` | `version`、`original_watermark`、`state_json`；`capture(state)` 立即序列化真实上下文快照，随后修改原状态不会改变材料 |
+20: | `TurnMaterial` | `messages_json` 和可选 `context_checkpoint`；由规划整体传回，会话不拆开双写 |
+21: | `PlanningSeed` | `messages_json`、可选 `context_json` / `date_context_json`、`source_materials_json`；在同一快照读取的续聊输入 |
+22: | `RecordAbort` | 执行事实未可靠保存或保存材料无法生成的中止信号；规划不将其转换为普通模型或工具失败；可选 `kind` 指明无法恢复上下文或生成保存材料的边界 |
+23: 
+24: 仅本轮确有状态为 `used` 的上下文版本时，完成事务才将对应版本晋升为 `saved`；没有已采用版本不新增版本。未保存候选不在重启后生效。
+25: 
+26: ## 一致读取与恢复
+27: 
+28: `planning_seed(session_id)` 一次取得已完成协议、上一有效上下文、已确定旅行日期及中断资料索引。`snapshot(session_id, limit=50, before=None, summary=False, include_messages=True)` 原子读取现有页面结构及其事件游标；会话不存在返回 `None`。`stream_position()` 取得同一数据目录的 `cursor`、`stream_id`。调用方不取得连接、不开启事务。
+29: 
+30: `sessions`、`search`、`history_records`、`source_context`、`date_context`、`events_after` 的多步读取同样使用内部一致快照；嵌套读取复用当前事务，不提前提交外层写入。`submission`、`turn`、`payload`、`cursor`、`event_exists` 提供现有单记录读取，`rename`、`delete` 保留原管理语义。SQLite 错误向上传播，不伪造空结果；会话统一停止接受输入。`recover()` 只从已提交事实恢复中断状态，不自动重放外部调用。
+31: 
+32: `SCHEMA_VERSION` 与 `StartupError` 保留正式启动和外部协议所需类型。纯值解释 `source_metadata`、`saved_date_context` 供历史与日期适配复用；它们不引用规划、查询、上下文或偏好的运行对象。实现见 [storage.py](../../travel_app/local_records/storage.py)、[metadata.py](../../travel_app/local_records/metadata.py)和[查询资料投影](../../travel_app/local_records/query_materials.py)。
+33: 
+34: `preferences.read() -> PreferenceState` 一致读取偏好、歧义、管理保护、未完成输入及其会话运行事实和全局输入水位。`PreferenceState.capture(data)` 冻结 JSON，`data()` 返回调用方独立拥有的值；不携带连接、SQL 或偏好运行对象。输入和会话原始事实只用于条件复核，调用方不改写接受顺序或运行状态。
+35: 
+36: `preferences.write(expected, replacement) -> bool` 在 `BEGIN IMMEDIATE` 短事务中重新读取并比较完整条件快照；不匹配返回假且不写入，匹配后原子保存偏好、歧义、保护记录及输入处理字段的差异。新输入、结束事实、停止、管理版本、聊天删除和输入水位都纳入复核；写入故障回滚全部变更并传播。调用方可重新读取并按最新事实计算，不能把旧计算结果直接换上新条件。`preferences.context(session_id, before_turn)` 只读取该输入前两轮原文，供能力解释指代。
+37: 
+38: 这些值和条件是偏好模块的持久接口；[旅行者偏好](preferences.md)拥有资格、来源、顺序、去重、歧义、管理保护、重试和恢复规则，本机记录不导入其实现。接受登记与结束时间仍在 `accept` / `finish` 原子事务内部写入。实现见 [preference_records.py](../../travel_app/local_records/preference_records.py)，数据表及旧库格式保持。独立阅读与公开使用证据见[最终验收](../acceptance/deep-modules-final.md)。
+39: 
+40: 验证：[记录值与公开保存](../../tests/test_record_contracts.py)、[原子接受](../../tests/test_submissions.py)、[故障回滚与在途返回](../../tests/test_storage.py)、[上下文恢复](../../tests/test_context_recovery.py)及[固定真实入口基线](../../tests/test_migration_baseline.py)。
+
+### travel_app/sessions/__init__.py
+1: """助手会话公开入口；契约见 docs/modules/sessions.md。"""
+2: from .runtime import Runtime, RunRejected, TurnRuntime
+3: from .http import create_app, main
+4: 
+5: __all__ = ["Runtime", "RunRejected", "TurnRuntime", "create_app", "main"]
+
+### travel_app/planning/__init__.py
+1: """旅行规划公开入口；契约见 docs/modules/planning.md。"""
+2: from .resources import PlanningResources, configured_planning
+3: from travel_app.retrieval import Retrieval as PlanningTools
+4: from .runtime import Continuation, PlanningResult, SERVICE_MESSAGE, main, plan, run_cli
+5: from travel_app.context import ContextConfigurationError, ContextPolicy
+6: 
+7: 
+8: def validate_configuration() -> None:
+9:     """正式启动前检查旅行规划所需的模型容量配置。"""
+10:     ContextPolicy.from_env()
+11: 
+12: __all__ = ["PlanningResources", "PlanningTools", "configured_planning", "Continuation", "PlanningResult", "main", "plan", "run_cli", "SERVICE_MESSAGE", "validate_configuration", "ContextConfigurationError"]
+
+### travel_app/retrieval/__init__.py
+1: """资料获取公开入口；契约见 docs/modules/retrieval.md。"""
+2: from .service import Capabilities, Query, QueryResult, Retrieval, ToolResult
+3: from .connections import connected_retrieval
+4: from .amap_http import AmapHTTPClient as MapHTTPClient
+5: from .source_http import SourceHTTPClient
+6: 
+7: __all__ = ["Capabilities", "Query", "QueryResult", "Retrieval", "ToolResult", "connected_retrieval", "MapHTTPClient", "SourceHTTPClient"]
+
+### travel_app/context/__init__.py
+1: """模型上下文公开入口；契约见 docs/modules/context.md。"""
+2: from travel_app.local_records import ContextCheckpoint, PlanningSeed, RecordAbort, TurnMaterial, saved_date_context
+3: from .runtime import Continuation, ModelContext
+4: from .view import ContextConfigurationError, ContextPolicy
+5: from .history import HISTORY_DECLARATIONS, HISTORY_TOOLS
+6: 
+7: __all__ = ["Continuation", "ModelContext", "ContextConfigurationError", "ContextPolicy",
+8:            "HISTORY_DECLARATIONS", "HISTORY_TOOLS", "saved_date_context", "ContextCheckpoint",
+9:            "PlanningSeed", "RecordAbort", "TurnMaterial"]
+
+### travel_app/preferences/__init__.py
+1: """旅行者偏好公开入口；契约见 docs/modules/preferences.md。"""
+2: from .service import Preferences
+3: 
+4: __all__ = ['Preferences']
+
+### travel_app/local_records/__init__.py
+1: """本机记录公开入口；契约见 docs/modules/local-records.md。"""
+2: from .storage import LocalRecords, SCHEMA_VERSION, StartupError
+3: from .metadata import saved_date_context, source_metadata
+4: from .values import ContextCheckpoint, PlanningSeed, PreferenceState, RecordAbort, TurnMaterial
+5: 
+6: __all__ = ["LocalRecords", "SCHEMA_VERSION", "StartupError", "saved_date_context", "source_metadata", "ContextCheckpoint", "PlanningSeed", "PreferenceState", "RecordAbort", "TurnMaterial"]
+
+### frontend/src/sessions/index.ts
+1: // 助手会话公开入口；契约见 docs/modules/sessions.md。
+2: export { SessionsApp } from './SessionsApp';
+
+### frontend/src/preferences/index.ts
+1: /** 旅行者偏好公开入口；契约见 docs/modules/preferences.md。 */
+2: export {PreferencesView} from './PreferencesView';
+3: export type {Preference, PreferenceState} from './PreferencesView';

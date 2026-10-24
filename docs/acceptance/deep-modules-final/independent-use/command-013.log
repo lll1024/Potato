@@ -1,0 +1,624 @@
+
+### /tmp/potato86-independent-use/source/travel_app/context/runtime.py
+1: """集中准备模型上下文；压力与超限恢复共享本轮视图、计量及摘要额度。"""
+2: import copy
+3: import json
+4: import os
+5: from collections.abc import Mapping, Sequence
+6: from typing import Any, Callable
+7: 
+8: from .summary import earlier_history_cutoff, summarize_history
+9: from .view import ContextPolicy, ContextView, TokenMeter
+10: from .history import SessionHistory, bind_protocol_references, protocol_records
+11: from travel_app.local_records import ContextCheckpoint, PlanningSeed, RecordAbort, TurnMaterial
+12: 
+13: 
+14: class Continuation:
+15:     """不透明的进程内延续凭证；只持有冻结快照。"""
+16:     def __init__(self, seed: PlanningSeed):
+17:         self._seed = seed
+18: 
+19: 
+20: class ModelContext:
+21:     def __init__(self, seed: PlanningSeed):
+22:         try:
+23:             self._messages = json.loads(seed.messages_json)
+24:             if not isinstance(self._messages, list):
+25:                 raise ValueError("原始协议必须是消息列表。")
+26:             state = json.loads(seed.context_json) if seed.context_json else None
+27:             self._view = ContextView.from_state(state, self._messages) if state else ContextView.from_history(self._messages)
+28:             self._date_context = json.loads(seed.date_context_json) if seed.date_context_json else None
+29:             self._source_materials = json.loads(seed.source_materials_json)
+30:         except Exception:
+31:             raise RecordAbort("完整上下文无法恢复，查询未启动。", kind="turn.context") from None
+32: 
+33:     @property
+34:     def summary_blocked(self) -> bool:
+35:         """认证或额度故障后，摘要不能继续占用共享模型请求。"""
+36:         return self._summary_blocked
+37: 
+38:     @classmethod
+39:     def begin(cls, text: str, *, seed: PlanningSeed | None = None, continuation: Continuation | None = None) -> "ModelContext":
+40:         if seed is not None and continuation is not None:
+41:             raise ValueError("持久上下文与进程内延续凭证只能选择一个。")
+42:         context = cls(continuation._seed if continuation else seed or PlanningSeed())
+43:         try:
+44:             context._append({"role": "user", "content": text})
+45:         except Exception:
+46:             raise RecordAbort("完整上下文无法恢复，查询未启动。", kind="turn.context") from None
+47:         return context
+48: 
+49:     @property
+50:     def previous_date_context(self) -> dict[str, Any] | None:
+51:         return copy.deepcopy(self._date_context)
+52: 
+53:     @property
+54:     def source_materials(self) -> list[dict[str, Any]]:
+55:         return copy.deepcopy(self._source_materials)
+56: 
+57:     @property
+58:     def latest_input(self) -> str:
+59:         return next((message["content"] for message in reversed(self._messages)
+60:                      if message["role"] == "user" and isinstance(message["content"], str)), "")
+61: 
+62:     def _append(self, message):
+63:         self._messages.append(copy.deepcopy(message))
+64:         self._view.append(message, len(self._messages))
+65: 
+66:     def append_response(self, content: list[dict[str, Any]]) -> None:
+67:         self._append({"role": "assistant", "content": content})
+68: 
+69:     def append_tool_results(self, results: Sequence[Mapping[str, Any]]) -> None:
+70:         response = self._messages[-1]
+71:         content = response.get("content")
+72:         expected = [block["id"] for block in content if block.get("type") == "tool_use"] if (
+73:             response["role"] == "assistant" and isinstance(content, list)) else []
+74:         actual = [block["tool_use_id"] for block in results if block.get("type") == "tool_result"]
+75:         if not expected or len(actual) != len(results) or sorted(actual) != sorted(expected):
+76:             raise ValueError("完整工具结果必须与上一响应的调用身份一一配对。")
+77:         self._append({"role": "user", "content": results})
+78: 
+79:     def append_answer(self, answer: str, *, replace_response: bool = False) -> None:
+80:         message = {"role": "assistant", "content": answer}
+81:         if replace_response:
+82:             self._messages[-1] = message
+83:             self._view.messages[-1] = copy.deepcopy(message)
+84:         else:
+85:             self._append(message)
+86: 
+87:     def material(self, redact: Callable[[str], str] = lambda value: value) -> TurnMaterial:
+88:         try:
+89:             return TurnMaterial(redact(json.dumps(self._messages, ensure_ascii=False)),
+90:                                 ContextCheckpoint.capture(json.loads(redact(json.dumps(self._view.to_state(), ensure_ascii=False)))))
+91:         except Exception:
+92:             raise RecordAbort("轮次保存材料无法生成；仅保留最后成功提交的事实。", kind="turn.finished") from None
+93: 
+94:     def continuation(self) -> Continuation:
+95:         material = self.material()
+96:         assert material.context_checkpoint is not None
+97:         return Continuation(PlanningSeed(messages_json=material.messages_json,
+98:             context_json=material.context_checkpoint.state_json,
+99:             date_context_json=json.dumps(self._date_context, ensure_ascii=False)))
+100: 
+101:     def configure(self, *, policy: ContextPolicy | None, model: str, client, tools, date_context: dict[str, Any] | None,
+102:                   next_request_ordinal, remaining_requests, observer, stop_requested, history_records=None):
+103:         self._messages = json.loads(tools.redact(json.dumps(self._messages, ensure_ascii=False)))
+104:         self._view.messages = json.loads(tools.redact(json.dumps(self._view.messages, ensure_ascii=False)))
+105:         self._policy = policy
+106:         self._meter = TokenMeter(model, usage_semantics="anthropic" if not os.getenv("ANTHROPIC_BASE_URL") else "compatible_unknown")
+107:         self._client, self._tools = client, tools
+108:         self._date_context, self._turn_start = copy.deepcopy(date_context), len(self._messages) - 1
+109:         self._next_request_ordinal, self._remaining_requests = next_request_ordinal, remaining_requests
+110:         self._observer, self._stop_requested = observer, stop_requested
+111:         self._summary_attempts, self._summary_blocked = 0, False
+112:         self._measurement: dict[str, Any] | None = None
+113:         self._recovery_steps = set()
+114:         self._history_records = history_records
+115:         self._history = SessionHistory(self._records)
+116: 
+117:     def _records(self, partial_results=()):
+118:         protocol = [*self._messages, {"role": "user", "content": list(partial_results)}] if partial_results else self._messages
+119:         return bind_protocol_references(self._history_records(), protocol) if self._history_records else protocol_records(protocol)
+120: 
+121:     async def read_history(self, name, arguments, *, parameters, completed, pending, tool_use_id, observer=None):
+122:         def fits(content):
+123:             remaining = [{"type": "tool_result", "tool_use_id": identifier, "content": "", "is_error": True} for identifier in pending]
+124:             return self._fits_tool_results(parameters, [*completed,
+125:                 {"type": "tool_result", "tool_use_id": tool_use_id, "content": content, "is_error": False}, *remaining])
+126:         self._history.records = lambda: self._records(completed)
+127:         return await self._history.call(name, arguments, observer=observer, fits=fits)
+128: 
+129:     async def recovery_started(self, data):
+130:         await self._emit("context.recovery_started", {**data, "version": self._view.version})
+131: 
+132:     async def _emit(self, kind, data):
+133:         if self._observer:
+134:             await self._observer(kind, data)
+135: 
+136:     def _measure_view(self, parameters):
+137:         parameters["messages"] = copy.deepcopy(self._view.messages)
+138:         return self._meter.measure(parameters)
+139: 
+140:     def _within_budget(self, measurement):
+141:         return self._policy is not None and measurement["estimated_tokens"] <= self._policy.input_budget
+142: 
+143:     async def _organize(self, parameters, measurement, *, step, attempt, recovery=False):
+144:         before_tokens = measurement["estimated_tokens"]
+145:         changed = self._view.organize_tool_results()
+146:         measurement = self._measure_view(parameters)
+147:         data = {"before_tokens": before_tokens, "after_tokens": measurement["estimated_tokens"],
+148:                 "changed_result_count": changed,
+149:                 "pressure_remaining": self._policy is None or measurement["estimated_tokens"] >= self._policy.pressure_threshold,
+150:                 "original_watermark": self._view.original_watermark, "version": self._view.version,
+151:                 "record_ids": self._view.record_ids.copy(), "step": step, "attempt": attempt}
+152:         if not recovery:
+153:             assert self._policy is not None
+154:             data["pressure_threshold"] = self._policy.pressure_threshold
+155:         await self._emit("context.organized", data)
+156:         return measurement
+157: 
+158:     async def _summarize(self, parameters, *, force=False):
+159:         if self._policy is None or self._summary_attempts >= 4 or self._summary_blocked or not self._remaining_requests():
+160:             return
+161:         result = await summarize_history(
+162:             view=self._view, policy=self._policy, meter=self._meter, parameters=parameters,
+163:             client=self._client, tools=self._tools, date_context=self._date_context,
+164:             cutoff=earlier_history_cutoff(self._view, self._turn_start, self._policy, self._meter, force=force),
+165:             remaining_attempts=min(4 - self._summary_attempts, self._remaining_requests()), next_request_ordinal=self._next_request_ordinal,
+166:             observer=self._observer, stop_requested=self._stop_requested)
+167:         self._summary_attempts += result.attempts
+168:         self._summary_blocked = self._summary_blocked or result.terminal_failure
+169: 
+170:     async def prepare_request(self, parameters, *, step, attempt, recovering=False, final=False):
+171:         """更新可发送的输入；返回预算阻止原因，关闭压缩时沿用原输入。"""
+172:         parameters["messages"] = copy.deepcopy(self._view.messages)
+173:         measurement = self._meter.measure(parameters) if self._policy else None
+174:         self._measurement = measurement
+175:         if self._policy is None:
+176:             return None
+177:         assert measurement is not None
+178:         if not final and not recovering and measurement["estimated_tokens"] >= self._policy.pressure_threshold:
+179:             measurement = await self._organize(parameters, measurement, step=step, attempt=attempt)
+180:             if (measurement["estimated_tokens"] >= self._policy.pressure_threshold
+181:                     and self._summary_attempts < 4 and not self._summary_blocked):
+182:                 await self._summarize(parameters)
+183:                 measurement = self._measure_view(parameters)
+184:         self._measurement = measurement
+185:         allowed = self._within_budget(measurement)
+186:         await self._emit("context.checked", {**measurement, "window": self._policy.window,
+187:             "input_budget": self._policy.input_budget, "allowed": allowed,
+188:             "original_watermark": self._view.original_watermark, "version": self._view.version,
+189:             "record_ids": self._view.record_ids.copy(), "step": step, "attempt": attempt})
+190:         return None if allowed else "context_budget"
+191: 
+192:     async def prepare_recovery(self, parameters, *, request_id, step, attempt):
+193:         """仅允许预算内且严格缩小的输入恢复；同一模型步骤只允许一次。"""
+194:         if step in self._recovery_steps:
+195:             return "context_window_exceeded"
+196:         self._recovery_steps.add(step)
+197:         measurement = self._meter.measure(parameters)
+198:         before_tokens = measurement["estimated_tokens"]
+199:         measurement = await self._organize(parameters, measurement, step=step, attempt=attempt, recovery=True)
+200:         if measurement["estimated_tokens"] >= before_tokens or not self._within_budget(measurement):
+201:             await self._summarize(parameters, force=True)
+202:         self._measurement = self._measure_view(parameters)
+203:         after_tokens = self._measurement["estimated_tokens"]
+204:         allowed = self._within_budget(self._measurement)
+205:         reduced = after_tokens < before_tokens
+206:         await self._emit("context.recovery_prepared", {"request_id": request_id,
+207:             "before_tokens": before_tokens, "after_tokens": after_tokens,
+208:             "reduced": reduced, "allowed": allowed, "step": step,
+209:             "summary_attempts": self._summary_attempts, "version": self._view.version})
+210:         return None if reduced and allowed else "context_recovery_unavailable"
+211: 
+212:     async def observe_usage(self, request_id, usage):
+213:         if self._measurement is not None:
+214:             calibration = self._meter.observe_usage(usage, self._measurement)
+215:             await self._emit("context.usage", {"request_id": request_id, **calibration})
+216: 
+217:     def _fits_tool_results(self, parameters, results):
+218:         """历史回读页面与未完成工具结果一起参与完整请求预算。"""
+219:         if self._policy is None:
+220:             return True
+221:         projected = copy.deepcopy(parameters)
+222:         projected["messages"] = copy.deepcopy(self._view.messages) + [{"role": "user", "content": results}]
+223:         return self._within_budget(self._meter.measure(projected))
+
+### /tmp/potato86-independent-use/source/tests/test_context_contracts.py
+1: """通过模型上下文公开入口验证协议、模型输入与冻结保存材料。"""
+2: import json
+3: from types import SimpleNamespace
+4: import unittest
+5: 
+6: from travel_app.context import ContextPolicy, ModelContext, PlanningSeed, RecordAbort
+7: 
+8: 
+9: class ContextContractsTests(unittest.TestCase):
+10:     def test_response_and_tool_results_share_one_protocol_and_continuation(self):
+11:         context = ModelContext.begin("保留西湖酒店")
+12:         context.append_response([{"type": "tool_use", "id": "place", "name": "maps_text_search", "input": {}}])
+13:         results = [{"type": "tool_result", "tool_use_id": "place", "content": "早餐68元；待核实", "is_error": False}]
+14:         context.append_tool_results(results)
+15:         material = context.material()
+16:         results[0]["content"] = "调用方的迟到修改"
+17:         saved = json.loads(material.messages_json)
+18:         self.assertEqual(saved[-1]["content"][0]["content"], "早餐68元；待核实")
+19:         self.assertEqual(json.loads(material.context_checkpoint.state_json)["messages"], saved)
+20:         context.append_answer("完成")
+21:         continued = ModelContext.begin("继续比较", continuation=context.continuation())
+22:         self.assertEqual(json.loads(continued.material().messages_json), saved + [
+23:             {"role": "assistant", "content": "完成"}, {"role": "user", "content": "继续比较"}])
+24:         self.assertEqual(json.loads(material.messages_json), saved)
+25: 
+26:     def test_mismatched_tool_results_do_not_modify_either_saved_view(self):
+27:         context = ModelContext.begin("查询杭州")
+28:         context.append_response([{"type": "tool_use", "id": "place", "name": "maps_text_search", "input": {}}])
+29:         before = context.material()
+30:         with self.assertRaises(ValueError):
+31:             context.append_tool_results([{"type": "tool_result", "tool_use_id": "another-call", "content": "不能错配"}])
+32:         self.assertEqual(context.material(), before)
+33: 
+34:     def test_corrupt_saved_context_aborts_at_the_recovery_boundary(self):
+35:         with self.assertRaises(RecordAbort) as raised:
+36:             ModelContext.begin("继续", seed=PlanningSeed(context_json='{"version": 1}'))
+37:         self.assertEqual(raised.exception.kind, "turn.context")
+38: 
+39:     def test_corrupt_protocol_aborts_instead_of_leaking_a_runtime_error(self):
+40:         for seed in (PlanningSeed(messages_json="{}"), PlanningSeed(context_json=json.dumps({
+41:                 "messages": {}, "original_watermark": 0, "record_ids": []}))):
+42:             with self.subTest(seed=seed):
+43:                 with self.assertRaises(RecordAbort) as raised:
+44:                     ModelContext.begin("继续", seed=seed)
+45:                 self.assertEqual(raised.exception.kind, "turn.context")
+46: 
+47: 
+48: class ContextRequestTests(unittest.IsolatedAsyncioTestCase):
+49:     def configure(self, context, *, policy=None, dates=None):
+50:         context.configure(policy=policy, model="test-model", client=None,
+51:             tools=SimpleNamespace(redact=lambda value: value), date_context=dates,
+52:             next_request_ordinal=lambda: 1, remaining_requests=lambda: 0,
+53:             observer=None, stop_requested=None)
+54: 
+55:     async def test_request_copy_cannot_change_protocol_or_continued_dates(self):
+56:         dates = {"now": "2026-12-31T23:50:00+08:00", "travel_dates": {
+57:             "status": "resolved", "start_date": "2027-01-01", "end_date": "2027-01-01"}}
+58:         context = ModelContext.begin("明天去杭州")
+59:         self.configure(context, dates=dates)
+60:         parameters = {"model": "test-model", "system": "旅行规则", "max_tokens": 8000}
+61:         await context.prepare_request(parameters, step=1, attempt=1)
+62:         parameters["messages"][0]["content"] = "外部修改"
+63:         dates["travel_dates"]["start_date"] = "错误日期"
+64:         continued = ModelContext.begin("继续", continuation=context.continuation())
+65:         self.assertEqual(continued.previous_date_context["travel_dates"]["start_date"], "2027-01-01")
+66:         self.assertEqual(json.loads(continued.material().messages_json)[0]["content"], "明天去杭州")
+67: 
+68:     async def test_history_reads_completed_batch_prefix_without_duplicating_protocol(self):
+69:         context = ModelContext.begin("查询酒店")
+70:         context.append_response([
+71:             {"type": "tool_use", "id": "place", "name": "maps_text_search", "input": {}},
+72:             {"type": "tool_use", "id": "read", "name": "session_history_read", "input": {}},
+73:         ])
+74:         self.configure(context)
+75:         completed = [{"type": "tool_result", "tool_use_id": "place", "content": "酒店早餐68元，待核实", "is_error": False}]
+76:         result = await context.read_history("session_history_read", {"record_id": "message:3:block:0"},
+77:             parameters={}, completed=completed, pending=[], tool_use_id="read")
+78:         self.assertEqual(json.loads(result["content"])["text"], "酒店早餐68元，待核实")
+79:         context.append_tool_results([*completed, {"type": "tool_result", "tool_use_id": "read", **result}])
+80:         self.assertEqual(len(json.loads(context.material().messages_json)), 3)
+81: 
+82:     async def test_over_limit_recovery_requires_smaller_input_and_is_once_per_step(self):
+83:         context = ModelContext.begin("查酒店")
+84:         context.append_response([{"type": "tool_use", "id": "place", "name": "maps_text_search", "input": {}}])
+85:         data = {"酒店": "早餐价格待核实" * 200}
+86:         context.append_tool_results([{"type": "tool_result", "tool_use_id": "place",
+87:             "content": json.dumps({"data": data, "text": [json.dumps(data, ensure_ascii=False)]}, ensure_ascii=False)}])
+88:         self.configure(context, policy=ContextPolicy(1000000))
+89:         parameters = {"model": "test-model", "system": "旅行规则", "max_tokens": 8000}
+90:         await context.prepare_request(parameters, step=2, attempt=1)
+91:         original = context.material().messages_json
+92:         before = len(json.dumps(parameters["messages"]))
+93:         self.assertIsNone(await context.prepare_recovery(parameters, request_id="first", step=2, attempt=1))
+94:         self.assertLess(len(json.dumps(parameters["messages"])), before)
+95:         self.assertEqual(await context.prepare_recovery(parameters, request_id="second", step=2, attempt=2), "context_window_exceeded")
+96:         self.assertEqual(context.material().messages_json, original)
+
+### /tmp/potato86-independent-use/source/tests/test_agent.py
+1: import copy
+2: import asyncio
+3: import json
+4: import unittest
+5: from types import SimpleNamespace
+6: from typing import cast
+7: 
+8: from anthropic import AsyncAnthropic
+9: from anthropic.types import Message
+10: from mcp import Client
+11: 
+12: from travel_app.retrieval import Retrieval
+13: from planning_fixtures import agent_loop
+14: from travel_app.planning import plan
+15: from travel_app.context import PlanningSeed, RecordAbort
+16: 
+17: 
+18: from service_fixtures import MapService, ModelService, response
+19: 
+20: 
+21: class PlaceQueryTests(unittest.IsolatedAsyncioTestCase):
+22:     async def test_place_query_returns_answer_and_grounded_tool_result(self):
+23:         tools = Retrieval(cast(Client, MapService()))
+24:         await tools.discover()
+25:         model = ModelService(
+26:             [
+27:                 response(
+28:                     [{"type": "tool_use", "id": "query-1", "name": "maps_text_search",
+29:                       "input": {"keywords": "西湖", "city": "杭州"}}],
+30:                     "tool_use",
+31:                 ),
+32:                 response([{"type": "text", "text": "查到西湖，地址为杭州市西湖区。"}]),
+33:             ]
+34:         )
+35:         history = [{"role": "user", "content": "查询杭州的西湖"}]
+36: 
+37:         answer = await agent_loop(
+38:             history, cast(AsyncAnthropic, model), tools, "test-model"
+39:         )
+40: 
+41:         self.assertEqual(answer, "查到西湖，地址为杭州市西湖区。")
+42:         declaration = model.requests[0]["tools"][0]
+43:         self.assertEqual(declaration["input_schema"]["required"], ["keywords", "city"])
+44:         result = model.requests[1]["messages"][-1]["content"][0]
+45:         self.assertEqual(result["tool_use_id"], "query-1")
+46:         self.assertFalse(result["is_error"])
+47:         self.assertIn("查到一个地点", result["content"])
+48:         self.assertIn("杭州市西湖区", result["content"])
+49:         self.assertIn("poi-west-lake", result["content"])
+50: 
+51:     async def test_only_place_tools_are_available_and_forbidden_calls_are_rejected(self):
+52:         class ExtraToolsService(MapService):
+53:             async def list_tools(self, *, cursor=None):
+54:                 listed = await super().list_tools()
+55:                 listed.tools.extend(
+56:                     SimpleNamespace(
+57:                         name=name, description="不属于地点查询", input_schema={"type": "object"}
+58:                     )
+59:                     for name in ["bash", "maps_schema_take_taxi"]
+60:                 )
+61:                 return listed
+62: 
+63:         tools = Retrieval(cast(Client, ExtraToolsService()))
+64:         await tools.discover()
+65:         model = ModelService([
+66:             response([{"type": "tool_use", "id": "forbidden", "name": "bash",
+67:                        "input": {"command": "echo test"}}], "tool_use"),
+68:             response([{"type": "text", "text": "只能使用已开放的地点查询工具。"}]),
+69:         ])
+70: 
+71:         await agent_loop(
+72:             [{"role": "user", "content": "运行命令"}],
+73:             cast(AsyncAnthropic, model), tools, "test-model",
+74:         )
+75: 
+76:         self.assertEqual(
+77:             [tool["name"] for tool in model.requests[0]["tools"]], ["maps_text_search", "session_history_search", "session_history_read"]
+78:         )
+79:         result = model.requests[1]["messages"][-1]["content"][0]
+80:         self.assertEqual(result["tool_use_id"], "forbidden")
+81:         self.assertTrue(result["is_error"])
+82: 
+83:     async def test_separate_histories_do_not_share_user_conditions(self):
+84:         tools = Retrieval(cast(Client, MapService()))
+85:         await tools.discover()
+86:         model = ModelService([
+87:             response([{"type": "text", "text": "请提供杭州的地点关键词。"}]),
+88:             response([{"type": "text", "text": "请提供上海的地点关键词。"}]),
+89:         ])
+90: 
+91:         await agent_loop(
+92:             [{"role": "user", "content": "我在杭州"}],
+93:             cast(AsyncAnthropic, model), tools, "test-model",
+94:         )
+95:         await agent_loop(
+96:             [{"role": "user", "content": "我在上海"}],
+97:             cast(AsyncAnthropic, model), tools, "test-model",
+98:         )
+99: 
+100:         self.assertNotIn("杭州", json.dumps(model.requests[1]["messages"], ensure_ascii=False))
+101:         self.assertIn("上海", json.dumps(model.requests[1]["messages"], ensure_ascii=False))
+102: 
+103:     async def test_round_budget_stops_repeated_model_requests(self):
+104:         tools = Retrieval(cast(Client, MapService()))
+105:         await tools.discover()
+106:         model = ModelService([response([
+107:             {"type": "tool_use", "id": "repeat", "name": "maps_text_search",
+108:              "input": {"keywords": "西湖", "city": "杭州"}}
+109:         ], "tool_use")])
+110: 
+111:         answer = await agent_loop(
+112:             [{"role": "user", "content": "查询西湖"}],
+113:             cast(AsyncAnthropic, model), tools, "test-model", max_rounds=1,
+114:         )
+115: 
+116:         self.assertEqual(len(model.requests), 1)
+117:         self.assertIn("上限", answer)
+118: 
+119:     async def test_startup_refuses_a_service_without_place_tools(self):
+120:         class NoPlaceService(MapService):
+121:             async def list_tools(self, *, cursor=None):
+122:                 return SimpleNamespace(tools=[], next_cursor=None)
+123: 
+124:         tools = Retrieval(cast(Client, NoPlaceService()))
+125: 
+126:         with self.assertRaisesRegex(RuntimeError, "地点"):
+127:             await tools.discover()
+128: 
+129:     async def test_discovery_reads_all_pages_and_preserves_detail_schema(self):
+130:         class PagedMapService(MapService):
+131:             async def list_tools(self, *, cursor=None):
+132:                 if cursor is None:
+133:                     listed = await super().list_tools()
+134:                     listed.next_cursor = "details-page"
+135:                     return listed
+136:                 if cursor != "details-page":
+137:                     raise AssertionError("不正确的分页游标")
+138:                 return SimpleNamespace(
+139:                     tools=[SimpleNamespace(
+140:                         name="maps_search_detail", description="查询地点详情",
+141:                         input_schema={"type": "object", "properties": {
+142:                             "id": {"type": "string"}}, "required": ["id"]},
+143:                     )],
+144:                     next_cursor=None,
+145:                 )
+146: 
+147:         tools = Retrieval(cast(Client, PagedMapService()))
+148:         await tools.discover()
+149:         model = ModelService([response([{"type": "text", "text": "请输入地点。"}])])
+150: 
+151:         await agent_loop(
+152:             [{"role": "user", "content": "查询地点"}],
+153:             cast(AsyncAnthropic, model), tools, "test-model",
+154:         )
+155: 
+156:         declarations = model.requests[0]["tools"]
+157:         self.assertEqual(
+158:             [tool["name"] for tool in declarations], ["maps_text_search", "maps_search_detail", "session_history_search", "session_history_read"]
+159:         )
+160:         self.assertEqual(declarations[1]["input_schema"]["required"], ["id"])
+161: 
+162:     async def test_tool_budget_stops_a_batch_without_extra_calls(self):
+163:         class CountingMapService(MapService):
+164:             calls = 0
+165: 
+166:             async def call_tool(self, name, arguments):
+167:                 self.calls += 1
+168:                 return await super().call_tool(name, arguments)
+169: 
+170:         service = CountingMapService()
+171:         tools = Retrieval(cast(Client, service))
+172:         await tools.discover()
+173:         model = ModelService([response([
+174:             {"type": "tool_use", "id": query_id, "name": "maps_text_search",
+175:              "input": {"keywords": "西湖", "city": "杭州"}}
+176:             for query_id in ["query-1", "query-2"]
+177:         ], "tool_use"), response([{"type": "text", "text": "只整理已取得地点，另一个查询未执行。"}])])
+178:         history = [{"role": "user", "content": "查询西湖"}]
+179: 
+180:         answer = await agent_loop(
+181:             history, cast(AsyncAnthropic, model), tools, "test-model", max_tool_calls=1
+182:         )
+183: 
+184:         self.assertEqual(service.calls, 1)
+185:         self.assertEqual(len(model.requests), 2)
+186:         self.assertNotIn("tools", model.requests[-1])
+187:         self.assertIn("上限", answer)
+188:         results = history[-2]["content"]
+189:         self.assertEqual([result["tool_use_id"] for result in results], ["query-1", "query-2"])
+190:         self.assertTrue(results[1]["is_error"])
+191:         self.assertEqual(history[-1]["role"], "assistant")
+192: 
+193:     async def test_timed_out_query_is_returned_as_an_error(self):
+194:         class SlowMapService(MapService):
+195:             async def call_tool(self, name, arguments):
+196:                 await asyncio.Event().wait()
+197: 
+198:         tools = Retrieval(cast(Client, SlowMapService()), tool_timeout=0.01)
+199:         await tools.discover()
+200:         model = ModelService([
+201:             response([{"type": "tool_use", "id": "slow", "name": "maps_text_search",
+202:                        "input": {"keywords": "西湖", "city": "杭州"}}], "tool_use"),
+203:             response([{"type": "text", "text": "地点查询超时，结果待核实。"}]),
+204:         ])
+205: 
+206:         answer = await agent_loop(
+207:             [{"role": "user", "content": "查询杭州西湖"}],
+208:             cast(AsyncAnthropic, model), tools, "test-model",
+209:         )
+210: 
+211:         result = model.requests[1]["messages"][-1]["content"][0]
+212:         self.assertTrue(result["is_error"])
+213:         self.assertIn("超时", result["content"])
+214:         self.assertIn("待核实", answer)
+215: 
+216:     async def test_credentials_in_service_content_never_reach_the_model(self):
+217:         key = "test-amap-secret"
+218: 
+219:         class LeakyMapService(MapService):
+220:             async def list_tools(self, *, cursor=None):
+221:                 listed = await super().list_tools()
+222:                 listed.tools[0].description += f" https://mcp.amap.com/mcp?key={key}"
+223:                 return listed
+224: 
+225:             async def call_tool(self, name, arguments):
+226:                 return SimpleNamespace(
+227:                     content=[SimpleNamespace(type="text", text=f"服务错误 key={key}")],
+228:                     structured_content={"url": f"https://mcp.amap.com/mcp?key={key}"},
+229:                     is_error=True,
+230:                 )
+231: 
+232:         tools = Retrieval(cast(Client, LeakyMapService()), api_key=key)
+233:         await tools.discover()
+234:         model = ModelService([
+235:             response([{"type": "tool_use", "id": "leaky", "name": "maps_text_search",
+236:                        "input": {"keywords": "西湖", "city": "杭州"}}], "tool_use"),
+237:             response([{"type": "text", "text": "地图服务暂时不可用。"}]),
+238:         ])
+239: 
+240:         await agent_loop(
+241:             [{"role": "user", "content": "查询杭州西湖"}],
+242:             cast(AsyncAnthropic, model), tools, "test-model",
+243:         )
+244: 
+245:         self.assertNotIn(key, json.dumps(model.requests))
+246:         result = model.requests[1]["messages"][-1]["content"][0]
+247:         self.assertTrue(result["is_error"])
+248: 
+249: 
+250: if __name__ == "__main__":
+251:     unittest.main()
+252: 
+253: 
+254: class PlanningContractTests(unittest.IsolatedAsyncioTestCase):
+255:     async def test_result_contains_terminal_state_without_observer_and_frozen_save_material(self):
+256:         tools = Retrieval(cast(Client, MapService()))
+257:         await tools.discover()
+258:         model = ModelService([response([{"type": "text", "text": "请提供旅行城市。"}])])
+259:         result = await plan("帮我安排旅行", cast(AsyncAnthropic, model), tools, "test-model")
+260:         self.assertEqual(result.answer, "请提供旅行城市。")
+261:         self.assertEqual((result.status, result.reason, result.answer_source, result.tool_error_count),
+262:                          ("completed", None, "model", 0))
+263:         self.assertEqual(json.loads(result.material.messages_json), [
+264:             {"role": "user", "content": "帮我安排旅行"},
+265:             {"role": "assistant", "content": [{"type": "text", "text": "请提供旅行城市。", "citations": None}]}])
+266:         self.assertFalse(hasattr(result, "saved"))
+267: 
+268: 
+269:     async def test_terminal_observation_is_not_the_source_of_result_state(self):
+270:         tools = Retrieval(cast(Client, MapService()))
+271:         await tools.discover()
+272:         model = ModelService([response([{"type": "text", "text": "西湖"}])])
+273:         async def observe(kind, data):
+274:             if kind == "turn.finished":
+275:                 data.update(status="failed", reason="untrusted_observation", tool_error_count=99)
+276:         result = await plan("杭州", cast(AsyncAnthropic, model), tools, "test-model", observer=observe)
+277:         self.assertEqual(result.fields(), {"status": "completed", "reason": None,
+278:                          "answer_source": "model", "tool_error_count": 0})
+279: 
+280:     async def test_record_abort_before_request_prevents_model_call_and_returns_no_result(self):
+281:         tools = Retrieval(cast(Client, MapService()))
+282:         await tools.discover()
+283:         model = ModelService([])
+284:         async def observe(kind, data):
+285:             if kind == "request.started":
+286:                 raise RecordAbort("开始事实未保存")
+287:         with self.assertRaises(RecordAbort):
+288:             await plan("杭州", cast(AsyncAnthropic, model), tools, "test-model", observer=observe)
+289:         self.assertEqual(model.requests, [])
+290: 
+291: 
+292:     async def test_invalid_saved_context_aborts_before_external_calls(self):
+293:         tools = Retrieval(cast(Client, MapService()))
+294:         await tools.discover()
+295:         model = ModelService([])
+296:         with self.assertRaises(RecordAbort):
+297:             await plan("继续杭州旅行", cast(AsyncAnthropic, model), tools, "test-model",
+298:                        seed=PlanningSeed(context_json='{"version": 1}'))
+299:         self.assertEqual(model.requests, [])

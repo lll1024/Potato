@@ -1,38 +1,19 @@
 """公开 HTTP 与 CLI 验证旅行日期的跨日、重启、改期和存储故障。"""
 import asyncio
+import json
 import tempfile
 import unittest
-from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import cast
 
-import httpx
-from anthropic import AsyncAnthropic
-from mcp import Client
-
-from travel_app.amap_mcp import AmapTools
-from test_agent import MapService, ModelService, response
-import test_history
-from test_travel_dates import context_from_request
-from travel_app.web import Runtime, create_app
+from service_fixtures import cli_retrieval, MapService, ModelService, response
+from date_fixtures import HistoryHarness, context_from_request, DateSessionHarness
 
 
-class TravelDateContinuationTests(unittest.IsolatedAsyncioTestCase):
-    finish = test_history.HistoryTests.finish
+class TravelDateContinuationTests(DateSessionHarness, unittest.IsolatedAsyncioTestCase):
+    finish = HistoryHarness.finish
     moment = datetime.fromisoformat("2026-10-09T23:59:59+08:00")
 
-    @asynccontextmanager
-    async def service(self, directory, model, maps=None) -> AsyncIterator[httpx.AsyncClient]:
-        @asynccontextmanager
-        async def resources():
-            tools = AmapTools(cast(Client, maps or MapService()))
-            await tools.discover()
-            yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
-        app = create_app(directory, resources=resources, clock=lambda: self.moment)
-        async with app.router.lifespan_context(app):
-            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
-                yield client
 
     async def test_trip_dates_survive_midnight_and_restart_without_reinterpreting_history(self):
         for text, start, end in [
@@ -105,7 +86,7 @@ class TravelDateContinuationTests(unittest.IsolatedAsyncioTestCase):
         import sqlite3
         from contextlib import closing
         from pathlib import Path
-        from test_storage import fail_event
+        from record_faults import fail_event
 
         model = ModelService([response([{"type": "text", "text": "测试模型回答"}]) for _ in range(3)])
         with tempfile.TemporaryDirectory() as directory:
@@ -136,16 +117,16 @@ class TravelDateContinuationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_legacy_record_without_date_basis_does_not_infer_dates_from_history(self):
         from pathlib import Path
-        from travel_app.store import Store
+        from travel_app.local_records import LocalRecords as Store, TurnMaterial
 
         with tempfile.TemporaryDirectory() as directory:
             legacy = Store(Path(directory))
             first = legacy.accept("明天去北京")
             history = [{"role": "user", "content": "明天去北京"},
                        {"role": "assistant", "content": "旅行安排"}]
-            legacy.finish(first["session_id"], first["turn_id"], "旅行安排", history,
+            legacy.finish(first["session_id"], first["turn_id"], "旅行安排", TurnMaterial(json.dumps(history)),
                           {"status": "completed", "reason": None, "answer_source": "model", "tool_error_count": 0}, 0)
-            legacy.db.close()
+            legacy.close()
             model = ModelService([response([{"type": "text", "text": "测试模型回答"}])])
             self.moment = datetime.fromisoformat("2026-10-12T09:00:00+08:00")
             async with self.service(directory, model) as client:
@@ -168,7 +149,7 @@ class TravelDateContinuationTests(unittest.IsolatedAsyncioTestCase):
         import sqlite3
         from contextlib import closing
         from pathlib import Path
-        from test_storage import fail_event
+        from record_faults import fail_event
 
         initial = ModelService([response([{"type": "text", "text": "测试模型回答"}])])
         next_model = ModelService([response([{"type": "text", "text": "测试模型回答"}])])
@@ -198,8 +179,8 @@ class TravelDateContinuationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(context_from_request(next_model.requests[0])["travel_dates"]["end_date"], "2026-10-11")
 
     async def test_changed_dates_and_failed_weather_materials_use_the_same_full_range(self):
-        from test_exception_experience import FailingAfterTools
-        from test_itinerary import ItineraryMapService, map_result
+        from model_fixtures import FailingAfterTools
+        from itinerary_fixtures import ItineraryMapService, map_result
 
         first_model = ModelService([response([{"type": "text", "text": "测试模型回答"}])])
         weather_request = response([{"type": "tool_use", "id": "weather", "name": "maps_weather",
@@ -230,7 +211,7 @@ class TravelDateContinuationTests(unittest.IsolatedAsyncioTestCase):
         import os
         from contextlib import redirect_stdout
         from unittest.mock import patch
-        from travel_app.agent import run_cli
+        from travel_app.planning import run_cli
 
         before = datetime.fromisoformat("2026-10-09T23:59:59+08:00")
         after = datetime.fromisoformat("2026-10-10T00:00:01+08:00")
@@ -249,16 +230,8 @@ class TravelDateContinuationTests(unittest.IsolatedAsyncioTestCase):
         @asynccontextmanager
         async def external_maps(*args, **kwargs):
             yield MapService()
-        with (
-            patch("travel_app.agent.Client", side_effect=external_maps),
-            patch("travel_app.travel_tools.Client", side_effect=RuntimeError("外部资料服务不可用")),
-            patch("travel_app.agent.AsyncAnthropic", side_effect=external_model),
-            patch("travel_app.agent.streamable_http_client", return_value=None),
-            patch("builtins.input", side_effect=user_input),
-            patch.dict(os.environ, {"MODEL_ID": "test-model"}),
-            redirect_stdout(io.StringIO()),
-        ):
-            self.assertEqual(await run_cli("test-key", clock=lambda: moment), 0)
+        with patch('builtins.input', side_effect=user_input), patch.dict(os.environ, {'MODEL_ID': 'test-model'}), redirect_stdout(io.StringIO()):
+            self.assertEqual(await run_cli("test-key", clock=lambda: moment, retrieval_factory=cli_retrieval(external_maps, RuntimeError('外部资料服务不可用')), model_client_factory=external_model), 0)
         context = context_from_request(model.requests[1])
         self.assertEqual(context["now"], "2026-10-10T00:00:01+08:00")
         self.assertEqual(context["travel_dates"].get("start_date"), "2026-10-10")

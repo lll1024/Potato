@@ -1,6 +1,5 @@
 """通过公开 HTTP 对话入口核对固定时间、旅行日期与异常天气资料。"""
 import asyncio
-import json
 import tempfile
 import unittest
 from contextlib import asynccontextmanager
@@ -11,13 +10,11 @@ import httpx
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from travel_app.amap_mcp import AmapTools
-from test_agent import MapService, ModelService, response
-from travel_app.web import Runtime, create_app
+from travel_app.retrieval import Retrieval
+from travel_app.sessions import Runtime, create_app
 
-
-def context_from_request(request):
-    return json.loads(request["system"].split("<travel_date_context>")[1].split("</travel_date_context>")[0])
+from service_fixtures import cli_retrieval, MapService, ModelService, response
+from date_fixtures import context_from_request
 
 
 class TravelDatesTests(unittest.IsolatedAsyncioTestCase):
@@ -25,7 +22,7 @@ class TravelDatesTests(unittest.IsolatedAsyncioTestCase):
         model = model or ModelService([response([{"type": "text", "text": "测试模型回答"}])])
         @asynccontextmanager
         async def resources():
-            tools = AmapTools(cast(Client, maps or MapService()))
+            tools = Retrieval(cast(Client, maps or MapService()))
             await tools.discover()
             yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
         with tempfile.TemporaryDirectory() as directory:
@@ -127,7 +124,7 @@ class TravelDatesTests(unittest.IsolatedAsyncioTestCase):
         ])
         @asynccontextmanager
         async def resources():
-            tools = AmapTools(cast(Client, MapService()))
+            tools = Retrieval(cast(Client, MapService()))
             await tools.discover()
             yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
         with tempfile.TemporaryDirectory() as directory:
@@ -152,8 +149,8 @@ class TravelDatesTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(contexts[2]["travel_dates"]["start_date"], "2027-01-02")
 
     async def test_failed_answer_weather_uses_resolved_relative_date_range(self):
-        from test_exception_experience import FailingAfterTools
-        from test_itinerary import ItineraryMapService, map_result
+        from model_fixtures import FailingAfterTools
+        from itinerary_fixtures import ItineraryMapService, map_result
         for covered, expected in [
             (["2026-10-10"], "超出"),
             (["2026-10-10", "2026-10-10-invalid"], "超出"),
@@ -177,7 +174,7 @@ class TravelDatesTests(unittest.IsolatedAsyncioTestCase):
         import os
         from contextlib import redirect_stdout
         from unittest.mock import patch
-        from travel_app.agent import run_cli
+        from travel_app.planning import run_cli
 
         _, web_model = await self.run_turn("本周末去北京", "2026-10-09T09:00:00+08:00")
         cli_model = ModelService([response([{"type": "text", "text": "测试模型回答"}])])
@@ -187,16 +184,8 @@ class TravelDatesTests(unittest.IsolatedAsyncioTestCase):
         @asynccontextmanager
         async def external_maps(*args, **kwargs):
             yield MapService()
-        with (
-            patch("travel_app.agent.Client", side_effect=external_maps),
-            patch("travel_app.travel_tools.Client", side_effect=RuntimeError("外部资料服务不可用")),
-            patch("travel_app.agent.AsyncAnthropic", side_effect=external_model),
-            patch("travel_app.agent.streamable_http_client", return_value=None),
-            patch("builtins.input", side_effect=["本周末去北京", "exit"]),
-            patch.dict(os.environ, {"MODEL_ID": "test-model"}),
-            redirect_stdout(io.StringIO()),
-        ):
-            self.assertEqual(await run_cli("test-key", clock=lambda: datetime.fromisoformat("2026-10-09T09:00:00+08:00")), 0)
+        with patch('builtins.input', side_effect=['本周末去北京', 'exit']), patch.dict(os.environ, {'MODEL_ID': 'test-model'}), redirect_stdout(io.StringIO()):
+            self.assertEqual(await run_cli("test-key", clock=lambda: datetime.fromisoformat("2026-10-09T09:00:00+08:00"), retrieval_factory=cli_retrieval(external_maps, RuntimeError('外部资料服务不可用')), model_client_factory=external_model), 0)
         self.assertEqual(context_from_request(cli_model.requests[0]), context_from_request(web_model.requests[0]))
 
     async def test_clock_times_and_number_ranges_do_not_override_weekend(self):

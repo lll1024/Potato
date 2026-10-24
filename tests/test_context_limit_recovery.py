@@ -4,10 +4,11 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from test_agent import response
-from test_context_summary import submit, summary_response
-from test_model_retry import RetryModel, status_error
-from test_trace import serving
+from service_fixtures import cli_retrieval, response
+from context_fixtures import submit, summary_response
+from model_fixtures import RetryModel, status_error
+from http_fixtures import serving
+
 
 ENV = {"CONTEXT_COMPACTION_ENABLED": "true", "MODEL_CONTEXT_WINDOW": "100000"}
 OLD = "2026-10-18 杭州旅行，预算3000元，指定西湖酒店。" + "史" * 3900
@@ -72,7 +73,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual([r["attempt"] for r in travels], list(range(1, 8)))
 
     async def test_recovery_does_not_repeat_completed_map_queries(self):
-        from test_context_incremental import LargeMaps
+        from context_fixtures import LargeMaps
         class CountingMaps(LargeMaps):
             def __init__(self):
                 self.calls = 0
@@ -97,7 +98,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_stop_inflight_recovery_summary_preserves_real_usage_and_skips_retry(self):
         import asyncio
-        from test_trace import wait_finished
+        from http_fixtures import wait_finished
         entered, release = asyncio.Event(), asyncio.Event()
         class WaitingModel(RetryModel):
             async def create(self, **kwargs):
@@ -134,7 +135,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
                     self.assertFalse(any(e["kind"].startswith("context.recovery") or e["kind"] == "context.summary_started" for e in saved["events"]))
 
     async def test_pressure_and_recovery_share_four_summary_calls_and_auth_blocks_whole_turn(self):
-        from test_context_summary import ENV as SMALL_ENV, OLD as PRESSURE_OLD
+        from context_fixtures import ENV as SMALL_ENV, OLD as PRESSURE_OLD
         invalid = response([{"type": "text", "text": "{}"}])
         for before, recovery, summaries in [([invalid, invalid], [invalid, invalid], 4),
                                             ([status_error(401)], [], 1),
@@ -152,7 +153,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
     async def test_deterministic_tool_organization_can_recover_without_a_summary_request(self):
         import json
         from types import SimpleNamespace
-        from test_agent import MapService
+        from service_fixtures import MapService
         class DuplicatedMaps(MapService):
             async def call_tool(self, name, arguments):
                 data = {"id": "west-lake", "details": "查" * 1000, "verification": "待核实"}
@@ -176,8 +177,8 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
     async def test_cli_distinguishes_exceeded_prepared_started_and_returned_without_summary_body(self):
         import io
         from contextlib import asynccontextmanager, redirect_stdout
-        from travel_app.agent import run_cli
-        from test_agent import MapService
+        from travel_app.planning import run_cli
+        from service_fixtures import MapService
         model = RetryModel([response([{"type": "text", "text": "酒店未预订。"}]), exceeded(), summary_response(),
                             response([{"type": "text", "text": "继续安排交通。"}])])
         @asynccontextmanager
@@ -187,8 +188,8 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
         async def external_maps(*args, **kwargs):
             yield MapService()
         output = io.StringIO()
-        with patch.dict(os.environ, {**ENV, "MODEL_ID": "test-model"}, clear=True), patch("travel_app.agent.Client", side_effect=external_maps), patch("travel_app.travel_tools.Client", side_effect=RuntimeError("资料服务不可用")), patch("travel_app.agent.AsyncAnthropic", side_effect=external_model), patch("travel_app.agent.streamable_http_client", return_value=None), patch("builtins.input", side_effect=[OLD, "继续安排交通", "exit"]), redirect_stdout(output):
-            self.assertEqual(await run_cli("test-key"), 0)
+        with patch.dict(os.environ, {**ENV, 'MODEL_ID': 'test-model'}, clear=True), patch('builtins.input', side_effect=[OLD, '继续安排交通', 'exit']), redirect_stdout(output):
+            self.assertEqual(await run_cli("test-key", retrieval_factory=cli_retrieval(external_maps, RuntimeError('资料服务不可用')), model_client_factory=external_model), 0)
         self.assertIn("服务报告上下文超限", output.getvalue())
         self.assertIn("已缩小且符合预算", output.getvalue())
         self.assertIn("正在恢复原模型步骤", output.getvalue())

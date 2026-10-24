@@ -1,0 +1,28 @@
+{
+  "first": {
+    "status": "completed",
+    "reason": null,
+    "answer_source": "model",
+    "tool_error_count": 0
+  },
+  "continuation": {
+    "status": "completed",
+    "reason": null,
+    "answer_source": "model",
+    "tool_error_count": 0
+  },
+  "model_calls": 3,
+  "mcp_calls": [
+    {
+      "name": "maps_text_search",
+      "arguments": {
+        "keywords": "西湖",
+        "city": "杭州"
+      }
+    }
+  ],
+  "saved": true,
+  "sqlite_real": true,
+  "sqlite_size": 204800,
+  "observations": 13
+}

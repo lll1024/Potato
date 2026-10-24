@@ -18,14 +18,13 @@ from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 from mcp.server import MCPServer
 
-from travel_app.amap_http import AmapHTTPClient
-from travel_app.amap_mcp import AmapTools
-from travel_app.exa_mcp import ExaTools
-from travel_app.source_http import SourceHTTPClient
-from travel_app.travel_tools import TravelTools
-from travel_app.web import Runtime, create_app
-from test_agent import ModelService, response
-from test_source_failures import SourceService, call, finished
+from travel_app.retrieval import MapHTTPClient as AmapHTTPClient
+from travel_app.retrieval import Retrieval
+from travel_app.retrieval import SourceHTTPClient
+from travel_app.sessions import Runtime, create_app
+
+from service_fixtures import ModelService, response
+from source_fixtures import SourceService, call, finished
 
 
 class ControlledServices(SourceService):
@@ -91,13 +90,13 @@ class ControlledServices(SourceService):
         async with app.router.lifespan_context(app):
             async with AmapHTTPClient(transport=MapTransport(app=app)) as map_http:
                 async with Client(streamable_http_client("http://127.0.0.1:8000/mcp", http_client=map_http)) as map_client:
-                    amap = AmapTools(map_client, tool_timeout=15, http_client=map_http)
+                    amap = Retrieval(map_client, tool_timeout=15, http_client=map_http)
                     await amap.discover()
                     async with SourceHTTPClient(transport=httpx2.MockTransport(self.transport), headers={}) as source_http:
                         async with Client(streamable_http_client("http://sources.test/mcp", http_client=source_http), read_timeout_seconds=15) as source_client:
-                            sources = ExaTools(source_client, redact=amap.redact, tool_timeout=15, call_interval=self.interval)
-                            await sources.discover()
-                            yield Runtime(cast(AsyncAnthropic, model), TravelTools(amap, sources), "test-model")
+                            amap = Retrieval(map_client, source_client=source_client, http_client=map_http, tool_timeout=15, source_timeout=15, source_interval=self.interval)
+                            await amap.discover()
+                            yield Runtime(cast(AsyncAnthropic, model), amap, "test-model")
 
     @asynccontextmanager
     async def serving(self, directory, model):
@@ -417,7 +416,7 @@ class ToolConcurrencyTests(unittest.IsolatedAsyncioTestCase):
                 self.assertTrue((await client.get("/api/state")).json()["accepting"])
 
     async def test_running_state_storage_failure_prevents_dispatch_and_drains_inflight(self):
-        from test_storage import fail_event
+        from record_faults import fail_event
         service = ControlledServices(interval=0.4)
         model = ModelService([response([map_block(0), *[web_block(i) for i in range(12)]], "tool_use")])
         with tempfile.TemporaryDirectory() as directory:

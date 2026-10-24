@@ -1,0 +1,8 @@
+--- repository/context-compaction-live.spec.ts
++++ temporary/context-compaction-live.spec.ts
+@@ -7 +7 @@
+-const original = '2026-10-18杭州，预算3000元人民币，保留湖滨酒店，未预订。' + '阅读背景资料，不是新要求。'.repeat(310);
++const original = '2026-10-18杭州，预算3000元人民币，保留湖滨酒店，未预订。' + '阅读背景资料，不是新要求。'.repeat(300);
+@@ -60 +60 @@
+-      const stopped = await (await page.request.post(running.url + '/api/turns', {data: {input: '继续' + '背景资料不是新增要求。'.repeat(350), session_id: sessionId}})).json();
++      const stopped = await (await page.request.post(running.url + '/api/turns', {data: {input: '继续' + '背景资料不是新增要求。'.repeat(320), session_id: sessionId}})).json();

@@ -1,0 +1,89 @@
+ M AGENTS.md
+ M GLOSSARY.md
+ M README.md
+ M architecture.json
+ M docs/acceptance/README.md
+ M docs/acceptance/deep-modules-baseline.md
+ M docs/adr/0006-backend-package-and-execution-responsibilities.md
+ M docs/adr/0011-deep-modules-and-progressive-disclosure.md
+ M docs/backend-map.md
+ M docs/modules/context.md
+ M docs/modules/local-records.md
+ M docs/modules/migration.md
+ M docs/modules/planning.md
+ M docs/modules/retrieval.md
+ M docs/modules/sessions.md
+ M frontend/package.json
+ M frontend/tests/presentation.test.mjs
+ M frontend/tests/ui/context-compaction-live.spec.ts
+ M scripts/check_modules.py
+ M tests/compatibility/capture.py
+ M tests/compatibility/entrypoint.py
+ M tests/context_semantic_eval.py
+ M tests/exa_fixtures.py
+ M tests/exception_browser_server.py
+ M tests/preference_browser_server.py
+ M tests/preference_clarification_browser_server.py
+ M tests/preference_semantic_eval.py
+ M tests/test_acceptance.py
+ M tests/test_call_budget.py
+ M tests/test_context_budget.py
+ M tests/test_context_incremental.py
+ M tests/test_context_limit_recovery.py
+ M tests/test_context_organization.py
+ M tests/test_context_recovery.py
+ M tests/test_context_summary.py
+ M tests/test_dining.py
+ M tests/test_exception_experience.py
+ M tests/test_history.py
+ M tests/test_information_retrieval.py
+ M tests/test_itinerary.py
+ M tests/test_legacy_sources.py
+ M tests/test_model_retry.py
+ M tests/test_module_boundaries.py
+ M tests/test_official_date_applicability.py
+ M tests/test_preference_activity.py
+ M tests/test_preference_changes.py
+ M tests/test_preference_clarification.py
+ M tests/test_preference_contracts.py
+ M tests/test_preference_management.py
+ M tests/test_preference_recovery.py
+ M tests/test_preference_retry.py
+ M tests/test_preference_review_fixes.py
+ M tests/test_preferences.py
+ M tests/test_query_batching.py
+ M tests/test_reconnect.py
+ M tests/test_recovery.py
+ M tests/test_search.py
+ M tests/test_session_history.py
+ M tests/test_source_failures.py
+ M tests/test_spec28_integration.py
+ M tests/test_stop.py
+ M tests/test_storage.py
+ M tests/test_submissions.py
+ M tests/test_tool_concurrency.py
+ M tests/test_tool_trace.py
+ M tests/test_trace.py
+ M tests/test_travel_date_continuation.py
+ M tests/test_travel_date_corrections.py
+ M tests/test_travel_dates.py
+ M tests/test_web_entrypoint.py
+ M travel_app/__init__.py
+ M travel_app/planning/runtime.py
+?? .ua/
+?? docs/adr/0008-isolated-information-gathering-subagent.md
+?? docs/adr/0010-cross-session-travel-strategy-improvement.md
+?? docs/modules/README.md
+?? docs/project-guide.md
+?? scripts/check_docs.py
+?? tests/context_fixtures.py
+?? tests/date_fixtures.py
+?? tests/http_fixtures.py
+?? tests/itinerary_fixtures.py
+?? tests/model_fixtures.py
+?? tests/preference_fixtures.py
+?? tests/process_fixtures.py
+?? tests/record_faults.py
+?? tests/source_fixtures.py
+codex/deep-modules
+6908da28021d3e7eb7247494307380fca42ac6da

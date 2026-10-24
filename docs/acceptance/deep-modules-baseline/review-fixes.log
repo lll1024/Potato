@@ -1,0 +1,187 @@
+test_model_visible_fields_are_never_removed_as_event_metadata (test_migration_baseline.BaselineIntegrityTests.test_model_visible_fields_are_never_removed_as_event_metadata) ... ok
+test_next_model_step_waits_for_all_previous_tool_results (test_migration_baseline.BaselineIntegrityTests.test_next_model_step_waits_for_all_previous_tool_results) ... ok
+test_normalization_rejects_broken_identity_reference (test_migration_baseline.BaselineIntegrityTests.test_normalization_rejects_broken_identity_reference) ... ok
+test_normalization_rejects_reordered_causal_events (test_migration_baseline.BaselineIntegrityTests.test_normalization_rejects_reordered_causal_events) ... ok
+test_turn_completion_waits_for_final_model_response (test_migration_baseline.BaselineIntegrityTests.test_turn_completion_waits_for_final_model_response) ... ok
+test_baseline_database_reads_traces_preferences_and_continues_saved_context (test_migration_baseline.MigrationBaselineTests.test_baseline_database_reads_traces_preferences_and_continues_saved_context) ... StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=7, family=2, type=1, proto=6, laddr=('127.0.0.1', 53036)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=73939 running stdout=<_UnixReadPipeTransport fd=8 polling>>
+HTTP Request: GET http://127.0.0.1:53037/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/sessions/789666bdef024958b972dfe821f0455f "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/0d0e4856314b4adaa51483f568b07bb4 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/10aab0905d8e4b2fb7e34243dd28a762 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/210242b9543340f7a7a708ac74008e98 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/2997fc9e6e28440f8bf15489f265d0f0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/3e2a733106594dd1a1dcf2e16a90f3be "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/63386691cde84e9e9bad43c0dbd549df "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/69084e6f96ee4f0895186ef3ec04cd64 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/71e901c6355242f2b23d1deac5d28513 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/b49e997012d2423683b195e2b81b3803 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/b88e869fe8004bba962f9aeef1822855 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/bda78738f962458cae880dd58d0d8f4b "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/c2e4715333874d73bbd1cef4959a1955 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/ec04ab1f8a3b467cb126741792e41e7c "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/fdec361ee3264e4b908586e8b0b4a87c "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/preferences "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/sessions/6312e1f5995e4b47b1660d2918b91f72 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:53037/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53037/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/sessions/789666bdef024958b972dfe821f0455f "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/submissions/%E7%BB%A7%E7%BB%AD%E6%97%A7%E5%8A%A9%E6%89%8B%E4%BC%9A%E8%AF%9D "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/sessions/789666bdef024958b972dfe821f0455f "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/0d0e4856314b4adaa51483f568b07bb4 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/10aab0905d8e4b2fb7e34243dd28a762 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/1214a033e1344e01ab95a6b5ec1340fa "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/210242b9543340f7a7a708ac74008e98 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/2997fc9e6e28440f8bf15489f265d0f0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/3e2a733106594dd1a1dcf2e16a90f3be "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/4156d81ba8e34b7f886bcf4ccafa8368 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/63386691cde84e9e9bad43c0dbd549df "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/69084e6f96ee4f0895186ef3ec04cd64 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/71e901c6355242f2b23d1deac5d28513 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/b49e997012d2423683b195e2b81b3803 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/b88e869fe8004bba962f9aeef1822855 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/bda78738f962458cae880dd58d0d8f4b "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/c2e4715333874d73bbd1cef4959a1955 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/c62b2592b3e743129fc2ade334957abb "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/db61e6eef4af4519ad53c64751412386 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/ec04ab1f8a3b467cb126741792e41e7c "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/payloads/fdec361ee3264e4b908586e8b0b4a87c "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53037/api/events?after=0 "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=8 polling> was closed by peer
+<_UnixSubprocessTransport pid=73939 running stdout=<_UnixReadPipeTransport closing fd=8 idle>> exited with return code 0
+StreamableHTTP session manager shutting down
+ok
+test_public_web_sse_cli_and_process_behaviors_match_fixed_baseline (test_migration_baseline.MigrationBaselineTests.test_public_web_sse_cli_and_process_behaviors_match_fixed_baseline) ... StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=7, family=2, type=1, proto=6, laddr=('127.0.0.1', 53141)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=73940 running stdout=<_UnixReadPipeTransport fd=8 polling>>
+HTTP Request: GET http://127.0.0.1:53142/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:53142/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53142/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/sessions/00cb1822286a4b75b4e2c5fa16d1a0a7 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/submissions/%E5%9C%B0%E5%9B%BE%E6%9F%A5%E8%AF%A2%E6%9D%AD%E5%B7%9E%E8%A5%BF%E6%B9%96%EF%BC%8C2026-10-24%E5%87%BA%E8%A1%8C "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/sessions/00cb1822286a4b75b4e2c5fa16d1a0a7 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/16cf4accb80f40d6aa8ee724b021bd98 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/1f466c2d0cf0440aa5c5274f40f349ad "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/2b5f748a37ab4d1aa14745eaf7237aa3 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/2c46a452fbc1406c99743dcbcfa65206 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/3c58735c8aa84e86a3fbc764cc63b9f2 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/424a2090f16f46439b374b129475e5b0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/8e2678c5ccfb4469af59dc5f8fae6da4 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/b2e8f0431e7a43f38262f344207065b1 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/ca82d6850e214ccd918a00f0958587bc "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/d72fde7217624ef382580f072c2f78c0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/d805e7120ff44e8bba5c026e9f1b9d43 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/f22020355a1d436dbd31f52a5043ae23 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:53142/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53142/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/sessions/166113f81c174803b6d0aa723af4ecce "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/submissions/2026-10-24%20%E6%9D%AD%E5%B7%9E%E6%97%85%E8%A1%8C%EF%BC%8C%E9%A2%84%E7%AE%973000%E5%85%83%EF%BC%8C%E4%BF%9D%E7%95%99%E8%A5%BF%E6%B9%96%E9%85%92%E5%BA%97 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:53142/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53142/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/sessions/166113f81c174803b6d0aa723af4ecce "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/submissions/%E7%BB%A7%E7%BB%AD%E5%AE%89%E6%8E%92%E4%BA%A4%E9%80%9A "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/preferences "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/preferences "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/sessions/166113f81c174803b6d0aa723af4ecce "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/13ec118db32a43c2ae24fb8c2fde689b "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/30814bdb528a488790a9eede8543b27a "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/39e22122dab04daf970ee66b2452b4cb "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/6d32092791e94e29bfb42cf255ed16a2 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/9feabc576ed941078840b3adba10d067 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/b5cb8dc0138b4b7482f6399d692f85d0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/bc8ff321325f44489eb9b0c8f62bcccb "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/cabe5203c07541758c367595c1affe2b "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/d0b2284d480f443aa3fccd99ea60d9fd "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/dc86b05348d94be6aab0821ff52cc1b5 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:53142/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53142/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/sessions/3027012167bc42e584b13205e1e097ae "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/submissions/%E6%A8%A1%E5%9E%8B%E5%A4%B1%E8%B4%A5 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/sessions/3027012167bc42e584b13205e1e097ae "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/5735aab0868e478cbd257644be78e710 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/66671596cffd445a88486a409681e61f "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/d766fb52f9bc4c20aeb9aa1a637e6181 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/e0a538969a3f4507a4d533e77bf8d46b "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:53142/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://127.0.0.1:53142/api/turns/972c7554ec2a45e6893e15202c8a835c/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:53142/api/turns "HTTP/1.1 409 Conflict"
+HTTP Request: GET http://127.0.0.1:53142/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/sessions/eb3b0bd9e90142b3bd054f235b6a933c "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/sessions/eb3b0bd9e90142b3bd054f235b6a933c "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/7498e8fb68654ade84db4e9919ddd63d "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/779a85bad0134a1c8d852d8058dc1746 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/8ad0025d9e864c9da9a85c62f169f8de "HTTP/1.1 200 OK"
+/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/traceback.py:294: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x10d1434c0>
+  def __init__(self, filename, lineno, name, *, lookup_line=True,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/9bea85b28bdf4478b0a4ba7c306cc526 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/a2e73690fd7948d6872ad1611152909b "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/ad15bd3e8a1a4a888570545fa7e15975 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/payloads/b0738d707f4c47c394710eadc0392c89 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53142/api/events?after=0 "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=8 polling> was closed by peer
+<_UnixSubprocessTransport pid=73940 running stdout=<_UnixReadPipeTransport closing fd=8 idle>> exited with return code 0
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=73942 running stdout=<_UnixReadPipeTransport fd=6 polling>>
+HTTP Request: GET http://127.0.0.1:53316/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:53316/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53316/api/sessions/b6b4fa72d4e84d06953732916d19da11 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53316/api/payloads/2b379c112a36440f87a530575b715850 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53316/api/payloads/68caedbb0b3f44858964d1d7ad1a1cfa "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53316/api/events?after=0 "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=6 polling> was closed by peer
+<_UnixSubprocessTransport pid=73942 running stdout=<_UnixReadPipeTransport closing fd=6 idle>> exited with return code -9
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=73943 running stdout=<_UnixReadPipeTransport fd=6 polling>>
+HTTP Request: GET http://127.0.0.1:53347/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/sessions/b6b4fa72d4e84d06953732916d19da11 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/payloads/2b379c112a36440f87a530575b715850 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/payloads/68caedbb0b3f44858964d1d7ad1a1cfa "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/submissions/interrupted "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:53347/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:53347/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/sessions/166113f81c174803b6d0aa723af4ecce "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/submissions/%E6%81%A2%E5%A4%8D%E5%90%8E%E7%BB%A7%E7%BB%AD "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/sessions/166113f81c174803b6d0aa723af4ecce "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/payloads/0dab3a011bf5436ea1469bbf6155a86f "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/payloads/13ec118db32a43c2ae24fb8c2fde689b "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/payloads/2b1b6ea23e7a4509a1aff726927c4d63 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/payloads/30814bdb528a488790a9eede8543b27a "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/payloads/39e22122dab04daf970ee66b2452b4cb "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/payloads/539a3f510f654ba68188514f4ef0e469 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/payloads/6d32092791e94e29bfb42cf255ed16a2 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/payloads/9feabc576ed941078840b3adba10d067 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/payloads/b5cb8dc0138b4b7482f6399d692f85d0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/payloads/bc8ff321325f44489eb9b0c8f62bcccb "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/payloads/cabe5203c07541758c367595c1affe2b "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/payloads/d0b2284d480f443aa3fccd99ea60d9fd "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/payloads/dc86b05348d94be6aab0821ff52cc1b5 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/payloads/ef245b9eea594e3b88b4a7d65d920451 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:53347/api/events?after=0 "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=6 polling> was closed by peer
+<_UnixSubprocessTransport pid=73943 running stdout=<_UnixReadPipeTransport closing fd=6 idle>> exited with return code 0
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=73944 running stdin=<_UnixWritePipeTransport fd=8 idle bufsize=0> stdout=<_UnixReadPipeTransport fd=9 polling> stderr=<_UnixReadPipeTransport fd=11 polling>>
+<_UnixReadPipeTransport fd=11 polling> was closed by peer
+<_UnixReadPipeTransport fd=9 polling> was closed by peer
+<_UnixSubprocessTransport pid=73944 running stdin=<_UnixWritePipeTransport closed fd=8 closed> stdout=<_UnixReadPipeTransport closing fd=9 idle> stderr=<_UnixReadPipeTransport closing fd=11 idle>> exited with return code 0
+StreamableHTTP session manager shutting down
+Executing <Task finished name='Task-49' coro=<MigrationBaselineTests.test_public_web_sse_cli_and_process_behaviors_match_fixed_baseline() done, defined at /Users/jarviliu/projects/travel/tests/test_migration_baseline.py:18> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py:110> took 0.110 seconds
+ok
+test_assembly_cannot_use_private_implementation (test_module_boundaries.ModuleBoundaryTests.test_assembly_cannot_use_private_implementation) ... ok
+test_frontend_exports_reexports_private_paths_and_dynamic_imports (test_module_boundaries.ModuleBoundaryTests.test_frontend_exports_reexports_private_paths_and_dynamic_imports) ... ok
+test_legacy_exception_only_covers_frozen_import_and_expires_with_file (test_module_boundaries.ModuleBoundaryTests.test_legacy_exception_only_covers_frozen_import_and_expires_with_file) ... ok
+test_new_unowned_file_and_missing_public_exports_fail (test_module_boundaries.ModuleBoundaryTests.test_new_unowned_file_and_missing_public_exports_fail) ... ok
+test_owned_internal_test_can_use_private_seam_but_external_test_cannot (test_module_boundaries.ModuleBoundaryTests.test_owned_internal_test_can_use_private_seam_but_external_test_cannot) ... ok
+test_public_import_passes_and_private_or_undeclared_import_fails (test_module_boundaries.ModuleBoundaryTests.test_public_import_passes_and_private_or_undeclared_import_fails) ... ok
+test_reverse_dependency_and_cycle_fail (test_module_boundaries.ModuleBoundaryTests.test_reverse_dependency_and_cycle_fail) ... ok
+test_shared_support_has_explicit_exports_and_no_reverse_dependency (test_module_boundaries.ModuleBoundaryTests.test_shared_support_has_explicit_exports_and_no_reverse_dependency) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 12.062s
+
+OK

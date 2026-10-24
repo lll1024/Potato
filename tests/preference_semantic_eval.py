@@ -19,10 +19,11 @@ import httpx
 from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
 from mcp import Client
-from travel_app.amap_mcp import AmapTools
-from test_agent import MapService
-from test_preferences import Clock
-from travel_app.web import Runtime, create_app
+from travel_app.retrieval import Retrieval
+from travel_app.sessions import Runtime, create_app
+
+from service_fixtures import MapService
+from preference_fixtures import Clock
 
 
 class Evaluation:
@@ -59,7 +60,7 @@ class Evaluation:
                             call['error_type'] = type(error).__name__
                             call['status_code'] = getattr(error, 'status_code', None)
                             raise
-                tools = AmapTools(cast(Client, MapService()), secrets=(os.environ['ANTHROPIC_API_KEY'],))
+                tools = Retrieval(cast(Client, MapService()), secrets=(os.environ['ANTHROPIC_API_KEY'],))
                 await tools.discover()
                 yield Runtime(cast(AsyncAnthropic, ObservedModel()), tools, self.model)
         app = create_app(directory, resources=resources, preference_clock=self.clock, preference_wait=self.clock.wait)

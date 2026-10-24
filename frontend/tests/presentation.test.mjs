@@ -1,21 +1,11 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { createRequire } from 'node:module';
-import { pathToFileURL } from 'node:url';
 import { test } from 'node:test';
-import ts from 'typescript';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { AnswerBody } from '../src/sessions/AnswerBody';
+import { TraceTimeline } from '../src/sessions/TraceTimeline';
+import { ContextMaintenance } from '../src/sessions/ContextMaintenance';
 
-const require = createRequire(import.meta.url);
-async function component(file, name) {
-  const source = await readFile(new URL(`../src/${file}.tsx`, import.meta.url), 'utf8');
-  const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.ReactJSX } });
-  const code = outputText.replace(/from ["']([^"']+)["']/g, (_, specifier) => `from "${pathToFileURL(require.resolve(specifier))}"`);
-  return (await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`))[name];
-}
-const AnswerBody = await component('AnswerBody', 'AnswerBody');
-const TraceTimeline = await component('TraceTimeline', 'TraceTimeline');
 const answer = text => renderToStaticMarkup(createElement(AnswerBody, { text }));
 
 test('重试等待和恢复有独立时间边界，未开始的重试不生成模型请求条', () => {
@@ -97,7 +87,6 @@ test('未结束调用没有伪造结束边界或区间', () => {
   assert.doesNotMatch(html, /请求结束/);
 });
 
-const ContextMaintenance = await component('ContextMaintenance', 'ContextMaintenance');
 test('摘要结果、校验、轮内采用和保存供续聊分别显示，状态不泄露摘要正文', () => {
   const events = [
     {event_id:'1',turn_id:'turn',kind:'context.summary_started',data:{}},

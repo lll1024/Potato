@@ -12,10 +12,12 @@ from mcp import Client
 from mcp.shared.exceptions import MCPError
 from mcp.types import CONNECTION_CLOSED, INVALID_PARAMS, REQUEST_TIMEOUT
 
-from travel_app.agent import agent_loop
-from travel_app.amap_mcp import AmapTools
+from travel_app.planning import plan
+from travel_app.local_records import PlanningSeed
+from travel_app.retrieval import Retrieval
 from travel_app.limits import MAX_MODEL_REQUESTS
-from test_agent import MapService, ModelService, response
+
+from service_fixtures import MapService, ModelService, response
 
 
 def query(call_id, name="maps_text_search", **arguments):
@@ -52,19 +54,28 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
                 return await super().create(**kwargs)
 
         service = FaultMapService([map_result({"name": "西湖", "address": "杭州市西湖区"})])
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = FailingModel([response([query("ok")], "tool_use")])
         history = [{"role": "user", "content": "查询杭州西湖"}]
 
-        answer = await agent_loop(history, cast(AsyncAnthropic, model), tools, "test-model")
+        planning_result = await plan(
+            history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+        )
+        answer = planning_result.answer
+        history[:] = json.loads(planning_result.material.messages_json)
 
         self.assertIn("模型", answer)
         self.assertNotIn("杭州市西湖区", answer)
         self.assertIn("待核实", answer)
         history.append({"role": "user", "content": "服务恢复了，继续"})
         followup = ModelService([response([{"type": "text", "text": "西湖位于杭州市西湖区。"}])])
-        await agent_loop(history, cast(AsyncAnthropic, followup), tools, "test-model")
+        planning_result = await plan(
+            history[-1]["content"], cast(AsyncAnthropic, followup), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+        )
+        history[:] = json.loads(planning_result.material.messages_json)
         results = followup.requests[0]["messages"][2]["content"]
         self.assertEqual(results[0]["tool_use_id"], "ok")
         self.assertFalse(results[0]["is_error"])
@@ -90,14 +101,19 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
                 service = FaultMapService([
                     map_result({"name": "西湖", "address": "杭州市西湖区"}), fault,
                 ])
-                tools = AmapTools(cast(Client, service))
+                tools = Retrieval(cast(Client, service))
                 await tools.discover()
                 model = ModelService([response([
                     query("ok"), query("fault"), query("unexecuted")
                 ], "tool_use"), response([{"type": "text", "text": "地图查询已暂停，已有资料保留，缺失资料待核实。"}])])
                 history = [{"role": "user", "content": "查询杭州的地点"}]
 
-                answer = await agent_loop(history, cast(AsyncAnthropic, model), tools, "test-model")
+                planning_result = await plan(
+                    history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+                    seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+                )
+                answer = planning_result.answer
+                history[:] = json.loads(planning_result.material.messages_json)
 
                 self.assertEqual(len(service.calls), 2)
                 self.assertEqual(len(model.requests), 2)
@@ -111,7 +127,11 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual([item["is_error"] for item in results], [False, True, True])
                 history.append({"role": "user", "content": "再试一次"})
                 retry_model = ModelService([response([query("retry")], "tool_use")])
-                await agent_loop(history, cast(AsyncAnthropic, retry_model), tools, "test-model")
+                planning_result = await plan(
+                    history[-1]["content"], cast(AsyncAnthropic, retry_model), tools, "test-model",
+                    seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+                )
+                history[:] = json.loads(planning_result.material.messages_json)
                 self.assertEqual(len(service.calls), 2)
 
     async def test_credentials_never_reach_history_model_or_final_answer(self):
@@ -125,7 +145,7 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
                 return listed
 
         service = LeakyService([map_result({"name": "西湖", "url": urls[0]}, text=key)])
-        tools = AmapTools(cast(Client, service), api_key=key)
+        tools = Retrieval(cast(Client, service), api_key=key)
         await tools.discover()
         model = ModelService([
             response([query("safe-id")], "tool_use"),
@@ -133,7 +153,12 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
         ])
         history = [{"role": "user", "content": "查询西湖，错误连接地址是 " + urls[0]}]
 
-        answer = await agent_loop(history, cast(AsyncAnthropic, model), tools, "test-model")
+        planning_result = await plan(
+            history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+        )
+        answer = planning_result.answer
+        history[:] = json.loads(planning_result.material.messages_json)
 
         visible = json.dumps([history, model.requests, answer], ensure_ascii=False)
         for secret in [key, quote_plus(key), *urls, "user:password"]:
@@ -149,16 +174,16 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
         ]:
             with self.subTest(fault=type(fault).__name__, explanation=explanation):
                 service = FaultMapService([fault, map_result({"name": "西湖"})])
-                tools = AmapTools(cast(Client, service))
+                tools = Retrieval(cast(Client, service))
                 await tools.discover()
                 model = ModelService([
                     response([query("fault"), query("ok")], "tool_use"),
                     response([{"type": "text", "text": "西湖已核实，其他地点待核实。"}]),
                 ])
 
-                await agent_loop(
-                    [{"role": "user", "content": "查询杭州的地点"}],
-                    cast(AsyncAnthropic, model), tools, "test-model",
+                planning_result = await plan(
+                    '查询杭州的地点', cast(AsyncAnthropic, model), tools, "test-model",
+                    seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
                 )
 
                 results = model.requests[1]["messages"][-1]["content"]
@@ -174,7 +199,7 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
             map_result(text="MCP 查询失败", is_error=True),
             map_result({"status": "0", "info": "INVALID_PARAMS", "infocode": "20000"}),
         ])
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = ModelService([
             response([
@@ -184,10 +209,11 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
             response([{"type": "text", "text": "已核实西湖位于杭州市西湖区；其他地点待核实。"}]),
         ])
 
-        answer = await agent_loop(
-            [{"role": "user", "content": "查杭州的地点"}],
-            cast(AsyncAnthropic, model), tools, "test-model",
+        planning_result = await plan(
+            '查杭州的地点', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
         )
+        answer = planning_result.answer
 
         results = model.requests[1]["messages"][-1]["content"]
         self.assertEqual([item["tool_use_id"] for item in results],
@@ -203,16 +229,20 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
         service = FaultMapService([map_result({
             "pois": [{"id": "west-lake", "name": "西湖", "address": "杭州市西湖区"}]
         })])
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = ModelService([response([
             query("done"), query("pending", keywords="灵隐寺", city="杭州")
         ], "tool_use")])
         history = [{"role": "user", "content": "查询杭州西湖和灵隐寺"}]
 
-        answer = await agent_loop(
-            history, cast(AsyncAnthropic, model), tools, "test-model", max_tool_calls=1
+        planning_result = await plan(
+            history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+            max_tool_calls=1,
         )
+        answer = planning_result.answer
+        history[:] = json.loads(planning_result.material.messages_json)
 
         self.assertEqual(len(service.calls), 1)
         self.assertEqual(len(model.requests), 2)
@@ -229,7 +259,11 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
 
         history.append({"role": "user", "content": "先只说明已经查到的地点"})
         followup = ModelService([response([{"type": "text", "text": "西湖位于杭州市西湖区。"}])])
-        await agent_loop(history, cast(AsyncAnthropic, followup), tools, "test-model")
+        planning_result = await plan(
+            history[-1]["content"], cast(AsyncAnthropic, followup), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+        )
+        history[:] = json.loads(planning_result.material.messages_json)
         self.assertEqual(followup.requests[0]["messages"][-1]["role"], "user")
         self.assertEqual(followup.requests[0]["messages"][-2]["role"], "assistant")
 
@@ -239,7 +273,7 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
         ]:
             with self.subTest(limits=limits):
                 service = FaultMapService([map_result({"name": "西湖"}) for _ in range(5)])
-                tools = AmapTools(cast(Client, service))
+                tools = Retrieval(cast(Client, service))
                 await tools.discover()
                 model = ModelService([
                     response([query(f"r{index}-a"), query(f"r{index}-b")], "tool_use")
@@ -247,9 +281,13 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
                 ])
                 history = [{"role": "user", "content": "不停查询西湖"}]
 
-                answer = await agent_loop(
-                    history, cast(AsyncAnthropic, model), tools, "test-model", **limits
+                planning_result = await plan(
+                    history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+                    seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+                    **limits,
                 )
+                answer = planning_result.answer
+                history[:] = json.loads(planning_result.material.messages_json)
 
                 self.assertEqual(len(service.calls), expected_calls)
                 self.assertEqual(len(model.requests), expected_rounds)
@@ -262,32 +300,46 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
                     response([query("new")], "tool_use"),
                     response([{"type": "text", "text": "西湖已核实。"}]),
                 ])
-                await agent_loop(history, cast(AsyncAnthropic, followup), tools, "test-model", **limits)
+                planning_result = await plan(
+                    history[-1]["content"], cast(AsyncAnthropic, followup), tools, "test-model",
+                    seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+                    **limits,
+                )
+                history[:] = json.loads(planning_result.material.messages_json)
                 self.assertEqual(len(service.calls), expected_calls + 1)
 
     async def test_default_model_budget_stops_and_resets_for_next_request(self):
         service = FaultMapService([map_result({"name": "西湖"}) for _ in range(MAX_MODEL_REQUESTS + 1)])
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service), map_interval=0)
         await tools.discover()
         model = ModelService([response([query(f"r{index}")], "tool_use")
                               for index in range(MAX_MODEL_REQUESTS + 1)])
         history = [{"role": "user", "content": "持续查询西湖"}]
         # 放宽工具预算以单独触发默认模型预算；不消耗真实额度和限速等待。
-        with patch("travel_app.amap_mcp.MAP_CALL_INTERVAL", 0):
-            answer = await agent_loop(history, cast(AsyncAnthropic, model), tools,
-                                      "test-model", max_tool_calls=MAX_MODEL_REQUESTS + 1)
-            self.assertEqual(len(model.requests), 64)
-            self.assertEqual(len(service.calls), 62)
-            self.assertNotIn("tools", model.requests[-1])
-            self.assertIn("已达到本轮查询上限", answer)
-            self.assertNotIn("西湖", answer)
-            self.assertIn("西湖", str(history))
-            history.append({"role": "user", "content": "新的请求，只查一次"})
-            followup = ModelService([response([query("new")], "tool_use"),
-                                    response([{"type": "text", "text": "西湖已核实。"}])])
-            answer = await agent_loop(history, cast(AsyncAnthropic, followup), tools, "test-model")
-            self.assertEqual(answer, "西湖已核实。")
-            self.assertEqual(len(service.calls), 63)
+        planning_result = await plan(
+            history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+            max_tool_calls=MAX_MODEL_REQUESTS + 1,
+        )
+        answer = planning_result.answer
+        history[:] = json.loads(planning_result.material.messages_json)
+        self.assertEqual(len(model.requests), 64)
+        self.assertEqual(len(service.calls), 62)
+        self.assertNotIn("tools", model.requests[-1])
+        self.assertIn("已达到本轮查询上限", answer)
+        self.assertNotIn("西湖", answer)
+        self.assertIn("西湖", str(history))
+        history.append({"role": "user", "content": "新的请求，只查一次"})
+        followup = ModelService([response([query("new")], "tool_use"),
+                                response([{"type": "text", "text": "西湖已核实。"}])])
+        planning_result = await plan(
+            history[-1]["content"], cast(AsyncAnthropic, followup), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+        )
+        answer = planning_result.answer
+        history[:] = json.loads(planning_result.material.messages_json)
+        self.assertEqual(answer, "西湖已核实。")
+        self.assertEqual(len(service.calls), 63)
 
     async def test_timeout_cancels_tool_without_losing_success_in_same_batch(self):
         cancelled = asyncio.Event()
@@ -302,17 +354,18 @@ class FailureHandlingTests(unittest.IsolatedAsyncioTestCase):
                 return await super().call_tool(name, arguments)
 
         service = SlowService([map_result({"name": "西湖"})])
-        tools = AmapTools(cast(Client, service), tool_timeout=0.01)
+        tools = Retrieval(cast(Client, service), tool_timeout=0.01)
         await tools.discover()
         model = ModelService([
             response([query("slow", keywords="慢查询", city="杭州"), query("ok")], "tool_use"),
             response([{"type": "text", "text": "已查到西湖；慢查询超时，待核实。"}]),
         ])
 
-        answer = await agent_loop(
-            [{"role": "user", "content": "查询杭州的地点"}],
-            cast(AsyncAnthropic, model), tools, "test-model",
+        planning_result = await plan(
+            '查询杭州的地点', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
         )
+        answer = planning_result.answer
 
         self.assertTrue(cancelled.is_set())
         results = model.requests[1]["messages"][-1]["content"]

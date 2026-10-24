@@ -1,50 +1,10 @@
 """从公开 HTTP/SSE 验证串行地图调用真实边界。"""
 import asyncio
-import json
-import socket
 import tempfile
 import unittest
-from contextlib import asynccontextmanager
-from types import SimpleNamespace
-from typing import cast
 
-import httpx
-import uvicorn
-from anthropic import AsyncAnthropic
-from mcp import Client
-
-from travel_app.amap_mcp import AmapTools
-from test_agent import MapService, ModelService, response
-from test_trace import wait_finished
-from travel_app.web import Runtime, create_app
-
-
-@asynccontextmanager
-async def serving_tools(directory, model, maps, timeout=1, released=None):
-    @asynccontextmanager
-    async def resources():
-        tools=AmapTools(cast(Client,maps),api_key="known-secret",tool_timeout=timeout)
-        await tools.discover()
-        try:
-            yield Runtime(cast(AsyncAnthropic,model),tools,"test-model")
-        finally:
-            if released: released.set()
-    sock=socket.socket();sock.bind(("127.0.0.1",0))
-    server=uvicorn.Server(uvicorn.Config(create_app(directory,resources=resources,request_shutdown=lambda: setattr(server,"should_exit",True)),log_level="critical",access_log=False,timeout_graceful_shutdown=1))
-    task=asyncio.create_task(server.serve(sockets=[sock]))
-    try:
-        while not server.started and not task.done(): await asyncio.sleep(0)
-        async with httpx.AsyncClient(base_url=f"http://127.0.0.1:{sock.getsockname()[1]}") as client:
-            yield client
-    finally:
-        server.should_exit=True
-        await task
-        sock.close()
-
-
-def tool_reply(count=2):
-    return response([{"type":"tool_use","id":f"lake-{i}","name":"maps_text_search",
-        "input":{"keywords":"西湖","city":"杭州"}} for i in range(count)],"tool_use")
+from service_fixtures import MapService, ModelService, response
+from http_fixtures import wait_finished, serving_tools, tool_reply
 
 
 class ToolTraceTests(unittest.IsolatedAsyncioTestCase):

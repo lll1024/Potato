@@ -10,6 +10,10 @@
 
 采用单上下文布局：根目录的 `GLOSSARY.md` 和 `docs/adr/`。探索代码库前，阅读 `docs/agents/domain.md`。
 
+### 能力与阅读顺序
+
+开始代码任务前先读 [仓库总览](docs/modules/README.md)，再读任务涉及的公开契约。调用现有能力以公开入口和契约为准；修改内部行为时沿契约展开相应实现与测试，跨能力修改先读双方契约。归属或依赖变更还须读 [结构规则](docs/modules/migration.md)；新增代码或迁移导入后运行 `python scripts/check_modules.py`。当前验证从 [验收索引](docs/acceptance/README.md) 进入，历史阶段材料仅按其注明版本解释。
+
 ### 编码工作准则
 
 #### 1. 编码前先思考

@@ -15,3 +15,6 @@ def source_text(data, *, search):
     for failure in data.get("failed_results", []):
         pages.append(f"Error fetching {failure['url']}: {failure.get('error', 'CRAWL_UNKNOWN_ERROR')}")
     return "\n\n---\n\n".join(pages)
+
+
+__all__ = ["source_text"]

@@ -3,15 +3,13 @@ import json
 import tempfile
 import unittest
 
-from test_preference_changes import ChangesModel, add
-from test_preferences import Clock
-import test_preferences as support
+from preference_fixtures import ChangesModel, add, Clock, PreferenceHarness as support
 
 
 class ReviewFixTests(unittest.IsolatedAsyncioTestCase):
     def service(self, directory, model, clock):
-        return support.PreferenceTests().service(directory, model, clock)
-    finish = support.PreferenceTests.finish
+        return support().service(directory, model, clock)
+    finish = support.finish
 
     async def test_manual_edit_redacts_credentials_in_response_background_and_restart(self):
         model, clock = ChangesModel(), Clock()
@@ -63,7 +61,7 @@ class ReviewFixTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(state['processing'], [])
 
     async def test_same_batch_assistant_answer_explains_reference_but_never_authorizes_source(self):
-        from test_agent import response
+        from service_fixtures import response
         model, clock = ChangesModel(), Clock()
         create = model.create
         async def answering(**kwargs):

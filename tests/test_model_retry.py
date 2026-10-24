@@ -1,6 +1,6 @@
 """通过查询循环和公开持久接口验证模型请求重试。"""
+import json
 import asyncio
-import copy
 from email.utils import formatdate
 from datetime import datetime
 import unittest
@@ -9,32 +9,17 @@ from unittest.mock import AsyncMock, patch
 from typing import cast
 
 import httpx2
-from anthropic import APIConnectionError, APIStatusError, APITimeoutError, AsyncAnthropic
+from anthropic import APITimeoutError, AsyncAnthropic
 from mcp import Client
 
-from travel_app.agent import agent_loop
-from travel_app.amap_mcp import AmapTools
-from test_agent import MapService, ModelService, response
-from test_trace import serving, wait_finished
-from test_storage import fail_event, wait_state
+from travel_app.planning import plan
+from travel_app.local_records import PlanningSeed
+from travel_app.retrieval import Retrieval
 
-
-class RetryModel(ModelService):
-    async def create(self, **parameters):
-        self.requests.append(copy.deepcopy(parameters))
-        reply = next(self.replies)
-        if isinstance(reply, Exception):
-            raise reply
-        return reply
-
-
-def connection_error():
-    return APIConnectionError(request=httpx2.Request("POST", "https://model.example.test"))
-
-
-def status_error(status, body=None, headers=None):
-    return APIStatusError("provider failed", response=httpx2.Response(status,
-        request=httpx2.Request("POST", "https://model.example.test"), headers=headers), body=body)
+from service_fixtures import MapService, ModelService, response
+from http_fixtures import serving, wait_finished, wait_state
+from record_faults import fail_event
+from model_fixtures import RetryModel, connection_error, status_error
 
 
 class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
@@ -55,7 +40,7 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_transient_failure_recovers_in_last_allowed_step_without_repeating_input(self):
         model = RetryModel([connection_error(), response([{"type": "text", "text": "请提供城市。"}])])
-        tools = AmapTools(cast(Client, MapService()))
+        tools = Retrieval(cast(Client, MapService()))
         await tools.discover()
         events = []
 
@@ -63,8 +48,14 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
             events.append((kind, data))
 
         messages = [{"role": "user", "content": "帮我规划明天旅行"}]
-        answer = await agent_loop(messages, cast(AsyncAnthropic, model), tools, "test-model",
-                                  max_rounds=1, observer=observe)
+        planning_result = await plan(
+            messages[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps(messages[:-1], ensure_ascii=False)),
+            max_rounds=1,
+            observer=observe,
+        )
+        answer = planning_result.answer
+        messages[:] = json.loads(planning_result.material.messages_json)
         self.assertEqual(answer, "请提供城市。")
         self.assertEqual(model.requests[0], model.requests[1])
         self.assertEqual([item["role"] for item in messages], ["user", "assistant"])
@@ -95,7 +86,7 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
             (status_error(409, {"error": {"type": "overloaded_error"}}), "SERVER", True),
             (RuntimeError("local failure"), "UNKNOWN", False),
         ]
-        tools = AmapTools(cast(Client, MapService()))
+        tools = Retrieval(cast(Client, MapService()))
         await tools.discover()
         for error, code, retried in cases:
             with self.subTest(code=code, status=getattr(error, "status_code", None)):
@@ -105,16 +96,19 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
                 async def observe(kind, data):
                     events.append((kind, data))
 
-                with patch("travel_app.agent.asyncio.sleep", new_callable=AsyncMock):
-                    await agent_loop([{"role": "user", "content": "查地点"}],
-                        cast(AsyncAnthropic, model), tools, "test", observer=observe)
+                with patch("asyncio.sleep", new_callable=AsyncMock):
+                    planning_result = await plan(
+                        '查地点', cast(AsyncAnthropic, model), tools, "test",
+                        seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
+                        observer=observe,
+                    )
                 failure = next(data["error"] for kind, data in events if kind == "request.failed")
                 self.assertEqual(failure["code"], code)
                 self.assertEqual(len(model.requests), 2 if retried else 1)
                 self.assertEqual(events[-1][1]["status"], "completed" if retried else "failed")
 
     async def test_retry_after_is_honored_without_jitter_and_long_waits_end_the_turn(self):
-        tools = AmapTools(cast(Client, MapService()))
+        tools = Retrieval(cast(Client, MapService()))
         await tools.discover()
         for header, delay in [("2", 2), ("10", 10), ("11", None), ("0", 0.5),
                               ("-1", 0.5), ("invalid", 0.5),
@@ -124,19 +118,24 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
                                     response([{"type": "text", "text": "已恢复"}])])
                 with patch("travel_app.model_retry.time.time", return_value=2000), \
                      patch("travel_app.model_retry.random.random", return_value=0.5), \
-                     patch("travel_app.agent.asyncio.sleep", new_callable=AsyncMock) as sleep:
-                    await agent_loop([{"role": "user", "content": "查地点"}],
-                                     cast(AsyncAnthropic, model), tools, "test")
+                     patch("asyncio.sleep", new_callable=AsyncMock) as sleep:
+                    planning_result = await plan(
+                        '查地点', cast(AsyncAnthropic, model), tools, "test",
+                        seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
+                    )
                 self.assertEqual([call.args[0] for call in sleep.await_args_list], [] if delay is None else [delay])
                 self.assertEqual(len(model.requests), 1 if delay is None else 2)
 
     async def test_empty_response_is_retried_but_failed_attempts_never_enter_context(self):
         model = RetryModel([response([]), response([{"type": "text", "text": "已恢复"}])])
-        tools = AmapTools(cast(Client, MapService()))
+        tools = Retrieval(cast(Client, MapService()))
         await tools.discover()
-        with patch("travel_app.agent.asyncio.sleep", new_callable=AsyncMock):
-            answer = await agent_loop([{"role": "user", "content": "查地点"}],
-                                     cast(AsyncAnthropic, model), tools, "test")
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            planning_result = await plan(
+                '查地点', cast(AsyncAnthropic, model), tools, "test",
+                seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
+            )
+            answer = planning_result.answer
         self.assertEqual(answer, "已恢复")
         self.assertEqual(model.requests[0], model.requests[1])
 
@@ -166,7 +165,7 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(restored["events"], saved["events"])
 
     async def test_exhaustion_has_six_actual_attempts_and_independent_backoff(self):
-        tools = AmapTools(cast(Client, MapService()))
+        tools = Retrieval(cast(Client, MapService()))
         await tools.discover()
         for random_value, delays in [(0, [0.45, 0.9, 1.8, 3.6, 7.2]),
                                      (1, [0.55, 1.1, 2.2, 4.4, 8.8])]:
@@ -177,16 +176,20 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
                 events.append((kind, data))
 
             with patch("travel_app.model_retry.random.random", return_value=random_value), \
-                 patch("travel_app.agent.asyncio.sleep", new_callable=AsyncMock) as sleep:
-                await agent_loop([{"role": "user", "content": "查地点"}],
-                    cast(AsyncAnthropic, model), tools, "test", max_rounds=1, observer=observe)
+                 patch("asyncio.sleep", new_callable=AsyncMock) as sleep:
+                planning_result = await plan(
+                    '查地点', cast(AsyncAnthropic, model), tools, "test",
+                    seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
+                    max_rounds=1,
+                    observer=observe,
+                )
             self.assertEqual(len(model.requests), 6)
             self.assertEqual([call.args[0] for call in sleep.await_args_list], delays)
             self.assertEqual(events[-1][1]["status"], "failed")
 
     async def test_steps_reset_retry_budget_without_repeating_tools_or_refreshing_date(self):
         service = MapService()
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         model = RetryModel([*[connection_error() for _ in range(5)],
             response([{"type": "tool_use", "id": "place", "name": "maps_text_search",
@@ -198,10 +201,16 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
             dates.append("read")
             return datetime.fromisoformat("2026-10-12T23:59:59+08:00")
 
-        with patch("travel_app.agent.asyncio.sleep", new_callable=AsyncMock):
-            answer = await agent_loop([{"role": "user", "content": "明天查杭州西湖"}],
-                cast(AsyncAnthropic, model), tools, "test", max_rounds=2, max_tool_calls=2,
-                clock=clock, preference_background="住宿喜好：经济型酒店")
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            planning_result = await plan(
+                '明天查杭州西湖', cast(AsyncAnthropic, model), tools, "test",
+                seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
+                max_rounds=2,
+                max_tool_calls=2,
+                clock=clock,
+                preference_background="住宿喜好：经济型酒店",
+            )
+            answer = planning_result.answer
         self.assertEqual(answer, "西湖")
         self.assertEqual(dates, ["read"])
         self.assertEqual(len(model.requests), 12)
@@ -210,7 +219,7 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(model.requests[0]["system"], model.requests[11]["system"])
 
     async def test_stop_during_wait_and_before_next_attempt_never_dispatches_again(self):
-        tools = AmapTools(cast(Client, MapService()))
+        tools = Retrieval(cast(Client, MapService()))
         await tools.discover()
         for boundary in ("request.failed", "request.retry_scheduled", "request.retry_started"):
             with self.subTest(boundary=boundary):
@@ -223,8 +232,12 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
                         stop.set()
 
                 model = RetryModel([connection_error()])
-                await agent_loop([{"role": "user", "content": "查地点"}],
-                    cast(AsyncAnthropic, model), tools, "test", observer=observe, stop_requested=stop)
+                planning_result = await plan(
+                    '查地点', cast(AsyncAnthropic, model), tools, "test",
+                    seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
+                    observer=observe,
+                    stop_requested=stop,
+                )
                 self.assertEqual(len(model.requests), 1)
                 self.assertEqual(events[-1][1]["reason"], "model_error" if boundary == "request.failed" else "user_stop")
 

@@ -11,18 +11,16 @@ from anthropic import AsyncAnthropic
 from mcp import Client
 from mcp.server import MCPServer
 
-from travel_app.amap_mcp import AmapTools
-from travel_app.exa_mcp import ExaTools
+from travel_app.retrieval import Retrieval
+from travel_app.sessions import Runtime, create_app
+
 from exa_fixtures import source_text
-from travel_app.travel_tools import TravelTools
-from test_agent import MapService, ModelService, response
-import test_history
-from test_travel_dates import context_from_request
-from travel_app.web import Runtime, create_app
+from service_fixtures import MapService, ModelService, response
+from date_fixtures import HistoryHarness, context_from_request
 
 
 class OfficialDateApplicabilityTests(unittest.IsolatedAsyncioTestCase):
-    finish = test_history.HistoryTests.finish
+    finish = HistoryHarness.finish
     moment = datetime.fromisoformat("2026-10-09T23:59:59+08:00")
 
     @asynccontextmanager
@@ -40,11 +38,11 @@ class OfficialDateApplicabilityTests(unittest.IsolatedAsyncioTestCase):
         @asynccontextmanager
         async def resources():
             async with Client(sources) as source:
-                amap = AmapTools(cast(Client, MapService()))
+                amap = Retrieval(cast(Client, MapService()))
                 await amap.discover()
-                exa = ExaTools(source, redact=amap.redact)
-                await exa.discover()
-                yield Runtime(cast(AsyncAnthropic, model), TravelTools(amap, exa), "test-model")
+                amap = Retrieval(cast(Client, MapService()), source_client=source)
+                await amap.discover()
+                yield Runtime(cast(AsyncAnthropic, model), amap, "test-model")
         app = create_app(directory, resources=resources, clock=lambda: self.moment)
         async with app.router.lifespan_context(app):
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:

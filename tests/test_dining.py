@@ -7,9 +7,12 @@ import unittest
 from anthropic import AsyncAnthropic
 from mcp import Client
 
-from travel_app.agent import agent_loop
-from travel_app.amap_mcp import AmapTools
-from test_agent import ModelService, response
+from travel_app.planning import plan
+from travel_app.local_records import PlanningSeed
+from travel_app.retrieval import Retrieval
+
+from service_fixtures import ModelService, response
+from itinerary_fixtures import tool_call
 
 
 # 2026-10-08 从高德实际 list_tools 返回中保留的餐饮检索工具契约。
@@ -22,10 +25,6 @@ RESTAURANT = {
     "id": "test-noodle-shop", "name": "测试面馆", "type": "餐饮服务;中餐厅",
     "address": "杭州市上城区测试路1号", "location": "120.159,30.251",
 }
-
-
-def tool_call(call_id, name, arguments):
-    return {"type": "tool_use", "id": call_id, "name": name, "input": arguments}
 
 
 class DiningMapService:
@@ -55,7 +54,7 @@ class DiningMapService:
 class DiningRecommendationTests(unittest.IsolatedAsyncioTestCase):
     async def test_around_search_contract_and_locatable_candidates_reach_model(self):
         service = DiningMapService({"pois": [RESTAURANT]}, text_only=True)
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         arguments = {"keywords": "面馆", "location": LOCATION, "radius": "1000"}
         model = ModelService([
@@ -63,9 +62,9 @@ class DiningRecommendationTests(unittest.IsolatedAsyncioTestCase):
             response([{"type": "text", "text": "查询完成。"}]),
         ])
 
-        await agent_loop(
-            [{"role": "user", "content": f"推荐高德坐标 {LOCATION} 周边1公里的面馆"}],
-            cast(AsyncAnthropic, model), tools, "test-model",
+        planning_result = await plan(
+            f'推荐高德坐标 {LOCATION} 周边1公里的面馆', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
         )
 
         self.assertEqual(
@@ -82,7 +81,7 @@ class DiningRecommendationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_region_search_returns_candidates_without_inventing_missing_fields(self):
         service = DiningMapService({"pois": [RESTAURANT]})
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         arguments = {"keywords": "上城区 面馆", "city": "杭州", "citylimit": True}
         model = ModelService([
@@ -90,9 +89,9 @@ class DiningRecommendationTests(unittest.IsolatedAsyncioTestCase):
             response([{"type": "text", "text": "查询完成。"}]),
         ])
 
-        await agent_loop(
-            [{"role": "user", "content": "在杭州上城区推荐面馆，我喜欢清淡、不吃辣。"}],
-            cast(AsyncAnthropic, model), tools, "test-model",
+        planning_result = await plan(
+            '在杭州上城区推荐面馆，我喜欢清淡、不吃辣。', cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
         )
 
         self.assertEqual(service.calls, [("maps_text_search", arguments)])
@@ -106,7 +105,7 @@ class DiningRecommendationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_preference_adjustment_keeps_conversation_and_queries_new_candidates(self):
         service = DiningMapService({"pois": [RESTAURANT]})
-        tools = AmapTools(cast(Client, service))
+        tools = Retrieval(cast(Client, service))
         await tools.discover()
         first_arguments = {"keywords": "上城区 面馆", "city": "杭州", "citylimit": True}
         changed_arguments = {"keywords": "粤菜", "location": LOCATION, "radius": "2000"}
@@ -118,7 +117,11 @@ class DiningRecommendationTests(unittest.IsolatedAsyncioTestCase):
         ])
         history = [{"role": "user", "content": "我在杭州上城区，清淡、不吃辣，推荐面馆。"}]
 
-        await agent_loop(history, cast(AsyncAnthropic, model), tools, "test-model")
+        planning_result = await plan(
+            history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+        )
+        history[:] = json.loads(planning_result.material.messages_json)
         changed_restaurant = {
             "id": "test-cantonese-shop", "name": "测试粤菜馆", "type": "餐饮服务;中餐厅;广东菜",
             "address": "杭州市上城区测试路2号", "location": "120.160,30.252",
@@ -128,7 +131,11 @@ class DiningRecommendationTests(unittest.IsolatedAsyncioTestCase):
                         f"改成粤菜，在高德坐标 {LOCATION} 周边2公里找，其他条件沿用。"})
         previous_messages = history[:]
 
-        await agent_loop(history, cast(AsyncAnthropic, model), tools, "test-model")
+        planning_result = await plan(
+            history[-1]["content"], cast(AsyncAnthropic, model), tools, "test-model",
+            seed=PlanningSeed(messages_json=json.dumps(history[:-1], ensure_ascii=False)),
+        )
+        history[:] = json.loads(planning_result.material.messages_json)
 
         self.assertEqual(model.requests[2]["messages"], previous_messages)
         previous_result = model.requests[2]["messages"][2]["content"][0]
@@ -146,7 +153,7 @@ class DiningRecommendationTests(unittest.IsolatedAsyncioTestCase):
         for data in ({"pois": []}, {"pois": [non_dining]}):
             with self.subTest(data=data):
                 service = DiningMapService(data)
-                tools = AmapTools(cast(Client, service))
+                tools = Retrieval(cast(Client, service))
                 await tools.discover()
                 model = ModelService([
                     response([tool_call("empty", "maps_around_search",
@@ -155,9 +162,9 @@ class DiningRecommendationTests(unittest.IsolatedAsyncioTestCase):
                     response([{"type": "text", "text": "未查到符合条件的餐饮候选。"}]),
                 ])
 
-                await agent_loop(
-                    [{"role": "user", "content": f"推荐高德坐标 {LOCATION} 周边500米的素食餐厅"}],
-                    cast(AsyncAnthropic, model), tools, "test-model",
+                planning_result = await plan(
+                    f'推荐高德坐标 {LOCATION} 周边500米的素食餐厅', cast(AsyncAnthropic, model), tools, "test-model",
+                    seed=PlanningSeed(messages_json=json.dumps([], ensure_ascii=False)),
                 )
 
                 result = model.requests[1]["messages"][-1]["content"][0]

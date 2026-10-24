@@ -10,18 +10,18 @@ import httpx
 from anthropic import AsyncAnthropic, AnthropicError
 from mcp import Client
 
-from travel_app.amap_mcp import AmapTools
-from test_agent import MapService, ModelService, response
-from test_trace import wait_finished
-from test_tool_trace import serving_tools, tool_reply
-from travel_app.web import Runtime, create_app
+from travel_app.retrieval import Retrieval
+from travel_app.sessions import Runtime, create_app
+
+from service_fixtures import MapService, ModelService, response
+from http_fixtures import wait_finished, serving_tools, tool_reply
 
 
 @asynccontextmanager
 async def local_app(directory, model, maps):
     @asynccontextmanager
     async def resources():
-        tools = AmapTools(cast(Client, maps))
+        tools = Retrieval(cast(Client, maps))
         await tools.discover()
         yield Runtime(cast(AsyncAnthropic, model), tools, 'test-model')
     app = create_app(directory, resources=resources)

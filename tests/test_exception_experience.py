@@ -4,26 +4,10 @@ import json
 import tempfile
 import unittest
 
-import httpx2
-from anthropic import APIStatusError
-
-from test_agent import ModelService, response
-from test_itinerary import ItineraryMapService, map_result
-from test_tool_trace import serving_tools
-from test_trace import wait_finished
-
-
-def call(identity, name, arguments):
-    return {"type": "tool_use", "id": identity, "name": name, "input": arguments}
-
-
-class FailingAfterTools(ModelService):
-    async def create(self, **kwargs):
-        if len(self.requests) == 1:
-            self.requests.append(kwargs)
-            raise APIStatusError("账户额度耗尽", response=httpx2.Response(402,
-                request=httpx2.Request("POST", "https://model.example.test")), body={"error": {"type": "quota_error"}})
-        return await super().create(**kwargs)
+from service_fixtures import response
+from itinerary_fixtures import ItineraryMapService, map_result
+from http_fixtures import serving_tools, wait_finished
+from model_fixtures import call, FailingAfterTools
 
 
 class ExceptionExperienceTests(unittest.IsolatedAsyncioTestCase):

@@ -80,13 +80,14 @@ python web.py
 python -m pip install -r requirements-dev.txt
 python -m unittest discover -s tests -v
 pyright --pythonpath .venv/bin/python agent.py web.py travel_app
+python scripts/check_modules.py
 npm test --prefix frontend
 npm run build --prefix frontend
 ```
 
 真实高德连接检查：`python agent.py --check-amap`。它不调用模型，会消耗一次“杭州的西湖”地点查询，不替代完整旅行规划验收。
 
-后端实现位于单个浅层 `travel_app/` 包，根目录保留 `agent.py` 与 `web.py` 启动入口；仓库内部使用 `travel_app.*` 导入。
+后端按六项完整能力组织，根目录保留 `agent.py` 与 `web.py` 启动入口。代码任务先读[仓库总览](docs/modules/README.md)，再查相关公开契约；修改内部时按契约展开实现。全仓库结构规则见[归属与依赖检查](docs/modules/migration.md)，当前证据见[最终集成验收](docs/acceptance/deep-modules-final.md)。
 
 按工作范围查阅：
 

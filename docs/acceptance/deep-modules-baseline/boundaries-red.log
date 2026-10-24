@@ -1,0 +1,65 @@
+test_assembly_cannot_use_private_implementation (test_module_boundaries.ModuleBoundaryTests.test_assembly_cannot_use_private_implementation) ... FAIL
+test_frontend_exports_reexports_private_paths_and_dynamic_imports (test_module_boundaries.ModuleBoundaryTests.test_frontend_exports_reexports_private_paths_and_dynamic_imports) ... FAIL
+test_new_unowned_file_and_missing_public_exports_fail (test_module_boundaries.ModuleBoundaryTests.test_new_unowned_file_and_missing_public_exports_fail) ... FAIL
+test_owned_internal_test_can_use_private_seam_but_external_test_cannot (test_module_boundaries.ModuleBoundaryTests.test_owned_internal_test_can_use_private_seam_but_external_test_cannot) ... FAIL
+test_public_import_passes_and_private_or_undeclared_import_fails (test_module_boundaries.ModuleBoundaryTests.test_public_import_passes_and_private_or_undeclared_import_fails) ... FAIL
+test_reverse_dependency_and_cycle_fail (test_module_boundaries.ModuleBoundaryTests.test_reverse_dependency_and_cycle_fail) ... FAIL
+
+======================================================================
+FAIL: test_assembly_cannot_use_private_implementation (test_module_boundaries.ModuleBoundaryTests.test_assembly_cannot_use_private_implementation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jarviliu/projects/travel/tests/test_module_boundaries.py", line 83, in test_assembly_cannot_use_private_implementation
+    self.assertIn("公开", self.check(files).stdout)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: '公开' not found in ''
+
+======================================================================
+FAIL: test_frontend_exports_reexports_private_paths_and_dynamic_imports (test_module_boundaries.ModuleBoundaryTests.test_frontend_exports_reexports_private_paths_and_dynamic_imports)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jarviliu/projects/travel/tests/test_module_boundaries.py", line 70, in test_frontend_exports_reexports_private_paths_and_dynamic_imports
+    self.assertEqual(self.check(files).returncode, 0)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0
+
+======================================================================
+FAIL: test_new_unowned_file_and_missing_public_exports_fail (test_module_boundaries.ModuleBoundaryTests.test_new_unowned_file_and_missing_public_exports_fail)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jarviliu/projects/travel/tests/test_module_boundaries.py", line 61, in test_new_unowned_file_and_missing_public_exports_fail
+    self.assertIn("归属", self.check(files).stdout)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: '归属' not found in ''
+
+======================================================================
+FAIL: test_owned_internal_test_can_use_private_seam_but_external_test_cannot (test_module_boundaries.ModuleBoundaryTests.test_owned_internal_test_can_use_private_seam_but_external_test_cannot)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jarviliu/projects/travel/tests/test_module_boundaries.py", line 55, in test_owned_internal_test_can_use_private_seam_but_external_test_cannot
+    self.assertEqual(self.check(files, internal_test=True).returncode, 0)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0
+
+======================================================================
+FAIL: test_public_import_passes_and_private_or_undeclared_import_fails (test_module_boundaries.ModuleBoundaryTests.test_public_import_passes_and_private_or_undeclared_import_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jarviliu/projects/travel/tests/test_module_boundaries.py", line 35, in test_public_import_passes_and_private_or_undeclared_import_fails
+    self.assertEqual(self.check(self.backend("from travel_app.planning import run\n")).returncode, 0)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0
+
+======================================================================
+FAIL: test_reverse_dependency_and_cycle_fail (test_module_boundaries.ModuleBoundaryTests.test_reverse_dependency_and_cycle_fail)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jarviliu/projects/travel/tests/test_module_boundaries.py", line 48, in test_reverse_dependency_and_cycle_fail
+    self.assertIn("依赖方向", self.check(files).stdout)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: '依赖方向' not found in ''
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.132s
+
+FAILED (failures=6)

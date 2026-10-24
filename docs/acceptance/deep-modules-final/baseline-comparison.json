@@ -1,0 +1,28 @@
+{
+  "baseline": "4e01678fdb036f034d72a858fadb226ea239a0c1",
+  "current_source": "working-tree",
+  "raw_current": "current-behavior.json.gz",
+  "source_fingerprint": "current-manifest.json",
+  "normalization": "tests/compatibility/compare.py",
+  "normalized_equal": true,
+  "identity_and_causal_validation": "passed",
+  "scenarios": [
+    "normal",
+    "preferences",
+    "compacted",
+    "failure",
+    "stop_response",
+    "stopping",
+    "busy",
+    "stop",
+    "before_kill",
+    "recovered",
+    "continued",
+    "cli",
+    "model_requests",
+    "map_calls",
+    "web_calls"
+  ],
+  "legacy_database": "tests/fixtures/deep-modules/legacy.sql.gz",
+  "legacy_continuation_verification": "test_migration_baseline.MigrationBaselineTests.test_baseline_database_reads_traces_preferences_and_continues_saved_context"
+}

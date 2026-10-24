@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b && vite build",
-    "test": "node --test tests/*.test.mjs",
+    "test": "vite build --ssr tests/presentation.test.mjs --outDir node_modules/.cache/presentation-tests && node node_modules/.cache/presentation-tests/presentation.test.js",
     "test:ui": "playwright test"
   },
   "dependencies": {

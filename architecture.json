@@ -1,0 +1,475 @@
+{
+  "baseline": "4e01678fdb036f034d72a858fadb226ea239a0c1",
+  "modules": {
+    "sessions": {
+      "backend": "travel_app/sessions",
+      "frontend": "frontend/src/sessions",
+      "depends": [
+        "planning",
+        "preferences",
+        "local_records"
+      ]
+    },
+    "planning": {
+      "backend": "travel_app/planning",
+      "frontend": "frontend/src/planning",
+      "depends": [
+        "retrieval",
+        "context"
+      ]
+    },
+    "retrieval": {
+      "backend": "travel_app/retrieval",
+      "frontend": "frontend/src/retrieval",
+      "depends": []
+    },
+    "context": {
+      "backend": "travel_app/context",
+      "frontend": "frontend/src/context",
+      "depends": [
+        "local_records"
+      ]
+    },
+    "preferences": {
+      "backend": "travel_app/preferences",
+      "frontend": "frontend/src/preferences",
+      "depends": [
+        "local_records"
+      ]
+    },
+    "local_records": {
+      "backend": "travel_app/local_records",
+      "frontend": "frontend/src/local_records",
+      "depends": []
+    }
+  },
+  "legacy": {},
+  "files": {
+    "scripts/check_modules.py": {
+      "owner": "tooling",
+      "role": "tooling"
+    },
+    "scripts/frontend_imports.mjs": {
+      "owner": "tooling",
+      "role": "tooling"
+    },
+    "tests/compatibility/__init__.py": {
+      "owner": "compatibility",
+      "role": "tooling"
+    },
+    "tests/test_module_boundaries.py": {
+      "owner": "tooling",
+      "role": "tooling"
+    },
+    "tests/test_record_contracts.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/compatibility/compare.py": {
+      "owner": "compatibility",
+      "role": "tooling"
+    },
+    "tests/test_migration_baseline.py": {
+      "owner": "compatibility",
+      "role": "tooling"
+    },
+    "travel_app/tool_catalog.py": {
+      "owner": "support",
+      "role": "support"
+    },
+    "travel_app/model_retry.py": {
+      "owner": "support",
+      "role": "support"
+    },
+    "tests/test_context_contracts.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/src/api.ts": {
+      "owner": "support",
+      "role": "support"
+    },
+    "frontend/src/main.tsx": {
+      "owner": "assembly",
+      "role": "assembly"
+    },
+    "frontend/src/Icon.tsx": {
+      "owner": "support",
+      "role": "support"
+    },
+    "tests/test_session_contracts.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/ui/session-pages.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/src/style.css": {
+      "owner": "support",
+      "role": "support"
+    },
+    "tests/preference_browser_server.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/preference_clarification_browser_server.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/preference_semantic_eval.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_preference_activity.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_preference_changes.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_preference_clarification.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_preference_management.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_preference_recovery.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_preference_retry.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_preference_review_fixes.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_preferences.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_preference_contracts.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/exa_fixtures.py": {
+      "owner": "integration",
+      "role": "test-support"
+    },
+    "tests/information_retrieval_eval.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/query_batching_eval.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_agent.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_cli.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_dining.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_exa_sources.py": {
+      "owner": "retrieval",
+      "role": "internal-test"
+    },
+    "tests/test_mcp_integration.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_official_sources.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_routes.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "travel_app/limits.py": {
+      "owner": "support",
+      "role": "support"
+    },
+    "travel_app/model_execution.py": {
+      "owner": "support",
+      "role": "support"
+    },
+    "tests/service_fixtures.py": {
+      "owner": "integration",
+      "role": "test-support"
+    },
+    "tests/test_retrieval_contracts.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/playwright.config.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/presentation.test.mjs": {
+      "owner": "sessions",
+      "role": "internal-test",
+      "seam": "回答、时间线及上下文状态的静态呈现"
+    },
+    "frontend/tests/ui/context-compaction-live.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/ui/conversation.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/ui/history.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/ui/preferences-clarification-live.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/ui/preferences-management.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/ui/preferences-recovery-live.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/ui/preferences.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/ui/recovery-live.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/ui/recovery.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/vite.config.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/compatibility/capture.py": {
+      "owner": "compatibility",
+      "role": "tooling"
+    },
+    "tests/compatibility/entrypoint.py": {
+      "owner": "compatibility",
+      "role": "tooling"
+    },
+    "tests/context_browser_server.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/context_semantic_eval.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/exception_browser_server.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_acceptance.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_call_budget.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_context_budget.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_context_incremental.py": {
+      "owner": "context",
+      "role": "internal-test",
+      "seam": "TokenMeter：保留原固定容量与精确计量的内部故障/增量回归"
+    },
+    "tests/test_context_limit_recovery.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_context_organization.py": {
+      "owner": "context",
+      "role": "internal-test"
+    },
+    "tests/test_context_recovery.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_context_summary.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_exception_experience.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_failures.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_information_retrieval.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_itinerary.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_legacy_sources.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_model_retry.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_official_date_applicability.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_query_batching.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_search.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_session_history.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_source_failures.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_spec28_integration.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_tool_concurrency.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_travel_date_continuation.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_travel_date_corrections.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_travel_dates.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "travel_app/__init__.py": {
+      "owner": "support",
+      "role": "support"
+    },
+    "tests/recovery_process.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_history.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_reconnect.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_recovery.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_stop.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_storage.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_submissions.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_tool_trace.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_trace.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_web.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/test_web_entrypoint.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/web_main_process.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "tests/http_fixtures.py": {
+      "owner": "integration",
+      "role": "test-support"
+    },
+    "tests/process_fixtures.py": {
+      "owner": "integration",
+      "role": "test-support"
+    },
+    "tests/record_faults.py": {
+      "owner": "integration",
+      "role": "test-support"
+    },
+    "tests/model_fixtures.py": {
+      "owner": "integration",
+      "role": "test-support"
+    },
+    "tests/context_fixtures.py": {
+      "owner": "integration",
+      "role": "test-support"
+    },
+    "tests/source_fixtures.py": {
+      "owner": "integration",
+      "role": "test-support"
+    },
+    "tests/preference_fixtures.py": {
+      "owner": "integration",
+      "role": "test-support"
+    },
+    "tests/itinerary_fixtures.py": {
+      "owner": "integration",
+      "role": "test-support"
+    },
+    "tests/date_fixtures.py": {
+      "owner": "integration",
+      "role": "test-support"
+    },
+    "scripts/check_docs.py": {
+      "owner": "tooling",
+      "role": "tooling"
+    }
+  }
+}
