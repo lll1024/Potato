@@ -10,12 +10,22 @@ struct ConversationInteractor {
     var execution: ExecutionState { ExecutionState(sessions) }
     var readFailure: SessionFailure? { sessions.conversationFailure }
     var pendingInput: String? { sessions.pendingSubmission?.input }
+    var connection: ConnectionState { sessions.connection }
+    var submission: SubmissionState { sessions.submission }
+    func canSubmit(draft: SessionDraft) -> Bool { sessions.canSubmit(draft: draft) }
+    func draft(sessionID: String?) throws -> SessionDraft { try sessions.draft(sessionID: sessionID) }
+    func save(input: String, draft: SessionDraft, sessionID: String?) throws -> SessionDraft {
+        if let sessionID, draft.scope.sessionID != sessionID {
+            return try sessions.moveDraft(draft, input: input, to: sessionID)
+        }
+        return try sessions.saveDraft(input: input, scope: draft.scope)
+    }
     func watch(sessionID: String?) { sessions.watchConversation(sessionID: sessionID) }
     func load(sessionID: String) async throws -> ConversationPage {
         try await sessions.history(sessionID: sessionID)
     }
-    func send(input: String, sessionID: String?) async throws -> SubmissionReceipt {
-        try await sessions.submit(input: input, sessionID: sessionID)
+    func send(draft: SessionDraft) async throws -> SubmissionReceipt {
+        try await sessions.submit(draft: draft)
     }
     func refresh() async { _ = try? await sessions.refresh() }
 }
@@ -47,10 +57,34 @@ final class ConversationPresenter {
     private var readError: String?
     private var isVisible = false
     private(set) var sendMessage: String?
-    var input = ""
-    var serviceMessage: String? { executionMessage(interactor.execution) }
+    private var inputText = ""
+    private var savedDraft: SessionDraft?
+    private(set) var draftError: String?
+    var input: String {
+        get { inputText }
+        set { inputText = newValue; saveDraft() }
+    }
+    var canEditDraft: Bool { savedDraft != nil }
+    var draftMessage: String? { draftError ?? (inputText.isEmpty ? nil : "草稿已保存到本机。") }
+    var submissionState: SubmissionState { interactor.submission }
+    var serviceMessage: String? {
+        if let savedDraft, !savedDraft.scope.streamID.isEmpty,
+           let service = interactor.execution.service, savedDraft.scope.streamID != service.streamID {
+            return "当前草稿属于此前的数据集，已保留在本机。请返回列表后重新打开会话。"
+        }
+        let message = executionMessage(interactor.execution)
+        switch interactor.connection {
+        case .unconfigured: return "请先配置服务。草稿可继续编辑，暂时不能发送。"
+        case .connecting: return "正在连接服务。草稿可继续编辑，暂时不能发送。"
+        case .unavailable: return (message ?? "连接不可用。") + " 当前无法在线发送，草稿可继续编辑。"
+        case .connected: return message
+        }
+    }
     var pendingInput: String? { interactor.pendingInput }
-    var canSend: Bool { interactor.canSubmit && !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    var canSend: Bool {
+        guard let savedDraft, draftError == nil, !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        return interactor.canSubmit(draft: savedDraft)
+    }
     var title: String { currentPage?.session.title ?? initialTitle }
     var latestTurnID: String? { currentPage?.turns.last?.id }
     private var currentPage: ConversationPage? {
@@ -73,6 +107,34 @@ final class ConversationPresenter {
         initialTitle = session?.title ?? "新建会话"
         self.interactor = interactor
         self.router = router
+        restoreDraft()
+    }
+
+    private func restoreDraft() {
+        do {
+            let draft = try interactor.draft(sessionID: sessionID)
+            savedDraft = draft
+            inputText = draft.input
+            draftError = nil
+        } catch { draftError = error.localizedDescription }
+    }
+
+    private func saveDraft() {
+        guard let savedDraft else { return }
+        do {
+            self.savedDraft = try interactor.save(input: inputText, draft: savedDraft, sessionID: sessionID)
+            draftError = nil
+        } catch { draftError = error.localizedDescription }
+    }
+
+    func retryDraft() {
+        if savedDraft == nil { restoreDraft() }
+        else { saveDraft() }
+    }
+
+    func submissionChanged() {
+        guard isVisible, draftError == nil, case .accepted = interactor.submission else { return }
+        restoreDraft()
     }
 
     func reload() async {
@@ -88,19 +150,28 @@ final class ConversationPresenter {
         catch { readError = error.localizedDescription }
     }
 
-    func appear() async { isVisible = true; await reload() }
+    func appear() async {
+        isVisible = true
+        if draftError == nil { restoreDraft() }
+        await reload()
+    }
     func disappear() { isVisible = false }
 
     func send() async {
-        guard canSend else { return }
+        guard canSend, let savedDraft else { return }
         let originalInput = input
+        let originalRevision = savedDraft.revision
         sendMessage = nil
         do {
-            let receipt = try await interactor.send(input: originalInput, sessionID: sessionID)
-            sessionID = receipt.sessionID
-            if input == originalInput { input = "" }
-            sendMessage = "输入已接受。"
+            let receipt = try await interactor.send(draft: savedDraft)
             guard isVisible else { return }
+            sessionID = receipt.sessionID
+            if input == originalInput, self.savedDraft?.revision == originalRevision, draftError == nil {
+                restoreDraft()
+            } else if self.savedDraft?.scope.sessionID != sessionID {
+                saveDraft()
+            }
+            sendMessage = "输入已接受。"
             await interactor.refresh()
             await reload()
         } catch {

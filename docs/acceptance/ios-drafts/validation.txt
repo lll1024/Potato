@@ -1,0 +1,58 @@
+2026-11-04 #91 验证输出摘要
+
+Xcode 27.2 (27B52)，Apple Swift 6.4.2，Swift 6 language mode，最低 iOS 17。
+实际运行 iPhone 17 Pro / iOS 26.5 Simulator。
+
+xcodebuild test -project ios/Potato.xcodeproj -scheme Potato -destination 'platform=iOS Simulator,id=AB9010DF-6F36-4079-8492-3CE8B5393EF7' -derivedDataPath /tmp/potato-ios-build -skipMacroValidation -resultBundlePath /tmp/potato-91-verified.xcresult CODE_SIGNING_ALLOWED=NO
+
+完整 iOS suite：42 项测试，含参数化 60 例通过，0 失败，0 跳过。机器汇总见 test-summary.json。
+Test Case '-[PotatoTests.SnapshotTests testEmptySessions]' passed (1.268 seconds).
+Test Case '-[PotatoTests.SnapshotTests testUnconfiguredDarkLargeText]' passed (1.227 seconds).
+Test Case '-[PotatoTests.SnapshotTests testUnconfirmedConversationDarkLargeText]' passed (2.247 seconds).
+✔ Test run with 33 tests in 6 suites passed after 0.404 seconds.
+Test Case '-[PotatoUITests.NavigationTests testConnectReadReturnEmptyAndUnavailable]' passed (41.421 seconds).
+Test Case '-[PotatoUITests.NavigationTests testCreateSendContinueAndReadSavedAnswer]' passed (39.461 seconds).
+Test Case '-[PotatoUITests.NavigationTests testDraftsSurviveNavigationReleaseAndAppRestart]' passed (39.171 seconds).
+Test Case '-[PotatoUITests.NavigationTests testLateAcceptanceClearsOnlyOldDraftOnReopenedNewPage]' passed (24.423 seconds).
+Test Case '-[PotatoUITests.NavigationTests testLaterInputFollowsNewAcceptedConversationAndSurvivesReopen]' passed (31.605 seconds).
+Test Case '-[PotatoUITests.NavigationTests testOfflineDraftCanBeEditedAndRestoredWithoutSending]' passed (28.743 seconds).
+** TEST SUCCEEDED **
+
+先失败后通过的行为证据（原实现/临时空实现的实际失败输出节选）：
+[drafts-red]
+✘ Test draftsRemainSeparateAcrossSessionsAndReopenOffline() recorded an issue at DraftTests.swift:18:9: Expectation failed: try sessions.draft(sessionID: "first").input == "第一段旅行"
+✘ Test draftsRemainSeparateAcrossSessionsAndReopenOffline() recorded an issue at DraftTests.swift:21:9: Expectation failed: try reopened.draft(sessionID: nil).input == "  新旅行\n"
+✘ Test draftsRemainSeparateAcrossSessionsAndReopenOffline() recorded an issue at DraftTests.swift:22:9: Expectation failed: try reopened.draft(sessionID: "first").input == "第一段旅行"
+✘ Test draftsRemainSeparateAcrossSessionsAndReopenOffline() recorded an issue at DraftTests.swift:23:9: Expectation failed: try reopened.draft(sessionID: "second").input == "第二段旅行"
+[accept-red]
+✘ Test acceptanceOnlyClearsTheSubmittedDraftRevision(edit:) recorded an issue with 1 argument edit → "unchanged" at DraftTests.swift:33:9: Expectation failed: try reopened.draft(sessionID: nil).input == expected
+✘ Test acceptanceOnlyClearsTheSubmittedDraftRevision(edit:) recorded an issue with 1 argument edit → "other-session" at DraftTests.swift:33:9: Expectation failed: try reopened.draft(sessionID: nil).input == expected
+[first-connect-red]
+✘ Test draftWrittenBeforeFirstConnectionRemainsAvailableAfterVerification() recorded an issue at DraftTests.swift:14:9: Expectation failed: try sessions.draft(sessionID: nil).input == "首次离线编辑"
+✘ Test draftWrittenBeforeFirstConnectionRemainsAvailableAfterVerification() recorded an issue at DraftTests.swift:16:9: Expectation failed: later.scope.streamID == "dataset"
+✘ Test draftWrittenBeforeFirstConnectionRemainsAvailableAfterVerification() recorded an issue at DraftTests.swift:17:9: Expectation failed: try SharedSessions(databaseURL: file).draft(sessionID: nil).input == "连接后继续编辑"
+[ui-red]
+/Users/jarviliu/projects/travel/ios/PotatoUITests/NavigationTests.swift:23: error: -[PotatoUITests.NavigationTests testDraftsSurviveNavigationReleaseAndAppRestart] : XCTAssertEqual failed: ("Optional("")") is not equal to ("Optional("existing-draft")")
+/Users/jarviliu/projects/travel/ios/PotatoUITests/NavigationTests.swift:29: error: -[PotatoUITests.NavigationTests testDraftsSurviveNavigationReleaseAndAppRestart] : XCTAssertEqual failed: ("Optional("")") is not equal to ("Optional("existing-draft")")
+/Users/jarviliu/projects/travel/ios/PotatoUITests/NavigationTests.swift:34: error: -[PotatoUITests.NavigationTests testDraftsSurviveNavigationReleaseAndAppRestart] : XCTAssertEqual failed: ("Optional("")") is not equal to ("Optional("new-draft")")
+[review-red]
+✘ Test initialOfflineScopeNeverRetargetsToAReplacementDataset() recorded an issue at DraftTests.swift:15:9: Expectation failed: try sessions.draft(sessionID: nil).input.isEmpty
+✘ Test initialOfflineScopeNeverRetargetsToAReplacementDataset() recorded an issue at DraftTests.swift:17:9: Expectation failed: try sessions.draft(sessionID: nil).input == "原页面继续编辑"
+✘ Test offlineRestoredDraftCannotBeSubmittedToAReplacementDataset() recorded an issue at DraftTests.swift:30:9: Expectation failed: !reopened.canSubmit(draft: offline)
+/Users/jarviliu/projects/travel/ios/PotatoUITests/NavigationTests.swift:22: error: -[PotatoUITests.NavigationTests testLateAcceptanceClearsOnlyOldDraftOnReopenedNewPage] : Asynchronous wait failed: Exceeded timeout of 12 seconds, with unfulfilled expectations: "Expect predicate `value == ""` for object "travel-input" TextField".
+
+xcodebuild build -project ios/Potato.xcodeproj -scheme Potato -destination generic/platform=iOS -derivedDataPath /tmp/potato-91-device -clonedSourcePackagesDirPath /tmp/potato-ios-build/SourcePackages -skipMacroValidation CODE_SIGNING_ALLOWED=NO
+** BUILD SUCCEEDED **（iPhone arm64 无签名；部署下限 iOS 17）
+
+.venv/bin/python scripts/check_modules.py
+全仓库公开入口、依赖方向与无环检查通过；无迁移豁免。
+.venv/bin/python scripts/check_docs.py
+当前导航与公开契约链接检查通过（18 份文档）。
+PYTHONPATH=tests .venv/bin/pyright --pythonpath .venv/bin/python ios/Integration/backend.py
+0 errors, 0 warnings, 0 informations
+git diff --cached --check：通过。
+
+原生界面：detector []；已审阅最终恢复/离线截图、浅色、深色和 accessibility3 快照，无新增实质布局回归。
+Standards 首次 2 项 P2 → 最终 0；Spec 首次 2 项 P2 → 最终 0。
+首次完整 suite 后按审查结论补复现并修正，最终完整 suite 在全新 HTTPS 后端数据集上重新通过。
+未验证真实 iPhone、Tailscale、蜂窝网络、iOS 17 runtime、签名及 TestFlight。

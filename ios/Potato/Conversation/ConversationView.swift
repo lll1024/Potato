@@ -71,6 +71,7 @@ struct ConversationView: View {
         .refreshable { await presenter.reload() }
         .task { await presenter.appear() }
         .onDisappear { presenter.disappear() }
+        .onChange(of: presenter.submissionState) { presenter.submissionChanged() }
         .safeAreaInset(edge: .bottom) {
             VStack(alignment: .leading, spacing: 10) {
                 if let message = presenter.serviceMessage {
@@ -87,12 +88,23 @@ struct ConversationView: View {
                             .frame(maxHeight: 120)
                     }.font(.footnote)
                 }
+                if let message = presenter.draftMessage {
+                    Text(message).font(.footnote)
+                        .foregroundStyle(presenter.draftError == nil ? Color.secondary : Color.primary)
+                        .accessibilityIdentifier("draft-status")
+                }
+                if presenter.draftError != nil {
+                    Button(presenter.canEditDraft ? "重试保存草稿" : "重试读取草稿", action: presenter.retryDraft)
+                        .frame(minHeight: 44)
+                        .accessibilityIdentifier("retry-draft")
+                }
                 HStack(alignment: .bottom, spacing: 12) {
                     TextField("输入旅行需求", text: $presenter.input, axis: .vertical)
                         .lineLimit(1...5)
                         .padding(12)
                         .background(.quaternary, in: RoundedRectangle(cornerRadius: 14))
                         .focused($inputFocused)
+                        .disabled(!presenter.canEditDraft)
                         .accessibilityIdentifier("travel-input")
                     Button {
                         Task { await presenter.send() }

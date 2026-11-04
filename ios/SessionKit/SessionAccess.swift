@@ -21,6 +21,8 @@ public enum SessionFailure: Error, LocalizedError, Equatable, Sendable {
     case localSaveFailed
     case submissionUnknown
     case submissionConflict
+    case draftSaveFailed
+    case draftLoadFailed
 
     public var errorDescription: String? {
         switch self {
@@ -37,6 +39,8 @@ public enum SessionFailure: Error, LocalizedError, Equatable, Sendable {
         case .localSaveFailed: "本机未能保存本次提交，尚未发送。请保留输入并检查可用存储。"
         case .submissionUnknown: "本次发送结果未知，原始输入已保留。请勿重复发送，后续需核对原提交。"
         case .submissionConflict: "提交身份与服务记录冲突，请保留输入并核对原提交。"
+        case .draftSaveFailed: "草稿尚未保存到本机，请保留输入并重试保存。"
+        case .draftLoadFailed: "无法读取本机草稿，请重试读取后继续编辑。"
         }
     }
 }
@@ -58,6 +62,23 @@ public protocol SessionAccess: AnyObject {
     func submit(input: String, sessionID: String?) async throws -> SubmissionReceipt
     func watchConversation(sessionID: String?)
     func setForeground(_ active: Bool)
+    func draft(sessionID: String?) throws -> SessionDraft
+    func saveDraft(input: String, scope: DraftScope) throws -> SessionDraft
+    func moveDraft(_ draft: SessionDraft, input: String, to sessionID: String) throws -> SessionDraft
+    func canSubmit(draft: SessionDraft) -> Bool
+    func submit(draft: SessionDraft) async throws -> SubmissionReceipt
+}
+
+public struct DraftScope: Equatable, Sendable, Codable {
+    public let serverAddress: String
+    public let streamID: String
+    public let sessionID: String?
+}
+
+public struct SessionDraft: Equatable, Sendable {
+    public let scope: DraftScope
+    public let input: String
+    public let revision: String?
 }
 
 public struct PendingSubmission: Equatable, Sendable, Codable {
@@ -66,6 +87,7 @@ public struct PendingSubmission: Equatable, Sendable, Codable {
     public let streamID: String
     public let input: String
     public let sessionID: String?
+    public let draftRevision: String?
 }
 
 public struct SubmissionReceipt: Equatable, Sendable {

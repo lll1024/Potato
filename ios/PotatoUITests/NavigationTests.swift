@@ -2,6 +2,124 @@ import XCTest
 
 @MainActor
 final class NavigationTests: XCTestCase {
+    func testLateAcceptanceClearsOnlyOldDraftOnReopenedNewPage() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        configure(app, address: "https://localhost:18492")
+        XCTAssertTrue(app.staticTexts["已连接"].waitForExistence(timeout: 10))
+        app.buttons["done-connection"].tap()
+        app.buttons["new-conversation"].tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        replaceInput(input, text: "延迟接受时保留草稿")
+        app.buttons["send-input"].tap()
+        app.navigationBars.buttons["助手会话"].tap()
+        app.buttons["new-conversation"].tap()
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        XCTAssertEqual(input.value as? String, "延迟接受时保留草稿")
+        let cleared = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == ''"), object: input)
+        wait(for: [cleared], timeout: 12)
+        XCTAssertFalse(app.staticTexts["草稿已保存到本机。"].exists)
+    }
+
+    func testOfflineDraftCanBeEditedAndRestoredWithoutSending() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        configure(app, address: "https://localhost:18491")
+        XCTAssertTrue(app.staticTexts["连接不可用"].waitForExistence(timeout: 10))
+        app.buttons["done-connection"].tap()
+        app.buttons["new-conversation"].tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        replaceInput(input, text: "offline-draft")
+        XCTAssertTrue(app.staticTexts["草稿已保存到本机。"].exists)
+        XCTAssertFalse(app.buttons["send-input"].isEnabled)
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.buttons["new-conversation"].waitForExistence(timeout: 5))
+        app.buttons["new-conversation"].tap()
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        XCTAssertEqual(input.value as? String, "offline-draft")
+        replaceInput(input, text: "offline-draft-edited")
+        XCTAssertFalse(app.buttons["send-input"].isEnabled)
+        input.typeText("\n")
+        app.swipeDown()
+        attach(app, name: "离线草稿与禁止发送")
+        replaceInput(input, text: "")
+    }
+
+    func testLaterInputFollowsNewAcceptedConversationAndSurvivesReopen() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        configure(app, address: "https://localhost:18492")
+        XCTAssertTrue(app.staticTexts["已连接"].waitForExistence(timeout: 10))
+        app.buttons["done-connection"].tap()
+        app.buttons["new-conversation"].tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        replaceInput(input, text: "延迟接受时保留草稿")
+        app.buttons["send-input"].tap()
+        input.tap()
+        input.typeText("later-draft")
+        let editedInput = input.value as? String
+        XCTAssertTrue(editedInput?.contains("later-draft") == true)
+        XCTAssertTrue(app.staticTexts["输入已接受。"].waitForExistence(timeout: 12))
+        XCTAssertEqual(input.value as? String, editedInput)
+        app.navigationBars.buttons["助手会话"].tap()
+        let session = app.buttons.matching(identifier: "open-session")
+            .matching(NSPredicate(format: "label CONTAINS %@", "延迟接受时保留草稿")).firstMatch
+        XCTAssertTrue(session.waitForExistence(timeout: 10))
+        session.tap()
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        XCTAssertEqual(input.value as? String, editedInput)
+        replaceInput(input, text: "")
+    }
+
+    func testDraftsSurviveNavigationReleaseAndAppRestart() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        configure(app, address: "https://localhost:18489")
+        XCTAssertTrue(app.staticTexts["已连接"].waitForExistence(timeout: 10))
+        app.buttons["done-connection"].tap()
+        app.buttons["open-session"].firstMatch.tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        replaceInput(input, text: "existing-draft")
+        app.navigationBars.buttons["助手会话"].tap()
+        app.buttons["new-conversation"].tap()
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        replaceInput(input, text: "new-draft")
+        app.navigationBars.buttons["助手会话"].tap()
+        app.buttons["open-session"].firstMatch.tap()
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        XCTAssertEqual(input.value as? String, "existing-draft")
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.buttons["open-session"].firstMatch.waitForExistence(timeout: 10))
+        app.buttons["open-session"].firstMatch.tap()
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        XCTAssertEqual(input.value as? String, "existing-draft")
+        replaceInput(input, text: "")
+        app.navigationBars.buttons["助手会话"].tap()
+        app.buttons["new-conversation"].tap()
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        XCTAssertEqual(input.value as? String, "new-draft")
+        attach(app, name: "恢复的新会话草稿")
+        replaceInput(input, text: "")
+    }
+
+    private func replaceInput(_ field: XCUIElement, text: String) {
+        field.tap()
+        field.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+        let old = field.value as? String ?? ""
+        let count = old == "输入旅行需求" ? 0 : old.count
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: count) + text)
+    }
+
     func testCreateSendContinueAndReadSavedAnswer() {
         let app = XCUIApplication()
         app.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]

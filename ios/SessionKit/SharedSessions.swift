@@ -49,11 +49,28 @@ public final class SharedSessions: SessionAccess {
         migrator.registerMigration("pending-submission") { db in
             try db.execute(sql: "CREATE TABLE pending_submission (id INTEGER PRIMARY KEY CHECK (id = 1), payload BLOB NOT NULL)")
         }
+        migrator.registerMigration("session-drafts") { db in
+            try db.execute(sql: """
+                CREATE TABLE draft (
+                    address TEXT NOT NULL, stream_id TEXT NOT NULL, session_id TEXT NOT NULL,
+                    input TEXT NOT NULL, revision TEXT NOT NULL,
+                    PRIMARY KEY (address, stream_id, session_id)
+                );
+                CREATE TABLE server_dataset (address TEXT PRIMARY KEY NOT NULL, stream_id TEXT NOT NULL);
+                """)
+        }
+        migrator.registerMigration("initial-draft-dataset") { db in
+            try db.execute(sql: "ALTER TABLE server_dataset ADD COLUMN first_stream_id TEXT")
+            try db.execute(sql: "UPDATE server_dataset SET first_stream_id = stream_id")
+        }
         try migrator.migrate(database)
         let savedAddress = try database.read { db in
             try String.fetchOne(db, sql: "SELECT address FROM connection WHERE id = 1") ?? ""
         }
         serverAddress = savedAddress
+        datasetID = try database.read {
+            try String.fetchOne($0, sql: "SELECT stream_id FROM server_dataset WHERE address = ?", arguments: [savedAddress])
+        }
         connection = savedAddress.isEmpty ? .unconfigured : .connecting
         if let data = try database.read({ try Data.fetchOne($0, sql: "SELECT payload FROM pending_submission WHERE id = 1") }) {
             pendingSubmission = try JSONDecoder().decode(PendingSubmission.self, from: data)
@@ -77,9 +94,10 @@ public final class SharedSessions: SessionAccess {
             url.path = ""
             normalized = url.string!
         }
-        try database.write { db in
+        let savedDataset = try database.write { db in
             try db.execute(sql: "INSERT OR REPLACE INTO connection (id, address) VALUES (1, ?)",
                            arguments: [normalized])
+            return try String.fetchOne(db, sql: "SELECT stream_id FROM server_dataset WHERE address = ?", arguments: [normalized])
         }
         serverAddress = normalized
         connection = normalized.isEmpty ? .unconfigured : .connecting
@@ -89,7 +107,7 @@ public final class SharedSessions: SessionAccess {
         conversationFailure = nil
         watchedSessionID = nil
         acceptanceNeedsRefresh = false
-        datasetID = nil
+        datasetID = savedDataset
         configurationGeneration += 1
     }
 
@@ -104,10 +122,9 @@ public final class SharedSessions: SessionAccess {
             throw SessionFailure.serviceUnavailable
         }
         guard service.activeTurnID == nil, !service.stopping else { throw SessionFailure.busy }
-        let pending = PendingSubmission(id: UUID().uuidString, serverAddress: serverAddress,
-                                        streamID: service.streamID, input: input, sessionID: sessionID)
+        let pending: PendingSubmission
         do {
-            try savePending(pending)
+            pending = try savePending(input: input, sessionID: sessionID, streamID: service.streamID)
         } catch {
             submission = .rejected(.localSaveFailed)
             throw SessionFailure.localSaveFailed
@@ -122,7 +139,7 @@ public final class SharedSessions: SessionAccess {
                 throw SessionFailure.submissionUnknown
             }
             let receipt = SubmissionReceipt(request: pending, sessionID: wire.sessionId, turnID: wire.turnId)
-            try clearPending()
+            try clearPending(accepted: pending)
             submission = .accepted(receipt)
             acceptanceNeedsRefresh = true
             acceptedAfterRefresh = refreshGeneration
@@ -141,12 +158,98 @@ public final class SharedSessions: SessionAccess {
         }
     }
 
+    public func canSubmit(draft: SessionDraft) -> Bool {
+        guard canSubmit, let scope = try? resolvedScope(draft.scope) else { return false }
+        return scope.serverAddress == serverAddress && scope.streamID == service?.streamID
+    }
+
+    public func submit(draft: SessionDraft) async throws -> SubmissionReceipt {
+        let scope = try resolvedScope(draft.scope)
+        guard scope.serverAddress == serverAddress, scope.streamID == service?.streamID else {
+            throw SessionFailure.obsolete
+        }
+        return try await submit(input: draft.input, sessionID: scope.sessionID)
+    }
+
     public func watchConversation(sessionID: String?) {
         guard watchedSessionID != sessionID else { return }
         watchedSessionID = sessionID
         historyGeneration += 1
         conversation = nil
         conversationFailure = nil
+    }
+
+    public func draft(sessionID: String?) throws -> SessionDraft {
+        let scope = DraftScope(serverAddress: serverAddress, streamID: datasetID ?? "", sessionID: sessionID)
+        do { return try database.read { try readDraft(scope: scope, db: $0) } }
+        catch { throw SessionFailure.draftLoadFailed }
+    }
+
+    public func saveDraft(input: String, scope: DraftScope) throws -> SessionDraft {
+        do {
+            return try database.write { db in
+                let draft = SessionDraft(scope: try resolvedScope(scope, db: db), input: input, revision: UUID().uuidString)
+                try writeDraft(draft, db: db)
+                return draft
+            }
+        } catch { throw SessionFailure.draftSaveFailed }
+    }
+
+    private func readDraft(scope: DraftScope, db: Database) throws -> SessionDraft {
+        let row = try Row.fetchOne(db, sql: "SELECT input, revision FROM draft WHERE address = ? AND stream_id = ? AND session_id = ?",
+                                  arguments: [scope.serverAddress, scope.streamID, scope.sessionID ?? ""])
+        return SessionDraft(scope: scope, input: row?["input"] ?? "", revision: row?["revision"])
+    }
+
+    public func moveDraft(_ draft: SessionDraft, input: String, to sessionID: String) throws -> SessionDraft {
+        do {
+            return try database.write { db in
+                let source = try resolvedScope(draft.scope, db: db)
+                let scope = DraftScope(serverAddress: source.serverAddress, streamID: source.streamID, sessionID: sessionID)
+                let moved = SessionDraft(scope: scope, input: input, revision: UUID().uuidString)
+                let current = try readDraft(scope: source, db: db)
+                let destination = try readDraft(scope: scope, db: db)
+                guard draft.scope.sessionID == nil,
+                      current.revision == nil || current.revision == draft.revision,
+                      destination.input.isEmpty else { throw SessionFailure.obsolete }
+                try writeDraft(moved, db: db)
+                try db.execute(sql: "DELETE FROM draft WHERE address = ? AND stream_id = ? AND session_id = ? AND revision = ?",
+                               arguments: [source.serverAddress, source.streamID, "", draft.revision])
+                return moved
+            }
+        } catch { throw SessionFailure.draftSaveFailed }
+    }
+
+    private func resolvedScope(_ scope: DraftScope) throws -> DraftScope {
+        // 归属核对与提交落盘之间不挂起，避免配置变化插入这个边界。
+        try database.read { try resolvedScope(scope, db: $0) }
+    }
+
+    private func resolvedScope(_ scope: DraftScope, db: Database) throws -> DraftScope {
+        guard scope.streamID.isEmpty,
+              let streamID = try String.fetchOne(db, sql: "SELECT first_stream_id FROM server_dataset WHERE address = ?",
+                                                 arguments: [scope.serverAddress]) else { return scope }
+        return DraftScope(serverAddress: scope.serverAddress, streamID: streamID, sessionID: scope.sessionID)
+    }
+
+    private func writeDraft(_ draft: SessionDraft, db: Database) throws {
+        try db.execute(sql: "INSERT OR REPLACE INTO draft (address, stream_id, session_id, input, revision) VALUES (?, ?, ?, ?, ?)",
+                       arguments: [draft.scope.serverAddress, draft.scope.streamID, draft.scope.sessionID ?? "", draft.input, draft.revision])
+    }
+
+    private func rememberDataset(_ streamID: String) throws {
+        guard streamID != datasetID else { return }
+        try database.write { db in
+            if datasetID == nil {
+                // 首次离线输入尚无数据集归属；仅在首次核对成功时绑定，后续数据集变化不迁移。
+                try db.execute(sql: "UPDATE draft SET stream_id = ? WHERE address = ? AND stream_id = ''",
+                               arguments: [streamID, serverAddress])
+            }
+            try db.execute(sql: """
+                INSERT INTO server_dataset (address, stream_id, first_stream_id) VALUES (?, ?, ?)
+                ON CONFLICT(address) DO UPDATE SET stream_id = excluded.stream_id
+                """, arguments: [serverAddress, streamID, streamID])
+        }
     }
 
     public func setForeground(_ active: Bool) {
@@ -169,15 +272,27 @@ public final class SharedSessions: SessionAccess {
         }
     }
 
-    private func clearPending() throws {
-        try database.write { try $0.execute(sql: "DELETE FROM pending_submission WHERE id = 1") }
+    private func clearPending(accepted: PendingSubmission? = nil) throws {
+        try database.write { db in
+            if let accepted, let revision = accepted.draftRevision {
+                try db.execute(sql: "DELETE FROM draft WHERE address = ? AND stream_id = ? AND session_id = ? AND revision = ? AND input = ?",
+                               arguments: [accepted.serverAddress, accepted.streamID, accepted.sessionID ?? "", revision, accepted.input])
+            }
+            try db.execute(sql: "DELETE FROM pending_submission WHERE id = 1")
+        }
         pendingSubmission = nil
     }
 
-    private func savePending(_ pending: PendingSubmission) throws {
-        let data = try JSONEncoder().encode(pending)
+    private func savePending(input: String, sessionID: String?, streamID: String) throws -> PendingSubmission {
         try database.write { db in
+            let scope = DraftScope(serverAddress: serverAddress, streamID: streamID, sessionID: sessionID)
+            let draft = try readDraft(scope: scope, db: db)
+            let pending = PendingSubmission(id: UUID().uuidString, serverAddress: serverAddress,
+                streamID: streamID, input: input, sessionID: sessionID,
+                draftRevision: draft.input == input ? draft.revision : nil)
+            let data = try JSONEncoder().encode(pending)
             try db.execute(sql: "INSERT INTO pending_submission (id, payload) VALUES (1, ?)", arguments: [data])
+            return pending
         }
     }
 
@@ -195,6 +310,7 @@ public final class SharedSessions: SessionAccess {
             guard configuration == configurationGeneration, refresh == refreshGeneration,
                   dataset == datasetGeneration else { throw SessionFailure.obsolete }
             guard snapshot.schemaVersion == 1 else { throw SessionFailure.invalidResponse }
+            try rememberDataset(snapshot.streamId)
             if let datasetID, datasetID != snapshot.streamId {
                 datasetGeneration += 1
                 conversation = nil
@@ -240,6 +356,7 @@ public final class SharedSessions: SessionAccess {
             guard configuration == configurationGeneration, history == historyGeneration,
                   dataset == datasetGeneration else { throw SessionFailure.obsolete }
             guard page.schemaVersion == 1 else { throw SessionFailure.invalidResponse }
+            try rememberDataset(page.streamId)
             if let datasetID, datasetID != page.streamId {
                 self.datasetID = page.streamId
                 datasetGeneration += 1

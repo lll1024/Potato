@@ -16,6 +16,7 @@
 		34A911657A631C54457C2A31 /* SessionAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6193982CEE3ADE055CBF23FA /* SessionAccess.swift */; };
 		35DBC8C9ED6F8D6099921B3C /* SubmissionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC95E0F5D6822A5263531074 /* SubmissionTests.swift */; };
 		38B119F345F910C28FD4D18F /* PotatoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC39691C961D05C4358B04C1 /* PotatoApp.swift */; };
+		40520861A3333A1E0816A0F8 /* DraftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3E8E544C4461754ADFCB41D /* DraftTests.swift */; };
 		4B0576DA10975648C63A7BCF /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 9C7B07A254CFCB9FB1490D93 /* MarkdownUI */; };
 		55FD90207AC71433DCD028B2 /* AppAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = C309A0852F951F7C407A311D /* AppAssembly.swift */; };
 		580EED0D1D87184CDF3E65B4 /* SessionHTTP.swift in Sources */ = {isa = PBXBuildFile; fileRef = F920E6CEA26FE73CD3A9D561 /* SessionHTTP.swift */; };
@@ -123,6 +124,7 @@
 		D28F43C20AFE98F94B82DD3D /* SubmissionIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubmissionIntegrationTests.swift; sourceTree = "<group>"; };
 		DBF78D2848C275E194DBACC6 /* PollingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollingTests.swift; sourceTree = "<group>"; };
 		DC95E0F5D6822A5263531074 /* SubmissionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubmissionTests.swift; sourceTree = "<group>"; };
+		E3E8E544C4461754ADFCB41D /* DraftTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraftTests.swift; sourceTree = "<group>"; };
 		E8F9EC796640043DCA682ABB /* SessionListModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionListModule.swift; sourceTree = "<group>"; };
 		EA23BD746BDFE0B66468FBD0 /* HTTPFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPFixture.swift; sourceTree = "<group>"; };
 		F4B42607073E8BC2FDEFCEC6 /* SessionAccessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionAccessTests.swift; sourceTree = "<group>"; };
@@ -167,6 +169,7 @@
 			isa = PBXGroup;
 			children = (
 				A58251A28FDB6C0E66251B43 /* ConnectionFailureTests.swift */,
+				E3E8E544C4461754ADFCB41D /* DraftTests.swift */,
 				EA23BD746BDFE0B66468FBD0 /* HTTPFixture.swift */,
 				DBF78D2848C275E194DBACC6 /* PollingTests.swift */,
 				F4B42607073E8BC2FDEFCEC6 /* SessionAccessTests.swift */,
@@ -479,6 +482,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				5A4B9326813DBFF290BFEF36 /* ConnectionFailureTests.swift in Sources */,
+				40520861A3333A1E0816A0F8 /* DraftTests.swift in Sources */,
 				08734ED92EFCC164170BDD93 /* HTTPFixture.swift in Sources */,
 				AB4C2E99B03A07B8300B6892 /* PollingTests.swift in Sources */,
 				12C78A859FDA64752F54F759 /* SessionAccessTests.swift in Sources */,

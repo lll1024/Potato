@@ -68,12 +68,14 @@ async def main():
             if name == "submissions":
                 @app.middleware("http")
                 async def delayed_acceptance(request, call_next):
+                    submitted_input = ((await request.json()).get("input")
+                                       if request.method == "POST" and request.url.path == "/api/turns" else None)
                     delay = (request.method == "POST" and request.url.path == "/api/turns"
-                             and (await request.json()).get("input") == "延迟接受时切换会话")
+                             and submitted_input in ("延迟接受时切换会话", "延迟接受时保留草稿"))
                     result = await call_next(request)
                     if delay and result.status_code == 202:
                         # 仅延迟 HTTP 接受响应；真实轮次与 SQLite 由原后端推进。
-                        await asyncio.sleep(4)
+                        await asyncio.sleep(8 if submitted_input == "延迟接受时保留草稿" else 4)
                     return result
             server = uvicorn.Server(uvicorn.Config(
                 app,
