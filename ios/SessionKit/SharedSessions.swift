@@ -12,11 +12,14 @@ public final class SharedSessions: SessionAccess {
     public private(set) var sessionList: SessionList?
     public private(set) var conversation: ConversationPage?
     public private(set) var conversationFailure: SessionFailure?
+    public private(set) var stopState = StopState.idle
+    private var stopOperation: UUID?
     private let database: DatabaseQueue
     private let http: SessionHTTP
     private var configurationGeneration = 0
     private var refreshGeneration = 0
     private var historyGeneration = 0
+    private var connectionGeneration = 0
     private var datasetGeneration = 0
     private var datasetID: String?
     private let wait: @Sendable (Duration) async throws -> Void
@@ -27,9 +30,45 @@ public final class SharedSessions: SessionAccess {
     private var submissionOperation: UUID?
 
     public var canSubmit: Bool {
-        connection == .connected && pendingSubmission == nil && submission != .sending && !acceptanceNeedsRefresh &&
+        connection == .connected && stopState == .idle && pendingSubmission == nil && submission != .sending && !acceptanceNeedsRefresh &&
         service?.accepting == true && service?.activeTurnID == nil && service?.stopping == false &&
         service?.storageError == nil && service?.unsavedFact == nil
+    }
+
+    public var stopTarget: StopTarget? {
+        guard connection == .connected, let service, !service.stopping,
+              let sessionID = service.activeSessionID, let turnID = service.activeTurnID,
+              stopOperation == nil else { return nil }
+        if case .waiting = stopState { return nil }
+        return StopTarget(serverAddress: serverAddress, streamID: service.streamID, sessionID: sessionID, turnID: turnID)
+    }
+
+    public func stop(target: StopTarget) async throws {
+        guard target.serverAddress == serverAddress, target.streamID == service?.streamID else {
+            throw SessionFailure.obsolete
+        }
+        guard stopOperation == nil else { throw SessionFailure.busy }
+        let operation = UUID()
+        let configuration = configurationGeneration
+        let dataset = datasetGeneration
+        stopOperation = operation
+        stopState = .requesting(target)
+        // 请求之前取得的快照不能解除停止核对屏障。
+        refreshGeneration += 1
+        defer { if stopOperation == operation { stopOperation = nil } }
+        do {
+            try await http.stop(target)
+            guard configuration == configurationGeneration, dataset == datasetGeneration,
+                  stopOperation == operation else { throw SessionFailure.obsolete }
+            refreshGeneration += 1
+            stopState = .waiting(target)
+        } catch {
+            guard configuration == configurationGeneration, dataset == datasetGeneration,
+                  stopOperation == operation else { throw SessionFailure.obsolete }
+            refreshGeneration += 1
+            stopState = .uncertain(target)
+            throw SessionFailure.stopUnknown
+        }
     }
 
     public convenience init(databaseURL: URL) throws {
@@ -103,6 +142,8 @@ public final class SharedSessions: SessionAccess {
         serverAddress = normalized
         connection = normalized.isEmpty ? .unconfigured : .connecting
         service = nil
+        stopOperation = nil
+        stopState = .idle
         sessionList = nil
         conversation = nil
         conversationFailure = nil
@@ -116,7 +157,7 @@ public final class SharedSessions: SessionAccess {
     }
 
     public func submit(input: String, sessionID: String?) async throws -> SubmissionReceipt {
-        if submission == .sending || acceptanceNeedsRefresh { throw SessionFailure.busy }
+        if submission == .sending || acceptanceNeedsRefresh || stopState != .idle { throw SessionFailure.busy }
         guard pendingSubmission == nil else { throw SessionFailure.submissionUnknown }
         guard !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw SessionFailure.invalidInput
@@ -346,6 +387,7 @@ public final class SharedSessions: SessionAccess {
                     }
                 } catch is CancellationError { return }
                 catch { /* 读取入口保留错误及最后保存事实，下轮重新核对。 */ }
+                guard !Task.isCancelled else { return }
                 do { try await wait(.seconds(2)) }
                 catch { return }
             }
@@ -380,6 +422,8 @@ public final class SharedSessions: SessionAccess {
         guard !serverAddress.isEmpty else { throw SessionFailure.unconfigured }
         let address = serverAddress
         let configuration = configurationGeneration
+        connectionGeneration += 1
+        let connectionRead = connectionGeneration
         refreshGeneration += 1
         let refresh = refreshGeneration
         var dataset = datasetGeneration
@@ -396,6 +440,8 @@ public final class SharedSessions: SessionAccess {
                 submissionOperation = nil
                 submission = pendingSubmission == nil ? .idle : .unknown
                 acceptanceNeedsRefresh = false
+                stopOperation = nil
+                stopState = .idle
                 conversation = nil
                 conversationFailure = nil
                 sessionList = nil
@@ -404,6 +450,14 @@ public final class SharedSessions: SessionAccess {
             datasetID = snapshot.streamId
             dataset = datasetGeneration
             service = snapshot.entity
+            if stopOperation == nil {
+                switch stopState {
+                case .requesting(let target), .waiting(let target), .uncertain(let target):
+                    if snapshot.activeTurnId != target.turnID { stopState = .idle }
+                    else if snapshot.stopping { stopState = .waiting(target) }
+                case .idle: break
+                }
+            }
             isolatePendingIfNeeded()
             if refresh > acceptedAfterRefresh { acceptanceNeedsRefresh = false }
             let list = try await http.get(WireList.self, address: address, path: "/api/sessions",
@@ -411,7 +465,7 @@ public final class SharedSessions: SessionAccess {
             guard configuration == configurationGeneration, refresh == refreshGeneration,
                   dataset == datasetGeneration else { throw SessionFailure.obsolete }
             guard list.schemaVersion == 1 else { throw SessionFailure.invalidResponse }
-            connection = .connected
+            if connectionRead == connectionGeneration { connection = .connected }
             let result = SessionList(sessions: list.sessions.map(\.entity), nextCursor: list.nextCursor)
             sessionList = result
             try? await checkPending()
@@ -422,10 +476,10 @@ public final class SharedSessions: SessionAccess {
             guard configuration == configurationGeneration, refresh == refreshGeneration,
                   dataset == datasetGeneration else { throw SessionFailure.obsolete }
             if error is CancellationError {
-                connection = previousConnection
+                if connectionRead == connectionGeneration { connection = previousConnection }
                 throw error
             }
-            connection = .unavailable(error.localizedDescription)
+            if connectionRead == connectionGeneration { connection = .unavailable(error.localizedDescription) }
             throw error
         }
     }
@@ -434,13 +488,16 @@ public final class SharedSessions: SessionAccess {
         guard !serverAddress.isEmpty else { throw SessionFailure.unconfigured }
         let address = serverAddress
         let configuration = configurationGeneration
+        connectionGeneration += 1
+        let connectionRead = connectionGeneration
         let dataset = datasetGeneration
+        let refresh = refreshGeneration
         historyGeneration += 1
         let history = historyGeneration
         do {
             let page = try await http.get(WirePage.self, address: address, path: "/api/sessions/" + sessionID,
                                           parameters: ["limit": "50", "summary": "false", "include_messages": "false"])
-            guard configuration == configurationGeneration, history == historyGeneration,
+            guard configuration == configurationGeneration, history == historyGeneration, refresh == refreshGeneration,
                   dataset == datasetGeneration else { throw SessionFailure.obsolete }
             guard page.schemaVersion == 1 else { throw SessionFailure.invalidResponse }
             try rememberDataset(page.streamId)
@@ -451,6 +508,8 @@ public final class SharedSessions: SessionAccess {
                 submission = pendingSubmission == nil ? .idle : .unknown
                 acceptanceNeedsRefresh = false
                 service = nil
+                stopOperation = nil
+                stopState = .idle
                 conversation = nil
                 conversationFailure = nil
                 sessionList = nil
@@ -460,22 +519,22 @@ public final class SharedSessions: SessionAccess {
                 throw SessionFailure.obsolete
             }
             datasetID = page.streamId
-            connection = .connected
+            if connectionRead == connectionGeneration { connection = .connected }
             if watchedSessionID == sessionID {
                 conversation = page.entity
                 conversationFailure = nil
             }
             return page.entity
         } catch {
-            guard configuration == configurationGeneration, history == historyGeneration,
+            guard configuration == configurationGeneration, history == historyGeneration, refresh == refreshGeneration,
                   dataset == datasetGeneration else { throw SessionFailure.obsolete }
             if error is CancellationError { throw error }
             if watchedSessionID == sessionID { conversationFailure = error as? SessionFailure ?? .invalidResponse }
             if error as? SessionFailure == .http(404) {
-                connection = .connected
+                if connectionRead == connectionGeneration { connection = .connected }
                 if watchedSessionID == sessionID { conversation = nil }
             } else {
-                connection = .unavailable(error.localizedDescription)
+                if connectionRead == connectionGeneration { connection = .unavailable(error.localizedDescription) }
             }
             throw error
         }

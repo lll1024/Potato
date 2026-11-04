@@ -83,6 +83,28 @@ struct PollingTests {
         #expect(await fixture.receivedCount == 6)
     }
 
+    @Test func backgroundCancelsSlowReadAndForegroundImmediatelyRefreshesOnce() async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        let late = await fixture.next()
+        sessions.setForeground(false)
+        sessions.setForeground(true)
+        sessions.setForeground(true)
+        await fixture.next().reply(body: snapshot(active: false))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page(status: "completed", answer: "离开期间保存的完整结果"))
+        #expect(await clock.nextInterval() == .seconds(2))
+        late.reply(body: snapshot(active: true))
+        #expect(sessions.conversation?.turns.first?.answer == "离开期间保存的完整结果")
+        #expect(sessions.canSubmit)
+        sessions.setForeground(false)
+        await clock.advance()
+        #expect(await fixture.receivedCount == 4)
+    }
+
     private func loadHistory(_ sessions: any SessionAccess, _ fixture: HTTPFixture,
                              status: String, answer: String?) async throws -> ConversationPage {
         let read = Task { try await sessions.history(sessionID: "existing") }
@@ -123,4 +145,128 @@ actor PollClock {
         return await withCheckedContinuation { observer = $0 }
     }
     func advance() { sleeper?.resume(); sleeper = nil }
+}
+
+@MainActor
+struct StopTests {
+    @Test func stopsDesktopTurnAndWaitsForRealReleaseBeforeSending() async throws {
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file)
+        let connecting = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: state(turn: "desktop-turn"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        _ = try await connecting.value
+        let target = try #require(sessions.stopTarget)
+        #expect(!sessions.canSubmit)
+        sessions.watchConversation(sessionID: "another-page")
+        let stopping = Task { try await sessions.stop(target: target) }
+        let request = await fixture.next()
+        #expect(request.protocolRequest.request.url?.path == "/api/turns/desktop-turn/stop")
+        #expect(request.protocolRequest.request.httpMethod == "POST")
+        #expect(sessions.stopState == .requesting(target))
+        request.reply(body: "{\"schema_version\":1,\"turn_id\":\"desktop-turn\",\"status\":\"running\",\"stopping\":true}")
+        try await stopping.value
+        #expect(sessions.stopState == .waiting(target))
+        #expect(!sessions.canSubmit)
+        let stillStopping = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: state(turn: "desktop-turn", stopping: true))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        _ = try await stillStopping.value
+        #expect(!sessions.canSubmit)
+        let released = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: state(turn: nil))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        _ = try await released.value
+        #expect(sessions.stopState == .idle)
+        #expect(sessions.canSubmit)
+        #expect(await fixture.receivedCount == 7)
+    }
+
+    @Test func capturedOldTargetNeverStopsLaterTurnOrChangesWithNavigation() async throws {
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file)
+        let initial = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: state(turn: "old"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        _ = try await initial.value
+        let original = try #require(sessions.stopTarget)
+        let newer = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: state(turn: "new"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        _ = try await newer.value
+        sessions.watchConversation(sessionID: "other")
+        let stop = Task { try await sessions.stop(target: original) }
+        let request = await fixture.next()
+        #expect(request.protocolRequest.request.url?.path == "/api/turns/old/stop")
+        request.reply(body: "{\"schema_version\":1,\"turn_id\":\"old\",\"status\":\"completed\",\"stopping\":false}")
+        try await stop.value
+        let verify = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: state(turn: "new"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        _ = try await verify.value
+        #expect(sessions.stopState == .idle)
+        #expect(sessions.service?.activeTurnID == "new")
+        #expect(sessions.service?.stopping == false)
+        #expect(!sessions.canSubmit)
+    }
+
+    @Test(arguments: ["offline", "bad-json", "wrong-turn", "http-error"])
+    func unknownStopDoesNotInventTerminalState(kind: String) async throws {
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file)
+        let initial = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: state(turn: "turn"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        _ = try await initial.value
+        let target = try #require(sessions.stopTarget)
+        let stop = Task { try await sessions.stop(target: target) }
+        let request = await fixture.next()
+        switch kind {
+        case "offline": request.fail()
+        case "wrong-turn": request.reply(body: "{\"schema_version\":1,\"turn_id\":\"other\",\"status\":\"completed\",\"stopping\":false}")
+        case "http-error": request.reply(status: 503, body: "{}")
+        default: request.reply(body: "invalid")
+        }
+        await #expect(throws: SessionFailure.stopUnknown) { try await stop.value }
+        #expect(sessions.stopState == .uncertain(target))
+        #expect(sessions.service?.activeTurnID == "turn")
+        #expect(sessions.service?.stopping == false)
+        #expect(!sessions.canSubmit)
+        let verify = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: state(turn: nil))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        _ = try await verify.value
+        #expect(sessions.canSubmit)
+    }
+
+    @Test func staleIdleSnapshotCannotReleaseStopAndChangedServiceRejectsLateStop() async throws {
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file)
+        let initial = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: state(turn: "turn"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        _ = try await initial.value
+        let target = try #require(sessions.stopTarget)
+        let old = Task { try await sessions.refresh() }
+        let stale = await fixture.next()
+        let stop = Task { try await sessions.stop(target: target) }
+        let response = await fixture.next()
+        stale.reply(body: state(turn: nil))
+        await #expect(throws: SessionFailure.obsolete) { try await old.value }
+        #expect(!sessions.canSubmit)
+        try sessions.configure(address: "https://other.example.test")
+        response.reply(body: "{\"schema_version\":1,\"turn_id\":\"turn\",\"status\":\"running\",\"stopping\":true}")
+        await #expect(throws: SessionFailure.obsolete) { try await stop.value }
+        #expect(sessions.stopState == .idle)
+        #expect(sessions.service == nil)
+        await #expect(throws: SessionFailure.obsolete) { try await sessions.stop(target: target) }
+        #expect(await fixture.receivedCount == 4)
+    }
+
+    private func state(turn: String?, stopping: Bool = false) -> String {
+        """
+        {"schema_version":1,"stream_id":"dataset","active_session_id":"desktop-session",
+        "active_turn_id":\(turn.map { "\"\($0)\"" } ?? "null"),"accepting":true,"stopping":\(stopping)}
+        """
+    }
 }

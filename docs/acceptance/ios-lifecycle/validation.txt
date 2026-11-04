@@ -1,0 +1,70 @@
+#93 验证记录（2026-11-05，Asia/Shanghai）
+基准：d070aa87e84822af82bbc223d58c0d7d49eb03fc；分支：codex/ios-client。
+模拟器：AB9010DF-6F36-4079-8492-3CE8B5393EF7，iPhone 17 Pro / iOS 26.5。
+
+公共 xcodebuild 参数：
+-project ios/Potato.xcodeproj -scheme Potato
+-destination 'platform=iOS Simulator,id=AB9010DF-6F36-4079-8492-3CE8B5393EF7'
+-derivedDataPath /tmp/potato-ios-build -skipMacroValidation CODE_SIGNING_ALLOWED=NO
+
+红绿：
+1. StopTests 首轮编译失败，公开停止入口尚不存在；最小实现后通过。
+   stop-red.log.gz / stop-green.log.gz。
+2. ConnectionFailureTests.lateHistoryFailureCannotReplaceNewerGlobalConnection
+   较旧 history 失败覆盖较新 refresh 成功，先实际断言失败；增加读取失效后通过。
+   history-red-v2.log.gz / core-green.log.gz。
+   单方法首轮过滤未执行 Swift Testing 测试，不作为红证据；改按 suite 运行。
+3. 真实集成初次将“已请求停止”误期望为必然 user_stop，但在途模型最终文本按既有协议保存为 completed。
+   不修改生产后端；将外部夹具设为在途返回工具提议，验证下一个调用边界生效、外部真实返回前不释放名额。
+   real.log.gz 保存初次失败；first.log.gz 中真实集成及模拟器交互均通过。
+4. first.log.gz 的总体失败仅为两个新增截图缺少基准；实际图像已人工审阅，后续比对通过。
+5. ConnectionFailureTests.lateListFailureCannotReplaceNewerHistoryConnection
+   较旧 refresh/list 失败覆盖较新 history 成功，先实际断言失败；connectionGeneration 修复后通过。
+   reverse-red.log.gz / review-green.log.gz。
+6. SnapshotTests.testStorageFailureStaysVisibleBesideUnknownSubmission
+   原 View 抑制条件先原样移到 Presenter，保持行为不变，使 serviceMessage 明确表达可见投影。
+   公开能力构造 unknown + storageError + lookup 断连，断言两个页面保存故障可见，首轮均为 nil。
+   拆开提交恢复文案与全局状态投影后，未知恢复提示和保存故障并存，6 项呈现/快照验证通过。
+   storage-red.log.gz / storage-green.log.gz。
+
+完整回归：
+.venv/bin/python -m unittest discover -s tests -v
+361/361 通过，0 失败；python.log.gz。
+npm --prefix frontend test
+13/13 通过；web-test.log.gz。
+npm --prefix frontend run build
+类型与构建通过；web-build.log.gz。
+npm --prefix frontend run test:ui
+53/53 通过；web-ui.log.gz。
+.venv/bin/pyright --pythonpath .venv/bin/python agent.py web.py travel_app scripts tests/compatibility tests/*fixtures.py tests/record_faults.py
+PYTHONPATH=tests .venv/bin/pyright --pythonpath .venv/bin/python ios/Integration/backend.py
+均 0 errors；types-production.log / types-fixture.log。
+.venv/bin/python scripts/check_modules.py
+.venv/bin/python scripts/check_docs.py
+git diff --check
+git diff --cached --check
+均通过。
+
+完整 iOS 首轮：/tmp/potato-93-final.xcresult；65 项测试、含参数化 95 例通过，0 失败/跳过。
+这是保存故障可见性修复前的版本；最终完整运行另存 verified.log.gz 和 test-summary.json。
+
+最终 iPhone arm64：
+xcodebuild build -project ios/Potato.xcodeproj -scheme Potato -destination 'generic/platform=iOS'
+-derivedDataPath /tmp/potato-93-device -clonedSourcePackagesDirPath /tmp/potato-ios-build/SourcePackages
+-skipMacroValidation CODE_SIGNING_ALLOWED=NO
+构建结果见 device-final.log.gz；不代表已完成签名或真机运行。
+
+真实后端：
+.venv/bin/python ios/Integration/backend.py --cert /tmp/potato-ios-tls/cert.pem --key /tmp/potato-ios-tls/key.pem
+只监听 127.0.0.1，使用临时目录，真实公开 HTTP / SQLite。
+18494 外部模型由 asyncio.Event 挂起和释放，停止、409、保存与恢复使用生产实现。
+不读取真实旅行数据库或模型密钥。证书私钥不进入仓库。
+
+审查：git diff --cached d070aa8，Standards 与 Spec 独立代理。
+连接竞态和保存故障遮挡已复现并修复；最终两轴均 0 遗留、0 新增。
+设计机械检查：impeccable detect --json 对两处 View 返回 []。
+
+最终完整 iOS：xcodebuild test（以上公共参数）-resultBundlePath /tmp/potato-93-verified.xcresult
+66 项测试、含参数化共 96 例通过，0 失败/跳过。最终源代码包含保存故障展示修复。
+Swift Testing 51 项、XCTest 呈现/快照 6 项、原生界面 9 项。
+机器汇总 test-summary.json，原始输出 verified.log.gz。

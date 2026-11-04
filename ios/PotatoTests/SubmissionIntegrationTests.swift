@@ -1,5 +1,5 @@
 import Foundation
-import SessionKit
+@testable import SessionKit
 import Testing
 
 @MainActor
@@ -131,6 +131,80 @@ struct SubmissionIntegrationTests {
             #expect(reopened.pendingSubmission == nil)
         }
         #expect(try await modelCount() - before == 1)
+    }
+
+    @Test func desktopTurnStopsOnlyAfterExternalReturnAndForegroundRestoresSavedResults() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        let clock = PollClock()
+        let phone: any SessionAccess = try SharedSessions(databaseURL: directory.appending(path: "phone.sqlite"),
+            http: SessionHTTP(), wait: { try await clock.wait($0) })
+        let desktop: any SessionAccess = try SharedSessions(databaseURL: directory.appending(path: "desktop.sqlite"))
+        let address = "https://localhost:18494"
+        try phone.configure(address: address)
+        try desktop.configure(address: address)
+        _ = try await desktop.refresh()
+        try await control("arm")
+        let original = try await desktop.submit(input: "电脑发起的在途调用", sessionID: nil)
+        try await control("entered", method: "GET")
+        phone.watchConversation(sessionID: original.sessionID)
+        phone.setForeground(true)
+        _ = await clock.nextInterval()
+        let target = try #require(phone.stopTarget)
+        #expect(target.turnID == original.turnID)
+        #expect(phone.service?.accepting == true)
+        #expect(!phone.canSubmit)
+        try await phone.stop(target: target)
+        _ = try await phone.refresh()
+        #expect(phone.service?.activeTurnID == original.turnID)
+        #expect(phone.service?.stopping == true)
+        #expect(phone.stopState == .waiting(target))
+        await #expect(throws: SessionFailure.busy) { try await phone.submit(input: "不可排队", sessionID: nil) }
+        var busyRequest = URLRequest(url: URL(string: address + "/api/turns")!)
+        busyRequest.httpMethod = "POST"
+        busyRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        busyRequest.httpBody = Data("{\"input\":\"电脑也不能抢占停止中的名额\"}".utf8)
+        let (_, busyResponse) = try await URLSession.shared.data(for: busyRequest)
+        #expect((busyResponse as? HTTPURLResponse)?.statusCode == 409)
+        phone.setForeground(false)
+        await clock.advance()
+        try await control("release")
+        try await waitForCompletion(desktop)
+        #expect(phone.conversation?.turns.first?.status == "running")
+        phone.setForeground(true)
+        _ = await clock.nextInterval()
+        #expect(phone.canSubmit)
+        #expect(phone.conversation?.turns.first?.reason == "user_stop")
+        #expect(phone.conversation?.turns.first?.status == "terminated")
+        phone.setForeground(false)
+        await clock.advance()
+
+        try await control("arm")
+        let next = try await desktop.submit(input: "电脑继续，手机锁屏后完成", sessionID: original.sessionID)
+        try await control("entered", method: "GET")
+        // 捕获的原目标已经结束；真实后端不得停止后来开始的轮次。
+        try await phone.stop(target: target)
+        _ = try await phone.refresh()
+        #expect(phone.service?.activeTurnID == next.turnID)
+        #expect(phone.service?.stopping == false)
+        let draft = try phone.saveDraft(input: "离线文字不自动排队", scope: phone.draft(sessionID: next.sessionID).scope)
+        try await control("release")
+        try await waitForCompletion(desktop)
+        phone.setForeground(true)
+        _ = await clock.nextInterval()
+        #expect(phone.conversation?.turns.count == 2)
+        #expect(phone.conversation?.turns.last?.status == "completed")
+        #expect(phone.conversation?.turns.last?.answer?.hasSuffix("回答全文结尾") == true)
+        #expect(try phone.draft(sessionID: next.sessionID) == draft)
+        #expect(try await desktop.history(sessionID: next.sessionID) == phone.conversation)
+        phone.setForeground(false)
+        await clock.advance()
+    }
+
+    private func control(_ action: String, method: String = "POST") async throws {
+        var request = URLRequest(url: URL(string: "https://localhost:18494/__test__/" + action)!)
+        request.httpMethod = method
+        let (_, response) = try await URLSession.shared.data(for: request)
+        #expect((response as? HTTPURLResponse)?.statusCode == 200)
     }
 
     private func forwardIdentity(_ fixture: HTTPFixture) async throws {

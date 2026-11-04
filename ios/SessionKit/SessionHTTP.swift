@@ -31,6 +31,18 @@ struct SessionHTTP {
         try await submissionResult(pending, lookup: true)
     }
 
+    func stop(_ target: StopTarget) async throws {
+        let request = session.request(target.serverAddress + "/api/turns/" + target.turnID + "/stop", method: .post)
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let response = await request.serializingDecodable(WireStop.self, decoder: decoder).response
+        try Task.checkCancellation()
+        guard response.response?.statusCode == 200, case .success(let result) = response.result,
+              result.schemaVersion == 1, result.turnId == target.turnID else {
+            throw SessionFailure.stopUnknown
+        }
+    }
+
     func submit(_ pending: PendingSubmission) async throws -> WireReceipt {
         guard let result = try await submissionResult(pending, lookup: false) else {
             throw SessionFailure.submissionUnknown
@@ -72,6 +84,13 @@ struct SessionHTTP {
         default: throw SessionFailure.submissionUnknown
         }
     }
+}
+
+private struct WireStop: Decodable, Sendable {
+    let schemaVersion: Int
+    let turnId: String
+    let status: String
+    let stopping: Bool
 }
 
 private struct WireSubmission: Encodable, Sendable {

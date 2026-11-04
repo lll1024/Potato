@@ -24,6 +24,7 @@ public enum SessionFailure: Error, LocalizedError, Equatable, Sendable {
     case submissionDeleted
     case draftSaveFailed
     case draftLoadFailed
+    case stopUnknown
 
     public var errorDescription: String? {
         switch self {
@@ -43,6 +44,7 @@ public enum SessionFailure: Error, LocalizedError, Equatable, Sendable {
         case .submissionConflict: "提交身份与服务记录冲突，请保留输入并核对原提交。"
         case .draftSaveFailed: "草稿尚未保存到本机，请保留输入并重试保存。"
         case .draftLoadFailed: "无法读取本机草稿，请重试读取后继续编辑。"
+        case .stopUnknown: "暂时无法确认停止请求是否送达，请刷新核对原轮次。"
         }
     }
 }
@@ -67,11 +69,29 @@ public protocol SessionAccess: AnyObject {
     var canRetrySubmission: Bool { get }
     func watchConversation(sessionID: String?)
     func setForeground(_ active: Bool)
+    var stopTarget: StopTarget? { get }
+    var stopState: StopState { get }
+    func stop(target: StopTarget) async throws
     func draft(sessionID: String?) throws -> SessionDraft
     func saveDraft(input: String, scope: DraftScope) throws -> SessionDraft
     func moveDraft(_ draft: SessionDraft, input: String, to sessionID: String) throws -> SessionDraft
     func canSubmit(draft: SessionDraft) -> Bool
     func submit(draft: SessionDraft) async throws -> SubmissionReceipt
+}
+
+/// 用户操作时捕获的目标；导航和后来的活动轮次不会改写它。
+public struct StopTarget: Equatable, Sendable {
+    public let serverAddress: String
+    public let streamID: String
+    public let sessionID: String
+    public let turnID: String
+}
+
+public enum StopState: Equatable, Sendable {
+    case idle
+    case requesting(StopTarget)
+    case waiting(StopTarget)
+    case uncertain(StopTarget)
 }
 
 public struct DraftScope: Equatable, Sendable, Codable {

@@ -6,6 +6,35 @@ import XCTest
 
 @MainActor
 final class SnapshotTests: XCTestCase {
+    func testStorageFailureStaysVisibleBesideUnknownSubmission() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: directory.appending(path: "client.sqlite"))
+        let load = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: "{\"schema_version\":1,\"stream_id\":\"dataset\",\"accepting\":true,\"stopping\":false}")
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        _ = try await load.value
+        let send = Task { try await sessions.submit(input: "保留未知提交", sessionID: nil) }
+        await fixture.next().fail()
+        _ = try? await send.value
+        let refresh = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: """
+            {"schema_version":1,"stream_id":"dataset","accepting":false,"stopping":false,
+             "storage_error":"轮次结果未保存","unsaved_fact":{"kind":"turn.finished","turn_id":"turn"}}
+            """)
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().fail()
+        _ = try await refresh.value
+        XCTAssertEqual(sessions.submission, .unknown)
+        XCTAssertFalse(sessions.canSubmit)
+        let list = SessionListPresenter(interactor: SessionListInteractor(sessions: sessions), router: SessionListRouter())
+        let conversation = ConversationPresenter(session: nil, interactor: ConversationInteractor(sessions: sessions),
+            router: ConversationRouter(parent: SessionListRouter()))
+        XCTAssertNotNil(list.recovery.message)
+        XCTAssertNotNil(conversation.recovery.message)
+        XCTAssertEqual(list.serviceMessage, "轮次结果未保存")
+        XCTAssertEqual(conversation.serviceMessage, "轮次结果未保存")
+    }
+
     func testUnconfirmedConversationDarkLargeText() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: directory.appending(path: "client.sqlite"))
@@ -30,6 +59,45 @@ final class SnapshotTests: XCTestCase {
             as: .wait(for: 1, on: .image(on: .iPhone13, drawHierarchyInKeyWindow: true,
                                         traits: UITraitCollection(userInterfaceStyle: .dark))),
             named: "unconfirmed-dark-accessibility3")
+    }
+
+    func testDesktopRunning() async throws { try await assertExecutionSnapshot(stopping: false) }
+    func testStoppingDarkLargeText() async throws { try await assertExecutionSnapshot(stopping: true) }
+
+    private func assertExecutionSnapshot(stopping: Bool, file: StaticString = #filePath,
+                                         testName: String = #function, line: UInt = #line) async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: directory.appending(path: "client.sqlite"))
+        let load = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: """
+            {"schema_version":1,"stream_id":"dataset","active_session_id":"desktop-session",
+             "active_turn_id":"desktop-turn","accepting":true,"stopping":false}
+            """)
+        await fixture.next().reply(body: """
+            {"schema_version":1,"sessions":[{"session_id":"desktop-session","title":"杭州两日旅行","updated_at":"now"}]}
+            """)
+        _ = try await load.value
+        if stopping {
+            let target = try XCTUnwrap(sessions.stopTarget)
+            let stop = Task { try await sessions.stop(target: target) }
+            await fixture.next().reply(body: """
+                {"schema_version":1,"turn_id":"desktop-turn","status":"running","stopping":true}
+                """)
+            try await stop.value
+        }
+        let controller = UIHostingController(rootView: SessionListView(sessions: sessions)
+            .environment(\.locale, Locale(identifier: "zh_CN"))
+            .environment(\.dynamicTypeSize, stopping ? .accessibility3 : .large)
+            .preferredColorScheme(stopping ? .dark : .light))
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        window.rootViewController = controller
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true; window.rootViewController = nil }
+        assertSnapshot(of: controller,
+            as: .wait(for: 1, on: .image(on: .iPhone13, drawHierarchyInKeyWindow: true,
+                traits: UITraitCollection(userInterfaceStyle: stopping ? .dark : .light))),
+            named: stopping ? "stopping-dark-accessibility3" : "desktop-running-light",
+            file: file, testName: testName, line: line)
     }
 
     // 截图工具可能短暂保留视图；临时数据库随测试容器清理，不删除仍打开的文件。

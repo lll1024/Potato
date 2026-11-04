@@ -190,6 +190,80 @@ final class NavigationTests: XCTestCase {
         replaceInput(input, text: "")
     }
 
+    func testCrossDeviceStopSurvivesNavigationAndBackgroundCompletion() async throws {
+        let address = "https://localhost:18494"
+        func request(_ path: String, method: String = "POST", body: [String: String]? = nil) async throws -> [String: Any] {
+            var request = URLRequest(url: URL(string: address + path)!)
+            request.httpMethod = method
+            if let body {
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            }
+            let (data, response) = try await URLSession.shared.data(for: request)
+            XCTAssertTrue([200, 202].contains((response as? HTTPURLResponse)?.statusCode ?? 0))
+            return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        }
+        _ = try await request("/__test__/arm")
+        let first = try await request("/api/turns", body: ["input": "跨设备状态交互"])
+        let sessionID = try XCTUnwrap(first["session_id"] as? String)
+        _ = try await request("/__test__/entered", method: "GET")
+        let app = XCUIApplication()
+        app.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        configure(app, address: address)
+        XCTAssertTrue(app.staticTexts["已连接"].waitForExistence(timeout: 10))
+        app.buttons["done-connection"].tap()
+        XCTAssertTrue(app.buttons["stop-turn"].waitForExistence(timeout: 5))
+        let row = app.buttons.matching(identifier: "open-session")
+            .matching(NSPredicate(format: "label CONTAINS %@", "跨设备状态交互")).firstMatch
+        row.tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        replaceInput(input, text: "手机草稿")
+        XCTAssertFalse(app.buttons["send-input"].isEnabled)
+        app.buttons["stop-turn"].tap()
+        let stopping = app.staticTexts["正在停止，等待外部调用和保存收束。输入不会自动排队。"]
+        XCTAssertTrue(stopping.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["send-input"].isEnabled)
+        attach(app, name: "对话等待真实停止收束")
+        app.navigationBars.buttons["助手会话"].tap()
+        XCTAssertTrue(stopping.waitForExistence(timeout: 5))
+        attach(app, name: "列表保持全局停止状态")
+        _ = try await request("/__test__/release")
+        row.tap()
+        XCTAssertTrue(app.staticTexts["本轮已停止。"].waitForExistence(timeout: 10))
+        let sendReady = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: app.buttons["send-input"])
+        await fulfillment(of: [sendReady], timeout: 5)
+        _ = try await request("/__test__/arm")
+        _ = try await request("/api/turns", body: ["input": "锁屏期间保存完整回答", "session_id": sessionID])
+        _ = try await request("/__test__/entered", method: "GET")
+        XCTAssertTrue(app.buttons["stop-turn"].waitForExistence(timeout: 10))
+        XCUIDevice.shared.press(.home)
+        _ = try await request("/__test__/release")
+        for _ in 0..<100 {
+            let snapshot = try await request("/api/snapshot", method: "GET")
+            if snapshot["active_turn_id"] is NSNull { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        app.activate()
+        XCTAssertTrue(app.staticTexts["回答全文结尾"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["你的输入：锁屏期间保存完整回答"].exists)
+        XCTAssertEqual(input.value as? String, "手机草稿")
+        attach(app, name: "返回前台补齐完整回答")
+        _ = try await request("/__test__/arm")
+        _ = try await request("/api/turns", body: ["input": "长回答之后停止", "session_id": sessionID])
+        _ = try await request("/__test__/entered", method: "GET")
+        XCTAssertTrue(app.buttons["stop-turn"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["stop-turn"].isHittable)
+        attach(app, name: "长历史底部仍可停止")
+        app.buttons["stop-turn"].tap()
+        XCTAssertTrue(stopping.waitForExistence(timeout: 5))
+        _ = try await request("/__test__/release")
+        let readyAgain = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: app.buttons["send-input"])
+        await fulfillment(of: [readyAgain], timeout: 10)
+        replaceInput(input, text: "")
+    }
+
     private func replaceInput(_ field: XCUIElement, text: String) {
         field.tap()
         field.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()

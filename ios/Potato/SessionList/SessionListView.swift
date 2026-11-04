@@ -31,8 +31,15 @@ struct SessionListView: View {
                     List {
                         Section {
                             ConnectionIndicator(state: presenter.connection)
-                            if presenter.recovery.message == nil, let message = presenter.serviceMessage {
+                            if let message = presenter.serviceMessage {
                                 Text(message).foregroundStyle(.secondary)
+                            }
+                            if let target = presenter.stopTarget {
+                                Button("停止当前轮次", role: .destructive) {
+                                    Task { await presenter.stop(target: target) }
+                                }
+                                .frame(minHeight: 44)
+                                .accessibilityIdentifier("stop-turn")
                             }
                         }
                         if presenter.recovery.pending != nil || presenter.recovery.accepted != nil {

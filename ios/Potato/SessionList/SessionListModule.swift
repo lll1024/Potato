@@ -8,6 +8,11 @@ struct SessionListInteractor {
     var connection: ConnectionState { sessions.connection }
     var list: SessionList? { sessions.sessionList }
     var execution: ExecutionState { ExecutionState(sessions) }
+    var stopTarget: StopTarget? { sessions.stopTarget }
+    func stop(target: StopTarget) async {
+        try? await sessions.stop(target: target)
+        _ = try? await sessions.refresh()
+    }
     var recovery: SubmissionRecoveryPresentation { SubmissionRecoveryPresentation(sessions) }
     func checkSubmission() async { try? await sessions.reconcileSubmission() }
     func retrySubmission() async { _ = try? await sessions.retrySubmission() }
@@ -34,6 +39,8 @@ final class SessionListPresenter {
     }
     var connection: ConnectionState { interactor.connection }
     var serviceMessage: String? { executionMessage(interactor.execution) }
+    var stopTarget: StopTarget? { interactor.stopTarget }
+    func stop(target: StopTarget) async { await interactor.stop(target: target) }
     var recovery: SubmissionRecoveryPresentation { interactor.recovery }
     func checkSubmission() async { await interactor.checkSubmission() }
     func retrySubmission() async { await interactor.retrySubmission() }

@@ -72,6 +72,36 @@ struct ConnectionFailureTests {
         #expect(sessions.service?.streamID == "old-dataset")
     }
 
+    @Test func lateHistoryFailureCannotReplaceNewerGlobalConnection() async throws {
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file)
+        sessions.watchConversation(sessionID: "existing")
+        let old = Task { try await sessions.history(sessionID: "existing") }
+        let delayed = await fixture.next()
+        let latest = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: Self.snapshot)
+        await fixture.next().reply(body: Self.emptyList)
+        _ = try await latest.value
+        delayed.fail()
+        await #expect(throws: SessionFailure.obsolete) { try await old.value }
+        #expect(sessions.connection == .connected)
+        #expect(sessions.conversationFailure == nil)
+    }
+
+    @Test func lateListFailureCannotReplaceNewerHistoryConnection() async throws {
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file)
+        let old = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: Self.snapshot)
+        let delayed = await fixture.next()
+        let history = Task { try await sessions.history(sessionID: "existing") }
+        await fixture.next().reply(body: Self.page)
+        _ = try await history.value
+        delayed.fail()
+        await #expect(throws: SessionFailure.unreachable) { try await old.value }
+        #expect(sessions.connection == .connected)
+    }
+
     @Test(arguments: [200, 503])
     func invalidResponseNeverBecomesEmptyHistory(status: Int) async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)

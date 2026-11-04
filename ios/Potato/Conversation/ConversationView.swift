@@ -66,6 +66,17 @@ struct ConversationView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
+                if let target = presenter.stopTarget {
+                    Button(role: .destructive) {
+                        Task { await presenter.stop(target: target) }
+                    } label: {
+                        Image(systemName: "stop.circle")
+                    }
+                    .accessibilityLabel("停止当前轮次")
+                    .accessibilityIdentifier("stop-turn")
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 Button("连接配置", systemImage: "gearshape", action: presenter.router.configureConnection)
                     .accessibilityIdentifier("connection-settings")
             }
@@ -76,7 +87,7 @@ struct ConversationView: View {
         .onChange(of: presenter.submissionState) { presenter.submissionChanged() }
         .safeAreaInset(edge: .bottom) {
             VStack(alignment: .leading, spacing: 10) {
-                if presenter.recovery.message == nil, let message = presenter.serviceMessage {
+                if let message = presenter.serviceMessage {
                     Text(message).font(.footnote).foregroundStyle(.secondary)
                         .accessibilityIdentifier("execution-message")
                 }

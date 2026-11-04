@@ -53,6 +53,25 @@ async def submission_resources():
     yield Runtime(cast(AsyncAnthropic, SubmissionModel()), tools, "test-model")
 
 
+class LifecycleModel(SubmissionModel):
+    """只挂起实际模型调用；停止、保存及全局名额由真实后端负责。"""
+    def __init__(self):
+        super().__init__()
+        self.entered = asyncio.Event()
+        self.release = asyncio.Event()
+        self.hold_next = False
+
+    async def create(self, **kwargs):
+        if not kwargs["system"].startswith("旅行者偏好提取") and self.hold_next:
+            self.hold_next = False
+            self.entered.set()
+            await self.release.wait()
+            self.requests.append(kwargs)
+            return response([{"type": "tool_use", "id": "held-query", "name": "maps_text_search",
+                              "input": {"keywords": "西湖", "city": "杭州"}}], "tool_use")
+        return await super().create(**kwargs)
+
+
 async def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cert", required=True)
@@ -63,6 +82,7 @@ async def main():
         tasks = []
         clock = Clock()
         recovery_model = SubmissionModel()
+        lifecycle_model = LifecycleModel()
 
         @asynccontextmanager
         async def recovery_resources():
@@ -70,7 +90,13 @@ async def main():
             await tools.discover()
             yield Runtime(cast(AsyncAnthropic, recovery_model), tools, "test-model")
 
-        for name, port in (("populated", 18489), ("empty", 18490), ("submissions", 18492), ("recovery", 18493)):
+        @asynccontextmanager
+        async def lifecycle_resources():
+            tools = Retrieval(cast(Client, MapService()))
+            await tools.discover()
+            yield Runtime(cast(AsyncAnthropic, lifecycle_model), tools, "test-model")
+
+        for name, port in (("populated", 18489), ("empty", 18490), ("submissions", 18492), ("recovery", 18493), ("lifecycle", 18494)):
             app = (create_app(Path(directory) / name, resources=submission_resources,
                               preference_clock=clock, preference_wait=clock.wait)
                    if name == "submissions" else create_app(Path(directory) / name, resources=resources))
@@ -82,6 +108,28 @@ async def main():
                 async def model_count():
                     return {"count": sum(not request["system"].startswith("旅行者偏好提取")
                                          for request in recovery_model.requests)}
+
+            if name == "lifecycle":
+                app = create_app(Path(directory) / name, resources=lifecycle_resources,
+                                 static_dir=Path(directory) / "no-static")
+
+                @app.post("/__test__/arm")
+                async def arm():
+                    lifecycle_model.entered.clear()
+                    lifecycle_model.release.clear()
+                    lifecycle_model.hold_next = True
+                    return {"armed": True}
+
+                @app.get("/__test__/entered")
+                async def entered():
+                    async with asyncio.timeout(10):
+                        await lifecycle_model.entered.wait()
+                    return {"entered": True}
+
+                @app.post("/__test__/release")
+                async def release():
+                    lifecycle_model.release.set()
+                    return {"released": True}
 
             if name == "submissions":
                 delay_next_history = False
@@ -138,7 +186,7 @@ async def main():
                         await asyncio.sleep(.01)
                 preferences = (await client.get("/api/preferences")).json()["preferences"]
                 assert preferences[0]["content"] == "不吃辣"
-            print("READY https://localhost:18489 ; EMPTY https://localhost:18490 ; SUBMISSIONS https://localhost:18492 ; RECOVERY https://localhost:18493", flush=True)
+            print("READY https://localhost:18489 ; EMPTY https://localhost:18490 ; SUBMISSIONS https://localhost:18492 ; RECOVERY https://localhost:18493 ; LIFECYCLE https://localhost:18494", flush=True)
             await asyncio.gather(*tasks)
         finally:
             for server in servers:

@@ -8,6 +8,11 @@ struct ConversationInteractor {
     var page: ConversationPage? { sessions.conversation }
     var canSubmit: Bool { sessions.canSubmit }
     var execution: ExecutionState { ExecutionState(sessions) }
+    var stopTarget: StopTarget? { sessions.stopTarget }
+    func stop(target: StopTarget) async {
+        try? await sessions.stop(target: target)
+        _ = try? await sessions.refresh()
+    }
     var readFailure: SessionFailure? { sessions.conversationFailure }
     var recovery: SubmissionRecoveryPresentation { SubmissionRecoveryPresentation(sessions) }
     func checkSubmission() async { try? await sessions.reconcileSubmission() }
@@ -83,6 +88,8 @@ final class ConversationPresenter {
         }
     }
     var recovery: SubmissionRecoveryPresentation { interactor.recovery }
+    var stopTarget: StopTarget? { interactor.stopTarget }
+    func stop(target: StopTarget) async { await interactor.stop(target: target) }
     func checkSubmission() async { await interactor.checkSubmission() }
     func retrySubmission() async { await interactor.retrySubmission() }
     func openSubmission() async {
