@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		08734ED92EFCC164170BDD93 /* HTTPFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA23BD746BDFE0B66468FBD0 /* HTTPFixture.swift */; };
+		0DD33F94CA5BC709B7311220 /* RecoveryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D7B478D7859C5CED513E1C6 /* RecoveryTests.swift */; };
 		0E290896B5E7729B64B8C9DF /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 81EE37929AE709F85115B131 /* Alamofire */; };
 		126264855465CEC52125F68D /* SessionKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1F12F1A7E9D4E54F2066F779 /* SessionKit.framework */; };
 		12C78A859FDA64752F54F759 /* SessionAccessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4B42607073E8BC2FDEFCEC6 /* SessionAccessTests.swift */; };
@@ -17,6 +18,7 @@
 		35DBC8C9ED6F8D6099921B3C /* SubmissionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC95E0F5D6822A5263531074 /* SubmissionTests.swift */; };
 		38B119F345F910C28FD4D18F /* PotatoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC39691C961D05C4358B04C1 /* PotatoApp.swift */; };
 		40520861A3333A1E0816A0F8 /* DraftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3E8E544C4461754ADFCB41D /* DraftTests.swift */; };
+		4142AB1ED39AB322181E2284 /* SubmissionRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53634F5632962D61FF5CAA9C /* SubmissionRecoveryView.swift */; };
 		4B0576DA10975648C63A7BCF /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 9C7B07A254CFCB9FB1490D93 /* MarkdownUI */; };
 		55FD90207AC71433DCD028B2 /* AppAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = C309A0852F951F7C407A311D /* AppAssembly.swift */; };
 		580EED0D1D87184CDF3E65B4 /* SessionHTTP.swift in Sources */ = {isa = PBXBuildFile; fileRef = F920E6CEA26FE73CD3A9D561 /* SessionHTTP.swift */; };
@@ -110,10 +112,12 @@
 		3A21885D6029A9DC5C1E2C2F /* PotatoTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PotatoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3D83DF7CC9EBCB4BBEEC463C /* ConversationModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationModule.swift; sourceTree = "<group>"; };
 		3E80DF84817EA6D7880E4CDB /* testUnconfiguredDarkLargeText.unconfigured-dark-accessibility3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "testUnconfiguredDarkLargeText.unconfigured-dark-accessibility3.png"; sourceTree = "<group>"; };
+		53634F5632962D61FF5CAA9C /* SubmissionRecoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubmissionRecoveryView.swift; sourceTree = "<group>"; };
 		5AC4CC5B82DC31217A006A01 /* SnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotTests.swift; sourceTree = "<group>"; };
 		6193982CEE3ADE055CBF23FA /* SessionAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionAccess.swift; sourceTree = "<group>"; };
 		64784441C0F77168E1D950EE /* ConnectionSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionSettingsView.swift; sourceTree = "<group>"; };
 		68F0A7176A018E3F19BBBB7C /* PotatoUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PotatoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		8D7B478D7859C5CED513E1C6 /* RecoveryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryTests.swift; sourceTree = "<group>"; };
 		A25711BEB867B475BEF9915A /* SharedSessions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedSessions.swift; sourceTree = "<group>"; };
 		A3B450CBEB977BECCBA76394 /* Potato.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Potato.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A58251A28FDB6C0E66251B43 /* ConnectionFailureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionFailureTests.swift; sourceTree = "<group>"; };
@@ -172,6 +176,7 @@
 				E3E8E544C4461754ADFCB41D /* DraftTests.swift */,
 				EA23BD746BDFE0B66468FBD0 /* HTTPFixture.swift */,
 				DBF78D2848C275E194DBACC6 /* PollingTests.swift */,
+				8D7B478D7859C5CED513E1C6 /* RecoveryTests.swift */,
 				F4B42607073E8BC2FDEFCEC6 /* SessionAccessTests.swift */,
 				5AC4CC5B82DC31217A006A01 /* SnapshotTests.swift */,
 				D28F43C20AFE98F94B82DD3D /* SubmissionIntegrationTests.swift */,
@@ -237,6 +242,7 @@
 			children = (
 				08A32F860D5AF2D0197DC093 /* ConnectionIndicator.swift */,
 				2D35E10B740375209105483D /* ExecutionMessage.swift */,
+				53634F5632962D61FF5CAA9C /* SubmissionRecoveryView.swift */,
 			);
 			path = Presentation;
 			sourceTree = "<group>";
@@ -456,6 +462,7 @@
 				38B119F345F910C28FD4D18F /* PotatoApp.swift in Sources */,
 				BEA1022E779B087364CD613F /* SessionListModule.swift in Sources */,
 				978F9E12207D8FE5C064B639 /* SessionListView.swift in Sources */,
+				4142AB1ED39AB322181E2284 /* SubmissionRecoveryView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -485,6 +492,7 @@
 				40520861A3333A1E0816A0F8 /* DraftTests.swift in Sources */,
 				08734ED92EFCC164170BDD93 /* HTTPFixture.swift in Sources */,
 				AB4C2E99B03A07B8300B6892 /* PollingTests.swift in Sources */,
+				0DD33F94CA5BC709B7311220 /* RecoveryTests.swift in Sources */,
 				12C78A859FDA64752F54F759 /* SessionAccessTests.swift in Sources */,
 				63DC893C1E4D6A9CF797E01F /* SnapshotTests.swift in Sources */,
 				298E817ACF2C27B4232B9581 /* SubmissionIntegrationTests.swift in Sources */,

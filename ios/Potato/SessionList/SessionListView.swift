@@ -31,8 +31,14 @@ struct SessionListView: View {
                     List {
                         Section {
                             ConnectionIndicator(state: presenter.connection)
-                            if let message = presenter.serviceMessage {
+                            if presenter.recovery.message == nil, let message = presenter.serviceMessage {
                                 Text(message).foregroundStyle(.secondary)
+                            }
+                        }
+                        if presenter.recovery.pending != nil || presenter.recovery.accepted != nil {
+                            Section {
+                                SubmissionRecoveryView(presentation: presenter.recovery, check: presenter.checkSubmission,
+                                    retry: presenter.retrySubmission, open: presenter.openSubmission)
                             }
                         }
                         content

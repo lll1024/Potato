@@ -2,6 +2,84 @@ import XCTest
 
 @MainActor
 final class NavigationTests: XCTestCase {
+    func testRestartRecoversOriginalSubmissionAndOpensSavedConversation() async throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        configure(app, address: "https://localhost:18492")
+        XCTAssertTrue(app.staticTexts["已连接"].waitForExistence(timeout: 10))
+        app.buttons["done-connection"].tap()
+        app.buttons["new-conversation"].tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        replaceInput(input, text: "重启核对原提交")
+        app.buttons["send-input"].tap()
+        XCTAssertTrue(app.staticTexts["正在发送，等待电脑确认接受。"].waitForExistence(timeout: 5))
+        app.terminate()
+        app.launch()
+        let recovered = app.buttons["open-recovered-submission"]
+        XCTAssertTrue(recovered.waitForExistence(timeout: 10))
+        attach(app, name: "重启核对并恢复原提交")
+        var delay = URLRequest(url: URL(string: "https://localhost:18492/__test__/delay-history")!)
+        delay.httpMethod = "POST"
+        _ = try await URLSession.shared.data(for: delay)
+        app.buttons["open-recovered-submission"].tap()
+        app.buttons["new-conversation"].tap()
+        XCTAssertTrue(app.navigationBars["新建会话"].waitForExistence(timeout: 5))
+        let noReplacement = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == true"),
+            object: app.staticTexts["你的输入：重启核对原提交"])
+        noReplacement.isInverted = true
+        await fulfillment(of: [noReplacement], timeout: 6)
+        app.navigationBars.buttons["助手会话"].tap()
+        recovered.tap()
+        XCTAssertTrue(app.staticTexts["你的输入：重启核对原提交"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["回答全文结尾"].waitForExistence(timeout: 10))
+        XCTAssertEqual(input.value as? String, "")
+        attach(app, name: "原会话完整回答")
+        app.navigationBars.buttons["助手会话"].tap()
+        let (data, _) = try await URLSession.shared.data(from: URL(string: "https://localhost:18492/api/sessions")!)
+        let list = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let rows = try XCTUnwrap(list["sessions"] as? [[String: Any]])
+        let original = try XCTUnwrap(rows.first { $0["title"] as? String == "重启核对原提交" })
+        let sessionID = try XCTUnwrap(original["session_id"] as? String)
+        var deleting = URLRequest(url: URL(string: "https://localhost:18492/api/sessions/" + sessionID)!)
+        deleting.httpMethod = "DELETE"
+        _ = try await URLSession.shared.data(for: deleting)
+        app.buttons["open-recovered-submission"].tap()
+        XCTAssertTrue(app.staticTexts["会话不存在，可能已在电脑端删除。请返回列表刷新。"].waitForExistence(timeout: 5))
+    }
+
+    func testLongRetainedInputKeepsRecoveryActionsAndComposerReachable() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        configure(app, address: "https://localhost:18492")
+        XCTAssertTrue(app.staticTexts["已连接"].waitForExistence(timeout: 10))
+        app.buttons["done-connection"].tap()
+        app.buttons["new-conversation"].tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        let original = "长原文核对" + String(repeating: "杭州两日旅行，保留完整要求。", count: 20) + "原文结尾"
+        replaceInput(input, text: original)
+        app.buttons["send-input"].tap()
+        let disclosure = app.buttons["保留的待确认输入"]
+        XCTAssertTrue(disclosure.waitForExistence(timeout: 5))
+        disclosure.tap()
+        let check = app.buttons["check-submission"]
+        for _ in 0..<5 {
+            if check.isHittable { break }
+            app.scrollViews.firstMatch.swipeUp()
+        }
+        XCTAssertTrue(check.isHittable)
+        XCTAssertTrue(app.buttons["retry-submission"].isHittable)
+        XCTAssertTrue(input.isHittable)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label == %@", original)).firstMatch.exists)
+        attach(app, name: "长原文展开与恢复操作")
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.buttons["open-recovered-submission"].waitForExistence(timeout: 10))
+    }
+
     func testLateAcceptanceClearsOnlyOldDraftOnReopenedNewPage() {
         let app = XCUIApplication()
         app.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]

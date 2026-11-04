@@ -132,7 +132,7 @@ struct DraftTests {
         #expect(reopened.pendingSubmission?.input == "已经提交的原文")
         #expect(try reopened.draft(sessionID: "first").input == "离线继续编辑")
         try await connect(sessions, fixture)
-        #expect(await fixture.receivedCount == 6)
+        #expect(await fixture.receivedCount == 7)
         #expect(sessions.pendingSubmission?.input == "已经提交的原文")
         #expect(try sessions.draft(sessionID: "first").input == "离线继续编辑")
     }
@@ -251,11 +251,16 @@ struct DraftTests {
     }
 
     private func connect(_ sessions: any SessionAccess, _ fixture: HTTPFixture, dataset: String = "dataset") async throws {
+        let shouldCheck = sessions.pendingSubmission?.serverAddress == sessions.serverAddress &&
+            sessions.pendingSubmission?.streamID == dataset && sessions.submission != .sending
         let refresh = Task { try await sessions.refresh() }
         await fixture.next().reply(body: """
             {"schema_version":1,"stream_id":"\(dataset)","accepting":true,"stopping":false}
             """)
         await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        if shouldCheck {
+            await fixture.next().reply(status: 404, body: "{\"detail\":{\"code\":\"SUBMISSION_NOT_FOUND\"}}")
+        }
         _ = try await refresh.value
     }
 }

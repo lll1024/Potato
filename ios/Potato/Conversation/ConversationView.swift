@@ -16,6 +16,8 @@ struct ConversationView: View {
         ScrollViewReader { proxy in
           ScrollView {
             VStack(alignment: .leading, spacing: 28) {
+                SubmissionRecoveryView(presentation: presenter.recovery, check: presenter.checkSubmission,
+                    retry: presenter.retrySubmission, open: presenter.openSubmission)
                 switch presenter.content {
                 case .loading: ProgressView("正在读取对话").frame(maxWidth: .infinity)
                 case .failed(let message):
@@ -74,19 +76,13 @@ struct ConversationView: View {
         .onChange(of: presenter.submissionState) { presenter.submissionChanged() }
         .safeAreaInset(edge: .bottom) {
             VStack(alignment: .leading, spacing: 10) {
-                if let message = presenter.serviceMessage {
+                if presenter.recovery.message == nil, let message = presenter.serviceMessage {
                     Text(message).font(.footnote).foregroundStyle(.secondary)
                         .accessibilityIdentifier("execution-message")
                 }
                 if let message = presenter.sendMessage {
                     Text(message).font(.footnote).foregroundStyle(.secondary)
                         .accessibilityIdentifier("send-feedback")
-                }
-                if let input = presenter.pendingInput {
-                    DisclosureGroup("保留的待确认输入") {
-                        ScrollView { Text(input).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
-                            .frame(maxHeight: 120)
-                    }.font(.footnote)
                 }
                 if let message = presenter.draftMessage {
                     Text(message).font(.footnote)

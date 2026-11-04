@@ -9,7 +9,9 @@ struct ConversationInteractor {
     var canSubmit: Bool { sessions.canSubmit }
     var execution: ExecutionState { ExecutionState(sessions) }
     var readFailure: SessionFailure? { sessions.conversationFailure }
-    var pendingInput: String? { sessions.pendingSubmission?.input }
+    var recovery: SubmissionRecoveryPresentation { SubmissionRecoveryPresentation(sessions) }
+    func checkSubmission() async { try? await sessions.reconcileSubmission() }
+    func retrySubmission() async { _ = try? await sessions.retrySubmission() }
     var connection: ConnectionState { sessions.connection }
     var submission: SubmissionState { sessions.submission }
     func canSubmit(draft: SessionDraft) -> Bool { sessions.canSubmit(draft: draft) }
@@ -80,7 +82,21 @@ final class ConversationPresenter {
         case .connected: return message
         }
     }
-    var pendingInput: String? { interactor.pendingInput }
+    var recovery: SubmissionRecoveryPresentation { interactor.recovery }
+    func checkSubmission() async { await interactor.checkSubmission() }
+    func retrySubmission() async { await interactor.retrySubmission() }
+    func openSubmission() async {
+        guard let accepted = recovery.accepted else { return }
+        let navigation = router.navigationRevision
+        do {
+            let page = try await interactor.load(sessionID: accepted.sessionID)
+            guard recovery.accepted == accepted, isVisible, router.navigationRevision == navigation else { return }
+            router.open(page.session)
+        } catch {
+            guard isVisible, router.navigationRevision == navigation else { return }
+            sendMessage = error.localizedDescription
+        }
+    }
     var canSend: Bool {
         guard let savedDraft, draftError == nil, !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
         return interactor.canSubmit(draft: savedDraft)
@@ -195,6 +211,8 @@ final class ConversationPresenter {
 @MainActor
 struct ConversationRouter {
     let parent: SessionListRouter
+    var navigationRevision: Int { parent.navigationRevision }
     func backToList() { parent.backToList() }
+    func open(_ session: AssistantSession) { parent.open(session) }
     func configureConnection() { parent.configureConnection() }
 }

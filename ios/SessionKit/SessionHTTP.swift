@@ -27,15 +27,30 @@ struct SessionHTTP {
         }
     }
 
+    func lookup(_ pending: PendingSubmission) async throws -> WireReceipt? {
+        try await submissionResult(pending, lookup: true)
+    }
+
     func submit(_ pending: PendingSubmission) async throws -> WireReceipt {
+        guard let result = try await submissionResult(pending, lookup: false) else {
+            throw SessionFailure.submissionUnknown
+        }
+        return result
+    }
+
+    private func submissionResult(_ pending: PendingSubmission, lookup: Bool) async throws -> WireReceipt? {
         let parameters = WireSubmission(submission_id: pending.id, input: pending.input, session_id: pending.sessionID)
-        let response = await session.request(pending.serverAddress + "/api/turns", method: .post,
-            parameters: parameters, encoder: JSONParameterEncoder.default).serializingData().response
+        let request = lookup
+            ? session.request(pending.serverAddress + "/api/submissions/" + pending.id)
+            : session.request(pending.serverAddress + "/api/turns", method: .post,
+                parameters: parameters, encoder: JSONParameterEncoder.default)
+        let response = await request.serializingData().response
+        try Task.checkCancellation()
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         guard response.error == nil, let status = response.response?.statusCode,
               let data = response.data else { throw SessionFailure.submissionUnknown }
-        if status == 202 {
+        if status == (lookup ? 200 : 202) {
             guard let receipt = try? decoder.decode(WireReceipt.self, from: data), receipt.schemaVersion == 1,
                   receipt.submissionId == pending.id, !receipt.sessionId.isEmpty, !receipt.turnId.isEmpty,
                   pending.sessionID == nil || pending.sessionID == receipt.sessionId else {
@@ -47,6 +62,8 @@ struct SessionHTTP {
             throw SessionFailure.submissionUnknown
         }
         switch (status, error.detail.code) {
+        case (404, "SUBMISSION_NOT_FOUND") where lookup: return nil
+        case (410, "SUBMISSION_DELETED"): throw SessionFailure.submissionDeleted
         case (409, "BUSY"): throw SessionFailure.busy
         case (422, "INVALID_INPUT"): throw SessionFailure.invalidInput
         case (503, "SERVICE_UNAVAILABLE"), (503, "STORAGE_FAILURE"): throw SessionFailure.serviceUnavailable

@@ -24,6 +24,7 @@ public final class SharedSessions: SessionAccess {
     private var watchedSessionID: String?
     private var acceptanceNeedsRefresh = false
     private var acceptedAfterRefresh = 0
+    private var submissionOperation: UUID?
 
     public var canSubmit: Bool {
         connection == .connected && pendingSubmission == nil && submission != .sending && !acceptanceNeedsRefresh &&
@@ -109,6 +110,9 @@ public final class SharedSessions: SessionAccess {
         acceptanceNeedsRefresh = false
         datasetID = savedDataset
         configurationGeneration += 1
+        submissionOperation = nil
+        submission = pendingSubmission == nil ? .idle : .unknown
+        isolatePendingIfNeeded()
     }
 
     public func submit(input: String, sessionID: String?) async throws -> SubmissionReceipt {
@@ -130,31 +134,107 @@ public final class SharedSessions: SessionAccess {
             throw SessionFailure.localSaveFailed
         }
         pendingSubmission = pending
+        return try await sendPending(pending, retry: false)
+    }
+
+    private func sendPending(_ pending: PendingSubmission, retry: Bool) async throws -> SubmissionReceipt {
+        let operation = UUID()
+        submissionOperation = operation
         submission = .sending
         let configuration = configurationGeneration
         let dataset = datasetGeneration
+        defer { if submissionOperation == operation { submissionOperation = nil } }
         do {
             let wire = try await http.submit(pending)
-            guard configuration == configurationGeneration, dataset == datasetGeneration else {
+            guard configuration == configurationGeneration, dataset == datasetGeneration,
+                  submissionOperation == operation, pendingSubmission == pending else {
                 throw SessionFailure.submissionUnknown
             }
-            let receipt = SubmissionReceipt(request: pending, sessionID: wire.sessionId, turnID: wire.turnId)
-            try clearPending(accepted: pending)
-            submission = .accepted(receipt)
-            acceptanceNeedsRefresh = true
-            acceptedAfterRefresh = refreshGeneration
-            return receipt
+            return try accept(wire, pending: pending)
         } catch {
+            guard configuration == configurationGeneration, dataset == datasetGeneration,
+                  submissionOperation == operation, pendingSubmission == pending else {
+                throw SessionFailure.submissionUnknown
+            }
             let failure = error as? SessionFailure ?? .submissionUnknown
-            if configuration == configurationGeneration, dataset == datasetGeneration,
-               [.busy, .invalidInput, .serviceUnavailable, .http(404)].contains(failure) {
-                do { try clearPending() }
-                catch { submission = .unknown; throw SessionFailure.submissionUnknown }
+            if [.busy, .invalidInput, .serviceUnavailable, .http(404), .submissionDeleted, .submissionConflict].contains(failure) {
+                if !retry && failure != .submissionDeleted && failure != .submissionConflict {
+                    do { try clearPending() }
+                    catch { submission = .unknown; throw SessionFailure.submissionUnknown }
+                }
                 submission = .rejected(failure)
                 throw failure
             }
             submission = .unknown
             throw SessionFailure.submissionUnknown
+        }
+    }
+
+    private func accept(_ wire: WireReceipt, pending: PendingSubmission) throws -> SubmissionReceipt {
+        let receipt = SubmissionReceipt(request: pending, sessionID: wire.sessionId, turnID: wire.turnId)
+        try clearPending(accepted: pending)
+        submission = .accepted(receipt)
+        acceptanceNeedsRefresh = true
+        acceptedAfterRefresh = refreshGeneration
+        return receipt
+    }
+
+    private func isolatePendingIfNeeded() {
+        guard let pending = pendingSubmission else { return }
+        if pending.serverAddress != serverAddress || (datasetID != nil && pending.streamID != datasetID) {
+            submissionOperation = nil
+            submission = .isolated
+        }
+    }
+
+    public var canRetrySubmission: Bool {
+        submission == .notFound && submissionOperation == nil && connection == .connected &&
+        pendingSubmission?.serverAddress == serverAddress && pendingSubmission?.streamID == service?.streamID
+    }
+
+    public func reconcileSubmission() async throws {
+        guard submissionOperation == nil else { throw SessionFailure.busy }
+        _ = try await refresh()
+        switch submission {
+        case .accepted, .notFound, .idle: return
+        case .isolated: throw SessionFailure.obsolete
+        case .rejected(let failure): throw failure
+        default: throw SessionFailure.submissionUnknown
+        }
+    }
+
+    public func retrySubmission() async throws -> SubmissionReceipt {
+        guard canRetrySubmission, let pending = pendingSubmission else { throw SessionFailure.submissionUnknown }
+        // 用户确认后仍重新核对身份及接受记录；404 后原 POST 也可能尚在途。
+        try await reconcileSubmission()
+        if case .accepted(let receipt) = submission, receipt.request == pending { return receipt }
+        guard canRetrySubmission, pendingSubmission == pending else { throw SessionFailure.submissionUnknown }
+        return try await sendPending(pending, retry: true)
+    }
+
+    private func checkPending() async throws {
+        guard let pending = pendingSubmission, submissionOperation == nil else { return }
+        isolatePendingIfNeeded()
+        guard pending.serverAddress == serverAddress, pending.streamID == service?.streamID else { return }
+        let configuration = configurationGeneration
+        let dataset = datasetGeneration
+        let operation = UUID()
+        submissionOperation = operation
+        submission = .checking
+        defer { if submissionOperation == operation { submissionOperation = nil } }
+        do {
+            let wire = try await http.lookup(pending)
+            guard configuration == configurationGeneration, dataset == datasetGeneration,
+                  submissionOperation == operation, pendingSubmission == pending else { throw SessionFailure.obsolete }
+            if let wire { _ = try accept(wire, pending: pending) }
+            else { submission = .notFound }
+        } catch {
+            guard configuration == configurationGeneration, dataset == datasetGeneration,
+                  submissionOperation == operation, pendingSubmission == pending else { throw SessionFailure.obsolete }
+            let failure = error as? SessionFailure ?? .submissionUnknown
+            submission = [.submissionDeleted, .submissionConflict, .busy, .invalidInput, .serviceUnavailable].contains(failure)
+                ? .rejected(failure) : .unknown
+            throw failure
         }
     }
 
@@ -313,6 +393,9 @@ public final class SharedSessions: SessionAccess {
             try rememberDataset(snapshot.streamId)
             if let datasetID, datasetID != snapshot.streamId {
                 datasetGeneration += 1
+                submissionOperation = nil
+                submission = pendingSubmission == nil ? .idle : .unknown
+                acceptanceNeedsRefresh = false
                 conversation = nil
                 conversationFailure = nil
                 sessionList = nil
@@ -321,6 +404,7 @@ public final class SharedSessions: SessionAccess {
             datasetID = snapshot.streamId
             dataset = datasetGeneration
             service = snapshot.entity
+            isolatePendingIfNeeded()
             if refresh > acceptedAfterRefresh { acceptanceNeedsRefresh = false }
             let list = try await http.get(WireList.self, address: address, path: "/api/sessions",
                                           parameters: ["limit": "50"])
@@ -330,6 +414,9 @@ public final class SharedSessions: SessionAccess {
             connection = .connected
             let result = SessionList(sessions: list.sessions.map(\.entity), nextCursor: list.nextCursor)
             sessionList = result
+            try? await checkPending()
+            guard configuration == configurationGeneration, refresh == refreshGeneration,
+                  dataset == datasetGeneration else { throw SessionFailure.obsolete }
             return result
         } catch {
             guard configuration == configurationGeneration, refresh == refreshGeneration,
@@ -360,12 +447,16 @@ public final class SharedSessions: SessionAccess {
             if let datasetID, datasetID != page.streamId {
                 self.datasetID = page.streamId
                 datasetGeneration += 1
+                submissionOperation = nil
+                submission = pendingSubmission == nil ? .idle : .unknown
+                acceptanceNeedsRefresh = false
                 service = nil
                 conversation = nil
                 conversationFailure = nil
                 sessionList = nil
                 watchedSessionID = nil
                 connection = .connecting
+                isolatePendingIfNeeded()
                 throw SessionFailure.obsolete
             }
             datasetID = page.streamId

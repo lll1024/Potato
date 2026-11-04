@@ -21,6 +21,7 @@ public enum SessionFailure: Error, LocalizedError, Equatable, Sendable {
     case localSaveFailed
     case submissionUnknown
     case submissionConflict
+    case submissionDeleted
     case draftSaveFailed
     case draftLoadFailed
 
@@ -38,6 +39,7 @@ public enum SessionFailure: Error, LocalizedError, Equatable, Sendable {
         case .serviceUnavailable: "后端暂不接受输入，请检查服务与保存状态后重试。"
         case .localSaveFailed: "本机未能保存本次提交，尚未发送。请保留输入并检查可用存储。"
         case .submissionUnknown: "本次发送结果未知，原始输入已保留。请勿重复发送，后续需核对原提交。"
+        case .submissionDeleted: "本次提交曾被接受，但所属会话已删除，不会重新执行。原文仍保留在本机。"
         case .submissionConflict: "提交身份与服务记录冲突，请保留输入并核对原提交。"
         case .draftSaveFailed: "草稿尚未保存到本机，请保留输入并重试保存。"
         case .draftLoadFailed: "无法读取本机草稿，请重试读取后继续编辑。"
@@ -60,6 +62,9 @@ public protocol SessionAccess: AnyObject {
     func refresh() async throws -> SessionList
     func history(sessionID: String) async throws -> ConversationPage
     func submit(input: String, sessionID: String?) async throws -> SubmissionReceipt
+    func reconcileSubmission() async throws
+    func retrySubmission() async throws -> SubmissionReceipt
+    var canRetrySubmission: Bool { get }
     func watchConversation(sessionID: String?)
     func setForeground(_ active: Bool)
     func draft(sessionID: String?) throws -> SessionDraft
@@ -99,6 +104,9 @@ public struct SubmissionReceipt: Equatable, Sendable {
 public enum SubmissionState: Equatable, Sendable {
     case idle
     case sending
+    case checking
+    case notFound
+    case isolated
     case accepted(SubmissionReceipt)
     case unknown
     case rejected(SessionFailure)

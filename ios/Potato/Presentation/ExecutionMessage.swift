@@ -24,7 +24,12 @@ func executionMessage(_ sessions: ExecutionState) -> String? {
         if pending.serverAddress != sessions.serverAddress || pending.streamID != sessions.service?.streamID {
             return "仍保留另一服务或数据集的待确认输入，暂不能发送。请保留原输入并核对原提交。"
         }
-        return SessionFailure.submissionUnknown.localizedDescription
+        switch sessions.submission {
+        case .checking: return "正在核对原提交。"
+        case .notFound: return "尚未查到接受记录，可明确重试同一提交。"
+        case .rejected(let failure): return failure.localizedDescription
+        default: return SessionFailure.submissionUnknown.localizedDescription
+        }
     }
     if let service = sessions.service {
         if service.storageError != nil || service.unsavedFact != nil {

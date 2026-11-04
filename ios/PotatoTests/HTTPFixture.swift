@@ -7,9 +7,17 @@ actor HTTPFixture {
     private(set) var receivedCount = 0
     private var requests: [ControlledRequest] = []
     private var waiters: [CheckedContinuation<ControlledRequest, Never>] = []
+    private var replies: [(Int, String)] = []
+
+    func enqueue(status: Int = 200, body: String) { replies.append((status, body)) }
 
     func receive(_ request: ControlledRequest) {
         receivedCount += 1
+        if !replies.isEmpty {
+            let (status, body) = replies.removeFirst()
+            request.reply(status: status, body: body)
+            return
+        }
         if waiters.isEmpty { requests.append(request) }
         else { waiters.removeFirst().resume(returning: request) }
     }
@@ -19,17 +27,17 @@ actor HTTPFixture {
         return await withCheckedContinuation { waiters.append($0) }
     }
 
-    @MainActor static func client(databaseURL: URL,
+    @MainActor static func client(databaseURL: URL, address savedAddress: String? = nil,
         wait: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) async throws -> (any SessionAccess, HTTPFixture, String) {
         let fixture = HTTPFixture()
-        let host = UUID().uuidString.lowercased() + ".example.test"
+        let host = savedAddress.flatMap { URL(string: $0)?.host } ?? UUID().uuidString.lowercased() + ".example.test"
         await HTTPRegistry.shared.register(host: host, fixture: fixture)
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [ControlledURLProtocol.self]
         let sessions = try SharedSessions(databaseURL: databaseURL,
                                           http: SessionHTTP(session: Session(configuration: configuration)), wait: wait)
-        let address = "https://" + host
+        let address = savedAddress ?? "https://" + host
         try sessions.configure(address: address)
         return (sessions, fixture, address)
     }

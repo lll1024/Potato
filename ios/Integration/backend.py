@@ -12,6 +12,7 @@ sys.path[:0] = [str(ROOT), str(ROOT / "tests")]
 
 import httpx
 import uvicorn
+from fastapi.responses import JSONResponse
 from anthropic import AsyncAnthropic
 from mcp import Client
 from travel_app.retrieval import Retrieval
@@ -61,21 +62,48 @@ async def main():
         servers = []
         tasks = []
         clock = Clock()
-        for name, port in (("populated", 18489), ("empty", 18490), ("submissions", 18492)):
+        recovery_model = SubmissionModel()
+
+        @asynccontextmanager
+        async def recovery_resources():
+            tools = Retrieval(cast(Client, MapService()))
+            await tools.discover()
+            yield Runtime(cast(AsyncAnthropic, recovery_model), tools, "test-model")
+
+        for name, port in (("populated", 18489), ("empty", 18490), ("submissions", 18492), ("recovery", 18493)):
             app = (create_app(Path(directory) / name, resources=submission_resources,
                               preference_clock=clock, preference_wait=clock.wait)
                    if name == "submissions" else create_app(Path(directory) / name, resources=resources))
+            if name == "recovery":
+                app = create_app(Path(directory) / name, resources=recovery_resources,
+                                 static_dir=Path(directory) / "no-static")
+
+                @app.get("/__test__/model-count")
+                async def model_count():
+                    return {"count": sum(not request["system"].startswith("旅行者偏好提取")
+                                         for request in recovery_model.requests)}
+
             if name == "submissions":
+                delay_next_history = False
+
                 @app.middleware("http")
                 async def delayed_acceptance(request, call_next):
+                    nonlocal delay_next_history
+                    if request.url.path == "/__test__/delay-history" and request.method == "POST":
+                        delay_next_history = True
+                        return JSONResponse({"delaying": True})
+                    if delay_next_history and request.method == "GET" and request.url.path.startswith("/api/sessions/"):
+                        delay_next_history = False
+                        await asyncio.sleep(4)
                     submitted_input = ((await request.json()).get("input")
                                        if request.method == "POST" and request.url.path == "/api/turns" else None)
+                    long_input = isinstance(submitted_input, str) and submitted_input.startswith("长原文核对")
                     delay = (request.method == "POST" and request.url.path == "/api/turns"
-                             and submitted_input in ("延迟接受时切换会话", "延迟接受时保留草稿"))
+                             and (long_input or submitted_input in ("延迟接受时切换会话", "延迟接受时保留草稿", "重启核对原提交")))
                     result = await call_next(request)
                     if delay and result.status_code == 202:
                         # 仅延迟 HTTP 接受响应；真实轮次与 SQLite 由原后端推进。
-                        await asyncio.sleep(8 if submitted_input == "延迟接受时保留草稿" else 4)
+                        await asyncio.sleep(20 if long_input else 8 if submitted_input in ("延迟接受时保留草稿", "重启核对原提交") else 4)
                     return result
             server = uvicorn.Server(uvicorn.Config(
                 app,
@@ -110,7 +138,7 @@ async def main():
                         await asyncio.sleep(.01)
                 preferences = (await client.get("/api/preferences")).json()["preferences"]
                 assert preferences[0]["content"] == "不吃辣"
-            print("READY https://localhost:18489 ; EMPTY https://localhost:18490 ; SUBMISSIONS https://localhost:18492", flush=True)
+            print("READY https://localhost:18489 ; EMPTY https://localhost:18490 ; SUBMISSIONS https://localhost:18492 ; RECOVERY https://localhost:18493", flush=True)
             await asyncio.gather(*tasks)
         finally:
             for server in servers:

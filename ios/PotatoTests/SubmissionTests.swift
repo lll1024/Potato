@@ -145,7 +145,7 @@ struct SubmissionTests {
             """)
         await #expect(throws: SessionFailure.submissionUnknown) { try await sending.value }
         #expect(sessions.pendingSubmission == pending)
-        #expect(sessions.submission == .unknown)
+        #expect(sessions.submission == .isolated)
         #expect(sessions.service == nil)
     }
 
