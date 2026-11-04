@@ -17,6 +17,8 @@ Potato 通过 Web 和 CLI 帮助旅行者规划旅行。根 [web.py](../../web.p
 
 只有会话与偏好具有现有前端功能；其公开入口分别是 [sessions/index.ts](../../frontend/src/sessions/index.ts) 与 [preferences/index.ts](../../frontend/src/preferences/index.ts)。其余能力没有空前端 facade。外层 [main.tsx](../../frontend/src/main.tsx) 只装配两者及导航。
 
+原生 iPhone 客户端复用助手会话 HTTP，不增加后端能力或改变依赖图。客户端共享会话 interface、VIPER 页面和装配导航见 [iOS 助手会话](ios-sessions.md)。
+
 ## 依赖与主流程
 
 允许依赖：会话 → 规划、偏好、记录；规划 → 资料、上下文；上下文 → 记录；偏好 → 记录；资料和记录不依赖其他业务能力。回调由装配注入，不形成反向实现依赖。[architecture.json](../../architecture.json) 是可检查的归属与依赖清单；共享模型事实采集、错误分类、额度常量、工具名称属于无领域运行状态的支撑。

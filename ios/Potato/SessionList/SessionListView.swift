@@ -1,0 +1,108 @@
+import SessionKit
+import SwiftUI
+import SwiftUINavigation
+
+struct SessionListView: View {
+    private let sessions: any SessionAccess
+    @State private var presenter: SessionListPresenter
+    @State private var router: SessionListRouter
+
+    init(sessions: any SessionAccess) {
+        self.sessions = sessions
+        let router = SessionListRouter()
+        _router = State(initialValue: router)
+        _presenter = State(initialValue: SessionListPresenter(
+            interactor: SessionListInteractor(sessions: sessions), router: router))
+    }
+
+    var body: some View {
+        @Bindable var router = router
+        NavigationStack {
+            Group {
+                if presenter.connection == .unconfigured {
+                    ContentUnavailableView {
+                        Label("连接你的旅行助手", systemImage: "bubble.left.and.bubble.right")
+                    } description: {
+                        Text("配置 Mac 上的服务地址，继续阅读已有的旅行讨论。")
+                    } actions: {
+                        Button("配置连接", action: router.configureConnection).buttonStyle(.borderedProminent)
+                    }
+                } else {
+                    List {
+                        Section {
+                            ConnectionIndicator(state: presenter.connection)
+                            if let message = presenter.serviceMessage {
+                                Text(message).foregroundStyle(.secondary)
+                            }
+                        }
+                        content
+                    }
+                    .refreshable { await presenter.reload() }
+                }
+            }
+            .navigationTitle("助手会话")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("连接配置", systemImage: "gearshape", action: router.configureConnection)
+                        .accessibilityIdentifier("connection-settings")
+                }
+            }
+            .navigationDestination(item: $router.selectedSession) { session in
+                ConversationView(session: session, sessions: sessions, router: ConversationRouter(parent: router))
+                    .id(session.id)
+            }
+            .sheet(isPresented: $router.showingConnection, onDismiss: {
+                Task { await presenter.reload() }
+            }) {
+                ConnectionSettingsView(sessions: sessions)
+            }
+            .task { await presenter.reload() }
+            .onChange(of: sessions.serverAddress) {
+                router.backToList()
+            }
+            .onChange(of: sessions.service?.streamID) { previous, current in
+                guard previous != nil, previous != current else { return }
+                router.backToList()
+                if current == nil { Task { await presenter.reload() } }
+            }
+        }
+    }
+
+    @ViewBuilder private var content: some View {
+        switch presenter.content {
+        case .loading:
+            Section { ProgressView("正在读取会话") }
+        case .failed(let message):
+            Section {
+                Text(message).foregroundStyle(.secondary)
+                Button("重新连接") { Task { await presenter.reload() } }
+            }
+        case .loaded(let list):
+            if list.sessions.isEmpty {
+                Section {
+                    ContentUnavailableView("还没有助手会话", systemImage: "bubble.left",
+                                           description: Text("在电脑端开始一次旅行讨论后，下拉刷新即可查看。"))
+                }
+            } else {
+                Section {
+                    ForEach(list.sessions) { session in
+                        Button { presenter.router.open(session) } label: {
+                            HStack {
+                                Text(session.title).foregroundStyle(.primary).lineLimit(2)
+                                Spacer(minLength: 12)
+                                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+                            }
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
+                        }
+                        .accessibilityIdentifier("open-session")
+                    }
+                } header: { Text("最近的讨论") }
+                if list.nextCursor != nil {
+                    Text("当前显示最近 50 个会话。更多会话可在电脑端查看。")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+}
