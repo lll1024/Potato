@@ -2,6 +2,61 @@ import XCTest
 
 @MainActor
 final class NavigationTests: XCTestCase {
+    func testCreateSendContinueAndReadSavedAnswer() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        configure(app, address: "https://localhost:18492")
+        XCTAssertTrue(app.staticTexts["已连接"].waitForExistence(timeout: 10))
+        app.buttons["done-connection"].tap()
+        app.buttons["new-conversation"].tap()
+        XCTAssertTrue(app.staticTexts["开始一次旅行讨论"].waitForExistence(timeout: 5))
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["send-input"].isEnabled)
+        input.tap()
+        input.typeText("手机新建杭州旅行")
+        app.buttons["send-input"].tap()
+        XCTAssertTrue(app.staticTexts["输入已接受。"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["回答全文结尾"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["已读取共同偏好：不吃辣。"].exists)
+        revealInput(app, text: "手机新建杭州旅行")
+        attach(app, name: "手机新建与已保存回答")
+        input.tap()
+        input.typeText("手机续聊调整第二天")
+        app.buttons["send-input"].tap()
+        XCTAssertTrue(app.staticTexts["你的输入：手机续聊调整第二天"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts.matching(identifier: "回答全文结尾").element(boundBy: 1).waitForExistence(timeout: 10))
+        revealInput(app, text: "手机续聊调整第二天")
+        attach(app, name: "续聊完整回答")
+        app.navigationBars.buttons["助手会话"].tap()
+        XCTAssertTrue(app.buttons["open-session"].firstMatch.waitForExistence(timeout: 10))
+        app.buttons["new-conversation"].tap()
+        input.tap()
+        input.typeText("延迟接受时切换会话")
+        app.buttons["send-input"].tap()
+        app.navigationBars.buttons["助手会话"].tap()
+        app.buttons.matching(identifier: "open-session")
+            .matching(NSPredicate(format: "label CONTAINS %@", "手机新建杭州旅行")).firstMatch.tap()
+        let originalInput = app.staticTexts["你的输入：手机新建杭州旅行"]
+        XCTAssertTrue(originalInput.waitForExistence(timeout: 10))
+        let noLongerSending = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"),
+            object: app.staticTexts["正在发送，等待电脑确认接受。"])
+        wait(for: [noLongerSending], timeout: 10)
+        let replacedPage = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: originalInput)
+        replacedPage.isInverted = true
+        wait(for: [replacedPage], timeout: 3)
+    }
+
+    private func revealInput(_ app: XCUIApplication, text: String) {
+        let input = app.staticTexts["你的输入：" + text]
+        for _ in 0..<8 {
+            if input.isHittable { return }
+            app.scrollViews.firstMatch.swipeDown()
+        }
+        XCTAssertTrue(input.isHittable)
+    }
+
     func testConnectReadReturnEmptyAndUnavailable() {
         let app = XCUIApplication()
         app.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]

@@ -26,6 +26,53 @@ struct SessionHTTP {
         case .failure: throw SessionFailure.invalidResponse
         }
     }
+
+    func submit(_ pending: PendingSubmission) async throws -> WireReceipt {
+        let parameters = WireSubmission(submission_id: pending.id, input: pending.input, session_id: pending.sessionID)
+        let response = await session.request(pending.serverAddress + "/api/turns", method: .post,
+            parameters: parameters, encoder: JSONParameterEncoder.default).serializingData().response
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        guard response.error == nil, let status = response.response?.statusCode,
+              let data = response.data else { throw SessionFailure.submissionUnknown }
+        if status == 202 {
+            guard let receipt = try? decoder.decode(WireReceipt.self, from: data), receipt.schemaVersion == 1,
+                  receipt.submissionId == pending.id, !receipt.sessionId.isEmpty, !receipt.turnId.isEmpty,
+                  pending.sessionID == nil || pending.sessionID == receipt.sessionId else {
+                throw SessionFailure.submissionUnknown
+            }
+            return receipt
+        }
+        guard let error = try? decoder.decode(WireRejection.self, from: data) else {
+            throw SessionFailure.submissionUnknown
+        }
+        switch (status, error.detail.code) {
+        case (409, "BUSY"): throw SessionFailure.busy
+        case (422, "INVALID_INPUT"): throw SessionFailure.invalidInput
+        case (503, "SERVICE_UNAVAILABLE"), (503, "STORAGE_FAILURE"): throw SessionFailure.serviceUnavailable
+        case (404, "SESSION_NOT_FOUND"): throw SessionFailure.http(404)
+        case (409, "SUBMISSION_CONFLICT"): throw SessionFailure.submissionConflict
+        default: throw SessionFailure.submissionUnknown
+        }
+    }
+}
+
+private struct WireSubmission: Encodable, Sendable {
+    let submission_id: String
+    let input: String
+    let session_id: String?
+}
+
+struct WireReceipt: Decodable, Sendable {
+    let schemaVersion: Int
+    let submissionId: String
+    let sessionId: String
+    let turnId: String
+}
+
+private struct WireRejection: Decodable {
+    struct Detail: Decodable { let code: String }
+    let detail: Detail
 }
 
 struct WireSession: Decodable, Sendable {

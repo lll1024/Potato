@@ -4,14 +4,17 @@ import SwiftUI
 
 struct ConversationView: View {
     @State private var presenter: ConversationPresenter
+    @FocusState private var inputFocused: Bool
 
-    init(session: AssistantSession, sessions: any SessionAccess, router: ConversationRouter) {
+    init(session: AssistantSession?, sessions: any SessionAccess, router: ConversationRouter) {
         _presenter = State(initialValue: ConversationPresenter(session: session,
             interactor: ConversationInteractor(sessions: sessions), router: router))
     }
 
     var body: some View {
-        ScrollView {
+        @Bindable var presenter = presenter
+        ScrollViewReader { proxy in
+          ScrollView {
             VStack(alignment: .leading, spacing: 28) {
                 switch presenter.content {
                 case .loading: ProgressView("正在读取对话").frame(maxWidth: .infinity)
@@ -23,6 +26,10 @@ struct ConversationView: View {
                         Button("返回列表", action: presenter.router.backToList)
                     }
                 case .loaded(let page):
+                    if page.turns.isEmpty {
+                        ContentUnavailableView("开始一次旅行讨论", systemImage: "bubble.left.and.bubble.right",
+                            description: Text("写下目的地、日期或需要调整的旅行安排。"))
+                    }
                     if page.hasEarlierTurns {
                         Text("这里是最近 50 轮完整对话。更早的内容可在电脑端查看。")
                             .font(.footnote).foregroundStyle(.secondary)
@@ -45,9 +52,13 @@ struct ConversationView: View {
                         }
                     }
                 }
+                Color.clear.frame(height: 1).id("latest")
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .onChange(of: presenter.latestTurnID) { proxy.scrollTo("latest", anchor: .bottom) }
         }
         .navigationTitle(presenter.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -58,7 +69,46 @@ struct ConversationView: View {
             }
         }
         .refreshable { await presenter.reload() }
-        .task { await presenter.reload() }
+        .task { await presenter.appear() }
+        .onDisappear { presenter.disappear() }
+        .safeAreaInset(edge: .bottom) {
+            VStack(alignment: .leading, spacing: 10) {
+                if let message = presenter.serviceMessage {
+                    Text(message).font(.footnote).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("execution-message")
+                }
+                if let message = presenter.sendMessage {
+                    Text(message).font(.footnote).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("send-feedback")
+                }
+                if let input = presenter.pendingInput {
+                    DisclosureGroup("保留的待确认输入") {
+                        ScrollView { Text(input).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
+                            .frame(maxHeight: 120)
+                    }.font(.footnote)
+                }
+                HStack(alignment: .bottom, spacing: 12) {
+                    TextField("输入旅行需求", text: $presenter.input, axis: .vertical)
+                        .lineLimit(1...5)
+                        .padding(12)
+                        .background(.quaternary, in: RoundedRectangle(cornerRadius: 14))
+                        .focused($inputFocused)
+                        .accessibilityIdentifier("travel-input")
+                    Button {
+                        Task { await presenter.send() }
+                        inputFocused = false
+                    } label: {
+                        Image(systemName: "arrow.up").frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.borderedProminent).buttonBorderShape(.circle)
+                    .disabled(!presenter.canSend)
+                    .accessibilityLabel("发送")
+                    .accessibilityIdentifier("send-input")
+                }
+            }
+            .padding(.horizontal, 20).padding(.vertical, 12)
+            .background(.bar)
+        }
     }
 
 }

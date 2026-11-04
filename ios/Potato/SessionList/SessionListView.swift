@@ -42,14 +42,19 @@ struct SessionListView: View {
             }
             .navigationTitle("助手会话")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("新建会话", systemImage: "square.and.pencil", action: router.newConversation)
+                        .disabled(presenter.connection == .unconfigured)
+                        .accessibilityIdentifier("new-conversation")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("连接配置", systemImage: "gearshape", action: router.configureConnection)
                         .accessibilityIdentifier("connection-settings")
                 }
             }
-            .navigationDestination(item: $router.selectedSession) { session in
-                ConversationView(session: session, sessions: sessions, router: ConversationRouter(parent: router))
-                    .id(session.id)
+            .navigationDestination(item: $router.selectedConversation) { destination in
+                ConversationView(session: destination.session, sessions: sessions, router: ConversationRouter(parent: router))
+                    .id(destination.id)
             }
             .sheet(isPresented: $router.showingConnection, onDismiss: {
                 Task { await presenter.reload() }
@@ -81,7 +86,7 @@ struct SessionListView: View {
             if list.sessions.isEmpty {
                 Section {
                     ContentUnavailableView("还没有助手会话", systemImage: "bubble.left",
-                                           description: Text("在电脑端开始一次旅行讨论后，下拉刷新即可查看。"))
+                                           description: Text("轻点新建会话，开始一次旅行讨论。"))
                 }
             } else {
                 Section {

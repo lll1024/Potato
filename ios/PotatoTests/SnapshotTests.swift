@@ -6,6 +6,32 @@ import XCTest
 
 @MainActor
 final class SnapshotTests: XCTestCase {
+    func testUnconfirmedConversationDarkLargeText() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: directory.appending(path: "client.sqlite"))
+        let connecting = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: """
+            {"schema_version":1,"stream_id":"dataset","accepting":true,"stopping":false}
+            """)
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        _ = try await connecting.value
+        let sending = Task { try await sessions.submit(input: "杭州两日，保留原始旅行要求", sessionID: nil) }
+        await fixture.next().fail()
+        _ = try? await sending.value
+        let controller = UIHostingController(rootView: NavigationStack {
+            ConversationView(session: nil, sessions: sessions, router: ConversationRouter(parent: SessionListRouter()))
+        }.environment(\.locale, Locale(identifier: "zh_CN"))
+            .environment(\.dynamicTypeSize, .accessibility3).preferredColorScheme(.dark))
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        window.rootViewController = controller
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true; window.rootViewController = nil }
+        assertSnapshot(of: controller,
+            as: .wait(for: 1, on: .image(on: .iPhone13, drawHierarchyInKeyWindow: true,
+                                        traits: UITraitCollection(userInterfaceStyle: .dark))),
+            named: "unconfirmed-dark-accessibility3")
+    }
+
     // 截图工具可能短暂保留视图；临时数据库随测试容器清理，不删除仍打开的文件。
     func testEmptySessions() throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)

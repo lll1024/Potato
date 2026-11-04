@@ -4,10 +4,12 @@ import Foundation
 
 /// 故障替身只位于 HTTP 传输边界，测试断言经 SessionAccess 进入。
 actor HTTPFixture {
+    private(set) var receivedCount = 0
     private var requests: [ControlledRequest] = []
     private var waiters: [CheckedContinuation<ControlledRequest, Never>] = []
 
     func receive(_ request: ControlledRequest) {
+        receivedCount += 1
         if waiters.isEmpty { requests.append(request) }
         else { waiters.removeFirst().resume(returning: request) }
     }
@@ -17,14 +19,16 @@ actor HTTPFixture {
         return await withCheckedContinuation { waiters.append($0) }
     }
 
-    @MainActor static func client(databaseURL: URL) async throws -> (any SessionAccess, HTTPFixture, String) {
+    @MainActor static func client(databaseURL: URL,
+        wait: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+    ) async throws -> (any SessionAccess, HTTPFixture, String) {
         let fixture = HTTPFixture()
         let host = UUID().uuidString.lowercased() + ".example.test"
         await HTTPRegistry.shared.register(host: host, fixture: fixture)
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [ControlledURLProtocol.self]
         let sessions = try SharedSessions(databaseURL: databaseURL,
-                                          http: SessionHTTP(session: Session(configuration: configuration)))
+                                          http: SessionHTTP(session: Session(configuration: configuration)), wait: wait)
         let address = "https://" + host
         try sessions.configure(address: address)
         return (sessions, fixture, address)
@@ -58,6 +62,21 @@ final class ControlledURLProtocol: URLProtocol, @unchecked Sendable {
 /// URLProtocol 的响应按 fixture 的顺序只完成一次，不共享可变测试状态。
 struct ControlledRequest: @unchecked Sendable {
     let protocolRequest: URLProtocol
+    func jsonBody() throws -> [String: String] {
+        let request = protocolRequest.request
+        var data = request.httpBody ?? Data()
+        if let stream = request.httpBodyStream {
+            stream.open()
+            defer { stream.close() }
+            var buffer = [UInt8](repeating: 0, count: 1024)
+            while stream.hasBytesAvailable {
+                let count = stream.read(&buffer, maxLength: buffer.count)
+                guard count > 0 else { break }
+                data.append(contentsOf: buffer.prefix(count))
+            }
+        }
+        return try JSONDecoder().decode([String: String].self, from: data)
+    }
     func fail() {
         protocolRequest.client?.urlProtocol(protocolRequest, didFailWithError: URLError(.cannotConnectToHost))
     }

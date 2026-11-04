@@ -1,6 +1,6 @@
 # 原生 iPhone 客户端
 
-当前交付 #89：配置私人 HTTPS 地址、浏览助手会话、读取最近一页完整输入和回答。最低 iOS 17，Swift 6，iPhone；不在手机运行模型或保存后端完整历史。能力入口与状态归属见 [iOS 契约](../docs/modules/ios-sessions.md)。
+当前交付 #89/#90：配置私人 HTTPS 地址、浏览助手会话、新建及续聊、约两秒前台核对，并读取最近一页完整输入和回答。最低 iOS 17，Swift 6，iPhone；不在手机运行模型或保存后端完整历史。能力入口与状态归属见 [iOS 契约](../docs/modules/ios-sessions.md)。
 
 ## 打开与构建
 
@@ -18,7 +18,7 @@ xcodebuild build -project ios/Potato.xcodeproj -scheme Potato \
 
 ## 真实后端集成测试
 
-`Integration/backend.py` 启动两个仅监听 `127.0.0.1` 的真实 FastAPI 服务和临时 SQLite：18489 含有可控模型生成的长输入/回答，18490 是真实空库。它只替换模型和查询资源，不复制后端 HTTP 业务；不读取用户的实际旅行数据库或密钥。
+`Integration/backend.py` 启动三个仅监听 `127.0.0.1` 的真实 FastAPI 服务和临时 SQLite：18489 含有可控模型生成的长输入/回答，18490 是真实空库。18492 用于提交集成，已通过真实偏好后台保存「不吃辣」。它只替换模型、查询资源和偏好时钟，不复制后端 HTTP 业务；不读取用户的实际旅行数据库或密钥。
 
 测试使用 HTTPS，App 保持系统证书校验。为测试模拟器创建短期 localhost 证书并安装；不要把此证书用于私人网络服务，也不要提交私钥：
 
@@ -44,4 +44,6 @@ xcodebuild test -project ios/Potato.xcodeproj -scheme Potato \
   -skipMacroValidation CODE_SIGNING_ALLOWED=NO
 ```
 
-运行完用 Ctrl-C 停止验收服务，临时数据库自动删除。测试专用模拟器可删除或重置以移除 localhost 证书。实际服务、私网接入和本次验证范围见 [验收记录](../docs/acceptance/ios-readonly.md)。
+运行完用 Ctrl-C 停止验收服务，临时数据库自动删除。测试专用模拟器可删除或重置以移除 localhost 证书。实际服务、私网接入见 [#89 验收](../docs/acceptance/ios-readonly.md)，发送及轮询证据见 [#90 验收](../docs/acceptance/ios-submission.md)。
+
+发送前先在手机 GRDB 原子保存原始请求；接受表示电脑已登记，完整回答以后端保存历史为准。发送结果未知时保留原身份与输入，暂不提供重新发送入口，后续 #92 完成核对恢复。当前不包含完整草稿恢复、停止和更早分页。

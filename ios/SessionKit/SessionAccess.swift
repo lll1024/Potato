@@ -15,6 +15,12 @@ public enum SessionFailure: Error, LocalizedError, Equatable, Sendable {
     case unreachable
     case http(Int)
     case obsolete
+    case busy
+    case invalidInput
+    case serviceUnavailable
+    case localSaveFailed
+    case submissionUnknown
+    case submissionConflict
 
     public var errorDescription: String? {
         switch self {
@@ -25,6 +31,12 @@ public enum SessionFailure: Error, LocalizedError, Equatable, Sendable {
         case .http(404): "会话不存在，可能已在电脑端删除。请返回列表刷新。"
         case .http(let status): "服务暂时无法完成读取（HTTP \(status)），请稍后重试。"
         case .obsolete: "服务或读取目标已变化，请重新刷新。"
+        case .busy: "已有一轮正在执行或正在发送，请等待结束。输入不会自动排队。"
+        case .invalidInput: "请输入旅行需求。"
+        case .serviceUnavailable: "后端暂不接受输入，请检查服务与保存状态后重试。"
+        case .localSaveFailed: "本机未能保存本次提交，尚未发送。请保留输入并检查可用存储。"
+        case .submissionUnknown: "本次发送结果未知，原始输入已保留。请勿重复发送，后续需核对原提交。"
+        case .submissionConflict: "提交身份与服务记录冲突，请保留输入并核对原提交。"
         }
     }
 }
@@ -34,9 +46,40 @@ public protocol SessionAccess: AnyObject {
     var serverAddress: String { get }
     var connection: ConnectionState { get }
     var service: ServiceState? { get }
+    var submission: SubmissionState { get }
+    var pendingSubmission: PendingSubmission? { get }
+    var sessionList: SessionList? { get }
+    var conversation: ConversationPage? { get }
+    var conversationFailure: SessionFailure? { get }
+    var canSubmit: Bool { get }
     func configure(address: String) throws
     func refresh() async throws -> SessionList
     func history(sessionID: String) async throws -> ConversationPage
+    func submit(input: String, sessionID: String?) async throws -> SubmissionReceipt
+    func watchConversation(sessionID: String?)
+    func setForeground(_ active: Bool)
+}
+
+public struct PendingSubmission: Equatable, Sendable, Codable {
+    public let id: String
+    public let serverAddress: String
+    public let streamID: String
+    public let input: String
+    public let sessionID: String?
+}
+
+public struct SubmissionReceipt: Equatable, Sendable {
+    public let request: PendingSubmission
+    public let sessionID: String
+    public let turnID: String
+}
+
+public enum SubmissionState: Equatable, Sendable {
+    case idle
+    case sending
+    case accepted(SubmissionReceipt)
+    case unknown
+    case rejected(SessionFailure)
 }
 
 public struct ServiceState: Equatable, Sendable {
