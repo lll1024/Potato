@@ -63,7 +63,10 @@ targets:
   PotatoTests:
     type: bundle.unit-test
     platform: iOS
-    sources: [PotatoTests]
+    sources:
+      - PotatoTests
+      - path: Integration/reading-answer.md
+        buildPhase: resources
     dependencies:
       - target: Potato
       - target: SessionKit

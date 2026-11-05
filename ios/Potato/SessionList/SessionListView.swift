@@ -75,6 +75,9 @@ struct SessionListView: View {
                 ConnectionSettingsView(sessions: sessions)
             }
             .task { await presenter.reload() }
+            .onChange(of: router.selectedConversation?.id) {
+                presenter.conversationChanged(sessionID: router.selectedConversation?.session?.id)
+            }
             .onChange(of: sessions.serverAddress) {
                 router.backToList()
             }
@@ -117,8 +120,18 @@ struct SessionListView: View {
                     }
                 } header: { Text("最近的讨论") }
                 if list.nextCursor != nil {
-                    Text("当前显示最近 50 个会话。更多会话可在电脑端查看。")
-                        .font(.footnote).foregroundStyle(.secondary)
+                    Section {
+                        if let message = presenter.moreMessage { Text(message).font(.footnote).foregroundStyle(.secondary) }
+                        if presenter.isLoadingMore {
+                            ProgressView("正在加载更早会话")
+                        } else {
+                            Button(presenter.moreMessage == nil ? "加载更早会话" : "重试加载更早会话") {
+                                Task { await presenter.loadMore() }
+                            }
+                            .frame(minHeight: 44)
+                            .accessibilityIdentifier("load-more-sessions")
+                        }
+                    }
                 }
             }
         }

@@ -1,0 +1,57 @@
+#94 验证记录（2026-11-05，Asia/Shanghai）
+基准：c6c025059a0261cb1263e528c411cefa613da171
+分支：codex/ios-client
+环境：Xcode 27.2，Swift 6，iPhone 17 Pro / iOS 26.5；iOS 17部署目标。
+
+公开测试边界：父规格 #88 与 #94 已确认 SessionAccess。
+HTTPFixture 仅控制 HTTP，GRDB 使用真实临时文件。
+
+红绿记录（red-green.log.gz）：
+- history-red：已读历史被最新页直接替换，4个断言失败；history-green 通过。
+- earlier-red：加载更早尚未实现，2个断言失败；earlier-green 通过。
+- list-red：游标页尚未读取、队列响应未消费导致3个问题；list-green 通过。
+- gap-red：缺口补齐后仍保留旧运行中轮次，1个断言失败；gap-green 通过。
+- races：20项读取/分页/轮询公开行为通过。
+- review-red-v2：列表刷新和继续加载竞争，公开反例失败；串行读取后20项回归通过。
+- delete-red：单独旧页404未使更早成功历史失效，4个断言失败；修复后9项分页行为通过。
+
+初期失败与修正：
+- XcodeGen 不在PATH，使用现存 /tmp/potato-xcodegen/xcodegen/bin/xcodegen 2.46.0。
+- UI测试把 XCUIElement 当成query使用lastMatch、异步调用放入XCTUnwrap自动闭包，已修正测试编译。
+- 阅读样例实际806字符，改为与打包原文逐字比较，避免任意长度门槛。
+- Markdown主题覆盖自定义table样式，人工检查后修正应用顺序，表格独立横向滚动。
+- 系统粘贴菜单在模拟器显示Paste，测试同时识别Paste/粘贴；实际粘贴与后端原文逐字相等。
+- 首轮用长距离滑动寻找最早输入未在有键盘的阅读空间到达；保留工具栏跳到已加载范围开头，阅读操作主动收起键盘。
+- 新增定位用的布局空白使已有待确认图片发生位移，改用现有VStack.id，不增加空白。
+- 加载/错误初次参考图不存在而自动记录；错误图改为先通过公开读取确定404，避免抓到过渡加载态。
+- pyright首次缺少解释器与tests路径，按既有验收命令指定后0错误。
+
+实际命令：
+/tmp/potato-xcodegen/xcodegen/bin/xcodegen generate --spec ios/project.yml
+xcodebuild test -project ios/Potato.xcodeproj -scheme Potato -destination 'platform=iOS Simulator,id=AB9010DF-6F36-4079-8492-3CE8B5393EF7' -derivedDataPath /tmp/potato-ios-build -skipMacroValidation CODE_SIGNING_ALLOWED=NO
+.venv/bin/python -m unittest discover -s tests
+PYTHONPATH=tests .venv/bin/pyright --pythonpath .venv/bin/python ios/Integration/backend.py
+.venv/bin/python scripts/check_modules.py
+.venv/bin/python scripts/check_docs.py
+git diff --cached --check
+
+Python 361/361通过；iOS夹具pyright 0错误；模块归属与公开契约文档链接检查通过。
+设计机械扫描 /tmp/potato-94-design.json 为 []，实际图片与原生交互另行核对。
+
+最终快照策略：加载态 precision=0.995，只容忍旋转指示器约0.5%的像素差异；其余快照precision=1。新增加载/删除基准去除定位空白后重录，原有待确认快照重新比对通过。
+表格末列交互先执行横向滑动，再断言表头中心落在表格视口和App范围；避免对屏外表头直接询问isHittable导致XCTest无激活点错误。
+
+完整回归追加观察：
+- 第一轮完整iOS运行：61项Swift Testing与10项XCTest通过；原生续聊回看后发送仍停旧位置的旧测试失败。明确发送改为恢复跟随最新，原测试随后通过。
+- 同轮跨设备停止测试曾在释放后立即点击移动中的会话行，失败画面仍在列表；后端真实终态为user_stop。单项31.898秒再次复现，录屏20→22秒显示停止说明收起导致行上移。临时导航探针改变时序后原完整流程36.773秒通过，佐证时序依赖。最终UI测试等待真实停止说明消失，再点击并断言导航进入；未修改后端停止或真实终态。
+- 为收窄上述失败，中断首次已失败的完整Xcode运行；当前Xcode在SIGINT收束时报结果包Info.plist未写入，因此该结果包不作为最终汇总，保留失败文本日志与完整的单项诊断结果。
+- [DEBUG-94]临时探针均已移除；录屏提取使用系统AVFoundation临时脚本，仅保留相关帧用于诊断。
+
+表格交互收窄：初次横向手势时表格只在输入栏上方露出一部分，末列未进入视口；独立testChineseTableScrollsToLastColumn先按实际frame将表头移入阅读区，再执行横向滑动并断言末列中心位于表格和App视口。单项66.393秒通过。分页/复制/外链/旧输入另由testPaginationExternalLinkAndFullCopy覆盖。
+最终完整iOS运行前已重启全部六个测试服务，重新通过真实HTTP建立53会话/55轮样例。不同失败阶段的临时数据库不作为最终验收数据。
+
+最终完整结果：
+/tmp/potato-94-verified.xcresult：Passed，82项/含参数化115例，0失败、0跳过。
+Swift Testing 61项；XCTest快照/展示10项；原生界面11项。
+完整iOS套件最后同一轮通过，无按失败重试掩盖；测试后端为本轮独立重建。
+Python 361/361；iPhone arm64无签名构建通过；pyright、模块归属、文档链接及格式检查通过。

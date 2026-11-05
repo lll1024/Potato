@@ -13,6 +13,126 @@ public final class SharedSessions: SessionAccess {
     public private(set) var conversation: ConversationPage?
     public private(set) var conversationFailure: SessionFailure?
     public private(set) var stopState = StopState.idle
+    public private(set) var isLoadingMoreSessions = false
+    public private(set) var moreSessionsFailure: SessionFailure?
+    public private(set) var isLoadingEarlierTurns = false
+    public private(set) var earlierTurnsFailure: SessionFailure?
+    private var earlierOperation: UUID?
+    private var conversationGeneration = 0
+    private var listOperation: UUID?
+    private var loadedListPages = 1
+    private var listReadInProgress = false
+    private var listReadWaiters: [CheckedContinuation<Void, Never>] = []
+
+    private func beginListRead() async throws {
+        try Task.checkCancellation()
+        if listReadInProgress {
+            await withCheckedContinuation { listReadWaiters.append($0) }
+        } else { listReadInProgress = true }
+        if Task.isCancelled { endListRead(); throw CancellationError() }
+    }
+
+    private func endListRead() {
+        if listReadWaiters.isEmpty { listReadInProgress = false }
+        else { listReadWaiters.removeFirst().resume() }
+    }
+
+    public func loadMoreSessions() async throws -> SessionList {
+        guard listOperation == nil else { throw SessionFailure.busy }
+        let operation = UUID()
+        let configuration = configurationGeneration
+        let dataset = datasetGeneration
+        let address = serverAddress
+        listOperation = operation
+        isLoadingMoreSessions = true
+        moreSessionsFailure = nil
+        defer {
+            if listOperation == operation { listOperation = nil; isLoadingMoreSessions = false }
+        }
+        do {
+            try await beginListRead()
+            defer { endListRead() }
+            guard configuration == configurationGeneration, dataset == datasetGeneration else { throw SessionFailure.obsolete }
+            guard let current = sessionList else { throw SessionFailure.obsolete }
+            guard let cursor = current.nextCursor else { return current }
+            let page = try await http.get(WireList.self, address: address, path: "/api/sessions",
+                                         parameters: ["limit": "50", "cursor": cursor])
+            guard configuration == configurationGeneration, dataset == datasetGeneration else { throw SessionFailure.obsolete }
+            guard page.schemaVersion == 1, page.nextCursor != cursor else { throw SessionFailure.invalidResponse }
+            let result = SessionList(sessions: uniqueSessions(current.sessions + page.sessions.map(\.entity)),
+                                     nextCursor: page.nextCursor)
+            sessionList = result
+            loadedListPages += 1
+            return result
+        } catch {
+            guard configuration == configurationGeneration, dataset == datasetGeneration else { throw SessionFailure.obsolete }
+            if !(error is CancellationError), error as? SessionFailure != .obsolete {
+                moreSessionsFailure = error as? SessionFailure ?? .invalidResponse
+            }
+            throw error
+        }
+    }
+
+    private func uniqueSessions(_ rows: [AssistantSession]) -> [AssistantSession] {
+        var seen: Set<String> = []
+        return rows.filter { seen.insert($0.id).inserted }
+    }
+
+    private func invalidateSessionPages() {
+        loadedListPages = 1
+        listOperation = nil
+        isLoadingMoreSessions = false
+        moreSessionsFailure = nil
+    }
+
+    public func loadEarlierTurns(sessionID: String) async throws -> ConversationPage {
+        guard let current = conversation, current.session.id == sessionID,
+              watchedSessionID == sessionID else { throw SessionFailure.obsolete }
+        guard let before = current.nextBefore else { return current }
+        guard earlierOperation == nil else { throw SessionFailure.busy }
+        let operation = UUID()
+        let configuration = configurationGeneration
+        let dataset = datasetGeneration
+        let target = conversationGeneration
+        let address = serverAddress
+        earlierOperation = operation
+        isLoadingEarlierTurns = true
+        earlierTurnsFailure = nil
+        defer {
+            if earlierOperation == operation { earlierOperation = nil; isLoadingEarlierTurns = false }
+        }
+        do {
+            let page = try await http.get(WirePage.self, address: address, path: "/api/sessions/" + sessionID,
+                parameters: ["limit": "50", "before": String(before), "summary": "false", "include_messages": "false"])
+            guard configuration == configurationGeneration, dataset == datasetGeneration,
+                  target == conversationGeneration else { throw SessionFailure.obsolete }
+            guard page.schemaVersion == 1, page.streamId == current.streamID,
+                  page.session.sessionId == sessionID else { throw SessionFailure.invalidResponse }
+            guard let latest = conversation else { throw SessionFailure.obsolete }
+            let result = latest.merging(page.entity, earlier: true)
+            conversation = result
+            return result
+        } catch {
+            guard configuration == configurationGeneration, dataset == datasetGeneration,
+                  target == conversationGeneration else { throw SessionFailure.obsolete }
+            if error as? SessionFailure == .http(404) {
+                historyGeneration += 1
+                invalidateEarlierTurns()
+                conversation = nil
+                conversationFailure = .http(404)
+            } else if !(error is CancellationError), error as? SessionFailure != .obsolete {
+                earlierTurnsFailure = error as? SessionFailure ?? .invalidResponse
+            }
+            throw error
+        }
+    }
+
+    private func invalidateEarlierTurns() {
+        conversationGeneration += 1
+        earlierOperation = nil
+        isLoadingEarlierTurns = false
+        earlierTurnsFailure = nil
+    }
     private var stopOperation: UUID?
     private let database: DatabaseQueue
     private let http: SessionHTTP
@@ -145,9 +265,11 @@ public final class SharedSessions: SessionAccess {
         stopOperation = nil
         stopState = .idle
         sessionList = nil
+        invalidateSessionPages()
         conversation = nil
         conversationFailure = nil
         watchedSessionID = nil
+        invalidateEarlierTurns()
         acceptanceNeedsRefresh = false
         datasetID = savedDataset
         configurationGeneration += 1
@@ -295,6 +417,7 @@ public final class SharedSessions: SessionAccess {
     public func watchConversation(sessionID: String?) {
         guard watchedSessionID != sessionID else { return }
         watchedSessionID = sessionID
+        invalidateEarlierTurns()
         historyGeneration += 1
         conversation = nil
         conversationFailure = nil
@@ -445,7 +568,9 @@ public final class SharedSessions: SessionAccess {
                 conversation = nil
                 conversationFailure = nil
                 sessionList = nil
+                invalidateSessionPages()
                 watchedSessionID = nil
+                invalidateEarlierTurns()
             }
             datasetID = snapshot.streamId
             dataset = datasetGeneration
@@ -460,14 +585,38 @@ public final class SharedSessions: SessionAccess {
             }
             isolatePendingIfNeeded()
             if refresh > acceptedAfterRefresh { acceptanceNeedsRefresh = false }
-            let list = try await http.get(WireList.self, address: address, path: "/api/sessions",
-                                          parameters: ["limit": "50"])
-            guard configuration == configurationGeneration, refresh == refreshGeneration,
-                  dataset == datasetGeneration else { throw SessionFailure.obsolete }
-            guard list.schemaVersion == 1 else { throw SessionFailure.invalidResponse }
-            if connectionRead == connectionGeneration { connection = .connected }
-            let result = SessionList(sessions: list.sessions.map(\.entity), nextCursor: list.nextCursor)
-            sessionList = result
+            // 刷新已展开的页数，电脑端对旧会话的改名和删除也会反映出来。
+            let result: SessionList
+            do {
+                try await beginListRead()
+                defer { endListRead() }
+                guard configuration == configurationGeneration, refresh == refreshGeneration,
+                      dataset == datasetGeneration else { throw SessionFailure.obsolete }
+                let pageCount = loadedListPages
+                var rows: [AssistantSession] = []
+                var nextCursor: String?
+                var cursors: Set<String> = []
+                var pagesRead = 0
+                repeat {
+                    var parameters = ["limit": "50"]
+                    if let nextCursor { parameters["cursor"] = nextCursor }
+                    let list = try await http.get(WireList.self, address: address, path: "/api/sessions", parameters: parameters)
+                    guard configuration == configurationGeneration, refresh == refreshGeneration,
+                          dataset == datasetGeneration else { throw SessionFailure.obsolete }
+                    guard list.schemaVersion == 1 else { throw SessionFailure.invalidResponse }
+                    if let cursor = list.nextCursor, !cursors.insert(cursor).inserted { throw SessionFailure.invalidResponse }
+                    rows += list.sessions.map(\.entity)
+                    nextCursor = list.nextCursor
+                    pagesRead += 1
+                } while pagesRead < pageCount && nextCursor != nil
+                guard configuration == configurationGeneration, refresh == refreshGeneration,
+                      dataset == datasetGeneration else { throw SessionFailure.obsolete }
+                if connectionRead == connectionGeneration { connection = .connected }
+                result = SessionList(sessions: uniqueSessions(rows), nextCursor: nextCursor)
+                sessionList = result
+                loadedListPages = pagesRead
+                moreSessionsFailure = nil
+            }
             try? await checkPending()
             guard configuration == configurationGeneration, refresh == refreshGeneration,
                   dataset == datasetGeneration else { throw SessionFailure.obsolete }
@@ -475,6 +624,7 @@ public final class SharedSessions: SessionAccess {
         } catch {
             guard configuration == configurationGeneration, refresh == refreshGeneration,
                   dataset == datasetGeneration else { throw SessionFailure.obsolete }
+            if error as? SessionFailure == .obsolete { throw error }
             if error is CancellationError {
                 if connectionRead == connectionGeneration { connection = previousConnection }
                 throw error
@@ -499,7 +649,7 @@ public final class SharedSessions: SessionAccess {
                                           parameters: ["limit": "50", "summary": "false", "include_messages": "false"])
             guard configuration == configurationGeneration, history == historyGeneration, refresh == refreshGeneration,
                   dataset == datasetGeneration else { throw SessionFailure.obsolete }
-            guard page.schemaVersion == 1 else { throw SessionFailure.invalidResponse }
+            guard page.schemaVersion == 1, page.session.sessionId == sessionID else { throw SessionFailure.invalidResponse }
             try rememberDataset(page.streamId)
             if let datasetID, datasetID != page.streamId {
                 self.datasetID = page.streamId
@@ -513,7 +663,9 @@ public final class SharedSessions: SessionAccess {
                 conversation = nil
                 conversationFailure = nil
                 sessionList = nil
+                invalidateSessionPages()
                 watchedSessionID = nil
+                invalidateEarlierTurns()
                 connection = .connecting
                 isolatePendingIfNeeded()
                 throw SessionFailure.obsolete
@@ -521,10 +673,10 @@ public final class SharedSessions: SessionAccess {
             datasetID = page.streamId
             if connectionRead == connectionGeneration { connection = .connected }
             if watchedSessionID == sessionID {
-                conversation = page.entity
+                conversation = conversation?.merging(page.entity) ?? page.entity
                 conversationFailure = nil
             }
-            return page.entity
+            return watchedSessionID == sessionID ? conversation! : page.entity
         } catch {
             guard configuration == configurationGeneration, history == historyGeneration, refresh == refreshGeneration,
                   dataset == datasetGeneration else { throw SessionFailure.obsolete }
@@ -532,7 +684,7 @@ public final class SharedSessions: SessionAccess {
             if watchedSessionID == sessionID { conversationFailure = error as? SessionFailure ?? .invalidResponse }
             if error as? SessionFailure == .http(404) {
                 if connectionRead == connectionGeneration { connection = .connected }
-                if watchedSessionID == sessionID { conversation = nil }
+                if watchedSessionID == sessionID { conversation = nil; invalidateEarlierTurns() }
             } else {
                 if connectionRead == connectionGeneration { connection = .unavailable(error.localizedDescription) }
             }

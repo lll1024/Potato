@@ -6,6 +6,59 @@ import XCTest
 
 @MainActor
 final class SnapshotTests: XCTestCase {
+    func testChineseAnswer() throws { try assertReading(dark: false, large: false) }
+    func testChineseTableDarkLargeText() throws { try assertReading(dark: true, large: true) }
+    func testConversationLoading() async throws { try await assertConversationRead(missing: false) }
+    func testConversationDeleted() async throws { try await assertConversationRead(missing: true) }
+
+    private func assertConversationRead(missing: Bool, file: StaticString = #filePath,
+                                         testName: String = #function, line: UInt = #line) async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: directory.appending(path: "client.sqlite"))
+        await fixture.enqueue(body: "{\"schema_version\":1,\"stream_id\":\"dataset\",\"accepting\":true,\"stopping\":false}")
+        await fixture.enqueue(body: "{\"schema_version\":1,\"sessions\":[{\"session_id\":\"reading\",\"title\":\"杭州旅行\",\"updated_at\":\"now\"}]}")
+        let list = try await sessions.refresh()
+        let session = try XCTUnwrap(list.sessions.first)
+        if missing {
+            sessions.watchConversation(sessionID: session.id)
+            await fixture.enqueue(status: 404, body: "{}")
+            _ = try? await sessions.history(sessionID: session.id)
+            await fixture.enqueue(status: 404, body: "{}")
+        }
+        let controller = UIHostingController(rootView: NavigationStack {
+            ConversationView(session: session, sessions: sessions, router: ConversationRouter(parent: SessionListRouter()))
+        }.environment(\.locale, Locale(identifier: "zh_CN"))
+            .environment(\.dynamicTypeSize, .large).preferredColorScheme(.light))
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        window.rootViewController = controller
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true; window.rootViewController = nil }
+        assertSnapshot(of: controller,
+            as: .wait(for: 1, on: .image(on: .iPhone13, drawHierarchyInKeyWindow: true, precision: missing ? 1 : 0.995)),
+            named: missing ? "deleted-light" : "loading-light", file: file, testName: testName, line: line)
+        if !missing { await fixture.next().reply(status: 404, body: "{}") }
+    }
+
+    private func assertReading(dark: Bool, large: Bool, file: StaticString = #filePath,
+                               testName: String = #function, line: UInt = #line) throws {
+        let url = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "reading-answer", withExtension: "md"))
+        let full = try String(contentsOf: url, encoding: .utf8)
+        let text = large ? "## 两日安排对照\n\n" + full.components(separatedBy: "### 两日安排对照\n\n")[1] : full
+        let controller = UIHostingController(rootView: ScrollView { AnswerView(text: text).padding(20) }
+            .environment(\.locale, Locale(identifier: "zh_CN"))
+            .environment(\.dynamicTypeSize, large ? .accessibility3 : .large)
+            .preferredColorScheme(dark ? .dark : .light))
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        window.rootViewController = controller
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true; window.rootViewController = nil }
+        assertSnapshot(of: controller,
+            as: .wait(for: 1, on: .image(on: .iPhone13, drawHierarchyInKeyWindow: true,
+                traits: UITraitCollection(userInterfaceStyle: dark ? .dark : .light))),
+            named: large ? "table-dark-accessibility3" : "chinese-answer-light",
+            file: file, testName: testName, line: line)
+    }
+
     func testStorageFailureStaysVisibleBesideUnknownSubmission() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: directory.appending(path: "client.sqlite"))

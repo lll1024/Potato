@@ -1,10 +1,10 @@
-import MarkdownUI
 import SessionKit
 import SwiftUI
 
 struct ConversationView: View {
     @State private var presenter: ConversationPresenter
     @FocusState private var inputFocused: Bool
+    @State private var followsLatest = true
 
     init(session: AssistantSession?, sessions: any SessionAccess, router: ConversationRouter) {
         _presenter = State(initialValue: ConversationPresenter(session: session,
@@ -33,8 +33,24 @@ struct ConversationView: View {
                             description: Text("写下目的地、日期或需要调整的旅行安排。"))
                     }
                     if page.hasEarlierTurns {
-                        Text("这里是最近 50 轮完整对话。更早的内容可在电脑端查看。")
-                            .font(.footnote).foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 8) {
+                            if let message = presenter.earlierMessage { Text(message).font(.footnote).foregroundStyle(.secondary) }
+                            if presenter.isLoadingEarlier {
+                                ProgressView("正在加载更早对话")
+                            } else {
+                                Button(presenter.earlierMessage == nil ? "加载更早对话" : "重试加载更早对话") {
+                                    let anchor = presenter.firstTurnID
+                                    inputFocused = false
+                                    followsLatest = false
+                                    Task {
+                                        await presenter.loadEarlier()
+                                        if let anchor { proxy.scrollTo(anchor, anchor: .top) }
+                                    }
+                                }
+                                .frame(minHeight: 44)
+                                .accessibilityIdentifier("load-earlier-turns")
+                            }
+                        }
                     }
                     ForEach(page.turns) { turn in
                         VStack(alignment: .leading, spacing: 20) {
@@ -52,15 +68,44 @@ struct ConversationView: View {
                                     .font(.subheadline).foregroundStyle(.secondary)
                             }
                         }
+                        .id(turn.id)
                     }
                 }
                 Color.clear.frame(height: 1).id("latest")
             }
+            .id("history-start")
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .scrollDismissesKeyboard(.interactively)
-        .onChange(of: presenter.latestTurnID) { proxy.scrollTo("latest", anchor: .bottom) }
+        .simultaneousGesture(DragGesture(minimumDistance: 10).onChanged { _ in followsLatest = false })
+        .onChange(of: presenter.latestTurnID) { previous, _ in
+            if previous == nil || followsLatest { proxy.scrollTo("latest", anchor: .bottom) }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if !followsLatest, presenter.latestTurnID != nil {
+                Button("回到最新", systemImage: "arrow.down") {
+                    inputFocused = false
+                    followsLatest = true
+                    proxy.scrollTo("latest", anchor: .bottom)
+                }
+                .buttonStyle(.bordered).background(.background, in: Capsule())
+                .frame(minHeight: 44).padding(12)
+                .accessibilityIdentifier("latest-answer")
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if presenter.firstTurnID != nil {
+                    Button("查看更早对话", systemImage: "clock.arrow.circlepath") {
+                        inputFocused = false
+                        followsLatest = false
+                        proxy.scrollTo("history-start", anchor: .top)
+                    }
+                    .accessibilityIdentifier("earlier-history")
+                }
+            }
+        }
         }
         .navigationTitle(presenter.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -114,6 +159,7 @@ struct ConversationView: View {
                         .disabled(!presenter.canEditDraft)
                         .accessibilityIdentifier("travel-input")
                     Button {
+                        followsLatest = true
                         Task { await presenter.send() }
                         inputFocused = false
                     } label: {
@@ -130,12 +176,4 @@ struct ConversationView: View {
         }
     }
 
-}
-
-/// 排版依赖收在回答视图内；原文来自后端保存的完整 answer。
-struct AnswerView: View {
-    let text: String
-    var body: some View {
-        Markdown(text).textSelection(.enabled)
-    }
 }

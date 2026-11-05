@@ -18,6 +18,10 @@ struct SessionListInteractor {
     func retrySubmission() async { _ = try? await sessions.retrySubmission() }
     func history(sessionID: String) async throws -> ConversationPage { try await sessions.history(sessionID: sessionID) }
     func load() async throws -> SessionList { try await sessions.refresh() }
+    var isLoadingMore: Bool { sessions.isLoadingMoreSessions }
+    var moreFailure: SessionFailure? { sessions.moreSessionsFailure }
+    func loadMore() async { _ = try? await sessions.loadMoreSessions() }
+    func watch(sessionID: String?) { sessions.watchConversation(sessionID: sessionID) }
 }
 
 enum SessionListContent {
@@ -38,6 +42,10 @@ final class SessionListPresenter {
         return .loading
     }
     var connection: ConnectionState { interactor.connection }
+    var isLoadingMore: Bool { interactor.isLoadingMore }
+    var moreMessage: String? { interactor.moreFailure?.localizedDescription }
+    func loadMore() async { await interactor.loadMore() }
+    func conversationChanged(sessionID: String?) { interactor.watch(sessionID: sessionID) }
     var serviceMessage: String? { executionMessage(interactor.execution) }
     var stopTarget: StopTarget? { interactor.stopTarget }
     func stop(target: StopTarget) async { await interactor.stop(target: target) }

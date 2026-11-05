@@ -63,6 +63,12 @@ public protocol SessionAccess: AnyObject {
     func configure(address: String) throws
     func refresh() async throws -> SessionList
     func history(sessionID: String) async throws -> ConversationPage
+    var isLoadingMoreSessions: Bool { get }
+    var moreSessionsFailure: SessionFailure? { get }
+    var isLoadingEarlierTurns: Bool { get }
+    var earlierTurnsFailure: SessionFailure? { get }
+    func loadMoreSessions() async throws -> SessionList
+    func loadEarlierTurns(sessionID: String) async throws -> ConversationPage
     func submit(input: String, sessionID: String?) async throws -> SubmissionReceipt
     func reconcileSubmission() async throws
     func retrySubmission() async throws -> SubmissionReceipt
@@ -155,10 +161,12 @@ public struct SessionList: Equatable, Sendable {
 
 public struct ConversationTurn: Equatable, Identifiable, Sendable {
     public let id: String
+    public let ordinal: Int?
     public let input: String
     public let answer: String?
     public let status: String
     public let reason: String?
+    let observedAt: Int?
 }
 
 public struct ConversationPage: Equatable, Sendable {
@@ -166,4 +174,6 @@ public struct ConversationPage: Equatable, Sendable {
     public let turns: [ConversationTurn]
     public let nextBefore: Int?
     public let streamID: String
+    public let cursor: Int?
+    var windows: [HistoryWindow]
 }

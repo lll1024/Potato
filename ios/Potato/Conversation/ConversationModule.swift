@@ -31,6 +31,9 @@ struct ConversationInteractor {
     func load(sessionID: String) async throws -> ConversationPage {
         try await sessions.history(sessionID: sessionID)
     }
+    var isLoadingEarlier: Bool { sessions.isLoadingEarlierTurns }
+    var earlierFailure: SessionFailure? { sessions.earlierTurnsFailure }
+    func loadEarlier(sessionID: String) async { _ = try? await sessions.loadEarlierTurns(sessionID: sessionID) }
     func send(draft: SessionDraft) async throws -> SubmissionReceipt {
         try await sessions.submit(draft: draft)
     }
@@ -110,6 +113,13 @@ final class ConversationPresenter {
     }
     var title: String { currentPage?.session.title ?? initialTitle }
     var latestTurnID: String? { currentPage?.turns.last?.id }
+    var firstTurnID: String? { currentPage?.turns.first?.id }
+    var isLoadingEarlier: Bool { interactor.isLoadingEarlier }
+    var earlierMessage: String? { interactor.earlierFailure?.localizedDescription }
+    func loadEarlier() async {
+        guard isVisible, let sessionID else { return }
+        await interactor.loadEarlier(sessionID: sessionID)
+    }
     private var currentPage: ConversationPage? {
         if let page = interactor.page, page.session.id == sessionID { return page }
         return nil

@@ -13,6 +13,7 @@ sys.path[:0] = [str(ROOT), str(ROOT / "tests")]
 import httpx
 import uvicorn
 from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse
 from anthropic import AsyncAnthropic
 from mcp import Client
 from travel_app.retrieval import Retrieval
@@ -22,6 +23,7 @@ from preference_fixtures import Clock, PreferenceModel
 
 INPUT = "请安排杭州两日旅行。" + "保留完整的当前旅行要求。" * 20 + "输入全文结尾"
 ANSWER = "# 杭州旅行\n\n" + "西湖步行，午后休息，次日参观博物馆。\n\n" * 20 + "回答全文结尾"
+READING_ANSWER = Path(__file__).with_name("reading-answer.md").read_text()
 
 
 @contextmanager
@@ -72,6 +74,13 @@ class LifecycleModel(SubmissionModel):
         return await super().create(**kwargs)
 
 
+class ReadingModel(SubmissionModel):
+    async def create(self, **kwargs):
+        if kwargs["system"].startswith("旅行者偏好提取"):
+            return await super().create(**kwargs)
+        return response([{"type": "text", "text": READING_ANSWER}])
+
+
 async def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cert", required=True)
@@ -96,7 +105,13 @@ async def main():
             await tools.discover()
             yield Runtime(cast(AsyncAnthropic, lifecycle_model), tools, "test-model")
 
-        for name, port in (("populated", 18489), ("empty", 18490), ("submissions", 18492), ("recovery", 18493), ("lifecycle", 18494)):
+        @asynccontextmanager
+        async def reading_resources():
+            tools = Retrieval(cast(Client, MapService()))
+            await tools.discover()
+            yield Runtime(cast(AsyncAnthropic, ReadingModel()), tools, "test-model")
+
+        for name, port in (("populated", 18489), ("empty", 18490), ("submissions", 18492), ("recovery", 18493), ("lifecycle", 18494), ("reading", 18495)):
             app = (create_app(Path(directory) / name, resources=submission_resources,
                               preference_clock=clock, preference_wait=clock.wait)
                    if name == "submissions" else create_app(Path(directory) / name, resources=resources))
@@ -130,6 +145,14 @@ async def main():
                 async def release():
                     lifecycle_model.release.set()
                     return {"released": True}
+
+            if name == "reading":
+                app = create_app(Path(directory) / name, resources=reading_resources,
+                                 static_dir=Path(directory) / "no-static")
+
+                @app.get("/__test__/booking", response_class=HTMLResponse)
+                async def booking():
+                    return '<html lang="zh"><meta charset="utf-8"><title>预约入口样例</title><h1>预约入口样例</h1><p>尚未预约。这是客户端链接验收页面。</p></html>'
 
             if name == "submissions":
                 delay_next_history = False
@@ -186,7 +209,22 @@ async def main():
                         await asyncio.sleep(.01)
                 preferences = (await client.get("/api/preferences")).json()["preferences"]
                 assert preferences[0]["content"] == "不吃辣"
-            print("READY https://localhost:18489 ; EMPTY https://localhost:18490 ; SUBMISSIONS https://localhost:18492 ; RECOVERY https://localhost:18493 ; LIFECYCLE https://localhost:18494", flush=True)
+            async with httpx.AsyncClient(base_url="https://localhost:18495", verify=args.cert) as client:
+                async def complete(input_text, session_id=None):
+                    accepted = await client.post("/api/turns", json={"input": input_text, "session_id": session_id})
+                    accepted.raise_for_status()
+                    async with asyncio.timeout(10):
+                        while (await client.get("/api/snapshot")).json()["active_turn_id"]:
+                            await asyncio.sleep(.01)
+                    return accepted.json()["session_id"]
+
+                # 分页始终通过真实 HTTP 接受与保存，不伪造列表或历史响应。
+                for index in range(52):
+                    await complete(f"阅读样例会话 {index + 1:02d}")
+                session_id = await complete("杭州两日旅行阅读验收第1轮：保留完整输入。")
+                for index in range(2, 56):
+                    await complete(f"杭州两日旅行阅读验收第{index}轮：保留完整输入。", session_id)
+            print("READY https://localhost:18489 ; EMPTY https://localhost:18490 ; SUBMISSIONS https://localhost:18492 ; RECOVERY https://localhost:18493 ; LIFECYCLE https://localhost:18494 ; READING https://localhost:18495", flush=True)
             await asyncio.gather(*tasks)
         finally:
             for server in servers:

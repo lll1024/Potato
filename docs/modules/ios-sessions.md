@@ -36,7 +36,11 @@
 
 配置只接受无用户名、密码、查询、片段或子路径的 HTTPS 服务根地址，使用系统证书校验；不存模型或地图密钥。地址通过 GRDB 短事务保存。保存失败不切换内存配置。App 重启从同一文件恢复配置并重新核对连接，不恢复虚构的“已连接”。手机不复制后端完整历史。
 
-列表读取 `GET /api/snapshot` 与 `GET /api/sessions?limit=50`；对话使用 `GET /api/sessions/{id}?limit=50&summary=false&include_messages=false`。`input`、`answer` 保持完整原文，只排除底层模型协议。保留不透明列表游标与历史 `next_before`，当前不提供继续加载操作。
+列表读取 `GET /api/snapshot` 与 `GET /api/sessions?limit=50`；对话使用 `GET /api/sessions/{id}?limit=50&summary=false&include_messages=false`。`input`、`answer` 保持完整原文，只排除底层模型协议。`loadMoreSessions()` 原样传回不透明 `next_cursor`；`loadEarlierTurns(sessionID:)` 原样传回后端 `next_before`，仅作用于当前观察的会话。`isLoadingMoreSessions` / `isLoadingEarlierTurns` 防止同类重复加载，`moreSessionsFailure` / `earlierTurnsFailure` 提供独立失败与显式重试；普通网络或分页错误保留已读内容和继续入口。历史 404 清空当前会话投影、显示不存在，并使更早的成功响应失效。
+
+列表按会话身份去重，较旧分页不替换当前标题；刷新重新读取已展开的页数，反映电脑端新内容、改名与删除。列表刷新与继续加载依次读取，避免迟到旧页重新带回已删除记录，也避免慢分页被轮询反复作废；全局快照仍先独立读取。游标仅用于请求，不从游标推断会话顺序或归属。
+
+历史按轮次身份去重、后端 `ordinal` 排序；每轮分别记录其被读取时的事件 `cursor`，较旧响应不能替换较新的完成事实，较新的旧页也能补上早已离开最新页的轮次终态。实际读取的连续区间保留各自的后端继续入口；刷新产生的新历史缺口优先补齐，迟到旧页不能关闭这个缺口，补齐后继续向更早范围读取。已加载历史只保留在当前共享内存投影；退出页面停止观察，切换服务、数据集或会话使旧目标的分页失效，不向手机数据库复制历史。
 
 更换地址使旧读取失效；重复刷新只采用较新的结果。服务身份来自持久 `stream_id`，普通重启不凭进程身份推断为新数据集。网络、HTTP、解码和会话不存在分别表达，错误不能生成空列表、空历史或后端失败终态。取消客户端读取不调用后端停止接口。
 
@@ -78,4 +82,6 @@ App 的 scene phase 在活跃时启用唯一共享轮询、离开活跃态时取
 
 ## 构建与验证
 
-工程：`ios/Potato.xcodeproj`；生成源：`ios/project.yml`（XcodeGen 2.46.0）。Swift 6，最低 iOS 17，仅 iPhone；依赖解析结果随工程提交。`ios/PotatoTests/` 通过共享公开 interface、真实文件数据库及真实 HTTPS 后端验证；`ios/PotatoUITests/` 验证设置、进入、返回、草稿重启与离线编辑。运行步骤见 [iOS README](../../ios/README.md)；证据见 [#89](../acceptance/ios-readonly.md)、[#90](../acceptance/ios-submission.md)、[#91](../acceptance/ios-drafts.md)、[#92](../acceptance/ios-recovery.md) 与 [#93](../acceptance/ios-lifecycle.md)。
+回答排版由 `AnswerView` 封装 MarkdownUI。完整原文支持系统文字选择、打开链接与复制；复制不截断、不去除 Markdown 标记。表格在独立横向滚动区展示，列宽随 Dynamic Type 缩放，保留中文换行。列表和对话的继续加载经 Presenter → Interactor → `SessionAccess`，Router 仍负责进入和返回；查看更早内容与回到最新均为当前页面的阅读定位，不增加搜索、改名、删除入口。
+
+工程：`ios/Potato.xcodeproj`；生成源：`ios/project.yml`（XcodeGen 2.46.0）。Swift 6，最低 iOS 17，仅 iPhone；依赖解析结果随工程提交。`ios/PotatoTests/` 通过共享公开 interface、真实文件数据库及真实 HTTPS 后端验证；`ios/PotatoUITests/` 验证设置、进入、返回、草稿重启、离线编辑、分页与完整复制和外链。运行步骤见 [iOS README](../../ios/README.md)；证据见 [#89](../acceptance/ios-readonly.md)、[#90](../acceptance/ios-submission.md)、[#91](../acceptance/ios-drafts.md)、[#92](../acceptance/ios-recovery.md)、[#93](../acceptance/ios-lifecycle.md) 与 [#94](../acceptance/ios-reading.md)。

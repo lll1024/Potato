@@ -144,6 +144,7 @@ struct WireSnapshot: Decodable, Sendable {
 struct WirePage: Decodable, Sendable {
     struct Turn: Decodable, Sendable {
         let turnId: String
+        let ordinal: Int?
         let input: String
         let answer: String?
         let status: String
@@ -154,10 +155,13 @@ struct WirePage: Decodable, Sendable {
     let session: WireSession
     let turns: [Turn]
     let nextBefore: Int?
+    let cursor: Int?
 
     var entity: ConversationPage {
         ConversationPage(session: session.entity, turns: turns.map {
-            ConversationTurn(id: $0.turnId, input: $0.input, answer: $0.answer, status: $0.status, reason: $0.reason)
-        }, nextBefore: nextBefore, streamID: streamId)
+            ConversationTurn(id: $0.turnId, ordinal: $0.ordinal, input: $0.input, answer: $0.answer,
+                             status: $0.status, reason: $0.reason, observedAt: cursor)
+        }, nextBefore: nextBefore, streamID: streamId, cursor: cursor,
+            windows: HistoryWindow.page(ordinals: turns.compactMap(\.ordinal), before: nextBefore))
     }
 }
