@@ -43,7 +43,9 @@ targets:
   Potato:
     type: application
     platform: iOS
-    sources: [Potato]
+    sources:
+      - path: Potato
+        excludes: [LocalDebug-Info.plist]
     settings:
       base:
         TARGETED_DEVICE_FAMILY: '1'
@@ -54,6 +56,9 @@ targets:
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         MARKETING_VERSION: '0.1.0'
         CURRENT_PROJECT_VERSION: '1'
+      configs:
+        Debug:
+          'INFOPLIST_FILE[sdk=iphonesimulator*]': Potato/LocalDebug-Info.plist
     dependencies:
       - target: SessionKit
       - package: Factory

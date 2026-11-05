@@ -111,7 +111,7 @@ async def main():
             await tools.discover()
             yield Runtime(cast(AsyncAnthropic, ReadingModel()), tools, "test-model")
 
-        for name, port in (("populated", 18489), ("empty", 18490), ("submissions", 18492), ("recovery", 18493), ("lifecycle", 18494), ("reading", 18495)):
+        for name, port in (("populated", 18489), ("empty", 18490), ("submissions", 18492), ("recovery", 18493), ("lifecycle", 18494), ("reading", 18495), ("local-http", 18496)):
             app = (create_app(Path(directory) / name, resources=submission_resources,
                               preference_clock=clock, preference_wait=clock.wait)
                    if name == "submissions" else create_app(Path(directory) / name, resources=resources))
@@ -179,7 +179,8 @@ async def main():
             server = uvicorn.Server(uvicorn.Config(
                 app,
                 host="127.0.0.1", port=port, log_level="critical", access_log=False,
-                ssl_certfile=args.cert, ssl_keyfile=args.key))
+                ssl_certfile=None if name == "local-http" else args.cert,
+                ssl_keyfile=None if name == "local-http" else args.key))
             # 由顶层处理信号，确保两个服务都能退出。
             server.capture_signals = uncaptured_signals
             servers.append(server)
@@ -224,7 +225,7 @@ async def main():
                 session_id = await complete("杭州两日旅行阅读验收第1轮：保留完整输入。")
                 for index in range(2, 56):
                     await complete(f"杭州两日旅行阅读验收第{index}轮：保留完整输入。", session_id)
-            print("READY https://localhost:18489 ; EMPTY https://localhost:18490 ; SUBMISSIONS https://localhost:18492 ; RECOVERY https://localhost:18493 ; LIFECYCLE https://localhost:18494 ; READING https://localhost:18495", flush=True)
+            print("READY https://localhost:18489 ; EMPTY https://localhost:18490 ; SUBMISSIONS https://localhost:18492 ; RECOVERY https://localhost:18493 ; LIFECYCLE https://localhost:18494 ; READING https://localhost:18495 ; LOCAL HTTP http://127.0.0.1:18496", flush=True)
             await asyncio.gather(*tasks)
         finally:
             for server in servers:

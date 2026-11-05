@@ -227,33 +227,48 @@ public final class SharedSessions: SessionAccess {
         let savedAddress = try database.read { db in
             try String.fetchOne(db, sql: "SELECT address FROM connection WHERE id = 1") ?? ""
         }
-        serverAddress = savedAddress
+        let restoredAddress = (try? Self.normalizedAddress(savedAddress)) ?? ""
+        serverAddress = restoredAddress
         datasetID = try database.read {
-            try String.fetchOne($0, sql: "SELECT stream_id FROM server_dataset WHERE address = ?", arguments: [savedAddress])
+            try String.fetchOne($0, sql: "SELECT stream_id FROM server_dataset WHERE address = ?", arguments: [restoredAddress])
         }
-        connection = savedAddress.isEmpty ? .unconfigured : .connecting
+        connection = restoredAddress.isEmpty ? .unconfigured : .connecting
         if let data = try database.read({ try Data.fetchOne($0, sql: "SELECT payload FROM pending_submission WHERE id = 1") }) {
             pendingSubmission = try JSONDecoder().decode(PendingSubmission.self, from: data)
             submission = .unknown
         }
     }
 
-    public func configure(address: String) throws {
+    private static func normalizedAddress(_ address: String) throws -> String {
         let trimmed = address.trimmingCharacters(in: .whitespacesAndNewlines)
-        var normalized = ""
-        if !trimmed.isEmpty {
-            guard var url = URLComponents(string: trimmed),
-                  url.scheme?.lowercased() == "https", let host = url.host, !host.isEmpty,
-                  url.user == nil, url.password == nil, url.query == nil, url.fragment == nil,
-                  url.path.isEmpty || url.path == "/",
-                  url.port == nil || (1...65535).contains(url.port!), url.url != nil else {
-                throw SessionFailure.invalidAddress
-            }
-            url.scheme = "https"
-            url.host = host.lowercased()
-            url.path = ""
-            normalized = url.string!
+        guard !trimmed.isEmpty else { return "" }
+        guard var url = URLComponents(string: trimmed),
+              let scheme = url.scheme?.lowercased(), let host = url.host, !host.isEmpty,
+              url.user == nil, url.password == nil, url.query == nil, url.fragment == nil,
+              url.path.isEmpty || url.path == "/",
+              url.port == nil || (1...65535).contains(url.port!), url.url != nil else {
+            throw SessionFailure.invalidAddress
         }
+        var allowed = scheme == "https"
+        #if DEBUG && targetEnvironment(simulator)
+        allowed = allowed || (scheme == "http" && host == "127.0.0.1")
+        #endif
+        guard allowed else { throw SessionFailure.invalidAddress }
+        url.scheme = scheme
+        url.host = host.lowercased()
+        url.path = ""
+        return url.string!
+    }
+
+    private func connectionFailureMessage(_ error: any Error) -> String {
+        if error as? SessionFailure == .unreachable, serverAddress.hasPrefix("http://127.0.0.1") {
+            return "无法连接本地服务，请确认后端已启动。"
+        }
+        return error.localizedDescription
+    }
+
+    public func configure(address: String) throws {
+        let normalized = try Self.normalizedAddress(address)
         let savedDataset = try database.write { db in
             try db.execute(sql: "INSERT OR REPLACE INTO connection (id, address) VALUES (1, ?)",
                            arguments: [normalized])
@@ -629,7 +644,7 @@ public final class SharedSessions: SessionAccess {
                 if connectionRead == connectionGeneration { connection = previousConnection }
                 throw error
             }
-            if connectionRead == connectionGeneration { connection = .unavailable(error.localizedDescription) }
+            if connectionRead == connectionGeneration { connection = .unavailable(connectionFailureMessage(error)) }
             throw error
         }
     }
@@ -686,7 +701,7 @@ public final class SharedSessions: SessionAccess {
                 if connectionRead == connectionGeneration { connection = .connected }
                 if watchedSessionID == sessionID { conversation = nil; invalidateEarlierTurns() }
             } else {
-                if connectionRead == connectionGeneration { connection = .unavailable(error.localizedDescription) }
+                if connectionRead == connectionGeneration { connection = .unavailable(connectionFailureMessage(error)) }
             }
             throw error
         }

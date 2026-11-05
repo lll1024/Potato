@@ -640,6 +640,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
+				"INFOPLIST_FILE[sdk=iphonesimulator*]" = "Potato/LocalDebug-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Potato;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.travel";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

@@ -4,6 +4,25 @@ import Testing
 
 @MainActor
 struct ConnectionFailureTests {
+    #if DEBUG && targetEnvironment(simulator)
+    @Test func unavailableLocalServiceExplainsHowToRecoverAndCanRetry() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let (sessions, fixture, _) = try await HTTPFixture.client(
+            databaseURL: directory.appending(path: "client.sqlite"), address: "http://127.0.0.1:18496")
+        let unavailable = Task { try await sessions.refresh() }
+        await fixture.next().fail()
+        await #expect(throws: SessionFailure.unreachable) { try await unavailable.value }
+        #expect(sessions.connection == .unavailable("无法连接本地服务，请确认后端已启动。"))
+        #expect(sessions.sessionList == nil)
+        let retry = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: Self.snapshot)
+        await fixture.next().reply(body: Self.emptyList)
+        #expect(try await retry.value.sessions.isEmpty)
+        #expect(sessions.connection == .connected)
+    }
+    #endif
+
     @Test func historyDetectsNewDatasetAndRejectsAnOlderRefresh() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }

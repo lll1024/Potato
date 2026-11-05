@@ -8,7 +8,13 @@ extension Container {
         self {
             Result {
                 let directory = URL.applicationSupportDirectory.appending(path: "Potato", directoryHint: .isDirectory)
-                return try SharedSessions(databaseURL: directory.appending(path: "client.sqlite")) as any SessionAccess
+                let sessions = try SharedSessions(databaseURL: directory.appending(path: "client.sqlite"))
+                #if DEBUG && targetEnvironment(simulator)
+                if sessions.serverAddress.isEmpty {
+                    try sessions.configure(address: "http://127.0.0.1:8000")
+                }
+                #endif
+                return sessions as any SessionAccess
             }
         }.singleton
     }

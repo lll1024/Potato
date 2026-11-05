@@ -34,7 +34,9 @@
 
 共享能力拥有服务地址、连接状态和后端快照；连接状态与后端可接受输入、忙碌、停止及保存故障分开。配置存在不表示连接已成功，只有真实 HTTP 核对成功才显示已连接。页面局部加载和读取错误归 Presenter，页面释放不会停止后端轮次。
 
-配置只接受无用户名、密码、查询、片段或子路径的 HTTPS 服务根地址，使用系统证书校验；不存模型或地图密钥。地址通过 GRDB 短事务保存。保存失败不切换内存配置。App 重启从同一文件恢复配置并重新核对连接，不恢复虚构的“已连接”。手机不复制后端完整历史。
+配置接受无用户名、密码、查询、片段或子路径的 HTTPS 服务根地址，使用系统证书校验。仅模拟器 Debug 额外接受 `http://127.0.0.1` 的服务根地址及有效端口；App 装配在没有保存地址时预置 `http://127.0.0.1:8000`，已有地址保持不变。本地 HTTP 的 ATS 例外仅注入模拟器 Debug 的 App。真机及其他构建仍只接受 HTTPS，恢复本机配置时也按当前构建校验地址。
+
+不存模型或地图密钥。地址通过 GRDB 短事务保存。保存失败不切换内存配置。App 重启从同一文件恢复配置并重新核对连接，不恢复虚构的“已连接”。手机不复制后端完整历史。本地 HTTP 连接失败时显示“无法连接本地服务，请确认后端已启动”并沿用列表重试入口；HTTP 状态和解码错误仍显示各自原因，不将连接失败直接判为后端未启动。日常后端由用户单独启动，运行方式见 [本地模拟器调试](../../ios/README.md#本地模拟器调试)。
 
 列表读取 `GET /api/snapshot` 与 `GET /api/sessions?limit=50`；对话使用 `GET /api/sessions/{id}?limit=50&summary=false&include_messages=false`。`input`、`answer` 保持完整原文，只排除底层模型协议。`loadMoreSessions()` 原样传回不透明 `next_cursor`；`loadEarlierTurns(sessionID:)` 原样传回后端 `next_before`，仅作用于当前观察的会话。`isLoadingMoreSessions` / `isLoadingEarlierTurns` 防止同类重复加载，`moreSessionsFailure` / `earlierTurnsFailure` 提供独立失败与显式重试；普通网络或分页错误保留已读内容和继续入口。历史 404 清空当前会话投影、显示不存在，并使更早的成功响应失效。
 
@@ -84,4 +86,4 @@ App 的 scene phase 在活跃时启用唯一共享轮询、离开活跃态时取
 
 回答排版由 `AnswerView` 封装 MarkdownUI。完整原文支持系统文字选择、打开链接与复制；复制不截断、不去除 Markdown 标记。表格在独立横向滚动区展示，列宽随 Dynamic Type 缩放，保留中文换行。列表和对话的继续加载经 Presenter → Interactor → `SessionAccess`，Router 仍负责进入和返回；查看更早内容与回到最新均为当前页面的阅读定位，不增加搜索、改名、删除入口。
 
-工程：`ios/Potato.xcodeproj`；生成源：`ios/project.yml`（XcodeGen 2.46.0）。Swift 6，最低 iOS 17，仅 iPhone；依赖解析结果随工程提交。`ios/PotatoTests/` 通过共享公开 interface、真实文件数据库及真实 HTTPS 后端验证；`ios/PotatoUITests/` 验证设置、进入、返回、草稿重启、离线编辑、分页与完整复制和外链。运行步骤见 [iOS README](../../ios/README.md)；证据见 [#89](../acceptance/ios-readonly.md)、[#90](../acceptance/ios-submission.md)、[#91](../acceptance/ios-drafts.md)、[#92](../acceptance/ios-recovery.md)、[#93](../acceptance/ios-lifecycle.md) 与 [#94](../acceptance/ios-reading.md)。
+工程：`ios/Potato.xcodeproj`；生成源：`ios/project.yml`（XcodeGen 2.46.0）。Swift 6，最低 iOS 17，仅 iPhone；依赖解析结果随工程提交。`ios/PotatoTests/` 通过共享公开 interface、真实文件数据库及真实 HTTP／HTTPS 后端验证；`ios/PotatoUITests/` 验证模拟器免配置启动、本地连接重试、设置、进入、返回、草稿重启、离线编辑、分页与完整复制和外链。运行步骤见 [iOS README](../../ios/README.md)；证据见 [本地模拟器调试](../acceptance/ios-local-debug.md)、[#89](../acceptance/ios-readonly.md)、[#90](../acceptance/ios-submission.md)、[#91](../acceptance/ios-drafts.md)、[#92](../acceptance/ios-recovery.md)、[#93](../acceptance/ios-lifecycle.md) 与 [#94](../acceptance/ios-reading.md)。

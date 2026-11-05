@@ -22,7 +22,7 @@ struct ConnectionSettingsView: View {
                         .textContentType(.URL).keyboardType(.URL)
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
                         .focused($editing).submitLabel(.done).onSubmit { editing = false }
-                        .accessibilityLabel("HTTPS 服务地址").accessibilityIdentifier("server-address")
+                        .accessibilityLabel("服务地址").accessibilityIdentifier("server-address")
                     Button("保存并连接") { Task { await connect() } }
                         .disabled(saving || address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         .accessibilityIdentifier("save-connection")
@@ -32,7 +32,7 @@ struct ConnectionSettingsView: View {
                     if let error { Text(error).foregroundStyle(.red) }
                 }
                 Section {
-                    Text("让 iPhone 与 Mac 加入同一 Tailscale 私人网络，并填写 Mac 的 HTTPS 服务地址。Mac 和旅行助手需要保持运行。")
+                    Text(connectionHelp)
                         .foregroundStyle(.secondary)
                 }
                 if !sessions.serverAddress.isEmpty {
@@ -57,6 +57,15 @@ struct ConnectionSettingsView: View {
                 }
             }
         }
+    }
+
+    private var connectionHelp: String {
+        #if DEBUG && targetEnvironment(simulator)
+        if address.hasPrefix("http://127.0.0.1") {
+            return "连接这台 Mac 上的旅行助手。请先启动本地后端；默认使用 8000 端口，无需配置私人网络或证书。"
+        }
+        #endif
+        return "让 iPhone 与 Mac 加入同一 Tailscale 私人网络，并填写 Mac 的 HTTPS 服务地址。Mac 和旅行助手需要保持运行。"
     }
 
     private func connect() async {

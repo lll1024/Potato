@@ -5,6 +5,36 @@ import Testing
 @MainActor
 @Suite(.serialized)
 struct SubmissionIntegrationTests {
+    #if DEBUG && targetEnvironment(simulator)
+    @Test func localHTTPReadsExistingConversationContinuesAndCreatesWithSharedHistory() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let phone: any SessionAccess = try SharedSessions(databaseURL: directory.appending(path: "phone.sqlite"))
+        let desktop: any SessionAccess = try SharedSessions(databaseURL: directory.appending(path: "desktop.sqlite"))
+        try phone.configure(address: "http://127.0.0.1:18496")
+        try desktop.configure(address: "http://127.0.0.1:18496")
+        _ = try await desktop.refresh()
+        let original = try await desktop.submit(input: "电脑开始本地旅行讨论", sessionID: nil)
+        try await waitForCompletion(desktop)
+        #expect(try await phone.refresh().sessions.contains { $0.id == original.sessionID })
+        #expect(try await phone.history(sessionID: original.sessionID).turns.first?.input == "电脑开始本地旅行讨论")
+
+        let continuation = try await phone.submit(input: "模拟器续聊第二天", sessionID: original.sessionID)
+        #expect(continuation.sessionID == original.sessionID)
+        try await waitForCompletion(phone)
+        let fromPhone = try await phone.history(sessionID: original.sessionID)
+        #expect(try await desktop.history(sessionID: original.sessionID) == fromPhone)
+        #expect(fromPhone.turns.count == 2)
+        #expect(fromPhone.turns.last?.input == "模拟器续聊第二天")
+        #expect(fromPhone.turns.allSatisfy { $0.status == "completed" && $0.answer?.hasSuffix("回答全文结尾") == true })
+
+        let created = try await phone.submit(input: "模拟器新建旅行讨论", sessionID: nil)
+        #expect(created.sessionID != original.sessionID)
+        try await waitForCompletion(phone)
+        #expect(try await desktop.refresh().sessions.contains { $0.id == created.sessionID })
+    }
+    #endif
+
     @Test func phoneAndDesktopShareSingleAcceptanceFullAnswersAndPreferences() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         let phone: any SessionAccess = try SharedSessions(databaseURL: directory.appending(path: "phone.sqlite"))

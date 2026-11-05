@@ -1,9 +1,34 @@
 import Foundation
 import SessionKit
+import SQLite3
 import Testing
 
 @MainActor
 struct SessionAccessTests {
+    @Test func localHTTPIsLimitedToSimulatorDebugBuilds() throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let sessions: any SessionAccess = try SharedSessions(databaseURL: directory.appending(path: "client.sqlite"))
+        #if DEBUG && targetEnvironment(simulator)
+        try sessions.configure(address: "http://127.0.0.1:8000/")
+        #expect(sessions.serverAddress == "http://127.0.0.1:8000")
+        #expect(sessions.connection == .connecting)
+        let reopened: any SessionAccess = try SharedSessions(databaseURL: directory.appending(path: "client.sqlite"))
+        #expect(reopened.serverAddress == "http://127.0.0.1:8000")
+        #else
+        #expect(throws: SessionFailure.invalidAddress) { try sessions.configure(address: "http://127.0.0.1:8000") }
+        #expect(sessions.connection == .unconfigured)
+        // 模拟由 Debug 构建留下的本机文件；恢复配置也必须遵守当前构建的连接限制。
+        var database: OpaquePointer?
+        #expect(sqlite3_open(directory.appending(path: "client.sqlite").path, &database) == SQLITE_OK)
+        defer { sqlite3_close(database) }
+        #expect(sqlite3_exec(database, "INSERT OR REPLACE INTO connection (id, address) VALUES (1, 'http://127.0.0.1:8000')", nil, nil, nil) == SQLITE_OK)
+        let reopened: any SessionAccess = try SharedSessions(databaseURL: directory.appending(path: "client.sqlite"))
+        #expect(reopened.serverAddress.isEmpty)
+        #expect(reopened.connection == .unconfigured)
+        #endif
+    }
+
     @Test func trueEmptyListIsDifferentFromUnavailableService() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -50,7 +75,10 @@ struct SessionAccessTests {
         #expect(try await sessions.refresh().sessions.first?.id == first.id)
     }
 
-    @Test(arguments: ["http://mac.example.ts.net", "https://user:secret@mac.example.ts.net",
+    @Test(arguments: ["http://mac.example.ts.net", "http://192.168.1.1:8000", "http://127.0.0.1.example.test:8000",
+                      "http://127.0.0.1:8000/path", "http://user:secret@127.0.0.1:8000",
+                      "http://127.0.0.1:8000?key=secret", "http://127.0.0.1:8000#fragment",
+                      "http://127.0.0.1:0", "https://user:secret@mac.example.ts.net",
                       "https://mac.example.ts.net/path", "https://mac.example.ts.net?key=secret",
                       "https://mac.example.ts.net#fragment", "https://", "not a URL"])
     func invalidAddressDoesNotReplaceSavedConfiguration(address: String) throws {

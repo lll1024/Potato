@@ -1,0 +1,35 @@
+[
+  {
+    "build": "Debug Simulator",
+    "bundle": "/tmp/potato-95-simulator/Build/Products/Debug-iphonesimulator/Potato.app",
+    "minimumOS": "17.0",
+    "deviceFamily": [
+      1
+    ],
+    "ats": {
+      "NSExceptionDomains": {
+        "127.0.0.1": {
+          "NSExceptionAllowsInsecureHTTPLoads": true
+        }
+      }
+    }
+  },
+  {
+    "build": "Release Simulator",
+    "bundle": "/tmp/potato-95-simulator/Build/Products/Release-iphonesimulator/Potato.app",
+    "minimumOS": "17.0",
+    "deviceFamily": [
+      1
+    ],
+    "ats": null
+  },
+  {
+    "build": "Debug iPhone",
+    "bundle": "/tmp/potato-ios-build/Build/Products/Debug-iphoneos/Potato.app",
+    "minimumOS": "17.0",
+    "deviceFamily": [
+      1
+    ],
+    "ats": null
+  }
+]

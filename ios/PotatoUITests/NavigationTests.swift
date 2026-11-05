@@ -2,6 +2,49 @@ import XCTest
 
 @MainActor
 final class NavigationTests: XCTestCase {
+    #if DEBUG && targetEnvironment(simulator)
+    func testSimulatorStartsWithLocalConnectionWithoutAddressEntry() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        app.buttons["connection-settings"].tap()
+        if app.buttons["clear-connection"].exists { app.buttons["clear-connection"].tap() }
+        app.buttons["done-connection"].tap()
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.navigationBars["助手会话"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["连接你的旅行助手"].exists)
+        XCTAssertTrue(app.buttons["new-conversation"].isEnabled)
+        app.buttons["connection-settings"].tap()
+        XCTAssertEqual(app.textFields["server-address"].value as? String, "http://127.0.0.1:8000")
+        attach(app, name: "模拟器自动预置本地地址")
+    }
+
+    func testLocalHTTPConnectionFailureRetryAndSavedAnswer() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        configure(app, address: "http://127.0.0.1:18491")
+        app.buttons["done-connection"].tap()
+        XCTAssertTrue(app.staticTexts["无法连接本地服务，请确认后端已启动。"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["重新连接"].isHittable)
+        app.buttons["重新连接"].tap()
+        XCTAssertTrue(app.buttons["重新连接"].waitForExistence(timeout: 5))
+        attach(app, name: "本地服务不可用与重试")
+        configure(app, address: "http://127.0.0.1:18496")
+        XCTAssertTrue(app.staticTexts["已连接"].waitForExistence(timeout: 10))
+        app.buttons["done-connection"].tap()
+        app.buttons["new-conversation"].tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        input.tap()
+        input.typeText("模拟器HTTP界面验收")
+        app.buttons["send-input"].tap()
+        XCTAssertTrue(app.staticTexts["回答全文结尾"].waitForExistence(timeout: 10))
+        attach(app, name: "本地HTTP真实后端已保存回答")
+    }
+    #endif
+
     func testRestartRecoversOriginalSubmissionAndOpensSavedConversation() async throws {
         let app = XCUIApplication()
         app.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
