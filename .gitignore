@@ -18,3 +18,4 @@ travel.service.lock
 frontend/test-results/
 frontend/playwright-report/
 .vscode/
+ios/**/xcuserdata/

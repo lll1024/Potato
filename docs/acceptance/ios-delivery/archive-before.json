@@ -1,0 +1,41 @@
+{
+  "archive": "/tmp/potato-95-unsigned.xcarchive",
+  "signed": false,
+  "distribution_validated": false,
+  "archive_metadata": {
+    "ApplicationProperties": "{'ApplicationPath': 'Applications/Potato.app', 'Architectures': ['arm64'], 'CFBundleIdentifier': 'com.potato.travel', 'CFBundleShortVersionString': '0.1.0', 'CFBundleVersion': '1', 'SigningIdentity': '', 'Team': ''}",
+    "ArchiveVersion": "2",
+    "CreationDate": "2026-11-05 06:58:53",
+    "Name": "Potato",
+    "SchemeName": "Potato"
+  },
+  "app": {
+    "CFBundleIdentifier": "com.potato.travel",
+    "CFBundleShortVersionString": "0.1.0",
+    "CFBundleVersion": "1",
+    "MinimumOSVersion": "17.0",
+    "UIDeviceFamily": [
+      1,
+      2
+    ],
+    "CFBundleIcons": null,
+    "UISupportedInterfaceOrientations": null
+  },
+  "binaries": [
+    {
+      "path": "Potato",
+      "file": "/tmp/potato-95-unsigned.xcarchive/Products/Applications/Potato.app/Potato: Mach-O 64-bit executable arm64",
+      "build": "/tmp/potato-95-unsigned.xcarchive/Products/Applications/Potato.app/Potato:\nLoad command 11\n      cmd LC_BUILD_VERSION\n  cmdsize 32\n platform IOS\n    minos 17.0\n      sdk 27.2\n   ntools 1\n     tool LD\n  version 27106.1"
+    },
+    {
+      "path": "Frameworks/SessionKit.framework/SessionKit",
+      "file": "/tmp/potato-95-unsigned.xcarchive/Products/Applications/Potato.app/Frameworks/SessionKit.framework/SessionKit: Mach-O 64-bit dynamically linked shared library arm64",
+      "build": "/tmp/potato-95-unsigned.xcarchive/Products/Applications/Potato.app/Frameworks/SessionKit.framework/SessionKit:\nLoad command 10\n      cmd LC_BUILD_VERSION\n  cmdsize 32\n platform IOS\n    minos 17.0\n      sdk 27.2\n   ntools 1\n     tool LD\n  version 27106.1"
+    }
+  ],
+  "privacy_manifests": [
+    "Factory_FactoryKit.bundle/PrivacyInfo.xcprivacy",
+    "GRDB_GRDB.bundle/PrivacyInfo.xcprivacy",
+    "Alamofire_Alamofire.bundle/PrivacyInfo.xcprivacy"
+  ]
+}

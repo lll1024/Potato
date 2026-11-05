@@ -1,0 +1,96 @@
+2026-11-05 #92 验证记录
+
+Xcode 27.2 (27B52)，Swift 6，iOS 17 部署下限。
+实际运行 iPhone 17 Pro / iOS 26.5 Simulator；localhost HTTPS 正常证书校验。
+本次无后端与 Web 生产代码改动；真实模型调用由验收资源替换。
+
+最终 iOS 命令：
+xcodebuild test -project ios/Potato.xcodeproj -scheme Potato -destination 'platform=iOS Simulator,id=AB9010DF-6F36-4079-8492-3CE8B5393EF7' -derivedDataPath /tmp/potato-ios-build -skipMacroValidation -resultBundlePath /tmp/potato-92-verified.xcresult CODE_SIGNING_ALLOWED=NO
+
+其他命令：
+.venv/bin/python -m unittest discover -s tests -v
+npm run build --prefix frontend
+npm test --prefix frontend
+npm run test:ui --prefix frontend
+env PYTHONPATH=tests .venv/bin/pyright --pythonpath .venv/bin/python agent.py web.py travel_app scripts tests/compatibility tests/*fixtures.py tests/record_faults.py ios/Integration/backend.py
+.venv/bin/python scripts/check_modules.py
+.venv/bin/python scripts/check_docs.py
+git diff --check
+xcodebuild build -project ios/Potato.xcodeproj -scheme Potato -destination generic/platform=iOS -derivedDataPath /tmp/potato-91-device -clonedSourcePackagesDirPath /tmp/potato-ios-build/SourcePackages -skipMacroValidation CODE_SIGNING_ALLOWED=NO
+
+[恢复先失败]
+✘ Test reopeningChecksOriginalAcceptanceAndKeepsLaterDraft() recorded an issue at RecoveryTests.swift:23:9: Expectation failed: reopened.pendingSubmission == nil
+✘ Test reopeningChecksOriginalAcceptanceAndKeepsLaterDraft() recorded an issue at RecoveryTests.swift:28:30: Issue recorded
+✘ Test reopeningChecksOriginalAcceptanceAndKeepsLaterDraft() recorded an issue at RecoveryTests.swift:30:9: Expectation failed: await fixture.receivedCount == 3
+
+[恢复通过]
+✔ Test reopeningChecksOriginalAcceptanceAndKeepsLaterDraft() passed after 0.025 seconds.
+✔ Test run with 1 test in 1 suite passed after 0.028 seconds.
+** TEST SUCCEEDED **
+
+[同身份重试先失败]
+✘ Test missingAcceptanceNeverAutoSendsAndExplicitRetryKeepsOriginalRequest() recorded an issue at RecoveryTests.swift:47:9: Expectation failed: phone.submission == .notFound
+✘ Test missingAcceptanceNeverAutoSendsAndExplicitRetryKeepsOriginalRequest() recorded an issue at RecoveryTests.swift:48:9: Expectation failed: phone.canRetrySubmission
+✘ Test missingAcceptanceNeverAutoSendsAndExplicitRetryKeepsOriginalRequest() recorded an issue at RecoveryTests.swift:33:6: Caught error: .submissionUnknown
+
+[同身份重试通过]
+✔ Test reopeningChecksOriginalAcceptanceAndKeepsLaterDraft() passed after 0.022 seconds.
+✔ Test missingAcceptanceNeverAutoSendsAndExplicitRetryKeepsOriginalRequest() passed after 0.012 seconds.
+✔ Test run with 2 tests in 1 suite passed after 0.037 seconds.
+** TEST SUCCEEDED **
+
+[数据集接受展示先失败]
+✘ Test acceptedDisplayIsInvalidatedWhenDatasetChanges() recorded an issue at RecoveryTests.swift:173:9: Expectation failed: phone.submission == .idle
+
+[真实后端与恢复通过]
+✔ Test reopeningChecksOriginalAcceptanceAndKeepsLaterDraft() passed after 0.130 seconds.
+✔ Test missingAcceptanceNeverAutoSendsAndExplicitRetryKeepsOriginalRequest() passed after 0.009 seconds.
+​✔ Test failedChecksKeepOriginalAndNeverPermitRetry(mode:) with 5 test cases passed after 0.034 seconds.
+​✔ Test explicitRetryRejectionsRemainDistinctAndKeepTheOriginal(code:) with 5 test cases passed after 0.038 seconds.
+✔ Test queryDeletedAcceptanceCannotBecomeARetry() passed after 0.006 seconds.
+✔ Test changedServiceAndDatasetIgnoreLateCheckAndRecoverOnlyAtOriginalIdentity() passed after 0.009 seconds.
+✔ Test interruptedLocalCleanupCanRecoverOriginalAcceptanceAfterReopen() passed after 0.009 seconds.
+✔ Test acceptedDisplayIsInvalidatedWhenDatasetChanges() passed after 0.007 seconds.
+✔ Test phoneAndDesktopShareSingleAcceptanceFullAnswersAndPreferences() passed after 0.077 seconds.
+✔ Test missingLookupAndOriginalInFlightRaceAcceptsOnlyOneRealExecution() passed after 0.048 seconds.
+​✔ Test realLostAcceptanceRecoversOrReportsDeletedWithoutAnotherExecution(deleted:) with 2 test cases passed after 0.063 seconds.
+✔ Test run with 11 tests in 2 suites passed after 0.441 seconds.
+** TEST SUCCEEDED **
+
+[导航和错误反馈先失败]
+<unknown>:0: error: -[PotatoUITests.NavigationTests testRestartRecoversOriginalSubmissionAndOpensSavedConversation] : Fulfilled inverted expectation "Expect predicate `exists == 1` for object "你的输入：重启核对原提交" StaticText".
+/Users/jarviliu/projects/travel/ios/PotatoUITests/NavigationTests.swift:49: error: -[PotatoUITests.NavigationTests testRestartRecoversOriginalSubmissionAndOpensSavedConversation] : XCTAssertTrue failed
+
+[导航和错误反馈修复通过]
+Test Case '-[PotatoUITests.NavigationTests testRestartRecoversOriginalSubmissionAndOpensSavedConversation]' passed (37.415 seconds).
+
+[全仓库回归]
+Python 首轮 361 项中 MCP 故障场景 sse-read 的先前成功查询超时，导致 1 项失败。
+该测试单独重跑：Ran 1 test in 2.600s / OK。
+完整重跑：Ran 361 tests in 327.940s / OK。
+Web 呈现 13 passed；浏览器 UI 53 passed (1.4m)；前端构建通过。
+生产/支撑及 iOS 夹具 pyright：0 errors, 0 warnings, 0 informations。
+结构和文档检查通过，差异格式检查通过。
+iPhone arm64 无签名：** BUILD SUCCEEDED **。
+
+[失败与证据边界]
+首次真实集成夹具的额外路由被静态挂载遮住，随后 HTTP 夹具复用地址时遗漏端口；修正夹具后真实后端测试通过，未修改生产后端。
+长原文 UI 查询最初触发 XCTest 字符串标识 128 字符上限，改为 NSPredicate；不将这个夹具失败当成产品缺陷。
+恢复界面旧快照按人工检查后的实际输出更新。最后一处审查提示修复后中断旧全量运行，最终以 verified 运行记录为准。
+模拟器与本机 HTTPS 不代表 Tailscale/蜂窝网络、真实 iPhone、iOS 17 实机、签名或 TestFlight 已通过。
+
+[最终完整 iOS 运行]
+54 项测试，含参数化 81 例，0 失败、0 跳过。
+Test Case '-[PotatoTests.SnapshotTests testEmptySessions]' passed (1.281 seconds).
+Test Case '-[PotatoTests.SnapshotTests testUnconfiguredDarkLargeText]' passed (1.211 seconds).
+Test Case '-[PotatoTests.SnapshotTests testUnconfirmedConversationDarkLargeText]' passed (2.260 seconds).
+✔ Test run with 43 tests in 7 suites passed after 0.765 seconds.
+Test Case '-[PotatoUITests.NavigationTests testConnectReadReturnEmptyAndUnavailable]' passed (41.510 seconds).
+Test Case '-[PotatoUITests.NavigationTests testCreateSendContinueAndReadSavedAnswer]' passed (39.524 seconds).
+Test Case '-[PotatoUITests.NavigationTests testDraftsSurviveNavigationReleaseAndAppRestart]' passed (40.332 seconds).
+Test Case '-[PotatoUITests.NavigationTests testLateAcceptanceClearsOnlyOldDraftOnReopenedNewPage]' passed (24.654 seconds).
+Test Case '-[PotatoUITests.NavigationTests testLaterInputFollowsNewAcceptedConversationAndSurvivesReopen]' passed (32.046 seconds).
+Test Case '-[PotatoUITests.NavigationTests testLongRetainedInputKeepsRecoveryActionsAndComposerReachable]' passed (27.788 seconds).
+Test Case '-[PotatoUITests.NavigationTests testOfflineDraftCanBeEditedAndRestoredWithoutSending]' passed (31.809 seconds).
+Test Case '-[PotatoUITests.NavigationTests testRestartRecoversOriginalSubmissionAndOpensSavedConversation]' passed (38.304 seconds).
+** TEST SUCCEEDED **

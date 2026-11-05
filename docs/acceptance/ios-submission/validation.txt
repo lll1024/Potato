@@ -1,0 +1,45 @@
+2026-11-04 #90 验证输出摘要
+
+工具链与系统
+Xcode 26.5；Swift 6；最低 iOS 17；iPhone 17 Pro / iOS 26.5 Simulator。
+
+最终完整 iOS suite（全新临时后端）
+xcodebuild test -project ios/Potato.xcodeproj -scheme Potato -destination <iPhone17Pro/iOS26.5> -skipMacroValidation CODE_SIGNING_ALLOWED=NO
+Swift Testing: Test run with 21 tests in 5 suites passed after 0.283 seconds.
+SnapshotTesting: 3 tests passed.
+XCTest UI: 2 tests passed.
+** TEST SUCCEEDED **
+xcresult: 26 tests / 39 parameterized cases passed；0 failed；0 skipped。
+机器汇总以 test-summary.json 为准。
+
+开发中的先失败后通过证据（节选）
+发送原子保存：发送前必须持久保存待确认提交。
+轮询：共享能力应发布当前对话的真实持久状态。
+审查回归（临时恢复有问题的实现）：
+✘ polledMissingConversationPublishes404AndCanRecover(): sessions.conversationFailure == .http(404)
+✘ idleSnapshotStartedBeforeAcceptanceCannotPermitAnotherSubmission(): sessions.canSubmit == false
+✘ testCreateSendContinueAndReadSavedAnswer(): Fulfilled inverted expectation：原会话输入消失。
+恢复修正后上述三项在最终完整 suite 通过。
+
+后端公开提交契约
+PYTHONPATH=tests .venv/bin/python -m unittest test_submissions -v
+Ran 10 tests in 0.771s
+OK
+
+类型与结构
+PYTHONPATH=tests .venv/bin/pyright --pythonpath .venv/bin/python ios/Integration/backend.py
+0 errors, 0 warnings, 0 informations
+.venv/bin/python scripts/check_modules.py
+全仓库公开入口、依赖方向与无环检查通过；无迁移豁免。
+.venv/bin/python scripts/check_docs.py
+当前导航与公开契约链接检查通过（18 份文档）。
+git diff --check / git diff --cached --check：通过。
+
+原生界面
+通用 detector 输出 []，原生平台指南独立人工审阅。
+浅色、深色、accessibility3 及实际模拟器新建/续聊截图已审阅；最终审查 disposition: ship。
+两轴代码审查：Standards 初次2项P2→0遗留；Spec 初次2项P2→0遗留。
+
+iPhone arm64 无签名构建
+xcodebuild build -project ios/Potato.xcodeproj -scheme Potato -destination generic/platform=iOS -skipMacroValidation CODE_SIGNING_ALLOWED=NO
+** BUILD SUCCEEDED **

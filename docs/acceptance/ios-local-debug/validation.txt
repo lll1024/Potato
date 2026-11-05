@@ -1,0 +1,41 @@
+本地模拟器调试验证（2026-11-05，Asia/Shanghai）
+基准：0f68ac03da177180bbdcd06b10fea23212491458
+分支：codex/ios-client；复用 PR #96。
+测试边界：SessionAccess 公开接口、真实文件 SQLite、真实 HTTP／HTTPS 后端和模拟器界面。
+模拟器：iPhone 17 Pro / iOS 26.5，AB9010DF-6F36-4079-8492-3CE8B5393EF7。
+构建：Xcode 27.2 / 27B52；Swift 6；XcodeGen 2.46.0；依赖不升级。
+
+运行顺序：公开本地 HTTP 配置红／绿 → 无保存地址启动 UI 红／绿 → 本地失败提示与重试红／绿 → 真实 HTTP 双客户端及 UI → Release 限制 → 最终完整套件。
+第一次本地 HTTP 单用例命令省略函数括号，实际执行了 0 例；不作为验证。改用完整 Swift Testing 标识后，先捕获 invalidAddress，再通过。首次实现的 Swift 初始化顺序编译错误修正后通过，不作为绿测试。
+
+验收服务使用独立临时数据库，不读取本人数据或密钥，不占用正在运行的 8000 端口：
+.venv/bin/python ios/Integration/backend.py --cert /tmp/potato-ios-tls/cert.pem --key /tmp/potato-ios-tls/key.pem
+
+最终完整 iOS 套件（重建干净验收服务后）：
+xcodebuild test -project ios/Potato.xcodeproj -scheme Potato -configuration Debug -destination 'platform=iOS Simulator,id=AB9010DF-6F36-4079-8492-3CE8B5393EF7' -derivedDataPath /tmp/potato-95-simulator -clonedSourcePackagesDirPath /tmp/potato-ios-packages -skipMacroValidation -parallel-testing-enabled NO -resultBundlePath /tmp/potato-local-full.xcresult CODE_SIGNING_ALLOWED=NO
+
+Release 公开边界负向用例，验证输入及恢复已保存地址均拒绝 HTTP；ENABLE_TESTABILITY 只启用测试导入，不定义 DEBUG：
+xcodebuild test -project ios/Potato.xcodeproj -scheme Potato -configuration Release -destination 'platform=iOS Simulator,id=AB9010DF-6F36-4079-8492-3CE8B5393EF7' -derivedDataPath /tmp/potato-95-simulator -clonedSourcePackagesDirPath /tmp/potato-ios-packages -skipMacroValidation -parallel-testing-enabled NO '-only-testing:PotatoTests/SessionAccessTests/localHTTPIsLimitedToSimulatorDebugBuilds()' ENABLE_TESTABILITY=YES CODE_SIGNING_ALLOWED=NO
+
+真机 Debug 无签名编译：
+xcodebuild build -project ios/Potato.xcodeproj -scheme Potato -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath /tmp/potato-ios-build -clonedSourcePackagesDirPath /tmp/potato-ios-build/SourcePackages -skipMacroValidation CODE_SIGNING_ALLOWED=NO
+
+三类实际 App 的 Info.plist 检查见 build-policy.json：模拟器 Debug 仅对 127.0.0.1 允许 HTTP；模拟器 Release 和真机 Debug 均没有 ATS 例外；设备范围均为 [1]。
+
+完整 iOS 套件首轮 86/87 项通过（含参数化 126/127 例），唯一失败为既有表格滚动用例的末列表头坐标断言。不修改代码，单独复验 1/1 通过：
+xcodebuild test-without-building -project ios/Potato.xcodeproj -scheme Potato -destination 'platform=iOS Simulator,id=AB9010DF-6F36-4079-8492-3CE8B5393EF7' -derivedDataPath /tmp/potato-95-simulator -parallel-testing-enabled NO -only-testing:PotatoUITests/ReadingNavigationTests/testChineseTableScrollsToLastColumn -resultBundlePath /tmp/potato-local-reading-retry.xcresult CODE_SIGNING_ALLOWED=NO
+
+后端完整回归及失败复验：
+.venv/bin/python -m unittest discover -s tests
+PYTHONPATH=tests .venv/bin/python -m unittest test_source_failures.SourceFailureTests.test_mixed_services_share_the_total_budget -v
+首次完整回归该既有用例报服务启动错误，单独运行通过；编译结束后再次执行完整回归。两轮原始日志分别保留，不把单独通过冒充首轮全套通过。
+
+静态检查：
+PYTHONPATH=tests .venv/bin/pyright --pythonpath .venv/bin/python ios/Integration/backend.py
+python scripts/check_modules.py
+.venv/bin/python scripts/check_docs.py
+git diff --check
+git diff --cached --check
+
+构建配置来源：ios/project.yml。使用临时缓存的 XcodeGen 2.46.0 重新生成 ios/Potato.xcodeproj 后检查生成差异。
+本次未修改后端业务、Web、CLI、依赖版本或实际用户数据库；未进行签名、TestFlight、私人网络或真实 iPhone 运行验收。
