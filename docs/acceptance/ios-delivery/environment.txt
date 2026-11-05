@@ -1,0 +1,26 @@
+#95 本机环境检查；2026-11-05 Asia/Shanghai
+$ xcodebuild -version
+Xcode 27.2
+Build version 27B52
+exit=0
+$ xcrun swift --version
+Apple Swift version 6.4.2 (swiftlang-6.4.2.1.9 clang-2100.4.1.1)
+Target: arm64-apple-macosx27.0.0
+swift-driver version: 1.168.6 exit=0
+$ xcrun simctl list runtimes
+== Runtimes ==
+iOS 26.5 (26.5 - 23F77) - com.apple.CoreSimulator.SimRuntime.iOS-26-5
+exit=0
+$ xcrun devicectl list devices
+Name                    Hostname   Identifier                                    State       Model                              Reality
+---------------------   --------   -------------------------------------------   ---------   --------------------------------   ---------
+iPad Pro 13-inch (M5)              8EAD7250-E668-47C9-9222-58E1F3E2939C (UDID)   shutdown    iPad Pro 13-inch (M5) (iPad17,4)   simulated
+iPhone 17 Pro                      AB9010DF-6F36-4079-8492-3CE8B5393EF7 (UDID)   connected   iPhone 17 Pro (iPhone18,1)         simulated
+exit=0
+$ security find-identity -v -p codesigning
+     0 valid identities found
+exit=0
+$ tailscale status --json
+10 秒超时；未取得可核实状态，不推断已登录或已配置。
+$ tailscale serve status
+10 秒超时；未取得可核实状态，不推断已登录或已配置。

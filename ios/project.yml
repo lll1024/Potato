@@ -46,6 +46,7 @@ targets:
     sources: [Potato]
     settings:
       base:
+        TARGETED_DEVICE_FAMILY: '1'
         PRODUCT_BUNDLE_IDENTIFIER: com.potato.travel
         INFOPLIST_KEY_CFBundleDisplayName: Potato
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.travel

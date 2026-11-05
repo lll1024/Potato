@@ -1,0 +1,48 @@
+{
+  "archive": "/tmp/potato-95-iphone.xcarchive",
+  "signed": false,
+  "distribution_validated": false,
+  "metadata": {
+    "ApplicationProperties": {
+      "ApplicationPath": "Applications/Potato.app",
+      "Architectures": [
+        "arm64"
+      ],
+      "CFBundleIdentifier": "com.potato.travel",
+      "CFBundleShortVersionString": "0.1.0",
+      "CFBundleVersion": "1",
+      "SigningIdentity": "",
+      "Team": ""
+    },
+    "ArchiveVersion": 2,
+    "CreationDate": "2026-11-05 07:07:28",
+    "Name": "Potato",
+    "SchemeName": "Potato"
+  },
+  "app": {
+    "CFBundleIdentifier": "com.potato.travel",
+    "CFBundleShortVersionString": "0.1.0",
+    "CFBundleVersion": "1",
+    "MinimumOSVersion": "17.0",
+    "UIDeviceFamily": [
+      1
+    ],
+    "CFBundleIcons": null,
+    "UISupportedInterfaceOrientations": null
+  },
+  "binaries": [
+    {
+      "path": "Potato",
+      "build": "/tmp/potato-95-iphone.xcarchive/Products/Applications/Potato.app/Potato:\nLoad command 11\n      cmd LC_BUILD_VERSION\n  cmdsize 32\n platform IOS\n    minos 17.0\n      sdk 27.2\n   ntools 1\n     tool LD\n  version 27106.1"
+    },
+    {
+      "path": "Frameworks/SessionKit.framework/SessionKit",
+      "build": "/tmp/potato-95-iphone.xcarchive/Products/Applications/Potato.app/Frameworks/SessionKit.framework/SessionKit:\nLoad command 10\n      cmd LC_BUILD_VERSION\n  cmdsize 32\n platform IOS\n    minos 17.0\n      sdk 27.2\n   ntools 1\n     tool LD\n  version 27106.1"
+    }
+  ],
+  "privacy_manifests": [
+    "Factory_FactoryKit.bundle/PrivacyInfo.xcprivacy",
+    "GRDB_GRDB.bundle/PrivacyInfo.xcprivacy",
+    "Alamofire_Alamofire.bundle/PrivacyInfo.xcprivacy"
+  ]
+}

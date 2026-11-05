@@ -60,7 +60,7 @@ python web.py
 
 命令行入口为 `python agent.py`，支持同一进程内连续追问，输入 `q`、`exit` 或空行退出；CLI 不保存历史或长期偏好。
 
-原生 iPhone 客户端已提供 HTTPS 连接配置、会话列表和最近一页完整对话阅读。构建见 [iOS README](ios/README.md)，共享能力见 [iOS 会话契约](docs/modules/ios-sessions.md)，私人网络接入与验证范围见 [#89 验收](docs/acceptance/ios-readonly.md)。
+原生 iPhone 客户端已提供私人 HTTPS 连接、新建与续聊、独立草稿、未确认提交恢复、跨设备停止、前后台刷新和完整历史分页阅读。构建见 [iOS README](ios/README.md)，共享能力见 [iOS 会话契约](docs/modules/ios-sessions.md)，安装、连接与维护见 [iPhone 交付说明](ios/DELIVERY.md)。当前完成本机验证；TestFlight、私人 HTTPS 与蜂窝真机验收仍待完成，具体状态见 [#95 验收](docs/acceptance/ios-delivery.md)。
 
 ## 使用边界
 

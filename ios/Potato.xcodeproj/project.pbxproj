@@ -21,6 +21,7 @@
 		3E0854FAFE5761BC2CEA5828 /* ReadingIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36A42FDB059444CDB02DF70F /* ReadingIntegrationTests.swift */; };
 		40520861A3333A1E0816A0F8 /* DraftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3E8E544C4461754ADFCB41D /* DraftTests.swift */; };
 		4142AB1ED39AB322181E2284 /* SubmissionRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53634F5632962D61FF5CAA9C /* SubmissionRecoveryView.swift */; };
+		48452091840B8AEA31CC39AD /* testChineseAnswer.chinese-answer-light.png in Resources */ = {isa = PBXBuildFile; fileRef = D604CEE92BDC0EDF6E70B11A /* testChineseAnswer.chinese-answer-light.png */; };
 		4B0576DA10975648C63A7BCF /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 9C7B07A254CFCB9FB1490D93 /* MarkdownUI */; };
 		55FD90207AC71433DCD028B2 /* AppAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = C309A0852F951F7C407A311D /* AppAssembly.swift */; };
 		580EED0D1D87184CDF3E65B4 /* SessionHTTP.swift in Sources */ = {isa = PBXBuildFile; fileRef = F920E6CEA26FE73CD3A9D561 /* SessionHTTP.swift */; };
@@ -35,6 +36,7 @@
 		76C1A20CB738E4684389F862 /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = F5ACDE508BEAAA220F6A4374 /* SnapshotTesting */; };
 		83B890B4903E656C21B98341 /* ConnectionIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A32F860D5AF2D0197DC093 /* ConnectionIndicator.swift */; };
 		83DCA64266A168C277A91CEA /* reading-answer.md in Resources */ = {isa = PBXBuildFile; fileRef = A81CA93286F4965AA03F4A96 /* reading-answer.md */; };
+		8D848F1FB8D9E859A26B34C3 /* testConversationDeleted.deleted-light.png in Resources */ = {isa = PBXBuildFile; fileRef = 5DA2B367F51EB11EFF54CF28 /* testConversationDeleted.deleted-light.png */; };
 		92F27939298244F48D6A47E4 /* ConnectionSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64784441C0F77168E1D950EE /* ConnectionSettingsView.swift */; };
 		94217E519A86995AB0ECB0EC /* AnswerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DD5FD7382381F89FAC447CC /* AnswerView.swift */; };
 		978F9E12207D8FE5C064B639 /* SessionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CBDAD1740B53A6B32727E2 /* SessionListView.swift */; };
@@ -48,6 +50,8 @@
 		BAA27AC451856858285ABABB /* SessionPages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B03760544947A0D8B704AC3 /* SessionPages.swift */; };
 		BEA1022E779B087364CD613F /* SessionListModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8F9EC796640043DCA682ABB /* SessionListModule.swift */; };
 		C54CDB7507B1778815E1C25B /* NavigationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BC5E79B914954146E7E7E93 /* NavigationTests.swift */; };
+		D3142B4A2362FD0FEAA5AAEB /* testChineseTableDarkLargeText.table-dark-accessibility3.png in Resources */ = {isa = PBXBuildFile; fileRef = 1296E8E71E17C2131AFD639D /* testChineseTableDarkLargeText.table-dark-accessibility3.png */; };
+		E90A3F5C8BB691F9D3512370 /* testConversationLoading.loading-light.png in Resources */ = {isa = PBXBuildFile; fileRef = 1F14BBE3D8CB6B42A68BA141 /* testConversationLoading.loading-light.png */; };
 		F5950E420318BA38735BD3B7 /* SessionKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 1F12F1A7E9D4E54F2066F779 /* SessionKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		F5B112C3BB7BCA1EBEFA90FE /* ExecutionMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D35E10B740375209105483D /* ExecutionMessage.swift */; };
 		F66AF6572E7A9A158120EA0F /* testUnconfirmedConversationDarkLargeText.unconfirmed-dark-accessibility3.png in Resources */ = {isa = PBXBuildFile; fileRef = A5E396EADE8031A4D181460C /* testUnconfirmedConversationDarkLargeText.unconfirmed-dark-accessibility3.png */; };
@@ -114,7 +118,9 @@
 		08A32F860D5AF2D0197DC093 /* ConnectionIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionIndicator.swift; sourceTree = "<group>"; };
 		0BC5E79B914954146E7E7E93 /* NavigationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationTests.swift; sourceTree = "<group>"; };
 		1213496D3CE78DC7C421F00F /* testEmptySessions.empty-sessions-light.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "testEmptySessions.empty-sessions-light.png"; sourceTree = "<group>"; };
+		1296E8E71E17C2131AFD639D /* testChineseTableDarkLargeText.table-dark-accessibility3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "testChineseTableDarkLargeText.table-dark-accessibility3.png"; sourceTree = "<group>"; };
 		1F12F1A7E9D4E54F2066F779 /* SessionKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SessionKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		1F14BBE3D8CB6B42A68BA141 /* testConversationLoading.loading-light.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "testConversationLoading.loading-light.png"; sourceTree = "<group>"; };
 		2ABBD7C1BF71FD5536F0096B /* PaginationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaginationTests.swift; sourceTree = "<group>"; };
 		2D35E10B740375209105483D /* ExecutionMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExecutionMessage.swift; sourceTree = "<group>"; };
 		31A4CADAE464043E81E194BE /* ConversationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationView.swift; sourceTree = "<group>"; };
@@ -124,6 +130,7 @@
 		3E80DF84817EA6D7880E4CDB /* testUnconfiguredDarkLargeText.unconfigured-dark-accessibility3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "testUnconfiguredDarkLargeText.unconfigured-dark-accessibility3.png"; sourceTree = "<group>"; };
 		53634F5632962D61FF5CAA9C /* SubmissionRecoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubmissionRecoveryView.swift; sourceTree = "<group>"; };
 		5AC4CC5B82DC31217A006A01 /* SnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotTests.swift; sourceTree = "<group>"; };
+		5DA2B367F51EB11EFF54CF28 /* testConversationDeleted.deleted-light.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "testConversationDeleted.deleted-light.png"; sourceTree = "<group>"; };
 		6193982CEE3ADE055CBF23FA /* SessionAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionAccess.swift; sourceTree = "<group>"; };
 		64784441C0F77168E1D950EE /* ConnectionSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionSettingsView.swift; sourceTree = "<group>"; };
 		68F0A7176A018E3F19BBBB7C /* PotatoUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PotatoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -141,6 +148,7 @@
 		C4CBDAD1740B53A6B32727E2 /* SessionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionListView.swift; sourceTree = "<group>"; };
 		CD8D986C2E6BC5A84FF09458 /* testStoppingDarkLargeText.stopping-dark-accessibility3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "testStoppingDarkLargeText.stopping-dark-accessibility3.png"; sourceTree = "<group>"; };
 		D28F43C20AFE98F94B82DD3D /* SubmissionIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubmissionIntegrationTests.swift; sourceTree = "<group>"; };
+		D604CEE92BDC0EDF6E70B11A /* testChineseAnswer.chinese-answer-light.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "testChineseAnswer.chinese-answer-light.png"; sourceTree = "<group>"; };
 		DBF78D2848C275E194DBACC6 /* PollingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollingTests.swift; sourceTree = "<group>"; };
 		DC95E0F5D6822A5263531074 /* SubmissionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubmissionTests.swift; sourceTree = "<group>"; };
 		E3E8E544C4461754ADFCB41D /* DraftTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraftTests.swift; sourceTree = "<group>"; };
@@ -270,6 +278,10 @@
 		BA148E890921124AA851E418 /* SnapshotTests */ = {
 			isa = PBXGroup;
 			children = (
+				D604CEE92BDC0EDF6E70B11A /* testChineseAnswer.chinese-answer-light.png */,
+				1296E8E71E17C2131AFD639D /* testChineseTableDarkLargeText.table-dark-accessibility3.png */,
+				5DA2B367F51EB11EFF54CF28 /* testConversationDeleted.deleted-light.png */,
+				1F14BBE3D8CB6B42A68BA141 /* testConversationLoading.loading-light.png */,
 				93CB1A4486F306C2F47AB581 /* testDesktopRunning.desktop-running-light.png */,
 				1213496D3CE78DC7C421F00F /* testEmptySessions.empty-sessions-light.png */,
 				CD8D986C2E6BC5A84FF09458 /* testStoppingDarkLargeText.stopping-dark-accessibility3.png */,
@@ -473,6 +485,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				83DCA64266A168C277A91CEA /* reading-answer.md in Resources */,
+				48452091840B8AEA31CC39AD /* testChineseAnswer.chinese-answer-light.png in Resources */,
+				D3142B4A2362FD0FEAA5AAEB /* testChineseTableDarkLargeText.table-dark-accessibility3.png in Resources */,
+				8D848F1FB8D9E859A26B34C3 /* testConversationDeleted.deleted-light.png in Resources */,
+				E90A3F5C8BB691F9D3512370 /* testConversationLoading.loading-light.png in Resources */,
 				71B1428D7B9C2E4BE724F981 /* testDesktopRunning.desktop-running-light.png in Resources */,
 				9B8520FDF90ADE8B48DC1C11 /* testEmptySessions.empty-sessions-light.png in Resources */,
 				725DF56331C1F44D9F7BA3E0 /* testStoppingDarkLargeText.stopping-dark-accessibility3.png in Resources */,
@@ -635,7 +651,7 @@
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.potato.travel;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -693,7 +709,7 @@
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.potato.travel;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};

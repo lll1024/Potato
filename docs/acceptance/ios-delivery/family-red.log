@@ -1,0 +1,4 @@
+期望 UIDeviceFamily=[1]；实际： [1, 2]
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+AssertionError: 规格要求仅 iPhone，产物却包含 iPad

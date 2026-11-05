@@ -1,0 +1,65 @@
+#95 验证记录（2026-11-05，Asia/Shanghai）
+基准：f5ca6eb821fa3768e88c632a3088651dac5a6b48
+分支：codex/ios-client；既有 PR #96。
+用户明确先完成本机验证和交付说明；账号、TestFlight、真机和私网未配置。
+
+环境：Xcode 27.2 / 27B52，Swift 6.4.2（语言模式 Swift 6），iOS 26.5 / 23F77。
+设备：iPhone 17 Pro 模拟器 AB9010DF-6F36-4079-8492-3CE8B5393EF7。
+没有 iOS 17 runtime，没有连接的真实 iPhone，签名身份 0。
+Tailscale status --json 与 serve status 只读检查各 10 秒超时；未更改私网配置。
+
+测试边界沿用 #88：SessionAccess 的公开 interface、真实文件 GRDB、真实 HTTPS / FastAPI / 临时 SQLite。
+自动化只控制外部模型、查询与偏好时钟；不是本人实际服务／私网／蜂窝验证。
+本次没有新增会话业务实现或每个 VIPER 类的旁路测试。
+
+本次命令：
+.venv/bin/python ios/Integration/backend.py --cert /tmp/potato-ios-tls/cert.pem --key /tmp/potato-ios-tls/key.pem
+xcrun simctl keychain AB9010DF-6F36-4079-8492-3CE8B5393EF7 add-root-cert /tmp/potato-ios-tls/cert.pem
+xcodebuild test -project ios/Potato.xcodeproj -scheme Potato -destination 'platform=iOS Simulator,id=AB9010DF-6F36-4079-8492-3CE8B5393EF7' -derivedDataPath /tmp/potato-ios-build -disableAutomaticPackageResolution -skipMacroValidation -resultBundlePath /tmp/potato-95-verified.xcresult CODE_SIGNING_ALLOWED=NO
+.venv/bin/python -m unittest discover -s tests
+npm run build --prefix frontend
+npm test --prefix frontend
+PYTHONPATH=tests .venv/bin/pyright --pythonpath .venv/bin/python ios/Integration/backend.py
+.venv/bin/python scripts/check_modules.py
+.venv/bin/python scripts/check_docs.py
+git diff --check
+
+原始无签名归档：
+xcodebuild archive -project ios/Potato.xcodeproj -scheme Potato -configuration Release -destination 'generic/platform=iOS' -archivePath /tmp/potato-95-unsigned.xcarchive -derivedDataPath /tmp/potato-95-release -clonedSourcePackagesDirPath /tmp/potato-ios-build/SourcePackages -disableAutomaticPackageResolution -skipMacroValidation CODE_SIGNING_ALLOWED=NO
+
+归档产物检查发现规格缺陷：project.yml 全局 TARGETED_DEVICE_FAMILY=1 被 XcodeGen 的 target 默认 1,2 覆盖。
+对真实归档 Info.plist 断言 UIDeviceFamily == [1] 为红，实际 [1,2]，见 family-red.log / archive-before.json。
+在 Potato target 显式配置 TARGETED_DEVICE_FAMILY='1'，不是仅修改生成工程。
+用 XcodeGen 2.46.0 重新生成工程；顺带同步自动生成的四个既有快照资源引用，图片内容不变。
+/tmp/potato-xcodegen/xcodegen/bin/xcodegen generate --spec ios/project.yml
+
+修正后再次无签名归档：
+xcodebuild archive -project ios/Potato.xcodeproj -scheme Potato -configuration Release -destination 'generic/platform=iOS' -archivePath /tmp/potato-95-iphone.xcarchive -derivedDataPath /tmp/potato-95-release -clonedSourcePackagesDirPath /tmp/potato-ios-build/SourcePackages -disableAutomaticPackageResolution -skipMacroValidation CODE_SIGNING_ALLOWED=NO
+
+归档产物检查使用 Python plistlib 读取实际 Potato.app/Info.plist，断言 UIDeviceFamily == [1]、MinimumOSVersion == '17.0'。
+用 file / xcrun vtool -show-build 检查 App 与嵌入 SessionKit 的 arm64 / IOS / minos。
+无签名归档不执行 exportArchive、Organizer Validate、Upload，也不能安装或代表 iOS 17 实跑。
+
+完整套件：82 项／含参数化 115 例，通过，0 失败／跳过。对应 full-suite.log.gz / test-summary.json。
+Python：361/361；Web 构建及呈现测试 13/13；pyright 0错误；模块归属通过。
+最终 Release 归档通过，实际 UIDeviceFamily=[1]，App 与 SessionKit 均 arm64 / minos 17.0；签名／分发未验证。
+首次完整套件使用本次开始时的工程构建；target 配置修正后另跑全部单元／集成／快照及连接导航：72 项／含参数化 105 例通过，0 失败／跳过。对应 final-project.log.gz / final-project-summary.json。
+追加检查曾提前启动后在编译阶段取消，未进入测试；只在原始完整 UI suite 退出后开始正式复验。
+原始 xcresult／二进制保存在 /tmp，不提交；日志和机器汇总提交到本目录。
+localhost 短期测试证书沿用本机测试模拟器，不修改 App HTTPS 校验；证书／私钥不提交，不用于实际 Serve。
+
+最终工程针对性复验命令（重启六个 HTTPS 测试后端后单独执行）：
+xcodebuild test -project ios/Potato.xcodeproj -scheme Potato -destination 'platform=iOS Simulator,id=AB9010DF-6F36-4079-8492-3CE8B5393EF7' -derivedDataPath /tmp/potato-ios-build -disableAutomaticPackageResolution -skipMacroValidation -only-testing:PotatoTests -only-testing:PotatoUITests/NavigationTests/testConnectReadReturnEmptyAndUnavailable -resultBundlePath /tmp/potato-95-final-project.xcresult CODE_SIGNING_ALLOWED=NO
+
+实际产物断言：
+python3 - <<'CHECK_ARCHIVE'
+import plistlib
+from pathlib import Path
+path = Path('/tmp/potato-95-iphone.xcarchive/Products/Applications/Potato.app/Info.plist')
+info = plistlib.loads(path.read_bytes())
+assert info['UIDeviceFamily'] == [1], info['UIDeviceFamily']
+assert info['MinimumOSVersion'] == '17.0'
+print('仅 iPhone / 部署 iOS 17.0 检查通过；不代表最低系统实跑。')
+CHECK_ARCHIVE
+
+公开导航链接、四份交付文档本地链接、50 条故事完整性及 git diff 格式检查通过。

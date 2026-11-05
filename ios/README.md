@@ -2,6 +2,8 @@
 
 当前交付 #89–#94：配置私人 HTTPS 地址、浏览助手会话、新建及续聊、约两秒前台核对、分页读取完整输入和回答，以及按服务和会话持久保存的本机草稿、未确认提交核对与同身份显式重试，以及跨设备停止和前后台恢复。最低 iOS 17，Swift 6，iPhone；不在手机运行模型或保存后端完整历史。能力入口与状态归属见 [iOS 契约](../docs/modules/ios-sessions.md)。
 
+本人安装、两端 Tailscale Serve、Mac 启动恢复、TestFlight 更新到期、故障定位及五项蜂窝真机验收步骤见[交付说明](DELIVERY.md)。#95 当前仅完成本机验证与说明，签名上传、TestFlight 安装、私网及真机尚未验收；分层结果与 50 条故事映射见 [#95 验收](../docs/acceptance/ios-delivery.md)。
+
 ## 打开与构建
 
 使用 Xcode 打开 `Potato.xcodeproj`，选择 `Potato` scheme 和可用 iPhone 模拟器。工程已提交，不需要先安装 XcodeGen。仅修改工程结构时用 XcodeGen 2.46.0 执行 `xcodegen generate --spec ios/project.yml`。依赖精确版本和传递依赖提交记录保存在 `Package.resolved`，不自动升级。
@@ -14,7 +16,7 @@ xcodebuild build -project ios/Potato.xcodeproj -scheme Potato \
   -skipMacroValidation CODE_SIGNING_ALLOWED=NO
 ```
 
-`-skipMacroValidation` 用于 CI 对已固定来源的 Swift 宏进行非交互构建；Xcode 中可审阅并信任这些包的宏后正常构建。它不关闭 HTTPS 校验。签名与 TestFlight 分发由 #95 验收，本任务不需要 Apple 账户即可在模拟器运行。
+`-skipMacroValidation` 用于 CI 对已固定来源的 Swift 宏进行非交互构建；Xcode 中可审阅并信任这些包的宏后正常构建。它不关闭 HTTPS 校验。签名与 TestFlight 分发由 #95 验收，模拟器运行不需要 Apple 账户。
 
 ## 真实后端集成测试
 
