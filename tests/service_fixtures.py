@@ -42,13 +42,9 @@ class ModelService:
         else:
             self.requests.append(copy.deepcopy(parameters))
         class Stream:
-            @property
-            def text_stream(self):
-                async def pieces():
-                    for block in reply.content:
-                        if block.type == "text":
-                            yield block.text
-                return pieces()
+            async def __aiter__(self):
+                for block in reply.content:
+                    yield SimpleNamespace(type="content_block_start", content_block=block)
 
             async def get_final_message(self):
                 return reply

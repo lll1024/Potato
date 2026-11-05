@@ -32,8 +32,19 @@ async def request_model(client, parameters, *, redact: Callable[[str], str], val
             response = await client.messages.create(**parameters)
         else:
             async with client.messages.stream(**parameters) as stream:
-                async for text in stream.text_stream:
-                    await on_text(text)
+                text_blocks = 0
+                in_text_block = False
+                async for event in stream:
+                    if event.type == "content_block_start":
+                        in_text_block = event.content_block.type == "text"
+                        if in_text_block:
+                            if text_blocks:
+                                await on_text("\n")
+                            text_blocks += 1
+                            if event.content_block.text:
+                                await on_text(event.content_block.text)
+                    elif event.type == "content_block_delta" and in_text_block and event.delta.type == "text_delta":
+                        await on_text(event.delta.text)
                 response = await stream.get_final_message()
         duration_ms = max(0, (asyncio.get_running_loop().time() - start) * 1000)
         finished_at = datetime.now(timezone.utc).isoformat()

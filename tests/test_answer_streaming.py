@@ -3,6 +3,7 @@ import asyncio
 import json
 import tempfile
 import unittest
+from types import SimpleNamespace
 from contextlib import asynccontextmanager
 
 from http_fixtures import serving, wait_finished, tool_reply
@@ -17,6 +18,7 @@ class StreamingModel:
         self.delivered = asyncio.Queue()
         self.entered = asyncio.Event()
         self.returned = False
+        self.block_breaks = set()
         self.parts = ["## 杭州旅行\n\n", "上午游览西湖。\n\n", "下午品尝杭帮菜。\n"]
 
     async def create(self, **parameters):
@@ -30,20 +32,26 @@ class StreamingModel:
         self.requests.append(parameters)
         model = self
         class Stream:
-            @property
-            def text_stream(self):
-                async def pieces():
-                    model.entered.set()
-                    for part in model.parts:
-                        await model.release.get()
-                        yield part
-                        model.delivered.put_nowait(part)
+            async def __aiter__(self):
+                model.entered.set()
+                for index, part in enumerate(model.parts):
+                    if index == 0 or index in model.block_breaks:
+                        yield SimpleNamespace(type="content_block_start", content_block=SimpleNamespace(type="text", text=""))
                     await model.release.get()
-                return pieces()
+                    yield SimpleNamespace(type="content_block_delta", delta=SimpleNamespace(type="text_delta", text=part))
+                    model.delivered.put_nowait(part)
+                await model.release.get()
+
 
             async def get_final_message(self):
                 model.returned = True
-                return response([{"type": "text", "text": "".join(model.parts)}])
+                blocks = []
+                for index, part in enumerate(model.parts):
+                    if index == 0 or index in model.block_breaks:
+                        blocks.append({"type": "text", "text": part})
+                    else:
+                        blocks[-1]["text"] += part
+                return response(blocks)
         yield Stream()
 
 
@@ -166,3 +174,27 @@ class AnswerStreamingTests(unittest.IsolatedAsyncioTestCase):
                 await wait_finished(client, later["session_id"], later["turn_id"])
                 found = json.loads(recall.requests[1]["messages"][-1]["content"][0]["content"])
                 self.assertEqual(found["matches"], [])
+
+
+    async def test_preview_preserves_text_block_boundaries_for_multiline_secrets(self):
+        model = StreamingModel()
+        model.parts = ["杭州安排。", "alpha", "beta", "结束。"]
+        model.block_breaks = {1, 2, 3}
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory, model, api_key="alpha\nbeta") as client:
+                identity = (await client.post("/api/turns", json={"input": "杭州一天"})).json()
+                try:
+                    await asyncio.wait_for(model.entered.wait(), 3)
+                    for part in model.parts:
+                        model.release.put_nowait(None)
+                        await asyncio.wait_for(model.delivered.get(), 3)
+                        state = (await client.get("/api/snapshot")).json()
+                        self.assertNotIn("alpha", state["answer_preview"]["text"])
+                        self.assertNotIn("beta", state["answer_preview"]["text"])
+                    self.assertFalse(model.returned)
+                    model.release.put_nowait(None)
+                    history = await wait_finished(client, identity["session_id"])
+                    self.assertEqual(history["turns"][0]["answer"], "杭州安排。\n[REDACTED]\n结束。")
+                finally:
+                    for _ in range(5):
+                        model.release.put_nowait(None)
