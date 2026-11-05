@@ -1,7 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
 
 async function conversation(page: Page) {
-  const state = {active_turn_id: null as string | null, active_session_id: null as string | null,
+  const state = {instance_id: 'process', answer_revision: 0, answer_preview: null as null | {
+    instance_id: string; stream_id: string; session_id: string; turn_id: string;
+    attempt_id: string; revision: number; text: string; status: string;
+  }, active_turn_id: null as string | null, active_session_id: null as string | null,
     accepting: true, stopping: false, map_paused: false, map_pause_reason: null, service_status: 'available'};
   const sessions = [
     {session_id: 'trip', title: '杭州行程', updated_at: '2026-10-09T02:00:00Z', status: 'completed', reason: null, tool_error_count: 0},
@@ -16,7 +19,7 @@ async function conversation(page: Page) {
   await page.addInitScript(() => {
     Object.defineProperty(window, 'EventSource', {value: class extends EventTarget {
       onerror: (() => void) | null = null;
-      constructor() {super(); (window as unknown as {source: EventTarget}).source = this;}
+      constructor() {super(); const browser = window as unknown as {source: EventTarget; sources: EventTarget[]}; browser.source = this; (browser.sources ??= []).push(this);}
       close() {}
     }});
   });
@@ -389,9 +392,10 @@ test('最终回答在保存之前分批展示 Markdown，保存后使用历史�
   await app.notify();
   await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
   async function preview(text: string, revision: number) {
+    app.state.answer_revision = revision;
     await page.evaluate(({text, revision}) => {
       (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {data: JSON.stringify({
-        schema_version: 1, kind: 'answer.preview', instance_id: 'process', preview: {
+        schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision, preview: {
           instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
           attempt_id: 'answer-request', revision, text, status: 'generating',
         },
@@ -418,4 +422,137 @@ test('最终回答在保存之前分批展示 Markdown，保存后使用历史�
   await preview('迟到的旧正文', 3);
   await expect(page.getByText('迟到的旧正文', {exact: true})).toHaveCount(0);
 
+});
+
+
+test('恢复正文采用累计快照，重复、迟到与失效尝试不会回滚当前回答', async ({page}) => {
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  app.state.answer_revision = 4;
+  app.state.answer_preview = {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+    attempt_id: 'first', revision: 4, text: '恢复时已有的正文', status: 'generating'};
+  await page.reload();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  await expect(page.getByText('恢复时已有的正文', {exact: true})).toBeVisible();
+  await page.evaluate(state => (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('service.state', {
+    data: JSON.stringify({schema_version: 1, state: {...state, answer_revision: 3, active_turn_id: null, active_session_id: null}}),
+  })), app.state);
+  await expect(page.getByText('恢复时已有的正文', {exact: true})).toBeVisible();
+  async function publish(revision: number, text: string | null, attempt = 'first', status = 'generating') {
+    await page.evaluate(({revision, text, attempt, status}) => {
+      (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {data: JSON.stringify({
+        schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision,
+        preview: text === null ? null : {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+          attempt_id: attempt, revision, text, status},
+      })}));
+    }, {revision, text, attempt, status});
+  }
+  await publish(6, '订阅交接期间已增加的正文');
+  await expect(page.getByText('订阅交接期间已增加的正文', {exact: true})).toBeVisible();
+  await publish(5, '旧次序正文');
+  await publish(6, '重复事件不得修改正文');
+  await expect(page.getByText('订阅交接期间已增加的正文', {exact: true})).toBeVisible();
+  await publish(7, '', 'first', 'invalidated');
+  await expect(page.getByText('订阅交接期间已增加的正文', {exact: true})).toHaveCount(0);
+  await publish(8, '另一尝试从头开始', 'second');
+  await expect(page.getByText('另一尝试从头开始', {exact: true})).toBeVisible();
+  await publish(7, '旧尝试迟到');
+  await expect(page.getByText('另一尝试从头开始', {exact: true})).toBeVisible();
+  await publish(9, null);
+  await publish(8, '已清除的预览不得复活', 'second');
+  await expect(page.getByText('已清除的预览不得复活', {exact: true})).toHaveCount(0);
+});
+
+
+for (const restart of [false, true]) test(`断线先核对累计正文并隔离旧连接${restart ? '，同库重启只读中断历史' : ''}`, async ({page}) => {
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  app.state.answer_revision = 1;
+  app.state.answer_preview = {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+    attempt_id: 'attempt', revision: 1, text: '断线前的正文', status: 'generating'};
+  await page.reload();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  await expect(page.getByText('断线前的正文', {exact: true})).toBeVisible();
+  await page.evaluate(() => {
+    const source = (window as unknown as {source: EventSource}).source;
+    source.onerror?.(new Event('error'));
+    source.onerror?.(new Event('error'));
+  });
+  if (restart) {
+    app.state.instance_id = 'new-process'; app.state.answer_revision = 0; app.state.answer_preview = null;
+    app.state.active_turn_id = null; app.state.active_session_id = null;
+    app.turn.status = 'terminated'; app.turn.reason = 'service_interrupted'; app.sessions[0].status = 'terminated';
+  } else {
+    app.state.answer_revision = 4;
+    app.state.answer_preview = {...app.state.answer_preview, revision: 4, text: '断线期间的累计正文'};
+  }
+  await expect.poll(() => page.evaluate(() => (window as unknown as {sources: EventTarget[]}).sources.length)).toBe(2);
+  await page.evaluate(state => (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('service.state', {
+    data: JSON.stringify({schema_version: 1, state}),
+  })), app.state);
+  if (restart) {
+    await expect(page.getByRole('region', {name: '第 1 轮异常提示'}).getByRole('status')).toHaveText('服务中断');
+    await expect(page.getByText('断线前的正文', {exact: true})).toHaveCount(0);
+  } else await expect(page.getByText('断线期间的累计正文', {exact: true})).toBeVisible();
+  // 旧连接中已排队的正文、服务状态、删除事件及 error 均无效。
+  await page.evaluate(() => {
+    const old = (window as unknown as {sources: EventSource[]}).sources[0];
+    old.dispatchEvent(new MessageEvent('answer.preview', {data: JSON.stringify({schema_version: 1, kind: 'answer.preview',
+      instance_id: 'process', revision: 99, preview: {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip',
+        turn_id: 'turn', attempt_id: 'old', revision: 99, text: '失效连接的迟到正文', status: 'generating'}})}));
+    old.dispatchEvent(new MessageEvent('service.state', {data: JSON.stringify({schema_version: 1,
+      state: {instance_id: 'process', active_turn_id: 'turn', active_session_id: 'trip', accepting: false}})}));
+    old.dispatchEvent(new MessageEvent('trace', {data: JSON.stringify({schema_version: 1, cursor: 100, event_id: 'old-delete',
+      kind: 'session.deleted', session_id: 'trip'})}));
+    old.onerror?.(new Event('error'));
+  });
+  await expect(page.getByText('失效连接的迟到正文', {exact: true})).toHaveCount(0);
+  await expect(page.getByRole('heading', {name: '杭州行程', exact: true})).toBeVisible();
+  if (!restart) {
+    await page.evaluate(() => (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {
+      data: JSON.stringify({schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision: 5,
+        preview: {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+          attempt_id: 'attempt', revision: 5, text: '重连后继续增长', status: 'generating'}}),
+    })));
+    await expect(page.getByText('重连后继续增长', {exact: true})).toBeVisible();
+  }
+  await page.screenshot({path: test.info().outputPath(restart ? 'restarted.png' : 'reconnected.png')});
+  expect(app.writes).toEqual([]);
+});
+
+
+test('状态通知与新轮正文交错时，核对归属后仍能读到暂停中的当前正文', async ({page}) => {
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  await app.notify();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  // 服务已切换到下一轮，但旧状态通知先于新轮正文到达。
+  await page.evaluate(() => (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {
+    data: JSON.stringify({schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision: 8,
+      preview: {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'next-turn',
+        attempt_id: 'next-attempt', revision: 8, text: '新轮已生成但暂时暂停的正文', status: 'generating'}}),
+  })));
+  await expect(page.getByText('新轮已生成但暂时暂停的正文', {exact: true})).toHaveCount(0);
+  app.state.active_turn_id = 'next-turn'; app.state.answer_revision = 8;
+  app.turn.turn_id = 'next-turn';
+  await app.notify();
+  await expect(page.getByText('新轮已生成但暂时暂停的正文', {exact: true})).toBeVisible();
+});
+
+
+test('快照与订阅之间服务重启时，发现进程变化立即清除旧预览', async ({page}) => {
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  app.state.answer_revision = 2;
+  app.state.answer_preview = {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+    attempt_id: 'attempt', revision: 2, text: '已经失去进程归属的正文', status: 'generating'};
+  await page.reload();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  await expect(page.getByText('已经失去进程归属的正文', {exact: true})).toBeVisible();
+  await page.evaluate(() => (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {
+    data: JSON.stringify({schema_version: 1, kind: 'answer.preview', instance_id: 'new-process', revision: 0, preview: null}),
+  })));
+  // 新快照尚未返回，此刻仍须清除已确认属于旧进程的预览，不虚构持久终态。
+  await expect(page.getByText('已经失去进程归属的正文', {exact: true})).toHaveCount(0);
+  await expect(page.getByText('第 1 轮 · 正在执行', {exact: true})).toBeVisible();
 });

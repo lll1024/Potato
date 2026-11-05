@@ -451,6 +451,7 @@ public final class SharedSessions: SessionAccess {
         guard watchedSessionID != sessionID else { return }
         cancelAnswerSubscription()
         currentAnswer = nil
+        answerRevision = -1
         watchedSessionID = sessionID
         invalidateEarlierTurns()
         historyGeneration += 1
@@ -765,7 +766,7 @@ public final class SharedSessions: SessionAccess {
     }
 
     private func adoptAnswer(instance: String, revision: Int, preview: AnswerPreview?) throws {
-        guard instance == answerInstance, revision >= answerRevision else { return }
+        guard instance == answerInstance, revision > answerRevision else { return }
         if let preview {
             guard preview.instanceID == instance, preview.streamID == datasetID, preview.revision == revision,
                   ["generating", "generated", "invalidated"].contains(preview.status) else {
@@ -795,7 +796,13 @@ public final class SharedSessions: SessionAccess {
                     for event in try parser.append(data) {
                         guard event.schemaVersion == 1 else { throw SessionFailure.invalidResponse }
                         // 同库重启也必须重新读取快照；旧进程消息不能作为新状态。
-                        guard event.instanceId == instance else { throw SessionFailure.obsolete }
+                        guard event.instanceId == instance else {
+                            self.currentAnswer = nil
+                            self.answerInstance = nil
+                            self.answerRevision = -1
+                            self.refreshGeneration += 1
+                            throw SessionFailure.obsolete
+                        }
                         try self.adoptAnswer(instance: event.instanceId, revision: event.revision, preview: event.preview)
                         self.answerFailure = nil
                     }

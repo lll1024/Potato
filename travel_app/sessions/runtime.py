@@ -324,7 +324,8 @@ class TurnRuntime:
                 current_state = self.snapshot()
                 if current_state != last_state:
                     last_state = current_state
-                    notice = {"schema_version":SCHEMA_VERSION,"kind":"service.state","transient":True,"state":current_state}
+                    notice = {"schema_version":SCHEMA_VERSION,"kind":"service.state","transient":True,
+                              "state":{**current_state, "answer_revision": self._answer_revision}}
                     # 实时运行状态不冒充已提交轨迹，不能推进持久化 cursor。
                     yield f"event: service.state\ndata: {json.dumps(notice,ensure_ascii=False)}\n\n"
                 preview = self._answer_preview

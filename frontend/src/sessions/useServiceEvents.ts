@@ -5,7 +5,7 @@ export type AnswerPreview = {
   attempt_id: string; revision: number; text: string; status: 'generating' | 'generated' | 'invalidated';
 };
 export type ServiceState = {
-  instance_id?: string; answer_preview?: AnswerPreview | null;
+  instance_id?: string; answer_revision?: number; answer_preview?: AnswerPreview | null;
   active_turn_id: string | null; active_session_id: string | null; accepting: boolean;
   stopping: boolean; map_paused: boolean; map_pause_reason: string | null;
   service_status: 'available' | 'unavailable'; storage_error?: string | null;
@@ -22,13 +22,22 @@ export function useServiceEvents() {
   const [connectionError, setConnectionError] = useState('');
   const [recoveryNotice, setRecoveryNotice] = useState('');
   const stateRead = useRef(0);
+  const currentSnapshot = useRef<ServiceSnapshot | null>(null);
   const refresh = useCallback(async () => {
     const reading = ++stateRead.current;
     const response = await fetch('/api/snapshot');
     if (!response.ok) throw new Error('服务状态暂时无法核对。');
     const result: ServiceSnapshot = await response.json();
     if (result.schema_version !== 1) throw new Error('数据版本不兼容，请更新页面和服务。');
-    if (reading === stateRead.current) setState(result.state ?? result);
+    if (reading === stateRead.current) {
+      const previous = currentSnapshot.current;
+      const next = {...result, ...result.state};
+      if (!previous || previous.stream_id !== next.stream_id || previous.instance_id !== next.instance_id
+        || (next.answer_revision ?? -1) >= (previous.answer_revision ?? -1)) {
+        currentSnapshot.current = next;
+        setState(next);
+      }
+    }
     return result;
   }, []);
 
@@ -38,22 +47,38 @@ export function useServiceEvents() {
     let reconnectTimer: number | undefined;
     let cursor: number | undefined;
     let streamId: string | undefined;
+    let connection = 0;
     const processed = new Set<string>();
+    function requireInstance(instance: string | undefined) {
+      const current = currentSnapshot.current;
+      if (!current || instance !== current.instance_id) {
+        ++stateRead.current;
+        if (current) {
+          currentSnapshot.current = {...current, answer_preview: null};
+          setState(currentSnapshot.current);
+        }
+        throw new Error('服务已重启，需要重新核对。');
+      }
+      return current;
+    }
     function unavailable() {
       if (cancelled) return;
       setConnectionError('通知连接中断，正在从最后已处理游标补齐；已接受的查询继续在后台执行。');
       setState(current => ({...current,accepting:false,service_status:'unavailable'}));
     }
     function reconnect() {
+      ++connection;
       stream?.close();
       window.clearTimeout(reconnectTimer);
       unavailable();
       if (!cancelled) reconnectTimer = window.setTimeout(() => void connect(), 2000);
     }
     async function connect() {
+      const receiving = ++connection;
+      const isCurrent = () => !cancelled && receiving === connection;
       try {
         const snapshot = await refresh();
-        if (cancelled) return;
+        if (!isCurrent()) return;
         if (cursor === undefined || streamId !== snapshot.stream_id || cursor > snapshot.cursor) {
           if (cursor !== undefined) {
             setRecoveryNotice('事件游标无法续接或数据目录已更换，已重新读取一致快照。');
@@ -67,7 +92,7 @@ export function useServiceEvents() {
         setRevision(current => current + 1);
         stream = new EventSource(`/api/events?after=${cursor}&stream_id=${encodeURIComponent(streamId!)}`);
         stream.addEventListener('trace', event => {
-          if (cancelled) return;
+          if (!isCurrent()) return;
           try {
             const notice = JSON.parse((event as MessageEvent).data);
             if (notice.schema_version !== 1 || !Number.isSafeInteger(notice.cursor) || !notice.event_id) throw new Error('事件无法识别。');
@@ -80,31 +105,42 @@ export function useServiceEvents() {
           } catch { reconnect(); }
         });
         stream.addEventListener('answer.preview', event => {
-          if (cancelled) return;
+          if (!isCurrent()) return;
           try {
             const notice = JSON.parse((event as MessageEvent).data);
-            if (notice.schema_version !== 1 || notice.kind !== 'answer.preview') throw new Error('正文更新无法识别。');
+            if (notice.schema_version !== 1 || notice.kind !== 'answer.preview' || !Number.isSafeInteger(notice.revision)) throw new Error('正文更新无法识别。');
+            const current = requireInstance(notice.instance_id);
+            if (notice.revision <= (current.answer_revision ?? -1)) return;
+            const preview: AnswerPreview | null = notice.preview;
+            if (preview && (preview.instance_id !== current.instance_id || preview.stream_id !== current.stream_id
+              || preview.revision !== notice.revision)) return;
             ++stateRead.current;
-            setState(current => ({...current, instance_id: notice.instance_id, answer_preview: notice.preview}));
+            currentSnapshot.current = {...current, answer_revision: notice.revision, answer_preview: preview};
+            setState(currentSnapshot.current);
           } catch { reconnect(); }
         });
         stream.addEventListener('service.state', event => {
-          if (cancelled) return;
+          if (!isCurrent()) return;
           try {
             const notice = JSON.parse((event as MessageEvent).data);
             if (notice.schema_version !== 1 || !notice.state) throw new Error('服务状态无法识别。');
+            const current = requireInstance(notice.state.instance_id);
+            if (notice.state.answer_revision !== undefined && notice.state.answer_revision < (current.answer_revision ?? -1)) return;
             ++stateRead.current;
-            setState(current => ({...notice.state, answer_preview: current.answer_preview}));
+            // 状态与正文在网络中可以交错，正文按自己的次序保留，由会话及轮次投影决定是否展示。
+            const next = {...current, ...notice.state, answer_revision: current.answer_revision, answer_preview: current.answer_preview};
+            currentSnapshot.current = next;
+            setState(next);
             setConnectionError('');
           } catch { reconnect(); }
         });
-        stream.onerror = reconnect;
+        stream.onerror = () => {if (isCurrent()) reconnect();};
       } catch {
-        reconnect();
+        if (isCurrent()) reconnect();
       }
     }
     void connect();
-    return () => {cancelled = true; stream?.close(); window.clearTimeout(reconnectTimer);};
+    return () => {cancelled = true; ++stateRead.current; stream?.close(); window.clearTimeout(reconnectTimer);};
   }, [refresh]);
 
   return {state,setState,revision,datasetRevision,deletedSession,connectionError,recoveryNotice,refresh};

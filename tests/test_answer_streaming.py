@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 
 from http_fixtures import serving, wait_finished, tool_reply
 from service_fixtures import ModelService, response
+from process_fixtures import ExternalServices, process
 
 
 class StreamingModel:
@@ -103,6 +104,93 @@ class AnswerStreamingTests(unittest.IsolatedAsyncioTestCase):
                     for _ in range(5):
                         model.release.put_nowait(None)
 
+
+    async def test_snapshot_subscription_handoff_and_two_clients_resume_cumulative_text(self):
+        model = StreamingModel()
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory, model) as client:
+                identity = (await client.post("/api/turns", json={"input": "跨设备旅行"})).json()
+                try:
+                    await asyncio.wait_for(model.entered.wait(), 3)
+                    model.release.put_nowait(None)
+                    await asyncio.wait_for(model.delivered.get(), 3)
+                    snapshot = (await client.get("/api/snapshot")).json()
+                    self.assertEqual(snapshot["answer_preview"]["text"], model.parts[0])
+                    # 在快照返回与订阅建立之间生成第二批，订阅必须先交付最新累计正文。
+                    model.release.put_nowait(None)
+                    await asyncio.wait_for(model.delivered.get(), 3)
+                    path = f'/api/events?after={snapshot["cursor"]}&stream_id={snapshot["stream_id"]}'
+                    async with client.stream("GET", path) as first, client.stream("GET", path) as second:
+                        first_lines, second_lines = first.aiter_lines(), second.aiter_lines()
+                        async def answer(lines):
+                            async with asyncio.timeout(3):
+                                async for line in lines:
+                                    if line.startswith("data:"):
+                                        notice = json.loads(line[5:])
+                                        if notice.get("kind") == "service.state":
+                                            self.assertIsInstance(notice["state"]["answer_revision"], int)
+                                        if notice.get("kind") == "answer.preview":
+                                            self.assertNotIn("cursor", notice)
+                                            return notice
+                            self.fail("未收到当前正文核对结果")
+                        a, b = await asyncio.gather(answer(first_lines), answer(second_lines))
+                        self.assertEqual(a, b)
+                        self.assertEqual(a["preview"]["text"], "".join(model.parts[:2]))
+                        self.assertGreater(a["revision"], snapshot["answer_revision"])
+                        # 关闭一个订阅不影响另一个订阅或在途模型。
+                        await first.aclose()
+                        model.release.put_nowait(None)
+                        await asyncio.wait_for(model.delivered.get(), 3)
+                        third = await answer(second_lines)
+                        self.assertEqual(third["preview"]["text"], "".join(model.parts))
+                        self.assertEqual(third["preview"]["attempt_id"], a["preview"]["attempt_id"])
+                        self.assertFalse(model.returned)
+                    # 普通断线后的新连接仍直接取得当前正文，而不是拼接旧增量。
+                    async with client.stream("GET", path) as resumed:
+                        restored = await answer(resumed.aiter_lines())
+                        self.assertEqual(restored, third)
+                    self.assertEqual((await client.get("/api/snapshot")).json()["cursor"], snapshot["cursor"])
+                    model.release.put_nowait(None)
+                    history = await wait_finished(client, identity["session_id"])
+                    self.assertEqual(history["turns"][0]["answer"], "".join(model.parts))
+                    async with client.stream("GET", path) as finished:
+                        cleared = await answer(finished.aiter_lines())
+                        self.assertIsNone(cleared["preview"])
+                        self.assertGreater(cleared["revision"], third["revision"])
+                finally:
+                    for _ in range(5):
+                        model.release.put_nowait(None)
+
+    async def test_process_restart_discards_preview_preserves_dataset_and_never_replays_execution(self):
+        release = asyncio.Queue()
+        external = ExternalServices(stream_wait=release.get)
+        with tempfile.TemporaryDirectory() as directory:
+            async with external.serving() as address:
+                async with process(directory, address) as (child, client, _):
+                    accepted = (await client.post("/api/turns", json={"input": "重启前的旅行回答"})).json()
+                    release.put_nowait(None)
+                    async with asyncio.timeout(5):
+                        while True:
+                            before = (await client.get("/api/snapshot")).json()
+                            if before["answer_preview"] and before["answer_preview"]["text"]:
+                                break
+                    self.assertEqual(before["answer_preview"]["text"], "完整旅行建议。")
+                    child.kill()
+                    await child.wait()
+                calls = len(external.model_calls)
+                async with process(directory, address) as (_, client, _):
+                    after = (await client.get("/api/snapshot")).json()
+                    self.assertEqual(after["stream_id"], before["stream_id"])
+                    self.assertNotEqual(after["instance_id"], before["instance_id"])
+                    self.assertIsNone(after["answer_preview"])
+                    self.assertIsNone(after["active_turn_id"])
+                    history = (await client.get("/api/sessions/" + accepted["session_id"])).json()
+                    self.assertEqual(history["turns"][0]["reason"], "service_interrupted")
+                    self.assertFalse(history["turns"][0]["answer"])
+                    self.assertEqual(len(external.model_calls), calls)
+                    self.assertEqual(external.map_calls, [])
+                # 释放外部已取消请求的屏障，让验收资源正常退出。
+                release.put_nowait(None)
 
     async def test_every_preview_redacts_credentials_split_across_external_chunks(self):
         model = StreamingModel()

@@ -422,6 +422,118 @@ struct AnswerStreamingTests {
         #expect(sessions.answerPreview == nil)
     }
 
+    @Test func delayedSnapshotDuplicateEventsAndMissingPreviewCannotResurrectOldAttempt() async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        defer { sessions.setForeground(false) }
+        await fixture.next().reply(body: snapshot(revision: 4, text: "快照已有正文"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let stream = await fixture.next()
+        stream.beginStream()
+        let refresh = Task { try await sessions.refresh() }
+        let delayed = await fixture.next()
+        stream.send(event(text: "交接期间增加的正文", revision: 6))
+        try await observed { sessions.answerPreview?.revision == 6 }
+        delayed.reply(body: snapshot(revision: 5, text: "较旧快照"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        _ = try await refresh.value
+        #expect(sessions.answerPreview?.text == "交接期间增加的正文")
+        stream.send(event(text: "重复更新不应修改正文", revision: 6))
+        // 完整空事件是明确的缺失结果，同次序及更旧尝试不能将正文复活。
+        stream.send(Data("event: answer.preview\ndata: {\"schema_version\":1,\"instance_id\":\"process\",\"revision\":7,\"preview\":null}\n\n".utf8))
+        try await observed { sessions.answerPreview == nil }
+        stream.send(event(text: "已经失效的正文", revision: 7))
+        stream.fail()
+        try await observed { sessions.answerFailure != nil }
+        #expect(sessions.answerPreview == nil)
+        sessions.setForeground(false)
+        await clock.advance()
+    }
+
+    @Test(arguments: ["running", "completed", "restarted"])
+    func disconnectedStreamReconcilesSnapshotAndHistoryBeforeResubscribing(result: String) async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        defer { sessions.setForeground(false) }
+        await fixture.next().reply(body: snapshot(revision: 1, text: "断线前正文"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let old = await fixture.next()
+        old.beginStream()
+        old.fail()
+        try await observed { sessions.answerFailure != nil }
+        #expect(sessions.answerPreview?.text == "断线前正文")
+        await clock.advance()
+        let body = result == "running" ? snapshot(revision: 4, text: "断线期间累计正文")
+            : result == "completed" ? snapshot(revision: 4, active: false)
+            : snapshot(active: false).replacingOccurrences(of: "process", with: "new-process")
+        await fixture.next().reply(body: body)
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        let history = result == "running" ? page() : result == "completed" ? page(answer: "离开期间保存的完整正文")
+            : page().replacingOccurrences(of: "\"status\":\"running\"", with: "\"status\":\"terminated\",\"reason\":\"service_interrupted\"")
+        await fixture.next().reply(body: history)
+        _ = await clock.nextInterval()
+        let resumed = await fixture.next()
+        #expect(resumed.protocolRequest.request.url?.path == "/api/events")
+        resumed.beginStream()
+        if result == "running" {
+            #expect(sessions.answerPreview?.text == "断线期间累计正文")
+            resumed.send(event(text: "继续生成", revision: 5))
+            try await observed { sessions.answerPreview?.text == "继续生成" }
+            // 返回列表再进入相同会话，同次序的有效累计对象仍可恢复。
+            sessions.watchConversation(sessionID: nil)
+            sessions.watchConversation(sessionID: "existing")
+            let read = Task { try await sessions.history(sessionID: "existing") }
+            await fixture.next().reply(body: page())
+            _ = try await read.value
+            let reopened = await fixture.next()
+            reopened.beginStream()
+            reopened.send(event(text: "继续生成", revision: 5))
+            try await observed { sessions.answerPreview?.text == "继续生成" }
+            reopened.finish()
+        } else {
+            #expect(sessions.answerPreview == nil)
+            if result == "completed" { #expect(sessions.conversation?.turns.first?.answer == "离开期间保存的完整正文") }
+            else { #expect(sessions.conversation?.turns.first?.reason == "service_interrupted") }
+        }
+        resumed.finish()
+        sessions.setForeground(false)
+        await clock.advance()
+    }
+
+    @Test func processChangeBetweenSnapshotAndSubscriptionImmediatelyInvalidatesPreview() async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        defer { sessions.setForeground(false) }
+        await fixture.next().reply(body: snapshot(revision: 2, text: "已经失去进程归属的正文"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let stream = await fixture.next()
+        stream.beginStream()
+        let changed = String(decoding: event(text: "新进程正文", revision: 1), as: UTF8.self)
+            .replacingOccurrences(of: "process", with: "new-process")
+        stream.send(Data(changed.utf8))
+        try await observed { sessions.answerFailure == .obsolete }
+        #expect(sessions.answerPreview == nil)
+        #expect(sessions.conversation?.turns.first?.status == "running")
+        stream.finish()
+        sessions.setForeground(false)
+        await clock.advance()
+    }
+
     private func snapshot(revision: Int = 0, text: String? = nil, active: Bool = true) -> String {
         """
         {"schema_version":1,"stream_id":"dataset","instance_id":"process","answer_revision":\(revision),

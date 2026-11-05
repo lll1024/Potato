@@ -23,7 +23,7 @@ def free_port():
 
 
 class ExternalServices:
-    def __init__(self, preference_handler=None, *, model_handler=None, map_result="西湖位于杭州。"):
+    def __init__(self, preference_handler=None, *, model_handler=None, map_result="西湖位于杭州。", stream_wait=None):
         self.model_calls = []
         self.map_calls = []
         self.entered = asyncio.Event()
@@ -59,11 +59,15 @@ class ExternalServices:
                 start = {**result, "content": [], "stop_reason": None, "stop_sequence": None}
                 yield "event: message_start\ndata: " + json.dumps({"type": "message_start", "message": start}) + "\n\n"
                 for index, block in enumerate(result["content"]):
+                    if stream_wait:
+                        await stream_wait()
                     yield "event: content_block_start\ndata: " + json.dumps({"type": "content_block_start", "index": index,
                         "content_block": {"type": "text", "text": ""}}) + "\n\n"
                     yield "event: content_block_delta\ndata: " + json.dumps({"type": "content_block_delta", "index": index,
                         "delta": {"type": "text_delta", "text": block["text"]}}) + "\n\n"
                     yield "event: content_block_stop\ndata: " + json.dumps({"type": "content_block_stop", "index": index}) + "\n\n"
+                if stream_wait:
+                    await stream_wait()
                 yield "event: message_delta\ndata: " + json.dumps({"type": "message_delta",
                     "delta": {"stop_reason": result["stop_reason"], "stop_sequence": None},
                     "usage": {"output_tokens": result["usage"]["output_tokens"]}}) + "\n\n"
