@@ -5,6 +5,7 @@ import UIKit
 /// 排版依赖与系统复制操作收在回答视图内；始终使用后端完整原文。
 struct AnswerView: View {
     let text: String
+    var isPreview = false
     @State private var copied = false
     @ScaledMetric(relativeTo: .body) private var columnWidth = 180.0
 
@@ -38,7 +39,7 @@ struct AnswerView: View {
                 }
                 .markdownTheme(.basic)
                 .textSelection(.enabled)
-            Button(copied ? "已复制完整回答" : "复制完整回答", systemImage: copied ? "checkmark" : "doc.on.doc") {
+            Button(copied ? (isPreview ? "已复制当前正文" : "已复制完整回答") : (isPreview ? "复制当前正文" : "复制完整回答"), systemImage: copied ? "checkmark" : "doc.on.doc") {
                 UIPasteboard.general.string = text
                 copied = true
             }

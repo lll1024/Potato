@@ -117,7 +117,8 @@ struct SubmissionIntegrationTests {
         #expect(page.turns.count == 1)
         #expect(page.turns.first?.input == pending.input)
         #expect(page.turns.first?.status == "completed")
-        #expect(try await modelCount() - before == 1)
+        // #98 每轮一次查询判断、一次无工具作答；重复执行会产生四次实际请求。
+        #expect(try await modelCount() - before == 2)
     }
 
     @Test(arguments: [false, true])
@@ -160,7 +161,8 @@ struct SubmissionIntegrationTests {
             #expect(accepted.turnID == identity["turn_id"] as? String)
             #expect(reopened.pendingSubmission == nil)
         }
-        #expect(try await modelCount() - before == 1)
+        // #98 每轮一次查询判断、一次无工具作答；重复执行会产生四次实际请求。
+        #expect(try await modelCount() - before == 2)
     }
 
     @Test func desktopTurnStopsOnlyAfterExternalReturnAndForegroundRestoresSavedResults() async throws {
@@ -228,6 +230,70 @@ struct SubmissionIntegrationTests {
         #expect(try await desktop.history(sessionID: next.sessionID) == phone.conversation)
         phone.setForeground(false)
         await clock.advance()
+    }
+
+    @Test func realStreamingAcrossClientsSurvivesBackgroundAndMatchesSavedHistory() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        let phone: any SessionAccess = try SharedSessions(databaseURL: directory.appending(path: "phone.sqlite"))
+        let desktop: any SessionAccess = try SharedSessions(databaseURL: directory.appending(path: "desktop.sqlite"))
+        let address = "https://localhost:18497"
+        try phone.configure(address: address)
+        try desktop.configure(address: address)
+        defer { phone.setForeground(false) }
+        for phoneSends in [false, true] {
+            phone.setForeground(false)
+            _ = try await phone.refresh()
+            _ = try await desktop.refresh()
+            try await streamControl("arm")
+            let sender = phoneSends ? phone : desktop
+            let accepted = try await sender.submit(input: phoneSends ? "手机发起实时旅行" : "电脑发起实时旅行", sessionID: nil)
+            try await streamControl("entered", method: "GET")
+            phone.watchConversation(sessionID: accepted.sessionID)
+            phone.setForeground(true)
+            try await streamObserved { phone.conversation?.session.id == accepted.sessionID }
+            #expect(phone.answerPreview?.text.isEmpty != false)
+            try await streamControl("step")
+            try await streamObserved { phone.answerPreview?.text == "## 实时杭州旅行\n\n" }
+            #expect(phone.answerPreview?.turnID == accepted.turnID)
+            #expect(phone.submission == (phoneSends ? .accepted(accepted) : .idle))
+            let first = try await desktop.history(sessionID: accepted.sessionID)
+            #expect(first.turns.last?.answer == nil)
+            #expect(first.turns.last?.status == "running")
+            try await streamControl("step")
+            try await streamObserved { phone.answerPreview?.text.contains("上午游览西湖。") == true }
+            #expect(phone.conversation?.turns.last?.answer == nil)
+            phone.setForeground(false)
+            let before = phone.answerPreview?.text
+            try await streamControl("step")
+            #expect(phone.answerPreview?.text == before)
+            let (data, _) = try await URLSession.shared.data(from: URL(string: address + "/api/snapshot")!)
+            let snapshot = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+            let preview = try #require(snapshot["answer_preview"] as? [String: Any])
+            #expect((preview["text"] as? String)?.contains("下午参观博物馆。") == true)
+            phone.setForeground(true)
+            phone.setForeground(true)
+            try await streamObserved { phone.answerPreview?.text.contains("下午参观博物馆。") == true }
+            #expect(phone.conversation?.turns.last?.status == "running")
+            try await streamControl("step")
+            try await streamObserved { phone.conversation?.turns.last?.status == "completed" }
+            let saved = try await desktop.history(sessionID: accepted.sessionID)
+            #expect(saved.turns.last?.answer == "## 实时杭州旅行\n\n上午游览西湖。\n\n下午参观博物馆。\n")
+            #expect(phone.conversation == saved)
+            #expect(phone.answerPreview == nil)
+        }
+    }
+
+    private func streamControl(_ action: String, method: String = "POST") async throws {
+        var request = URLRequest(url: URL(string: "https://localhost:18497/__test__/" + action)!)
+        request.httpMethod = method
+        let (_, response) = try await URLSession.shared.data(for: request)
+        #expect((response as? HTTPURLResponse)?.statusCode == 200)
+    }
+
+    private func streamObserved(_ condition: () -> Bool) async throws {
+        let deadline = ContinuousClock.now + .seconds(10)
+        while !condition(), ContinuousClock.now < deadline { await Task.yield() }
+        try #require(condition(), "真实后端正文未达到预期屏障")
     }
 
     private func control(_ action: String, method: String = "POST") async throws {

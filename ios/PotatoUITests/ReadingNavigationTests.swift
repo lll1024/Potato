@@ -109,7 +109,52 @@ final class ReadingNavigationTests: XCTestCase {
         attach(app, "横向表格末列")
     }
 
-    private func connectedApp() -> XCUIApplication {
+    func testAnswerReallyGrowsBeforeCompletionAndThenBecomesSavedHistory() async throws {
+        let app = connectedApp(address: "https://localhost:18497")
+        try await streamControl("arm")
+        app.buttons["new-conversation"].tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        input.tap()
+        input.typeText("手机界面实时旅行")
+        app.buttons["send-input"].tap()
+        try await streamControl("entered", method: "GET")
+        try await streamControl("step")
+        let heading = app.staticTexts["实时杭州旅行"]
+        XCTAssertTrue(heading.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["正在生成 · 尚未保存"].exists)
+        XCTAssertTrue(app.buttons["copy-answer"].label == "复制当前正文")
+        XCTAssertFalse(app.staticTexts["上午游览西湖。"].exists)
+        attach(app, "第一批正文尚未返回最终响应")
+        try await streamControl("step")
+        XCTAssertTrue(app.staticTexts["上午游览西湖。"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["正在生成 · 尚未保存"].exists)
+        attach(app, "第二批正文增长且仍未保存")
+        try await streamControl("step")
+        XCTAssertTrue(app.staticTexts["下午参观博物馆。"].waitForExistence(timeout: 5))
+        try await streamControl("step")
+        let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "复制完整回答"),
+            object: app.buttons["copy-answer"])
+        await fulfillment(of: [saved], timeout: 10)
+        XCTAssertFalse(app.staticTexts["正在生成 · 尚未保存"].exists)
+        attach(app, "完成保存后成为完整回答")
+        app.navigationBars.buttons["助手会话"].tap()
+        let session = app.buttons.matching(identifier: "open-session")
+            .matching(NSPredicate(format: "label CONTAINS %@", "手机界面实时旅行")).firstMatch
+        XCTAssertTrue(session.waitForExistence(timeout: 5))
+        session.tap()
+        XCTAssertTrue(app.staticTexts["下午参观博物馆。"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["copy-answer"].label, "复制完整回答")
+    }
+
+    private func streamControl(_ action: String, method: String = "POST") async throws {
+        var request = URLRequest(url: URL(string: "https://localhost:18497/__test__/" + action)!)
+        request.httpMethod = method
+        let (_, response) = try await URLSession.shared.data(for: request)
+        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
+    }
+
+    private func connectedApp(address: String = "https://localhost:18495") -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
         app.launch()
@@ -118,7 +163,7 @@ final class ReadingNavigationTests: XCTestCase {
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.tap()
         let old = field.value as? String ?? ""
-        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: old.count) + "https://localhost:18495\n")
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: old.count) + address + "\n")
         app.buttons["save-connection"].tap()
         XCTAssertTrue(app.staticTexts["已连接"].waitForExistence(timeout: 10))
         app.buttons["done-connection"].tap()

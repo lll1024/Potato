@@ -61,10 +61,11 @@ struct ConversationView: View {
                                 .background(.quaternary, in: RoundedRectangle(cornerRadius: 14))
                                 .accessibilityLabel("你的输入：" + turn.input)
                             if let answer = turn.answer, !answer.isEmpty {
-                                AnswerView(text: answer)
+                                AnswerView(text: answer, isPreview: turn.isPreview)
                             }
                             if let message = turn.statusMessage {
                                 Text(message)
+                                    .accessibilityIdentifier("answer-status")
                                     .font(.subheadline).foregroundStyle(.secondary)
                             }
                         }

@@ -6,6 +6,8 @@ import SessionKit
 struct ConversationInteractor {
     let sessions: any SessionAccess
     var page: ConversationPage? { sessions.conversation }
+    var answerPreview: AnswerPreview? { sessions.answerPreview }
+    var answerFailure: SessionFailure? { sessions.answerFailure }
     var canSubmit: Bool { sessions.canSubmit }
     var execution: ExecutionState { ExecutionState(sessions) }
     var stopTarget: StopTarget? { sessions.stopTarget }
@@ -52,6 +54,7 @@ struct ConversationPresentation {
         let input: String
         let answer: String?
         let statusMessage: String?
+        let isPreview: Bool
     }
     let title: String
     let turns: [Turn]
@@ -130,8 +133,16 @@ final class ConversationPresenter {
             if let readError { return .failed(readError) }
             return sessionID == nil ? .loaded(ConversationPresentation(title: title, turns: [], hasEarlierTurns: false)) : .loading
         }
-        return .loaded(ConversationPresentation(title: page.session.title, turns: page.turns.map {
-            ConversationPresentation.Turn(id: $0.id, input: $0.input, answer: $0.answer, statusMessage: statusText($0))
+        return .loaded(ConversationPresentation(title: page.session.title, turns: page.turns.map { turn in
+            let preview = interactor.answerPreview.flatMap { $0.turnID == turn.id && turn.status == "running" ? $0 : nil }
+            let message: String?
+            if let preview {
+                if interactor.answerFailure != nil { message = "实时正文连接中断，正在重新连接。当前正文尚未保存。" }
+                else if preview.status == "invalidated" { message = "本次正文已失效，等待后端处理。" }
+                else { message = preview.status == "generated" ? "正在保存回答。" : "正在生成 · 尚未保存" }
+            } else { message = statusText(turn) }
+            return ConversationPresentation.Turn(id: turn.id, input: turn.input,
+                answer: preview?.text ?? turn.answer, statusMessage: message, isPreview: preview != nil)
         }, hasEarlierTurns: page.nextBefore != nil))
     }
 
@@ -188,7 +199,10 @@ final class ConversationPresenter {
         if draftError == nil { restoreDraft() }
         await reload()
     }
-    func disappear() { isVisible = false }
+    func disappear() {
+        isVisible = false
+        if currentPage != nil { interactor.watch(sessionID: nil) }
+    }
 
     func send() async {
         guard canSend, let savedDraft else { return }
@@ -213,7 +227,7 @@ final class ConversationPresenter {
     }
 
     private func statusText(_ turn: ConversationTurn) -> String? {
-        if turn.status == "running" { return "电脑端仍在处理，回答将在保存后显示。" }
+        if turn.status == "running" { return "电脑端仍在处理，最终作答时将实时显示正文。" }
         if turn.status == "completed" { return nil }
         switch turn.reason {
         case "user_stop": return "本轮已停止。"

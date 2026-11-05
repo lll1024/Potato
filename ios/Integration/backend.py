@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import tempfile
 from typing import cast
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT), str(ROOT / "tests")]
@@ -81,6 +82,45 @@ class ReadingModel(SubmissionModel):
         return response([{"type": "text", "text": READING_ANSWER}])
 
 
+class StreamingModel:
+    """分块和最终返回由 HTTP 屏障控制；会话、规划与 SQLite 仍使用真实实现。"""
+    parts = ["## 实时杭州旅行\n\n", "上午游览西湖。\n\n", "下午参观博物馆。\n"]
+
+    def __init__(self):
+        self.messages = self
+        self.reset()
+
+    def reset(self):
+        self.release = asyncio.Queue()
+        self.delivered = asyncio.Queue()
+        self.entered = asyncio.Event()
+        self.returned = False
+
+    async def create(self, **parameters):
+        return response([{"type": "text", "text": "查询阶段说明，不是最终回答。"}])
+
+    @asynccontextmanager
+    async def stream(self, **parameters):
+        model = self
+
+        class Stream:
+            async def __aiter__(self):
+                model.entered.set()
+                yield SimpleNamespace(type="content_block_start", content_block=SimpleNamespace(type="text", text=""))
+                for part in model.parts:
+                    await model.release.get()
+                    yield SimpleNamespace(type="content_block_delta", delta=SimpleNamespace(type="text_delta", text=part))
+                    model.delivered.put_nowait(part)
+                await model.release.get()
+
+            async def get_final_message(self):
+                model.returned = True
+                model.delivered.put_nowait("returned")
+                return response([{"type": "text", "text": "".join(model.parts)}])
+
+        yield Stream()
+
+
 async def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cert", required=True)
@@ -92,6 +132,7 @@ async def main():
         clock = Clock()
         recovery_model = SubmissionModel()
         lifecycle_model = LifecycleModel()
+        streaming_model = StreamingModel()
 
         @asynccontextmanager
         async def recovery_resources():
@@ -111,7 +152,13 @@ async def main():
             await tools.discover()
             yield Runtime(cast(AsyncAnthropic, ReadingModel()), tools, "test-model")
 
-        for name, port in (("populated", 18489), ("empty", 18490), ("submissions", 18492), ("recovery", 18493), ("lifecycle", 18494), ("reading", 18495), ("local-http", 18496)):
+        @asynccontextmanager
+        async def streaming_resources():
+            tools = Retrieval(cast(Client, MapService()))
+            await tools.discover()
+            yield Runtime(cast(AsyncAnthropic, streaming_model), tools, "test-model")
+
+        for name, port in (("populated", 18489), ("empty", 18490), ("submissions", 18492), ("recovery", 18493), ("lifecycle", 18494), ("reading", 18495), ("local-http", 18496), ("streaming", 18497)):
             app = (create_app(Path(directory) / name, resources=submission_resources,
                               preference_clock=clock, preference_wait=clock.wait)
                    if name == "submissions" else create_app(Path(directory) / name, resources=resources))
@@ -153,6 +200,28 @@ async def main():
                 @app.get("/__test__/booking", response_class=HTMLResponse)
                 async def booking():
                     return '<html lang="zh"><meta charset="utf-8"><title>预约入口样例</title><h1>预约入口样例</h1><p>尚未预约。这是客户端链接验收页面。</p></html>'
+
+            if name == "streaming":
+                app = create_app(Path(directory) / name, resources=streaming_resources,
+                                 static_dir=Path(directory) / "no-static")
+
+                @app.post("/__test__/arm")
+                async def arm_stream():
+                    streaming_model.reset()
+                    return {"armed": True}
+
+                @app.get("/__test__/entered")
+                async def entered_stream():
+                    async with asyncio.timeout(10):
+                        await streaming_model.entered.wait()
+                    return {"entered": True}
+
+                @app.post("/__test__/step")
+                async def step_stream():
+                    streaming_model.release.put_nowait(None)
+                    async with asyncio.timeout(10):
+                        await streaming_model.delivered.get()
+                    return {"returned": streaming_model.returned}
 
             if name == "submissions":
                 delay_next_history = False
@@ -225,7 +294,7 @@ async def main():
                 session_id = await complete("杭州两日旅行阅读验收第1轮：保留完整输入。")
                 for index in range(2, 56):
                     await complete(f"杭州两日旅行阅读验收第{index}轮：保留完整输入。", session_id)
-            print("READY https://localhost:18489 ; EMPTY https://localhost:18490 ; SUBMISSIONS https://localhost:18492 ; RECOVERY https://localhost:18493 ; LIFECYCLE https://localhost:18494 ; READING https://localhost:18495 ; LOCAL HTTP http://127.0.0.1:18496", flush=True)
+            print("READY https://localhost:18489 ; EMPTY https://localhost:18490 ; SUBMISSIONS https://localhost:18492 ; RECOVERY https://localhost:18493 ; LIFECYCLE https://localhost:18494 ; READING https://localhost:18495 ; LOCAL HTTP http://127.0.0.1:18496 ; STREAMING https://localhost:18497", flush=True)
             await asyncio.gather(*tasks)
         finally:
             for server in servers:

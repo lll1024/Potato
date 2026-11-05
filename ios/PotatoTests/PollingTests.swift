@@ -270,3 +270,189 @@ struct StopTests {
         """
     }
 }
+
+@MainActor
+struct AnswerStreamingTests {
+    @Test func receivesBatchesBeforeSavedHistoryThroughOneForegroundSubscription() async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        sessions.setForeground(true)
+        defer { sessions.setForeground(false) }
+        await fixture.next().reply(body: snapshot())
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let stream = await fixture.next()
+        #expect(stream.protocolRequest.request.url?.path == "/api/events")
+        let query = URLComponents(url: stream.protocolRequest.request.url!, resolvingAgainstBaseURL: false)?.queryItems
+        #expect(query?.contains(URLQueryItem(name: "after", value: "12")) == true)
+        stream.beginStream()
+        let first = event(text: "## 杭州", revision: 1)
+        // 网络块可以截断 UTF-8 汉字与 SSE 行；直到完整事件才发布累计正文。
+        let split = first.firstIndex(of: 0xE6)!
+        stream.send(first.prefix(split + 1))
+        stream.send(first.suffix(from: split + 1))
+        try await observed { sessions.answerPreview?.text == "## 杭州" }
+        #expect(sessions.conversation?.turns.first?.answer == nil)
+        #expect(sessions.conversation?.turns.first?.status == "running")
+        stream.send(event(text: "## 杭州\n\n上午游览西湖。", revision: 2))
+        try await observed { sessions.answerPreview?.revision == 2 }
+        #expect(sessions.answerPreview?.text == "## 杭州\n\n上午游览西湖。")
+        #expect(await fixture.receivedCount == 4)
+        await clock.advance()
+        await fixture.next().reply(body: snapshot(revision: 3, active: false))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page(answer: "## 杭州\n\n上午游览西湖。"))
+        _ = await clock.nextInterval()
+        #expect(sessions.answerPreview == nil)
+        #expect(sessions.conversation?.turns.first?.answer == "## 杭州\n\n上午游览西湖。")
+        // 完成后迟到的旧预览不能盖过已保存历史。
+        stream.send(event(text: "错误的迟到正文", revision: 2))
+        stream.finish()
+        sessions.setForeground(false)
+        await clock.advance()
+    }
+
+    @Test func backgroundAndPageExitCancelReceivingAndForegroundRestoresSnapshot() async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        await fixture.next().reply(body: snapshot())
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let old = await fixture.next()
+        old.beginStream()
+        old.send(event(text: "离开前", revision: 1))
+        try await observed { sessions.answerPreview?.text == "离开前" }
+        sessions.setForeground(false)
+        await clock.advance()
+        let deadline = ContinuousClock.now + .seconds(5)
+        while await fixture.cancelledStreams < 1, ContinuousClock.now < deadline { await Task.yield() }
+        #expect(await fixture.cancelledStreams == 1)
+        sessions.setForeground(true)
+        sessions.setForeground(true)
+        await fixture.next().reply(body: snapshot(revision: 4, text: "离开期间的累计正文"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let resumed = await fixture.next()
+        #expect(resumed.protocolRequest.request.url?.path == "/api/events")
+        #expect(sessions.answerPreview?.text == "离开期间的累计正文")
+        resumed.beginStream()
+        resumed.send(event(text: "恢复后的正文", revision: 5))
+        try await observed { sessions.answerPreview?.revision == 5 }
+        sessions.watchConversation(sessionID: nil)
+        #expect(sessions.answerPreview == nil)
+        #expect(await fixture.receivedCount == 8) // 全部只有 GET，没有后端停止。
+        resumed.finish()
+        old.finish()
+        sessions.setForeground(false)
+        await clock.advance()
+    }
+
+    @Test func attemptReplacementWrongOwnershipAndStreamFailureRemainObservable() async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, address) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        await fixture.next().reply(body: snapshot())
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let stream = await fixture.next()
+        stream.beginStream()
+        stream.send(event(text: "旧尝试", revision: 1))
+        try await observed { sessions.answerPreview?.revision == 1 }
+        stream.send(event(text: "新尝试", revision: 3, attempt: "second"))
+        try await observed { sessions.answerPreview?.revision == 3 }
+        #expect(sessions.answerPreview?.text == "新尝试")
+        #expect(sessions.answerPreview?.attemptID == "second")
+        stream.send(event(text: "旧次序", revision: 2))
+        stream.send(event(text: "其他轮次", revision: 4, turn: "other"))
+        stream.fail()
+        try await observed { sessions.answerFailure != nil }
+        #expect(sessions.answerPreview?.text == "新尝试")
+        #expect(sessions.conversation?.turns.first?.status == "running")
+        try sessions.configure(address: address)
+        #expect(sessions.answerPreview == nil)
+        #expect(sessions.answerFailure == nil)
+        sessions.setForeground(false)
+        await clock.advance()
+    }
+
+    @Test(arguments: ["configuration", "conversation", "dataset", "process"])
+    func changedOwnershipInvalidatesOldConnection(kind: String) async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        defer { sessions.setForeground(false) }
+        await fixture.next().reply(body: snapshot())
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let old = await fixture.next()
+        old.beginStream()
+        old.send(event(text: "原归属正文", revision: 1))
+        try await observed { sessions.answerPreview?.text == "原归属正文" }
+        switch kind {
+        case "configuration": try sessions.configure(address: "https://changed.example.test")
+        case "conversation": sessions.watchConversation(sessionID: "another")
+        default:
+            let read = Task { try await sessions.refresh() }
+            let body = kind == "dataset" ? snapshot().replacingOccurrences(of: "dataset", with: "new-dataset")
+                : snapshot().replacingOccurrences(of: "process", with: "new-process")
+            await fixture.next().reply(body: body)
+            await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+            _ = try await read.value
+        }
+        #expect(sessions.answerPreview == nil)
+        old.send(event(text: "失效连接迟到正文", revision: 99))
+        old.finish()
+        sessions.setForeground(false)
+        await clock.advance()
+        #expect(sessions.answerPreview == nil)
+    }
+
+    private func snapshot(revision: Int = 0, text: String? = nil, active: Bool = true) -> String {
+        """
+        {"schema_version":1,"stream_id":"dataset","instance_id":"process","answer_revision":\(revision),
+        "answer_preview":\(text.map { String(decoding: preview(text: $0, revision: revision), as: UTF8.self) } ?? "null"),
+        "active_session_id":"existing","active_turn_id":\(active ? "\"turn\"" : "null"),"accepting":true,"stopping":false}
+        """
+    }
+
+    private func page(answer: String? = nil) -> String {
+        """
+        {"schema_version":1,"stream_id":"dataset","cursor":12,"session":{"session_id":"existing","title":"旅行","updated_at":"now"},
+        "turns":[{"turn_id":"turn","ordinal":1,"input":"杭州","status":"\(answer == nil ? "running" : "completed")","answer":\(answer.map { String(decoding: try! JSONEncoder().encode($0), as: UTF8.self) } ?? "null")}]}
+        """
+    }
+
+    private func preview(text: String, revision: Int, attempt: String = "attempt", turn: String = "turn") -> Data {
+        let preview: [String: Any] = ["instance_id":"process", "stream_id":"dataset", "session_id":"existing",
+            "turn_id":turn, "attempt_id":attempt, "revision":revision, "text":text, "status":"generating"]
+        return try! JSONSerialization.data(withJSONObject: preview)
+    }
+
+    private func event(text: String, revision: Int, attempt: String = "attempt", turn: String = "turn") -> Data {
+        let preview = try! JSONSerialization.jsonObject(with: preview(text: text, revision: revision, attempt: attempt, turn: turn))
+        let body = try! JSONSerialization.data(withJSONObject: ["schema_version":1, "kind":"answer.preview",
+            "instance_id":"process", "revision":revision, "preview":preview])
+        return Data("event: answer.preview\r\ndata: ".utf8) + body + Data("\r\n\r\n".utf8)
+    }
+
+    private func observed(_ condition: () -> Bool) async throws {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !condition(), ContinuousClock.now < deadline { await Task.yield() }
+        try #require(condition(), "未观察到预期的公开正文状态")
+    }
+}

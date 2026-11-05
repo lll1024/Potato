@@ -4,6 +4,7 @@
 
 | 行为范围 | 结论入口 | 证据与适用范围 |
 | --- | --- | --- |
+| iOS 最终回答实时阅读 | [#99 验收](ios-answer-streaming.md) | 共享前台订阅、分块 HTTP、真实 HTTPS／SQLite、前后台恢复与模拟器界面增长；生产模型实连另见后续任务 |
 | Web 最终回答真实流式展示 | [#98 验收](web-answer-streaming.md) | 公开 HTTP／SSE、真实 SQLite、分块屏障、阶段隔离、63／64 预算及跨块脱敏；iOS 与生产模型联合验收另见后续任务 |
 | iOS 模拟器本地免配置调试 | [本地调试验收](ios-local-debug.md) | 模拟器 Debug 默认回环 HTTP、失败重试、真实后端读取／新建／续聊；真机及 Release 保留 HTTPS，验证结果与适用范围见正文 |
 | 原生 iPhone 本机集成与交付准备 | [#95 验收](ios-delivery.md) | 50 条故事映射、本机回归与无签名归档；TestFlight、iOS 17 实跑、私网和蜂窝真机未完成，任务保持打开 |

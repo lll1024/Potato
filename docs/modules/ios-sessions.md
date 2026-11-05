@@ -1,11 +1,11 @@
 # iOS 助手会话能力
 
-本客户端通过现有[助手会话 HTTP 契约](sessions.md)访问同一后端。后端六项能力、Web/CLI 与数据目录锁保持原样。当前覆盖 #89 的配置与完整阅读、#90 的新建、续聊、发送前保存与共享前台轮询、#91 的独立持久草稿、#92 的未确认提交恢复、#93 的跨设备停止及前后台恢复和 #94 的更早分页与回答排版。#95 的安装、连接及维护步骤见[交付说明](../../ios/DELIVERY.md)；本机复验、全部故事映射及尚缺的真机／分发证据见 [#95 验收](../acceptance/ios-delivery.md)。
+本客户端通过现有[助手会话 HTTP 契约](sessions.md)访问同一后端。后端六项能力、Web/CLI 与数据目录锁保持原样。当前覆盖 #89 的配置与完整阅读、#90 的新建、续聊、发送前保存与共享前台轮询、#91 的独立持久草稿、#92 的未确认提交恢复、#93 的跨设备停止及前后台恢复、#94 的更早分页与回答排版，以及 #99 的最终回答实时阅读。#95 的安装、连接及维护步骤见[交付说明](../../ios/DELIVERY.md)；本机复验、全部故事映射及尚缺的真机／分发证据见 [#95 验收](../acceptance/ios-delivery.md)。
 
 ## 阅读入口
 
 - `ios/SessionKit/SessionAccess.swift`：Interactor 使用的公开 interface、连接状态与领域数据。
-- `ios/SessionKit/SharedSessions.swift`：App 生命周期内唯一共享实例；地址配置、原子提交材料、接受身份、连接核对、唯一轮询循环和服务失效规则。
+- `ios/SessionKit/SharedSessions.swift`：App 生命周期内唯一共享实例；地址配置、原子提交材料、接受身份、连接核对、唯一前台轮询／正文订阅和服务失效规则。
 - `ios/Potato/AppAssembly.swift`：FactoryKit 装配，解析一次共享能力后通过构造参数注入两个 Interactor。
 - `ios/Potato/SessionList/` 与 `ios/Potato/Conversation/`：两个 VIPER module；View 只显示状态与转交操作，Interactor 调用公开能力，Presenter 提供 Observation 展示状态，Router 管理进入、返回与连接设置。
 - `ios/Potato/Settings/`：简单连接配置入口。
@@ -23,9 +23,9 @@
 | `canSubmit(draft:)` / `submit(draft:)` | 页面通过草稿提交；共享能力核对捕获服务及已绑定数据集，过期草稿不可发送，`submit` 抛 `obsolete` 且不 POST；原文发送入口保留给未持有草稿的调用方 |
 | `reconcileSubmission()` | 重新读取快照与列表，在确认服务和数据集后查询原提交；未知抛 `submissionUnknown`，已删除及冲突保持各自错误 |
 | `canRetrySubmission` / `retrySubmission()` | 仅最近核对为未见接受记录时开放显式重试；操作内再次读取身份和接受记录，必要时 POST 原身份、原文及原始可空目标 |
-| `watchConversation(sessionID:)` | 指定轮询观察的对话；切换使旧历史请求失效，空目标用于新建页 |
+| `watchConversation(sessionID:)` | 指定观察的对话；切换使旧历史和正文订阅失效，空目标用于新建页或退出页面 |
 | `stopTarget` / `stopState` / `stop(target:)` | 捕获服务、持久数据集、会话及原轮次；POST 原目标，等待新快照确认释放。未知结果保留核对屏障；旧目标不停止后来轮次 |
-| `setForeground(_:)` | 幂等启停唯一轮询；前台立即刷新，随后每次核对后等待约两秒；取消读取不停止后端任务 |
+| `setForeground(_:)` | 幂等启停唯一轮询及正文订阅；前台先恢复快照和历史，再接收实时正文；轮询约两秒核对持久状态；取消读取不停止后端任务 |
 | `draft(sessionID:)` | 同步读取当前服务、最后确认数据集及可空会话的草稿；失败抛 `draftLoadFailed`，不伪造空草稿 |
 | `saveDraft(input:scope:)` | 按捕获的 `DraftScope` 同步保存原文，返回新版本；失败抛 `draftSaveFailed`，保留上次已保存内容 |
 | `moveDraft(_:input:to:)` | 新建页接受后，将当前编辑内容原子迁入真实会话；仅迁移仍匹配的来源，不覆盖目标已有文字；失败保留来源并抛 `draftSaveFailed` |
@@ -47,6 +47,18 @@
 更换地址使旧读取失效；重复刷新只采用较新的结果。服务身份来自持久 `stream_id`，普通重启不凭进程身份推断为新数据集。网络、HTTP、解码和会话不存在分别表达，错误不能生成空列表、空历史或后端失败终态。取消客户端读取不调用后端停止接口。
 
 `sessionList`、`conversation`、`conversationFailure`、`submission`、`pendingSubmission` 和 `canSubmit` 是共享可观察投影。轮询依次核对快照、列表及当前对话，网络失败保留最后成功的持久事实并显示连接不可用；保存故障保留 `storageError` / `unsavedFact`，禁止新输入。地图供应商暂停不独立阻止发送。两个 Presenter 不维护各自的轮询或全局名额。
+
+## 实时正文（#99）
+
+`SessionAccess.answerPreview` 是当前观察会话的可选 `AnswerPreview`，包含服务进程 `instanceID`、数据集 `streamID`、会话 `sessionID`、轮次 `turnID`、尝试 `attemptID`、递增 `revision`、累计 `text` 和 `status`。`answerFailure` 单独表示实时接收错误；不会将网络错误写成后端失败终态，也不清除最后已保存历史。没有流式字段的旧服务继续通过既有轮询读取完整回答。
+
+共享能力在前台恢复 `GET /api/snapshot` 的当前正文与服务身份，读取当前历史后使用现有 `GET /api/events?stream_id=...&after=...`，从已读取历史的持久游标接入，避免重放整库轨迹。同一时间只有一个正文订阅；重复前台通知或重复观察同一会话不另建连接。页面及 Presenter 不操作传输。流式传输独立于普通 HTTP 的短总时限，使用服务心跳保持接收；按完整 SSE 事件投影累计正文，网络块可截断 UTF-8 中文或事件行，不进行逐字播放。
+
+只采用当前连接身份、当前进程、数据集和活动轮次的正文，低于已见 `revision` 的更新失效。不同尝试整体替换，不能拼接；`invalidated` 清空原尝试文字。服务进程变更时清除预览，即使 `stream_id` 未变也重新核对。配置、数据集、会话变化、会话 404、退出页面或离开前台均取消客户端接收，使旧连接回调失效。后台／锁屏不发送停止请求；恢复前台先读累计快照，断线后由后续前台核对重建订阅。完整重连竞争矩阵另由 #100 验收。
+
+预览与 `ConversationTurn.answer` 分开；历史仍为 `running` 时可读取多批正文，不能将其视为已保存。Presenter 通过同一轮次投影预览和“正在生成 · 尚未保存”／“正在保存回答”，复用 `AnswerView` 的 Markdown。复制预览使用“复制当前正文”；持久终态优先使用历史回答，迟到预览不能覆盖已保存结果。两端使用相同提交与接受身份，不另建手机专用轮次。错误重试、停止／未保存正文体验和长文滚动打磨分别由 #101、#102、#103 继续验收。
+
+验证通过公开 `SessionAccess`、可控分块 HTTP 传输、真实 GRDB 文件与后端临时 SQLite；少量界面测试验证多批正文在最终响应返回前真实增长，再转为一致的保存历史。步骤及证据见 [#99 验收](../acceptance/ios-answer-streaming.md)。
 
 ## 发送边界
 
@@ -84,6 +96,6 @@ App 的 scene phase 在活跃时启用唯一共享轮询、离开活跃态时取
 
 ## 构建与验证
 
-回答排版由 `AnswerView` 封装 MarkdownUI。完整原文支持系统文字选择、打开链接与复制；复制不截断、不去除 Markdown 标记。表格在独立横向滚动区展示，列宽随 Dynamic Type 缩放，保留中文换行。列表和对话的继续加载经 Presenter → Interactor → `SessionAccess`，Router 仍负责进入和返回；查看更早内容与回到最新均为当前页面的阅读定位，不增加搜索、改名、删除入口。
+回答排版由 `AnswerView` 封装 MarkdownUI。完整回答与实时预览均支持系统文字选择、打开链接与复制；复制不截断、不去除 Markdown 标记。表格在独立横向滚动区展示，列宽随 Dynamic Type 缩放，保留中文换行。列表和对话的继续加载经 Presenter → Interactor → `SessionAccess`，Router 仍负责进入和返回；查看更早内容与回到最新均为当前页面的阅读定位，不增加搜索、改名、删除入口。
 
 工程：`ios/Potato.xcodeproj`；生成源：`ios/project.yml`（XcodeGen 2.46.0）。Swift 6，最低 iOS 17，仅 iPhone；依赖解析结果随工程提交。`ios/PotatoTests/` 通过共享公开 interface、真实文件数据库及真实 HTTP／HTTPS 后端验证；`ios/PotatoUITests/` 验证模拟器免配置启动、本地连接重试、设置、进入、返回、草稿重启、离线编辑、分页与完整复制和外链。运行步骤见 [iOS README](../../ios/README.md)；证据见 [本地模拟器调试](../acceptance/ios-local-debug.md)、[#89](../acceptance/ios-readonly.md)、[#90](../acceptance/ios-submission.md)、[#91](../acceptance/ios-drafts.md)、[#92](../acceptance/ios-recovery.md)、[#93](../acceptance/ios-lifecycle.md) 与 [#94](../acceptance/ios-reading.md)。
