@@ -141,7 +141,7 @@ class TravelDatesTests(unittest.IsolatedAsyncioTestCase):
                                 break
                             await asyncio.sleep(0.01)
                         self.assertEqual(saved["turns"][0]["status"], "completed")
-        contexts = [context_from_request(request) for request in model.requests]
+        contexts = [context_from_request(request) for request in model.requests[::2]]
         self.assertEqual(contexts[0], contexts[1])
         self.assertEqual(contexts[0]["now"], "2026-12-31T23:59:59+08:00")
         self.assertEqual(contexts[2]["now"], "2027-01-01T00:00:01+08:00")

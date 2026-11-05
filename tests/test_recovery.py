@@ -40,7 +40,7 @@ class RecoveryTests(unittest.IsolatedAsyncioTestCase):
                     self.assertFalse(any(event['kind'] == 'request.retry_started' for event in saved['events']))
                     next_turn = (await client.post('/api/turns', json={'input': '新的提问', 'session_id': accepted['session_id']})).json()
                     await asyncio.wait_for(wait_finished(client, accepted['session_id'], next_turn['turn_id']), 3)
-                    self.assertEqual(len(external.model_calls), 2)
+                    self.assertEqual(len(external.model_calls), 3)
                     self.assertEqual(external.model_calls[-1]['messages'], [{'role': 'user', 'content': '新的提问'}])
 
     async def test_killed_model_is_observed_once_without_replay_or_context(self):
@@ -84,7 +84,7 @@ class RecoveryTests(unittest.IsolatedAsyncioTestCase):
                 async with process(directory, url) as (_, client, _):
                     stable = (await client.get('/api/sessions/'+accepted['session_id'])).json()
                     self.assertEqual(len([e for e in stable['events'] if e['kind']=='turn.recovered']), 1)
-                    self.assertEqual(len(external.model_calls), calls+1)
+                    self.assertEqual(len(external.model_calls), calls+2)
 
     async def test_killed_tool_keeps_completed_request_and_pending_batch_facts(self):
         external = ExternalServices()
@@ -164,7 +164,7 @@ class RecoveryTests(unittest.IsolatedAsyncioTestCase):
                 async with process(directory, url) as (_, client, _):
                     after = (await client.get('/api/sessions/'+accepted['session_id'])).json()
                     self.assertEqual(after, before)
-                    self.assertEqual(len(external.model_calls), 1)
+                    self.assertEqual(len(external.model_calls), 2)
 
     async def test_recovery_write_failure_cannot_accept_or_replay(self):
         external = ExternalServices()
@@ -225,7 +225,7 @@ class RecoveryTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(after['turns'][0]['reason'], 'service_interrupted')
                     self.assertEqual(after['requests'], before['requests'])
                     self.assertTrue(after['turns'][0]['context_excluded'])
-                    self.assertEqual(len(external.model_calls), 1)
+                    self.assertEqual(len(external.model_calls), 2)
 
     async def test_killed_rate_wait_keeps_absent_call_end_and_duration(self):
         external = ExternalServices()

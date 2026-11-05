@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class WebEntrypointTests(unittest.IsolatedAsyncioTestCase):
     async def test_sigint_waits_for_real_call_then_exits_cleanly_and_unlocks_history(self):
         external = ExternalServices()
-        external.block = 'model'
+        external.block = 'answer'
         with tempfile.TemporaryDirectory() as directory:
             async with external.serving() as url:
                 port = free_port()
@@ -56,7 +56,7 @@ class WebEntrypointTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(saved['turns'][0]['status'], 'completed')
                         self.assertEqual(saved['turns'][0]['answer'], '完整旅行建议。')
                         self.assertNotIn('turn.recovered', [event['kind'] for event in saved['events']])
-                        self.assertEqual(len(external.model_calls), 1)
+                        self.assertEqual(len(external.model_calls), 2)
                 finally:
                     external.release.set()
                     if child.returncode is None:

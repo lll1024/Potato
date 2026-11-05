@@ -44,7 +44,7 @@ class ContextOrganizationTests(unittest.IsolatedAsyncioTestCase):
                 accepted = (await client.post("/api/turns", json={"input": "查询杭州西湖附近酒店"})).json()
                 saved = await wait_finished(client, accepted["session_id"])
                 self.assertEqual(saved["turns"][0]["status"], "completed")
-                self.assertEqual(len(model.requests), 2)
+                self.assertEqual(len(model.requests), 3)
                 viewed = json.loads(model.requests[1]["messages"][-1]["content"][0]["content"])
                 self.assertNotIn("text", viewed)
                 self.assertEqual([poi["id"] for poi in viewed["data"]["pois"]], ["hotel-east", "hotel-west"])

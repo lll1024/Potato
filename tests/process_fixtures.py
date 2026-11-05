@@ -1,5 +1,6 @@
 """显式测试支撑：只装配公开能力、可控外部响应或指定故障。"""
 import asyncio
+import json
 import httpx
 import os
 import socket
@@ -8,7 +9,7 @@ import uvicorn
 from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from mcp.server import MCPServer
 
 
@@ -51,6 +52,25 @@ class ExternalServices:
         async def message(request: Request):
             data = await request.json()
             self.model_calls.append(data)
+            result = await reply(data)
+            if not data.get("stream") or isinstance(result, JSONResponse):
+                return result
+            async def events():
+                start = {**result, "content": [], "stop_reason": None, "stop_sequence": None}
+                yield "event: message_start\ndata: " + json.dumps({"type": "message_start", "message": start}) + "\n\n"
+                for index, block in enumerate(result["content"]):
+                    yield "event: content_block_start\ndata: " + json.dumps({"type": "content_block_start", "index": index,
+                        "content_block": {"type": "text", "text": ""}}) + "\n\n"
+                    yield "event: content_block_delta\ndata: " + json.dumps({"type": "content_block_delta", "index": index,
+                        "delta": {"type": "text_delta", "text": block["text"]}}) + "\n\n"
+                    yield "event: content_block_stop\ndata: " + json.dumps({"type": "content_block_stop", "index": index}) + "\n\n"
+                yield "event: message_delta\ndata: " + json.dumps({"type": "message_delta",
+                    "delta": {"stop_reason": result["stop_reason"], "stop_sequence": None},
+                    "usage": {"output_tokens": result["usage"]["output_tokens"]}}) + "\n\n"
+                yield 'event: message_stop\ndata: {"type":"message_stop"}\n\n'
+            return StreamingResponse(events(), media_type="text/event-stream")
+
+        async def reply(data):
             if model_handler:
                 return await model_handler(data)
             if self.model_failure:
@@ -58,11 +78,11 @@ class ExternalServices:
                                     headers={"Retry-After": "10"})
             if preference_handler and data['system'].startswith('旅行者偏好提取'):
                 return await preference_handler(data)
-            if self.block == 'model':
+            if self.block == 'model' or (self.block == 'answer' and data.get('stream')):
                 self.entered.set()
                 await self.release.wait()
             last = data['messages'][-1]['content']
-            use_tools = isinstance(last, str) and '地图' in last
+            use_tools = 'tools' in data and isinstance(last, str) and '地图' in last
             content = ([{'type':'tool_use','id':f'map-{index}','name':'maps_text_search',
                          'input':{'keywords':'西湖','city':'杭州'}} for index in range(2)] if use_tools
                        else [{'type':'text','text':'完整旅行建议。'}])

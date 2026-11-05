@@ -381,3 +381,41 @@ test('并发查询乱序完成时状态及时更新，工具列表保持提出�
   }
   expect(app.writes).toEqual([]);
 });
+
+
+test('最终回答在保存之前分批展示 Markdown，保存后使用历史正文', async ({page}) => {
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  await app.notify();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  async function preview(text: string, revision: number) {
+    await page.evaluate(({text, revision}) => {
+      (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {data: JSON.stringify({
+        schema_version: 1, kind: 'answer.preview', instance_id: 'process', preview: {
+          instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+          attempt_id: 'answer-request', revision, text, status: 'generating',
+        },
+      })}));
+    }, {text, revision});
+  }
+  await preview('## 西湖安排\n\n上午漫步湖畔。\n', 1);
+  await expect(page.getByRole('heading', {name: '西湖安排', exact: true})).toBeVisible();
+  await expect(page.getByText('正在生成 · 尚未保存', {exact: true})).toBeVisible();
+  await expect(page.getByText('上午漫步湖畔。', {exact: true})).toBeVisible();
+  await preview('## 西湖安排\n\n上午漫步湖畔。\n\n[预约](javascript:alert(1))\n下午品尝杭帮菜。', 2);
+  await expect(page.getByText(/下午品尝杭帮菜/)).toBeVisible();
+  await expect(page.locator('a[href^="javascript:"]')).toHaveCount(0);
+  await page.setViewportSize({width: 1440, height: 900});
+  await page.screenshot({path: test.info().outputPath('answer-stream-desktop.png')});
+  await page.setViewportSize({width: 390, height: 844});
+  await page.getByRole('button', {name: '收起会话导航'}).first().click();
+  await page.screenshot({path: test.info().outputPath('answer-stream-mobile.png')});
+  app.turn.status = 'completed'; app.turn.answer = '## 已保存安排\n\n完整旅行回答。';
+  app.state.active_turn_id = null; app.state.active_session_id = null;
+  await app.notify();
+  await expect(page.getByRole('heading', {name: '已保存安排'})).toBeVisible();
+  await expect(page.getByText('正在生成 · 尚未保存', {exact: true})).toHaveCount(0);
+  await preview('迟到的旧正文', 3);
+  await expect(page.getByText('迟到的旧正文', {exact: true})).toHaveCount(0);
+
+});

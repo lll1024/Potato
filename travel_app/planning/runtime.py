@@ -260,7 +260,8 @@ async def plan(text: str, client: AsyncAnthropic, tools: Retrieval, model: str, 
                preference_background: str = "", clock: Callable[[], datetime] | None = None,
                history_records: Callable[[], list[dict[str, Any]]] | None = None,
                max_rounds: int = MAX_ROUNDS, max_tool_calls: int = MAX_TOOL_CALLS,
-               context_policy: ContextPolicy | None = None) -> PlanningResult:
+               context_policy: ContextPolicy | None = None,
+               answer_observer: Callable[[dict[str, Any]], Awaitable[None]] | None = None) -> PlanningResult:
     context = ModelContext.begin(text, seed=seed, continuation=continuation)
 
     try:
@@ -268,7 +269,7 @@ async def plan(text: str, client: AsyncAnthropic, tools: Retrieval, model: str, 
             stop_requested=stop_requested, stop_reason=stop_reason, clock=clock,
             preference_background=preference_background, history_records=history_records,
             max_rounds=min(max_rounds, MAX_ROUNDS), max_tool_calls=min(max_tool_calls, MAX_TOOL_CALLS),
-            context_policy=context_policy)
+            context_policy=context_policy, answer_observer=answer_observer)
     except RecordAbort:
         raise
     except Exception:
@@ -289,6 +290,7 @@ async def _execute_plan(
     observer: Callable[[str, dict[str, Any]], Awaitable[None]] | None = None,
     stop_requested: asyncio.Event | None = None, stop_reason: str | Callable[[], str] = "user_stop",
     clock: Callable[[], datetime] | None = None,
+    answer_observer: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
     previous_source_materials: list[dict[str, Any]] | None = None,
     preference_background: str = "",
     context_policy: ContextPolicy | None = None,
@@ -346,19 +348,26 @@ async def _execute_plan(
         observer=observer, stop_requested=stop_requested)
 
     finalizing = False
+    answering = False
     for ordinal in range(1, max_rounds + 1):
         if stop_requested and stop_requested.is_set():
             stopped = "已停止本轮查询，尚未完成的信息待核实。"
             reason = requested_reason()
             break
         capabilities = tools.capabilities
-        parameters: dict[str, Any] = dict(model=model, system=system + preference_background
+        finalizing = finalizing or budget.finalizing
+        stage_rule = ""
+        if answer_observer is not None:
+            stage_rule = ("\n资料获取阶段已结束。现在只根据已有资料直接向旅行者给出最终回答，禁止调用工具。"
+                          if answering or finalizing else "\n资料获取阶段：仅按需查询；资料齐全时简短确认，勿作答。")
+        parameters: dict[str, Any] = dict(model=model, system=system + stage_rule + preference_background
             + ("\n本轮地图服务状态：" + capabilities.map_status if capabilities.map_status else "")
             + ("\n本轮资料服务状态：" + capabilities.source_status if capabilities.source_status is not None else ""),
             messages=[], tools=[*capabilities.declarations, *HISTORY_DECLARATIONS], max_tokens=8000)
-        finalizing = finalizing or budget.finalizing
-        if finalizing:
+        if answering or (finalizing and answer_observer is not None):
             parameters.pop("tools")
+        if finalizing:
+            parameters.pop("tools", None)
             parameters["system"] += ("\n已达到本轮调用预算，禁止新增查询。只根据已有成功资料整理回答，"
                 "明确列出缺失资料与未完成事项，不能报告旅行行程完整成功，不能编造缺失事实。")
         retry_id = uuid4().hex
@@ -378,7 +387,8 @@ async def _execute_plan(
                 stopped = "已停止本轮查询，尚未完成的信息待核实。"
                 reason = requested_reason()
                 break
-            blocked = await context.prepare_request(parameters, step=ordinal, attempt=attempt, recovering=context_recovery, final=finalizing)
+            blocked = await context.prepare_request(parameters, step=ordinal, attempt=attempt, recovering=context_recovery, final=finalizing,
+                compact_on_pressure=not answering)
             if stop_requested and stop_requested.is_set():
                 stopped = "已停止本轮查询，尚未完成的信息待核实。"
                 reason = requested_reason()
@@ -398,7 +408,9 @@ async def _execute_plan(
             request_id = uuid4().hex
             if observer:
                 await observer("request.started", {
-                    "request_id": request_id, "purpose": "travel_final" if finalizing else "travel", "ordinal": budget.request_ordinal, "step": ordinal, "attempt": attempt, "retry_id": retry_id,
+                    "request_id": request_id,
+                    **({"answer_phase": "answer" if answering or finalizing else "query"} if answer_observer is not None else {}),
+                    "purpose": "travel_final" if finalizing else "travel_answer" if answering else "travel", "ordinal": budget.request_ordinal, "step": ordinal, "attempt": attempt, "retry_id": retry_id,
                     "started_at": datetime.now(timezone.utc).isoformat(),
                     "input": copy.deepcopy(parameters),
                 })
@@ -407,10 +419,29 @@ async def _execute_plan(
                     "attempt": attempt})
             recovery_pending = False
             def validate_final(response):
+                if answering and any(block.type != "text" for block in response.content):
+                    raise ValueError("最终作答不能包含工具调用。")
                 if finalizing and (response.stop_reason != "end_turn" or any(block.type != "text" for block in response.content)
                                    or not any(block.text.strip() for block in response.content if block.type == "text")):
                     raise ValueError("最终回答未完整结束或包含无效内容。")
-            returned = await request_model(client, parameters, redact=tools.redact, validate=validate_final)
+            raw_text = ""
+            if answer_observer is not None and (answering or finalizing):
+                await answer_observer({"attempt_id": request_id, "text": "", "status": "generating"})
+
+            async def receive_text(text):
+                nonlocal raw_text
+                raw_text += text
+                if answer_observer is not None:
+                    await answer_observer({"attempt_id": request_id,
+                        "text": tools.redact_preview(raw_text), "status": "generating"})
+
+            returned = await request_model(client, parameters, redact=tools.redact, validate=validate_final,
+                on_text=receive_text if answer_observer is not None and (answering or finalizing) else None)
+            if answer_observer is not None and (answering or finalizing):
+                await answer_observer({"attempt_id": request_id,
+                    "text": tools.redact("\n".join(block.text for block in returned.response.content if block.type == "text"))
+                        if returned.failure is None else "",
+                    "status": "generated" if returned.failure is None else "invalidated"})
             response, parsed, failure = returned.response, returned.parsed, returned.failure
             duration_ms, finished_at = returned.duration_ms, returned.finished_at
             if parsed is not None:
@@ -524,6 +555,11 @@ async def _execute_plan(
             stopped = "已停止本轮查询，尚未完成的信息待核实。"
             reason = requested_reason()
             break
+        tool_calls = [block for block in response.content if block.type == "tool_use"]
+        if answer_observer is not None and not finalizing and not answering and not tool_calls:
+            # 查询阶段的文字只是阶段结束信号，不进入正文或后续作答协议。
+            answering = True
+            continue
         context.append_response([block.model_dump(mode="json") for block in response.content])
         if finalizing:
             status, reason = "terminated", "budget"

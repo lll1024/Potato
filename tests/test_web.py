@@ -54,7 +54,7 @@ class WebConversationTests(unittest.IsolatedAsyncioTestCase):
                 async with httpx.AsyncClient(transport=httpx.ASGITransport(app=restored), base_url="http://test") as client:
                     saved = (await client.get("/api/sessions/" + identity["session_id"])).json()
                     self.assertEqual(saved["turns"][0]["answer"], "西湖位于杭州市西湖区。")
-                    self.assertEqual(len(model.requests), 2)
+                    self.assertEqual(len(model.requests), 3)
 
     async def test_active_model_does_not_block_acceptance_and_rejects_another_turn(self):
         entered, release = asyncio.Event(), asyncio.Event()

@@ -90,6 +90,6 @@ class ExceptionExperienceTests(unittest.IsolatedAsyncioTestCase):
                 self.assertNotEqual(turn["turn_id"], next_turn["turn_id"])
                 self.assertEqual(finished["turns"][0], turn)
                 self.assertEqual(finished["turns"][1]["input"], original)
-                self.assertEqual(len(model.requests), 3)
+                self.assertEqual(len(model.requests), 4)
                 self.assertIn("tool_result", json.dumps(model.requests[-1]["messages"]))
                 self.assertEqual(finished["tool_calls"], saved["tool_calls"])

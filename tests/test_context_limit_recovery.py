@@ -26,13 +26,13 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
                 saved = await submit(client, "继续安排交通", first["session"]["session_id"])
                 self.assertEqual(saved["turns"][-1]["answer"], "已继续安排交通。")
                 actual = [r for r in saved["requests"] if r["turn_id"] == saved["turns"][-1]["turn_id"]]
-                self.assertEqual([r["purpose"] for r in actual], ["travel", "context_summary", "travel"])
+                self.assertEqual([r["purpose"] for r in actual], ["travel", "context_summary", "travel", "travel_answer"])
                 self.assertEqual([r["step"] for r in actual if r["purpose"] == "travel"], [1, 1])
-                self.assertEqual(len({r["request_id"] for r in actual}), 3)
+                self.assertEqual(len({r["request_id"] for r in actual}), 4)
                 self.assertEqual(actual[0]["usage_state"], "not_returned")
-                self.assertEqual(model.requests[1]["system"], model.requests[3]["system"])
-                self.assertNotIn(OLD, str(model.requests[3]["messages"]))
-                self.assertIn({"role": "user", "content": "继续安排交通"}, model.requests[3]["messages"])
+                self.assertEqual(model.requests[2]["system"], model.requests[4]["system"])
+                self.assertNotIn(OLD, str(model.requests[4]["messages"]))
+                self.assertIn({"role": "user", "content": "继续安排交通"}, model.requests[4]["messages"])
                 self.assertEqual(saved["turns"][-1]["messages"][0]["content"], OLD)
                 events = [e for e in saved["events"] if e["turn_id"] == saved["turns"][-1]["turn_id"]]
                 self.assertEqual([e["kind"] for e in events if e["kind"].startswith("context.recovery")],
@@ -52,7 +52,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
                     saved = await submit(client, "继续安排交通", first["session"]["session_id"] if first else None)
                     self.assertEqual(saved["turns"][-1]["status"], "failed")
                     self.assertEqual(saved["turns"][-1]["reason"], "context_window_exceeded" if history else "context_recovery_unavailable")
-                    self.assertEqual(len(model.requests), 4 if history else 1)
+                    self.assertEqual(len(model.requests), 5 if history else 1)
                     self.assertFalse(any(e["kind"].startswith("request.retry_") for e in saved["events"]))
 
     async def test_recovery_network_failures_keep_all_five_normal_retries(self):
@@ -120,7 +120,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(saved["turns"][-1]["reason"], "user_stop")
                 self.assertEqual(saved["requests"][-1]["status"], "completed")
                 self.assertIsNotNone(saved["requests"][-1]["usage"])
-                self.assertEqual(len(model.requests), 3)
+                self.assertEqual(len(model.requests), 4)
                 self.assertFalse(any(e["kind"] in ("context.adopted", "context.recovery_started") for e in saved["events"]))
 
     async def test_non_context_errors_never_start_compaction_recovery(self):
@@ -131,7 +131,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
                     first = await submit(client, OLD)
                     saved = await submit(client, "继续", first["session"]["session_id"])
                     self.assertEqual(saved["turns"][-1]["reason"], "model_error")
-                    self.assertEqual(len(model.requests), 2)
+                    self.assertEqual(len(model.requests), 3)
                     self.assertFalse(any(e["kind"].startswith("context.recovery") or e["kind"] == "context.summary_started" for e in saved["events"]))
 
     async def test_pressure_and_recovery_share_four_summary_calls_and_auth_blocks_whole_turn(self):
@@ -166,7 +166,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
             async with serving(directory, model, maps=DuplicatedMaps()) as client:
                 saved = await submit(client, "2026-10-18，查杭州西湖资料")
                 self.assertEqual(saved["turns"][-1]["answer"], "整理后继续回答。")
-                self.assertEqual([r["purpose"] for r in saved["requests"]], ["travel", "travel", "travel"])
+                self.assertEqual([r["purpose"] for r in saved["requests"]], ["travel", "travel", "travel", "travel_answer"])
                 self.assertLess(len(str(model.requests[2]["messages"])), len(str(model.requests[1]["messages"])))
                 old_request = saved["requests"][1]["request_id"]
                 new_request = saved["requests"][2]["request_id"]

@@ -213,7 +213,8 @@ class LocalRecords:
                 JOIN payloads p ON p.payload_id=r.response_payload_id WHERE r.session_id=? ORDER BY p.rowid""", (session_id,)):
             # 摘要请求不属于普通助手文本；旧记录缺 purpose 时仍为旅行请求。
             start = self._db.execute("SELECT data FROM events WHERE request_id=? AND kind='request.started'", (row["request_id"],)).fetchone()
-            if start and json.loads(start["data"]).get("purpose", "travel") == "context_summary":
+            start_data = json.loads(start["data"]) if start else {}
+            if start_data.get("purpose", "travel") == "context_summary" or start_data.get("answer_phase") == "query":
                 continue
             for index, block in enumerate(json.loads(row["content"]).get("content", [])):
                 if block.get("type") == "text":
@@ -285,7 +286,7 @@ class LocalRecords:
                 payload_id = self.save_payload(session_id,turn_id,"input",data["input"])
                 self._db.execute("INSERT INTO requests (request_id,session_id,turn_id,ordinal,status,started_at,input_payload_id,usage_state) VALUES (?,?,?,?,'running',?,?,'not_completed')", (data["request_id"],session_id,turn_id,data["ordinal"],data["started_at"],payload_id))
                 summary = {"ordinal":data["ordinal"],"status":"running","input_payload_id":payload_id}
-                summary.update({field:data[field] for field in ("step","attempt","retry_id","purpose") if field in data})
+                summary.update({field:data[field] for field in ("step","attempt","retry_id","purpose","answer_phase") if field in data})
             else:
                 failed = kind == "request.failed"
                 field = "error" if failed else "response"
@@ -531,7 +532,7 @@ class LocalRecords:
         for row in self._db.execute("SELECT requests.* FROM requests JOIN turns USING(turn_id) WHERE requests.session_id=? AND turns.ordinal>=? AND turns.ordinal<=? ORDER BY turns.ordinal,requests.ordinal", (session_id,first_ordinal,last_ordinal)):
             request = dict(row)
             request["usage"] = json.loads(request["usage"]) if request["usage"] else None
-            request.update({field:starts[row["request_id"]][field] for field in ("step","attempt","retry_id","purpose")
+            request.update({field:starts[row["request_id"]][field] for field in ("step","attempt","retry_id","purpose","answer_phase")
                             if field in starts.get(row["request_id"],{})})
             requests.append(request)
         tool_calls = [json.loads(row["data"]) | {"turn_id":row["turn_id"]} for row in self._db.execute(

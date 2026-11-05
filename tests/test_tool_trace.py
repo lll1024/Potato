@@ -34,7 +34,7 @@ class ToolTraceTests(unittest.IsolatedAsyncioTestCase):
                 finally: release.set()
                 snapshot=await asyncio.wait_for(wait_finished(client,accepted["session_id"]),3)
                 self.assertEqual(len(snapshot["turns"]),1)
-                self.assertEqual(len(snapshot["requests"]),2)
+                self.assertEqual(len(snapshot["requests"]),3)
                 for call in snapshot["tool_calls"]:
                     self.assertEqual(call["status"],"completed")
                     self.assertGreaterEqual(call["call_duration_ms"],0)

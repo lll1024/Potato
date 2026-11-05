@@ -50,14 +50,14 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
                 accepted = (await client.post("/api/turns", json={"input": "杭州明天看西湖"})).json()
                 saved = await wait_finished(client, accepted["session_id"])
                 self.assertEqual(saved["turns"][0]["answer"], "西湖位于杭州。")
-                self.assertEqual(len(model.requests), 2)
+                self.assertEqual(len(model.requests), 3)
                 self.assertEqual(model.requests[1]["messages"][1]["content"][0]["id"], "place")
                 self.assertEqual(model.requests[1]["messages"][2]["content"][0]["tool_use_id"], "place")
                 self.assertEqual(model.requests[0]["system"], model.requests[1]["system"])
                 self.assertIsNone(saved["requests"][1]["usage"])
                 self.assertEqual(saved["usage_summary"]["input_tokens"]["known_count"], 1)
                 checks = [event["data"] for event in saved["events"] if event["kind"] == "context.checked"]
-                self.assertEqual([item["original_watermark"] for item in checks], [1, 3])
+                self.assertEqual([item["original_watermark"] for item in checks], [1, 3, 3])
                 self.assertEqual(checks[1]["record_ids"], ["message:1", "message:2", "message:3"])
 
     async def test_budget_edge_covers_full_system_and_chinese_input(self):
@@ -88,7 +88,7 @@ class ContextBudgetTests(unittest.IsolatedAsyncioTestCase):
                 async with serving(directory, model) as client:
                     accepted = (await client.post("/api/turns", json={"input": "查杭州西湖"})).json()
                     saved = await wait_finished(client, accepted["session_id"])
-                    self.assertEqual(len(model.requests), 2 if compatible else 1)
+                    self.assertEqual(len(model.requests), 3 if compatible else 1)
                     self.assertEqual(saved["requests"][0]["usage"]["cache_read_input_tokens"], 30000)
                     calibration = next(event["data"] for event in saved["events"] if event["kind"] == "context.usage")
                     self.assertEqual(calibration["input_tokens_for_calibration"], 19000 if compatible else 69000)

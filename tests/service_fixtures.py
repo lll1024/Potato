@@ -1,5 +1,6 @@
 """可控外部模型与地图响应；不访问业务 implementation。"""
 import copy
+from contextlib import asynccontextmanager
 from types import SimpleNamespace
 from anthropic.types import Message
 
@@ -24,10 +25,34 @@ class ModelService:
         self.messages = self
         self.replies = iter(replies)
         self.requests = []
+        self.last_response = None
 
     async def create(self, **kwargs):
         self.requests.append(copy.deepcopy(kwargs))
-        return next(self.replies)
+        self.last_response = next(self.replies)
+        return self.last_response
+
+    @asynccontextmanager
+    async def stream(self, **parameters):
+        # 旧场景的最终文本同时作为新增无工具作答的可控响应。
+        # 独立流式验收使用屏障模型，不以此完整响应夹具证明时序。
+        reply = self.last_response
+        if reply is None or any(block.type != "text" for block in reply.content):
+            reply = await self.create(**parameters)
+        else:
+            self.requests.append(copy.deepcopy(parameters))
+        class Stream:
+            @property
+            def text_stream(self):
+                async def pieces():
+                    for block in reply.content:
+                        if block.type == "text":
+                            yield block.text
+                return pieces()
+
+            async def get_final_message(self):
+                return reply
+        yield Stream()
 
 
 class MapService:

@@ -10,7 +10,7 @@ from anthropic import AsyncAnthropic
 from mcp import Client
 from travel_app.retrieval import Retrieval
 from travel_app.sessions import Runtime, create_app
-from service_fixtures import MapService, response
+from service_fixtures import MapService, ModelService, response
 
 
 class Clock:
@@ -32,10 +32,9 @@ class Clock:
             await asyncio.sleep(0)
 
 
-class PreferenceModel:
+class PreferenceModel(ModelService):
     def __init__(self):
-        self.messages = self
-        self.requests = []
+        super().__init__([])
         self.extract = lambda inputs: {'changes': [{'operation': 'add', 'category': 'diet', 'content': '不吃辣',
             'source_turn_id': inputs[0]['turn_id'], 'evidence': '不吃辣'}]}
 
@@ -44,7 +43,8 @@ class PreferenceModel:
         if kwargs['system'].startswith('旅行者偏好提取'):
             inputs = json.loads(kwargs['messages'][0]['content'])['new_inputs']
             return response([{'type': 'text', 'text': json.dumps(self.extract(inputs), ensure_ascii=False)}])
-        return response([{'type': 'text', 'text': '可以继续规划。'}])
+        self.last_response = response([{'type': 'text', 'text': '可以继续规划。'}])
+        return self.last_response
 
 
 class ChangesModel(PreferenceModel):

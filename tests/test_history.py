@@ -23,12 +23,12 @@ class HistoryTests(HistoryHarness, unittest.IsolatedAsyncioTestCase):
                 history = saved["turns"][0]["messages"]
             async with self.service(directory, model) as client:
                 self.assertEqual((await client.get("/api/sessions/" + first["session_id"])).json(), saved)
-                self.assertEqual(len(model.requests), 2)
+                self.assertEqual(len(model.requests), 3)
                 continued, snapshot = await self.finish(client, "那里适合玩多久？", first["session_id"])
                 self.assertEqual(continued["session_id"], first["session_id"])
                 self.assertNotEqual(continued["turn_id"], first["turn_id"])
                 self.assertEqual([turn["ordinal"] for turn in snapshot["turns"]], [1, 2])
-                self.assertEqual(model.requests[2]["messages"], history + [{"role": "user", "content": "那里适合玩多久？"}])
+                self.assertEqual(model.requests[3]["messages"], history + [{"role": "user", "content": "那里适合玩多久？"}])
                 self.assertEqual(history[1]["content"][0]["id"], "west-lake")
                 self.assertEqual(history[2]["content"][0]["tool_use_id"], "west-lake")
 
@@ -52,7 +52,7 @@ class HistoryTests(HistoryHarness, unittest.IsolatedAsyncioTestCase):
                 await self.finish(client, "换成三天", failed["session_id"])
                 self.assertEqual(model.requests[1]["messages"], saved_context + [{"role": "user", "content": "换成三天"}])
                 await self.finish(client, "上海一日游")
-                self.assertEqual(model.requests[2]["messages"], [{"role": "user", "content": "上海一日游"}])
+                self.assertEqual(model.requests[3]["messages"], [{"role": "user", "content": "上海一日游"}])
 
     async def test_history_and_rounds_are_paginated_by_activity_without_external_queries(self):
         model = ModelService([response([{"type": "text", "text": "答复"}]) for _ in range(5)])
@@ -76,7 +76,7 @@ class HistoryTests(HistoryHarness, unittest.IsolatedAsyncioTestCase):
                 last = (await client.get("/api/sessions/" + first["session_id"] + "?limit=2&before=2")).json()
                 self.assertEqual([item["ordinal"] for item in last["turns"]], [1])
                 self.assertIsNone(last["next_before"])
-                self.assertEqual(len(model.requests), 5)
+                self.assertEqual(len(model.requests), 10)
 
     async def test_rename_changes_only_display_title_and_not_context_or_old_events(self):
         model = ModelService([response([{"type": "text", "text": "杭州西湖"}]), response([{"type": "text", "text": "继续"}])])
@@ -91,13 +91,13 @@ class HistoryTests(HistoryHarness, unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(after["turns"], before["turns"])
                 self.assertEqual(after["events"], before["events"])
                 await self.finish(client, "附近餐饮", first["session_id"])
-                self.assertEqual(model.requests[1]["messages"], before["turns"][0]["messages"] + [{"role": "user", "content": "附近餐饮"}])
+                self.assertEqual(model.requests[2]["messages"], before["turns"][0]["messages"] + [{"role": "user", "content": "附近餐饮"}])
 
     async def test_delete_removes_history_and_context_but_refuses_active_session(self):
         entered, release = asyncio.Event(), asyncio.Event()
         class WaitingModel(ModelService):
             async def create(self, **kwargs):
-                if len(self.requests) == 1:
+                if len(self.requests) == 2:
                     entered.set()
                     await release.wait()
                 return await super().create(**kwargs)
@@ -157,7 +157,7 @@ class HistoryTests(HistoryHarness, unittest.IsolatedAsyncioTestCase):
             self.assertEqual(reduced['turns'][0]['input'],user_input)
             self.assertEqual(reduced['turns'][0]['answer'],answer)
             self.assertEqual(default['turns'][0]['messages'],complete_context)
-            self.assertEqual(len(model.requests),2)
+            self.assertEqual(len(model.requests),3)
             async with self.service(directory,model) as client:
                 second,_ = await self.finish(client,'继续追问',first['session_id'])
                 self.assertEqual(model.requests[-1]['messages'],complete_context+[{'role':'user','content':'继续追问'}])
@@ -168,4 +168,4 @@ class HistoryTests(HistoryHarness, unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(earlier['turns'][0]['input'],user_input)
                 self.assertEqual(earlier['turns'][0]['answer'],answer)
                 self.assertNotIn('messages',earlier['turns'][0])
-                self.assertEqual(len(model.requests),3)
+                self.assertEqual(len(model.requests),5)

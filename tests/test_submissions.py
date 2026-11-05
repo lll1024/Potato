@@ -143,7 +143,7 @@ class SubmissionTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(unknown.status_code,404)
                     self.assertEqual(unknown.json()["detail"]["code"],"SUBMISSION_NOT_FOUND")
                     self.assertEqual(len((await page.get("/api/sessions")).json()["sessions"]),1)
-            self.assertEqual(len(model.requests),1)
+            self.assertEqual(len(model.requests),2)
 
     async def test_failed_acceptance_is_atomic_and_has_safe_storage_error(self):
         import sqlite3
@@ -220,7 +220,7 @@ class SubmissionTests(unittest.IsolatedAsyncioTestCase):
                 async with httpx.AsyncClient(transport=httpx.ASGITransport(app=restored), base_url="http://test") as page:
                     self.assertEqual((await page.post("/api/turns",json=body)).status_code,410)
                     self.assertEqual((await page.get("/api/sessions")).json()["sessions"],[])
-            self.assertEqual(len(model.requests),1)
+            self.assertEqual(len(model.requests),2)
 
     async def test_invalid_history_title_and_target_do_not_echo_original_payload(self):
         model = ModelService([])
@@ -247,7 +247,7 @@ class SubmissionTests(unittest.IsolatedAsyncioTestCase):
         entered, release = asyncio.Event(), asyncio.Event()
         class WaitingModel(ModelService):
             async def create(self, **kwargs):
-                if len(self.requests) == 1:
+                if len(self.requests) == 2:
                     entered.set()
                     await release.wait()
                 return await super().create(**kwargs)

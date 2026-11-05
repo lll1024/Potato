@@ -21,14 +21,20 @@ class ModelReturn:
                 "usage": usage, "usage_state": "returned" if usage is not None else "not_returned"}
 
 
-async def request_model(client, parameters, *, redact: Callable[[str], str], validate=None, empty_message="模型返回空响应。") -> ModelReturn:
+async def request_model(client, parameters, *, redact: Callable[[str], str], validate=None, empty_message="模型返回空响应。", on_text=None) -> ModelReturn:
     start = asyncio.get_running_loop().time()
     parsed, response, failure = None, None, None
     duration_ms = None
     finished_at = datetime.now(timezone.utc).isoformat()
     stage = "model_call"
     try:
-        response = await client.messages.create(**parameters)
+        if on_text is None:
+            response = await client.messages.create(**parameters)
+        else:
+            async with client.messages.stream(**parameters) as stream:
+                async for text in stream.text_stream:
+                    await on_text(text)
+                response = await stream.get_final_message()
         duration_ms = max(0, (asyncio.get_running_loop().time() - start) * 1000)
         finished_at = datetime.now(timezone.utc).isoformat()
         stage = "response_processing"

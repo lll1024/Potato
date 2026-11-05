@@ -59,7 +59,7 @@ class IncrementalContextTests(unittest.IsolatedAsyncioTestCase):
                     results = {b["tool_use_id"] for m in messages if isinstance(m["content"], list)
                                for b in m["content"] if b["type"] == "tool_result"}
                     self.assertEqual(uses, results)
-                    if step:
+                    if step and "tools" in request:
                         self.assertTrue({f"group{step}-0", f"group{step}-1"}.issubset(uses))
                 self.assertIn("travel_state_summary", str(travels[-1]["messages"]))
                 sources = json.loads(next(m["content"] for m in travels[-1]["messages"]
@@ -84,7 +84,7 @@ class IncrementalContextTests(unittest.IsolatedAsyncioTestCase):
                     saved = await submit(client, "继续安排交通", session)
                 turn_id = saved["turns"][-1]["turn_id"]
                 actual = [r for r in saved["requests"] if r["turn_id"] == turn_id]
-                self.assertEqual([r["purpose"] for r in actual], ["context_summary", "context_summary", "travel"])
+                self.assertEqual([r["purpose"] for r in actual], ["context_summary", "context_summary", "travel", "travel_answer"])
                 summaries = [r for r in model.requests if "整理旅行状态" in r["system"]]
                 self.assertEqual(len(summaries), 2)
                 sources = [json.loads(r["messages"][0]["content"]) for r in summaries]

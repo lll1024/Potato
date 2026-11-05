@@ -8,6 +8,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Callable
+from uuid import uuid4
 
 from anthropic import AsyncAnthropic
 
@@ -48,6 +49,9 @@ class TurnRuntime:
         self._stop_requested = asyncio.Event()
         self._stop_reason = 'user_stop'
         self.changed = asyncio.Event()
+        self._instance_id = uuid4().hex
+        self._answer_preview = None
+        self._answer_revision = 0
         self.preferences = Preferences(store, runtime.client, runtime.model, redact=runtime.tools.redact,
                                        clock=preference_clock, wait=preference_wait, timeout=preference_timeout,
                                        storage_failed=self.storage_failed, available=lambda: self._accepting)
@@ -115,8 +119,19 @@ class TurnRuntime:
                 message = "历史原文无法可靠读取，已停止后续查询；仅保留最后成功提交的事实。"
                 self.storage_failed(message, kind="tool.history_read", turn_id=identity["turn_id"])
                 raise RecordAbort(message) from None
+        async def answer_update(update):
+            if self._answer_preview is not None and all(self._answer_preview[key] == value for key, value in update.items()):
+                return
+            self._answer_revision += 1
+            self._answer_preview = {**update, "instance_id": self._instance_id,
+                "stream_id": preview_stream_id,
+                "session_id": identity["session_id"], "turn_id": identity["turn_id"],
+                "revision": self._answer_revision}
+            self.changed.set()
+
         try:
             try:
+                preview_stream_id = self.store.stream_position()["stream_id"]
                 seed = self.store.planning_seed(identity["session_id"])
                 background = self.preferences.background()
             except Exception:
@@ -125,7 +140,7 @@ class TurnRuntime:
             result = await plan(text, self.runtime.client, self.runtime.tools, self.runtime.model,
                 seed=seed, observer=observe, stop_requested=self._stop_requested,
                 stop_reason=lambda: self._stop_reason, preference_background=background,
-                clock=self.clock, history_records=history_records)
+                clock=self.clock, history_records=history_records, answer_observer=answer_update)
         except RecordAbort as error:
             if self._storage_error is None:
                 kind = error.kind or "turn.context"
@@ -138,6 +153,8 @@ class TurnRuntime:
                               result.material, result.fields(),
                               max(0, (asyncio.get_running_loop().time()-started)*1000),
                               preference_now=self.preference_clock())
+            self._answer_revision += 1
+            self._answer_preview = None
         except Exception:
             # 保存失败时停止接受输入，保留最后提交事实，不能伪报终局已保存。
             self.storage_failed("轮次结果未保存；仅保留最后成功提交的事实。",kind="turn.finished",turn_id=identity["turn_id"])
@@ -169,6 +186,8 @@ class TurnRuntime:
                 raise RunRejected(503,{"code":"STORAGE_FAILURE","message":"输入未保存，查询未启动。"}) from None
             self._stop_requested.clear()
             self._stop_reason = "user_stop"
+            self._answer_revision += 1
+            self._answer_preview = None
             self._active = identity
             self.changed.set()
             self._task = asyncio.create_task(self._run_turn(identity,text))
@@ -196,7 +215,8 @@ class TurnRuntime:
 
 
     def snapshot(self):
-        return {"schema_version":SCHEMA_VERSION,"active_turn_id":self._active["turn_id"] if self._active else None,
+        return {"schema_version":SCHEMA_VERSION,"instance_id":self._instance_id,
+                "active_turn_id":self._active["turn_id"] if self._active else None,
                 "active_session_id":self._active["session_id"] if self._active else None,"accepting":self._accepting,
                 "stopping":bool(self._active and self._stop_requested.is_set()),
                 "map_paused":self.runtime.tools.capabilities.map_pause_reason is not None,
@@ -239,7 +259,7 @@ class TurnRuntime:
         return result
 
     def service_snapshot(self):
-        return {**self.snapshot(), **self._read(self.store.stream_position)}
+        return {**self.snapshot(), "answer_preview": self._answer_preview, "answer_revision": self._answer_revision, **self._read(self.store.stream_position)}
 
     def rename(self, session_id: str, title: str):
         title = self.runtime.tools.redact(title).strip()
@@ -279,6 +299,7 @@ class TurnRuntime:
         async def stream():
             nonlocal cursor
             last_state = None
+            last_preview = object()
             while True:
                 self.changed.clear()
                 read_failed = False
@@ -306,6 +327,12 @@ class TurnRuntime:
                     notice = {"schema_version":SCHEMA_VERSION,"kind":"service.state","transient":True,"state":current_state}
                     # 实时运行状态不冒充已提交轨迹，不能推进持久化 cursor。
                     yield f"event: service.state\ndata: {json.dumps(notice,ensure_ascii=False)}\n\n"
+                preview = self._answer_preview
+                if preview != last_preview:
+                    last_preview = preview
+                    notice = {"schema_version": SCHEMA_VERSION, "kind": "answer.preview", "transient": True,
+                              "instance_id": self._instance_id, "revision": self._answer_revision, "preview": preview}
+                    yield f"event: answer.preview\ndata: {json.dumps(notice, ensure_ascii=False)}\n\n"
                 # yield 期间可能又有提交；先重新补齐，避免另一个订阅清空唤醒后漏等。
                 if read_failed:
                     await asyncio.sleep(1)
@@ -316,7 +343,7 @@ class TurnRuntime:
                     self.storage_failed("执行通知暂时无法读取；仅保留最后成功提交的事实。")
                     await asyncio.sleep(1)
                     continue
-                if batch or pending or self.changed.is_set() or self.snapshot()!=last_state:
+                if batch or pending or self.changed.is_set() or self.snapshot()!=last_state or self._answer_preview != last_preview:
                     continue
 
                 try:

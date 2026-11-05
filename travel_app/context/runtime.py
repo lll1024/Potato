@@ -167,7 +167,7 @@ class ModelContext:
         self._summary_attempts += result.attempts
         self._summary_blocked = self._summary_blocked or result.terminal_failure
 
-    async def prepare_request(self, parameters, *, step, attempt, recovering=False, final=False):
+    async def prepare_request(self, parameters, *, step, attempt, recovering=False, final=False, compact_on_pressure=True):
         """更新可发送的输入；返回预算阻止原因，关闭压缩时沿用原输入。"""
         parameters["messages"] = copy.deepcopy(self._view.messages)
         measurement = self._meter.measure(parameters) if self._policy else None
@@ -175,7 +175,8 @@ class ModelContext:
         if self._policy is None:
             return None
         assert measurement is not None
-        if not final and not recovering and measurement["estimated_tokens"] >= self._policy.pressure_threshold:
+        if not final and not recovering and (measurement["estimated_tokens"] > self._policy.input_budget
+                or (compact_on_pressure and measurement["estimated_tokens"] >= self._policy.pressure_threshold)):
             measurement = await self._organize(parameters, measurement, step=step, attempt=attempt)
             if (measurement["estimated_tokens"] >= self._policy.pressure_threshold
                     and self._summary_attempts < 4 and not self._summary_blocked):

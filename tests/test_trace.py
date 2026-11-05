@@ -66,8 +66,10 @@ class ModelTraceTests(unittest.IsolatedAsyncioTestCase):
             async with serving(directory, model) as client:
                 accepted=(await client.post("/api/turns",json={"input":"查询西湖"})).json()
                 snapshot=await asyncio.wait_for(wait_finished(client,accepted["session_id"]),2)
-                self.assertEqual(len(snapshot["requests"]),2)
-                one,two=sorted(snapshot["requests"],key=lambda item:item["ordinal"])
+                self.assertEqual(len(snapshot["requests"]),3)
+                one,two,answer=sorted(snapshot["requests"],key=lambda item:item["ordinal"])
+                self.assertEqual(answer["purpose"], "travel_answer")
+                self.assertIsNone(answer["usage"])
                 self.assertEqual([one["status"],two["status"]],["completed","completed"])
                 self.assertNotEqual(one["request_id"],two["request_id"])
                 self.assertNotEqual(one["request_id"],"message-test")
@@ -76,10 +78,10 @@ class ModelTraceTests(unittest.IsolatedAsyncioTestCase):
                 self.assertNotIn("cache_creation_input_tokens",one["usage"])
                 self.assertEqual(two["usage_state"],"not_returned")
                 self.assertIsNone(two["usage"])
-                self.assertEqual(snapshot["usage_summary"]["input_tokens"], {"value":0,"known_count":1,"request_count":2})
-                self.assertEqual(snapshot["usage_summary"]["cache_creation.ephemeral_5m_input_tokens"], {"value":2,"known_count":1,"request_count":2})
-                self.assertEqual(snapshot["usage_summary"]["cache_creation.ephemeral_1h_input_tokens"], {"value":0,"known_count":1,"request_count":2})
-                self.assertEqual(snapshot["usage_summary"]["cache_creation_input_tokens"], {"value":None,"known_count":0,"request_count":2})
+                self.assertEqual(snapshot["usage_summary"]["input_tokens"], {"value":0,"known_count":1,"request_count":3})
+                self.assertEqual(snapshot["usage_summary"]["cache_creation.ephemeral_5m_input_tokens"], {"value":2,"known_count":1,"request_count":3})
+                self.assertEqual(snapshot["usage_summary"]["cache_creation.ephemeral_1h_input_tokens"], {"value":0,"known_count":1,"request_count":3})
+                self.assertEqual(snapshot["usage_summary"]["cache_creation_input_tokens"], {"value":None,"known_count":0,"request_count":3})
                 self.assertGreaterEqual(one["duration_ms"],0)
                 self.assertIsNotNone(two["finished_at"])
                 payloads={}
@@ -211,10 +213,10 @@ class ModelTraceTests(unittest.IsolatedAsyncioTestCase):
                 two=await asyncio.wait_for(replay(),2)
                 assert one is not None and two is not None
                 self.assertEqual(one,two)
-                self.assertEqual([event["sequence"] for event in one],[1,2,3,4])
+                self.assertEqual([event["sequence"] for event in one],[1,2,3,4,5,6])
                 self.assertEqual([event["cursor"] for event in one],sorted({event["cursor"] for event in one}))
                 self.assertTrue(all(event["cursor"]>baseline["cursor"] for event in one))
-                self.assertEqual(len({event["event_id"] for event in one}),4)
+                self.assertEqual(len({event["event_id"] for event in one}),6)
                 self.assertEqual((await client.get("/api/events?after=999999")).status_code,409)
                 self.assertEqual((await client.get("/api/events?after=0&stream_id=other-directory")).status_code,409)
 
@@ -228,9 +230,9 @@ class ModelTraceTests(unittest.IsolatedAsyncioTestCase):
                 await asyncio.wait_for(wait_finished(client,followup["session_id"],followup["turn_id"]),2)
                 latest=(await client.get(f'/api/sessions/{first["session_id"]}?limit=1')).json()
                 earlier=(await client.get(f'/api/sessions/{first["session_id"]}?limit=1&before={latest["next_before"]}')).json()
-                self.assertEqual([item["turn_id"] for item in latest["requests"]],[followup["turn_id"]])
-                self.assertEqual([item["turn_id"] for item in earlier["requests"]],[first["turn_id"]])
-                self.assertEqual(latest["usage_summary"]["input_tokens"]["request_count"],2)
+                self.assertEqual([item["turn_id"] for item in latest["requests"]],[followup["turn_id"],followup["turn_id"]])
+                self.assertEqual([item["turn_id"] for item in earlier["requests"]],[first["turn_id"],first["turn_id"]])
+                self.assertEqual(latest["usage_summary"]["input_tokens"]["request_count"],4)
                 self.assertEqual(earlier["requests"][0],original["requests"][0])
                 old_cursor=latest["cursor"]
                 old_payload=original["requests"][0]["input_payload_id"]
@@ -239,7 +241,7 @@ class ModelTraceTests(unittest.IsolatedAsyncioTestCase):
                 final=(await client.post("/api/turns",json={"input":"新查询"})).json()
                 snapshot=await asyncio.wait_for(wait_finished(client,final["session_id"]),2)
                 self.assertTrue(all(event["cursor"]>old_cursor for event in snapshot["events"]))
-                self.assertEqual([event["sequence"] for event in snapshot["events"]],[1,2,3,4])
+                self.assertEqual([event["sequence"] for event in snapshot["events"]],[1,2,3,4,5,6])
                 self.assertNotEqual(snapshot["requests"][0]["request_id"],original["requests"][0]["request_id"])
 
     async def test_response_processing_failure_retains_received_response_and_usage(self):

@@ -9,6 +9,7 @@ class RetryModel(ModelService):
     async def create(self, **parameters):
         self.requests.append(copy.deepcopy(parameters))
         reply = next(self.replies)
+        self.last_response = None if isinstance(reply, Exception) else reply
         if isinstance(reply, Exception):
             raise reply
         return reply

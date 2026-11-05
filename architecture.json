@@ -470,6 +470,10 @@
     "scripts/check_docs.py": {
       "owner": "tooling",
       "role": "tooling"
+    },
+    "tests/test_answer_streaming.py": {
+      "owner": "integration",
+      "role": "caller-test"
     }
   }
 }

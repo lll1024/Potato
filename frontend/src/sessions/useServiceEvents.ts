@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+export type AnswerPreview = {
+  instance_id: string; stream_id: string; session_id: string; turn_id: string;
+  attempt_id: string; revision: number; text: string; status: 'generating' | 'generated' | 'invalidated';
+};
 export type ServiceState = {
+  instance_id?: string; answer_preview?: AnswerPreview | null;
   active_turn_id: string | null; active_session_id: string | null; accepting: boolean;
   stopping: boolean; map_paused: boolean; map_pause_reason: string | null;
   service_status: 'available' | 'unavailable'; storage_error?: string | null;
@@ -74,13 +79,22 @@ export function useServiceEvents() {
             setRevision(current => current + 1);
           } catch { reconnect(); }
         });
+        stream.addEventListener('answer.preview', event => {
+          if (cancelled) return;
+          try {
+            const notice = JSON.parse((event as MessageEvent).data);
+            if (notice.schema_version !== 1 || notice.kind !== 'answer.preview') throw new Error('正文更新无法识别。');
+            ++stateRead.current;
+            setState(current => ({...current, instance_id: notice.instance_id, answer_preview: notice.preview}));
+          } catch { reconnect(); }
+        });
         stream.addEventListener('service.state', event => {
           if (cancelled) return;
           try {
             const notice = JSON.parse((event as MessageEvent).data);
             if (notice.schema_version !== 1 || !notice.state) throw new Error('服务状态无法识别。');
             ++stateRead.current;
-            setState(notice.state);
+            setState(current => ({...notice.state, answer_preview: current.answer_preview}));
             setConnectionError('');
           } catch { reconnect(); }
         });

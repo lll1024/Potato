@@ -58,7 +58,7 @@ for (const width of [1280, 390]) {
       expect(after.turns).toHaveLength(2);
       expect(after.turns[0]).toEqual(before.turns[0]);
       expect(after.turns[1].input).toBe(original);
-      expect(after.requests).toHaveLength(4);
+      expect(after.requests).toHaveLength(5);
       expect(after.tool_calls).toHaveLength(3);
       await expect(failure.getByRole('button', {name: '重新尝试', exact: true})).toHaveCount(0);
       await expect(failure.getByRole('status')).toHaveText('额度不足');
@@ -70,6 +70,6 @@ for (const width of [1280, 390]) {
       server.kill('SIGTERM');
       await closed;
     }
-    expect(output).toContain('COUNTS {"model": 4, "map": 3}');
+    expect(output).toContain('COUNTS {"model": 5, "map": 3}');
   });
 }

@@ -45,3 +45,15 @@
 实现见 [runtime.py](../../travel_app/sessions/runtime.py)、[http.py](../../travel_app/sessions/http.py) 与 [SessionsApp.tsx](../../frontend/src/sessions/SessionsApp.tsx)。偏好生命周期通过其公开契约协作；规划资源通过旅行规划公开装配入口提供，助手会话不直接依赖资料获取 implementation。
 
 验证：[公开查看与管理](../../tests/test_session_contracts.py)、[提交身份](../../tests/test_submissions.py)、[原目标停止](../../tests/test_stop.py)、[保存故障](../../tests/test_storage.py)、[通知续接](../../tests/test_reconnect.py)、[真实根入口与旧数据](../../tests/test_migration_baseline.py)、[数据集与迟到分页](../../frontend/tests/ui/session-pages.spec.ts)及[浏览器交互](../../frontend/tests/ui/conversation.spec.ts)。
+
+## 当前回答与实时正文（#98）
+
+`GET /api/snapshot`（`service_snapshot()`）新增 `instance_id`、`answer_revision` 和 `answer_preview`。`instance_id` 是本次服务运行的随机身份，同库重启也会更换；既有 `stream_id` 仍标识持久数据集。`answer_preview` 为当前暂存正文或 `null`，只存在于服务内存，不逐块写 SQLite，也不推进持久事件 `cursor`。
+
+正文对象包含 `instance_id`、`stream_id`、`session_id`、`turn_id`、`attempt_id`、`revision`、`text`、`status`。服务归属由客户端连接的服务地址和 `instance_id` 共同确定；`revision` 在同一进程内递增，`attempt_id` 区分同轮不同实际作答尝试。`text` 是本次尝试的累计脱敏正文；`generating` 表示正在生成，`generated` 表示模型响应已返回，`invalidated` 表示该尝试正文失效且为空。新尝试替换旧对象，不能拼接两次尝试。
+
+既有 `GET /api/events` 增加无 `id:` 的瞬时 `answer.preview` SSE：`{schema_version: 1, kind: "answer.preview", transient: true, instance_id, revision, preview}`。`preview` 为上述对象或 `null`；订阅首次发出当前对象，后续发出最新累计对象，因此无需重放正文增量就能衔接快照。持久轨迹继续使用原 `trace` 身份与游标，`service.state` 保持服务状态，不携带全文。客户端不能把正文更新计入持久游标。
+
+只有 `LocalRecords.finish` 成功才清除预览并以持久终态确认历史；保存失败保留最后内存正文及原有 `storage_error`／`unsaved_fact`。服务重启后只恢复持久事实，不恢复预览。Web 对当前会话的运行轮次展示“正在生成 · 尚未保存”，沿用 `AnswerBody` 的安全 Markdown 和现有阅读跟随；终态轮次使用历史回答，迟到预览不能覆盖已保存回答。跨设备恢复和完整停止／未保存体验分别由 #100、#102 进一步验收。
+
+主验收：[真实 HTTP 流式作答](../../tests/test_answer_streaming.py)，通过可控外部模型分块屏障验证多个正文批次先于模型返回和原子完成；查询期间不出现说明文字，最终历史一致，正文不推进轨迹游标，并验证跨块密钥、认证头、链接和 JSON 脱敏。[Web 交互](../../frontend/tests/ui/conversation.spec.ts)覆盖预览 Markdown、安全链接与保存后的历史展示。

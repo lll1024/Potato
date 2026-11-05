@@ -68,7 +68,8 @@ class ReviewFixTests(unittest.IsolatedAsyncioTestCase):
             if kwargs['system'].startswith('旅行者偏好提取'):
                 return await create(**kwargs)
             model.requests.append(kwargs)
-            return response([{'type': 'text', 'text': '可以考虑自然公园徒步。'}])
+            model.last_response = response([{'type': 'text', 'text': '可以考虑自然公园徒步。'}])
+            return model.last_response
         model.create = answering
         seen = []
         def suggest(payload):

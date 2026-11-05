@@ -13,13 +13,13 @@ import uvicorn
 from anthropic import AsyncAnthropic
 from mcp import Client
 from travel_app.retrieval import Retrieval
-from service_fixtures import MapService, response
+from service_fixtures import MapService, ModelService, response
 from travel_app.sessions import Runtime, create_app
 
 
-class BrowserModel:
+class BrowserModel(ModelService):
     def __init__(self, mode):
-        self.messages = self
+        super().__init__([])
         self.mode = mode
         self.travel_count = 0
 
@@ -40,7 +40,8 @@ class BrowserModel:
         self.travel_count += 1
         if self.travel_count > 1:
             await asyncio.sleep(6)
-        return response([{'type': 'text', 'text': '酒店未预订，预算3000元人民币。' if self.travel_count == 1 else '继续保留原条件，酒店仍未预订。'}])
+        self.last_response = response([{'type': 'text', 'text': '酒店未预订，预算3000元人民币。' if self.travel_count == 1 else '继续保留原条件，酒店仍未预订。'}])
+        return self.last_response
 
 
 async def main():

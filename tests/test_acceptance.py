@@ -65,7 +65,7 @@ class FinalAcceptanceTests(unittest.IsolatedAsyncioTestCase):
                 invalid = await client.post('/api/turns',json={'input':{'token':'input-field-secret'}})
                 self.assertEqual(invalid.status_code,422)
                 observed.append(invalid.json())
-                self.assertEqual(len(model.requests),2)
+                self.assertEqual(len(model.requests),3)
                 self.assertEqual(maps.calls,1)
             # SQLite 文件是交付的本机持久记录；只检查秘密未落盘，不依赖表结构。
             persisted = b''.join(path.read_bytes() for path in Path(directory).glob('travel.sqlite3*'))
@@ -108,7 +108,7 @@ class FinalAcceptanceTests(unittest.IsolatedAsyncioTestCase):
                     result = (await client.get('/api/sessions/'+accepted['session_id']+'/search',params={'q':secret})).json()
                     self.assertEqual(result['matches'],[])
                 records.append((await client.get('/api/sessions/'+accepted['session_id']+'/search',params={'q':input_text})).json())
-                self.assertEqual(len(model.requests),2)
+                self.assertEqual(len(model.requests),3)
                 records.extend(model.requests)
                 for secret in secrets:
                     self.assertNotIn(secret,json.dumps(records,ensure_ascii=False))

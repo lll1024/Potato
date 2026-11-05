@@ -19,14 +19,14 @@ class ContextSummaryTests(unittest.IsolatedAsyncioTestCase):
                 first = await submit(client, OLD)
                 saved = await submit(client, "继续安排交通", first["session"]["session_id"])
                 self.assertEqual(saved["turns"][-1]["answer"], "继续保留酒店。")
-                self.assertEqual([item.get("purpose", "travel") for item in saved["requests"]], ["travel", "context_summary", "travel"])
-                summary = model.requests[1]
+                self.assertEqual([item.get("purpose", "travel") for item in saved["requests"]], ["travel", "travel_answer", "context_summary", "travel", "travel_answer"])
+                summary = model.requests[2]
                 self.assertNotIn("tools", summary)
                 self.assertLessEqual(summary["max_tokens"], 2048)
                 self.assertNotIn("你是旅行助手", summary["system"])
                 self.assertIn("message:1", str(summary["messages"]))
                 self.assertEqual(saved["turns"][-1]["messages"][0]["content"], OLD)
-                self.assertIn("travel_state_summary", str(model.requests[2]["messages"]))
+                self.assertIn("travel_state_summary", str(model.requests[3]["messages"]))
                 kinds = [event["kind"] for event in saved["events"]]
                 self.assertIn("context.adopted", kinds)
                 self.assertIn("context.saved", kinds)
@@ -62,7 +62,7 @@ class ContextSummaryTests(unittest.IsolatedAsyncioTestCase):
                 first = await submit(client, OLD)
                 saved = await submit(client, "继续" + "中" * 1800, first["session"]["session_id"])
                 self.assertEqual(saved["turns"][-1]["reason"], "context_budget")
-                self.assertEqual(len(model.requests), 3)
+                self.assertEqual(len(model.requests), 4)
                 self.assertEqual(saved["turns"][-1]["messages"][0]["content"], OLD)
 
     async def test_stop_inflight_summary_records_return_without_adoption_or_next_call(self):
@@ -88,7 +88,7 @@ class ContextSummaryTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(saved["turns"][-1]["reason"], "user_stop")
                     self.assertEqual(saved["requests"][-1]["status"], "completed")
                     self.assertIsNotNone(saved["requests"][-1]["usage"])
-                    self.assertEqual(len(model.requests), 2)
+                    self.assertEqual(len(model.requests), 3)
                     self.assertFalse(any(event["kind"] in ("context.adopted", "context.saved") for event in saved["events"]))
 
     async def test_candidate_storage_failure_stops_before_next_request(self):
@@ -108,7 +108,7 @@ class ContextSummaryTests(unittest.IsolatedAsyncioTestCase):
                         break
                     await asyncio.sleep(0.01)
                 self.assertFalse(state["accepting"])
-                self.assertEqual(len(model.requests), 2)
+                self.assertEqual(len(model.requests), 3)
                 saved = (await client.get("/api/sessions/" + accepted["session_id"])).json()
                 self.assertFalse(any(event["kind"] in ("context.adopted", "context.saved", "turn.finished") and event["turn_id"] == accepted["turn_id"] for event in saved["events"]))
 
@@ -119,7 +119,7 @@ class ContextSummaryTests(unittest.IsolatedAsyncioTestCase):
                 first = await submit(client, "杭州旅行")
                 saved = await submit(client, "两人", first["session"]["session_id"])
                 self.assertEqual(saved["turns"][-1]["answer"], "两人出行。")
-                self.assertEqual(len(model.requests), 2)
+                self.assertEqual(len(model.requests), 4)
                 self.assertFalse(any(event["kind"] == "context.summary_started" for event in saved["events"]))
 
     async def test_summary_requests_have_a_four_call_turn_limit_without_using_travel_steps(self):
@@ -236,7 +236,7 @@ class ContextSummaryTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(saved["turns"][-1]["answer"], "保留原输入继续。")
                 summaries = [request for request in saved["requests"] if request.get("purpose") == "context_summary"]
                 self.assertEqual([request["status"] for request in summaries], ["failed", "failed"])
-                self.assertEqual(len(model.requests), 4)
+                self.assertEqual(len(model.requests), 6)
 
     async def test_terminal_summary_error_is_not_retried_on_later_travel_steps(self):
         from model_fixtures import RetryModel, status_error

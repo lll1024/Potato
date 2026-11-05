@@ -38,3 +38,5 @@
 这些值和条件是偏好模块的持久接口；[旅行者偏好](preferences.md)拥有资格、来源、顺序、去重、歧义、管理保护、重试和恢复规则，本机记录不导入其实现。接受登记与结束时间仍在 `accept` / `finish` 原子事务内部写入。实现见 [preference_records.py](../../travel_app/local_records/preference_records.py)，数据表及旧库格式保持。独立阅读与公开使用证据见[最终验收](../acceptance/deep-modules-final.md)。
 
 验证：[记录值与公开保存](../../tests/test_record_contracts.py)、[原子接受](../../tests/test_submissions.py)、[故障回滚与在途返回](../../tests/test_storage.py)、[上下文恢复](../../tests/test_context_recovery.py)及[固定真实入口基线](../../tests/test_migration_baseline.py)。
+
+流式作答的请求开始事实可带 `answer_phase: "query" | "answer"`。`history_records` 不将 `query` 阶段的说明文字列为可回读的助手回答，避免阶段结束信号或工具说明成为后续旅行安排依据；原始响应仍可通过执行轨迹查看。缺少该字段的旧记录保持原读取语义，数据库 schema 不变。

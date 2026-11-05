@@ -86,7 +86,7 @@ class ScenarioServices(ExternalServices):
             self.entered.set()
             await self.release.wait()
         last = data["messages"][-1]["content"]
-        if isinstance(last, str) and last.startswith("地图"):
+        if "tools" in data and isinstance(last, str) and last.startswith("地图"):
             tools = [{"type": "tool_use", "id": "map-1", "name": "maps_text_search",
                       "input": {"keywords": "西湖", "city": "杭州"}}]
             if self.mode == "normal":
