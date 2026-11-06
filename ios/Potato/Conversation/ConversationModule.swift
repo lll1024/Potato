@@ -55,6 +55,8 @@ struct ConversationPresentation {
         let answer: String?
         let statusMessage: String?
         let isPreview: Bool
+        let isUnsaved: Bool
+        let isIncomplete: Bool
     }
     let title: String
     let turns: [Turn]
@@ -135,9 +137,21 @@ final class ConversationPresenter {
         }
         return .loaded(ConversationPresentation(title: page.session.title, turns: page.turns.map { turn in
             let preview = interactor.answerPreview.flatMap { $0.turnID == turn.id && turn.status == "running" ? $0 : nil }
+            let execution = interactor.execution
+            let isUnsaved = preview != nil && execution.service?.activeTurnID != turn.id
+                && execution.service?.unsavedFact?["turn_id"] == turn.id && execution.service?.storageError != nil
+            let requestedStop: Bool
+            switch execution.stopState {
+            case .requesting(let target), .waiting(let target), .uncertain(let target): requestedStop = target.turnID == turn.id
+            case .idle: requestedStop = false
+            }
             var message: String?
             if let preview {
-                if interactor.answerFailure != nil { message = "实时正文连接中断，正在重新连接。当前正文尚未保存。" }
+                if isUnsaved {
+                    message = "未保存 · 请复制保留，刷新后可能丢失"
+                } else if (execution.service?.stopping == true && execution.service?.activeTurnID == turn.id) || requestedStop {
+                    message = "正在停止 · 正文已暂停追加"
+                } else if interactor.answerFailure != nil { message = "实时正文连接中断，正在重新连接。当前正文尚未保存。" }
                 else if preview.status == "invalidated" { message = "本次正文已失效，等待后端处理。" }
                 else if preview.status == "retrying" { message = "正在重试，新尝试将从头作答。" }
                 else { message = preview.status == "generated" ? "正在保存回答。" : "正在生成 · 尚未保存" }
@@ -146,7 +160,8 @@ final class ConversationPresenter {
                 message = [message, "模型服务不支持流式，改为生成完整回答。"].compactMap { $0 }.joined(separator: "\n")
             }
             return ConversationPresentation.Turn(id: turn.id, input: turn.input,
-                answer: preview?.text ?? turn.answer, statusMessage: message, isPreview: preview != nil)
+                answer: preview?.text ?? turn.answer, statusMessage: message, isPreview: preview != nil,
+                isUnsaved: isUnsaved, isIncomplete: turn.status != "running" && turn.status != "completed")
         }, hasEarlierTurns: page.nextBefore != nil))
     }
 

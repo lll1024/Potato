@@ -61,7 +61,8 @@ struct ConversationView: View {
                                 .background(.quaternary, in: RoundedRectangle(cornerRadius: 14))
                                 .accessibilityLabel("你的输入：" + turn.input)
                             if let answer = turn.answer, !answer.isEmpty {
-                                AnswerView(text: answer, isPreview: turn.isPreview)
+                                AnswerView(text: answer, isPreview: turn.isPreview,
+                                           isUnsaved: turn.isUnsaved, isIncomplete: turn.isIncomplete)
                             }
                             if let message = turn.statusMessage {
                                 Text(message)

@@ -22,6 +22,7 @@ from travel_app.sessions import Runtime, create_app
 from service_fixtures import MapService, ModelService, response
 from preference_fixtures import Clock, PreferenceModel
 from model_fixtures import status_error
+from record_faults import fail_event
 
 INPUT = "请安排杭州两日旅行。" + "保留完整的当前旅行要求。" * 20 + "输入全文结尾"
 ANSWER = "# 杭州旅行\n\n" + "西湖步行，午后休息，次日参观博物馆。\n\n" * 20 + "回答全文结尾"
@@ -154,6 +155,7 @@ async def main():
         recovery_model = SubmissionModel()
         lifecycle_model = LifecycleModel()
         streaming_model = StreamingModel()
+        unsaved_model = StreamingModel()
 
         @asynccontextmanager
         async def recovery_resources():
@@ -179,7 +181,13 @@ async def main():
             await tools.discover()
             yield Runtime(cast(AsyncAnthropic, streaming_model), tools, "test-model")
 
-        for name, port in (("populated", 18489), ("empty", 18490), ("submissions", 18492), ("recovery", 18493), ("lifecycle", 18494), ("reading", 18495), ("local-http", 18496), ("streaming", 18497)):
+        @asynccontextmanager
+        async def unsaved_resources():
+            tools = Retrieval(cast(Client, MapService()))
+            await tools.discover()
+            yield Runtime(cast(AsyncAnthropic, unsaved_model), tools, "test-model")
+
+        for name, port in (("populated", 18489), ("empty", 18490), ("submissions", 18492), ("recovery", 18493), ("lifecycle", 18494), ("reading", 18495), ("local-http", 18496), ("streaming", 18497), ("unsaved", 18498)):
             app = (create_app(Path(directory) / name, resources=submission_resources,
                               preference_clock=clock, preference_wait=clock.wait)
                    if name == "submissions" else create_app(Path(directory) / name, resources=resources))
@@ -243,6 +251,30 @@ async def main():
                     async with asyncio.timeout(10):
                         await streaming_model.delivered.get()
                     return {"returned": streaming_model.returned}
+
+            if name == "unsaved":
+                app = create_app(Path(directory) / "unsaved", resources=unsaved_resources,
+                                 static_dir=Path(directory) / "no-static")
+
+                @app.post("/__test__/arm")
+                async def arm_unsaved():
+                    unsaved_model.reset()
+                    return {"armed": True}
+
+                @app.get("/__test__/entered")
+                async def entered_unsaved():
+                    async with asyncio.timeout(10):
+                        await unsaved_model.entered.wait()
+                    # 只在真实 SQLite 完成事务注入故障，正文与停止仍走生产实现。
+                    fail_event(Path(directory) / "unsaved", "turn.finished")
+                    return {"entered": True}
+
+                @app.post("/__test__/step")
+                async def step_unsaved():
+                    unsaved_model.release.put_nowait(None)
+                    async with asyncio.timeout(10):
+                        await unsaved_model.delivered.get()
+                    return {"returned": unsaved_model.returned}
 
             if name == "submissions":
                 delay_next_history = False

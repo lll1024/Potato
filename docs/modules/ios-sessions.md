@@ -105,3 +105,12 @@ App 的 scene phase 在活跃时启用唯一共享轮询、离开活跃态时取
 `AnswerPreview.status` 接受 `retrying`，此时共享投影为空正文，Presenter 显示“正在重试，新尝试将从头作答”。新 `attemptID` 的累计正文整体替换；传输读取失败仍使用独立 `answerFailure`，不会触发手机自行重发模型或用户输入。后端失败终态到达后采用历史，不无限显示正在生成。
 
 `AnswerPreview.delivery` 和 `ConversationTurn.answerDelivery` 为可选方式字段，兼容旧服务。`complete` 由后端的明确流式拒绝产生，Presenter 在等待期间及已保存回答旁说明“模型服务不支持流式，改为生成完整回答”。原因与正文分开，保存后仍可通过历史恢复；手机不根据普通网络错误自行推断不支持流式。公开能力与模拟器真实 HTTPS 故障场景见 [#101 验收](../acceptance/answer-retries.md)。
+
+
+## 停止与未保存正文（#102）
+
+`SessionAccess.stop(target:)` 在发起 HTTP 前冻结捕获轮次的当前正文；`stopState.requesting` 即刻禁止提交。等待或未知结果期间仍冻结，轮询读到远端 `stopping` 同样冻结；订阅继续核对累计正文，不取消后端调用。配置、数据集和进程变化使冻结归属失效，捕获的旧目标不会冻结后来的轮次。原轮次真实保存后使用历史完整回答，已保存终态不被迟到预览覆盖。
+
+原轮次真实收束释放名额后，若服务返回 `storageError` 及关联轮次的 `unsavedFact`，仍接受该轮最新内存正文供当前页面阅读；界面显示“未保存 · 请复制保留，刷新后可能丢失”及“复制未保存正文”。它保持预览身份，不进入已保存历史，`canSubmit` 继续为假。没有正文则只展示真实故障。普通截断与预算终态沿用原原因，正文复制文案使用“不完整回答”，不称完整回答。
+
+验证：公开 `SessionAccess` 的停止／真实保存和未保存结果、旧目标、配置失效见 [PollingTests](../../ios/PotatoTests/PollingTests.swift)；模拟器通过真实 HTTPS／SQLite 检查冻结、保存后全文及未保存复制，见 [ReadingNavigationTests](../../ios/PotatoUITests/ReadingNavigationTests.swift)。

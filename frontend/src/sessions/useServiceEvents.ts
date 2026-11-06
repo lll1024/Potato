@@ -24,6 +24,26 @@ export function useServiceEvents() {
   const [recoveryNotice, setRecoveryNotice] = useState('');
   const stateRead = useRef(0);
   const currentSnapshot = useRef<ServiceSnapshot | null>(null);
+  const displayed = useRef<ServiceState>(state);
+  const frozen = useRef<{instance: string | undefined; stream: string; turn: string; preview: AnswerPreview | null} | null>(null);
+  const publish = useCallback((next: ServiceSnapshot) => {
+    const matches = frozen.current?.instance === next.instance_id && frozen.current?.stream === next.stream_id
+      && frozen.current?.turn === next.active_turn_id;
+    if (!matches) frozen.current = null;
+    if (!frozen.current && next.stopping && next.active_turn_id) {
+      const previous = displayed.current.answer_preview;
+      frozen.current = {instance: next.instance_id, stream: next.stream_id, turn: next.active_turn_id,
+        preview: previous && previous.instance_id === next.instance_id && previous.turn_id === next.active_turn_id ? previous : next.answer_preview ?? null};
+    }
+    const value = frozen.current
+      ? {...next, stopping: true, answer_preview: frozen.current.preview} : next;
+    displayed.current = value;
+    setState(value);
+  }, []);
+  const beginStop = useCallback((turnId: string) => {
+    const current = currentSnapshot.current;
+    if (current?.active_turn_id === turnId) publish({...current, stopping: true});
+  }, [publish]);
   const refresh = useCallback(async () => {
     const reading = ++stateRead.current;
     const response = await fetch('/api/snapshot');
@@ -36,11 +56,11 @@ export function useServiceEvents() {
       if (!previous || previous.stream_id !== next.stream_id || previous.instance_id !== next.instance_id
         || (next.answer_revision ?? -1) >= (previous.answer_revision ?? -1)) {
         currentSnapshot.current = next;
-        setState(next);
+        publish(next);
       }
     }
     return result;
-  }, []);
+  }, [publish]);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,8 +75,9 @@ export function useServiceEvents() {
       if (!current || instance !== current.instance_id) {
         ++stateRead.current;
         if (current) {
-          currentSnapshot.current = {...current, answer_preview: null};
-          setState(currentSnapshot.current);
+          frozen.current = null;
+          currentSnapshot.current = {...current, answer_preview: null, stopping: false};
+          publish(currentSnapshot.current);
         }
         throw new Error('服务已重启，需要重新核对。');
       }
@@ -117,7 +138,7 @@ export function useServiceEvents() {
               || preview.revision !== notice.revision)) return;
             ++stateRead.current;
             currentSnapshot.current = {...current, answer_revision: notice.revision, answer_preview: preview};
-            setState(currentSnapshot.current);
+            publish(currentSnapshot.current);
           } catch { reconnect(); }
         });
         stream.addEventListener('service.state', event => {
@@ -131,7 +152,7 @@ export function useServiceEvents() {
             // 状态与正文在网络中可以交错，正文按自己的次序保留，由会话及轮次投影决定是否展示。
             const next = {...current, ...notice.state, answer_revision: current.answer_revision, answer_preview: current.answer_preview};
             currentSnapshot.current = next;
-            setState(next);
+            publish(next);
             setConnectionError('');
           } catch { reconnect(); }
         });
@@ -142,7 +163,7 @@ export function useServiceEvents() {
     }
     void connect();
     return () => {cancelled = true; ++stateRead.current; stream?.close(); window.clearTimeout(reconnectTimer);};
-  }, [refresh]);
+  }, [refresh, publish]);
 
-  return {state,setState,revision,datasetRevision,deletedSession,connectionError,recoveryNotice,refresh};
+  return {state,setState,revision,datasetRevision,deletedSession,connectionError,recoveryNotice,refresh,beginStop};
 }

@@ -4,6 +4,7 @@
 
 | 行为范围 | 结论入口 | 证据与适用范围 |
 | --- | --- | --- |
+| Web／iOS 停止、未保存正文与未完成结果 | [#102 验收](answer-outcomes.md) | 公开 HTTP／SSE、SessionAccess、停止完成竞争、SQLite 故障、截断、63／64 预算与两端复制界面 |
 | Web／iOS 流式失败重试与完整回答降级 | [#101 验收](answer-retries.md) | 公开 HTTP／SSE、SDK 截断流、原有错误分类、63／64 预算、SessionAccess 与模拟器真实 HTTPS 故障界面 |
 | Web／iOS 当前正文恢复与失效隔离 | [#100 验收](answer-recovery.md) | 双订阅、快照交接、旧状态／新正文交错、真实进程重启、公开 SessionAccess 及模拟器前后台；生产模型联合验收另见 #104 |
 | iOS 最终回答实时阅读 | [#99 验收](ios-answer-streaming.md) | 共享前台订阅、分块 HTTP、真实 HTTPS／SQLite、前后台恢复与模拟器界面增长；生产模型实连另见后续任务 |

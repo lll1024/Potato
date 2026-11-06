@@ -14,6 +14,8 @@ public final class SharedSessions: SessionAccess {
     public private(set) var conversationFailure: SessionFailure?
     public private(set) var answerFailure: SessionFailure?
     private var currentAnswer: AnswerPreview?
+    private var frozenAnswer: AnswerPreview?
+    private var frozenTurnID: String?
     private var answerInstance: String?
     private var answerRevision = -1
     private var answerSubscription: Task<Void, Never>?
@@ -21,7 +23,8 @@ public final class SharedSessions: SessionAccess {
     private var isForeground = false
 
     public var answerPreview: AnswerPreview? {
-        guard let preview = currentAnswer, preview.sessionID == watchedSessionID,
+        let frozen = frozenTurnID != nil && frozenTurnID == service?.activeTurnID
+        guard let preview = frozen ? frozenAnswer : currentAnswer, preview.sessionID == watchedSessionID,
               preview.streamID == datasetID, preview.instanceID == answerInstance else { return nil }
         if let turn = conversation?.turns.first(where: { $0.id == preview.turnID }), turn.status != "running" { return nil }
         return preview
@@ -189,6 +192,7 @@ public final class SharedSessions: SessionAccess {
         let configuration = configurationGeneration
         let dataset = datasetGeneration
         stopOperation = operation
+        if target.turnID == service?.activeTurnID { freezeAnswer(turnID: target.turnID) }
         stopState = .requesting(target)
         // 请求之前取得的快照不能解除停止核对屏障。
         refreshGeneration += 1
@@ -617,6 +621,14 @@ public final class SharedSessions: SessionAccess {
             }
             datasetID = snapshot.streamId
             dataset = datasetGeneration
+            if snapshot.instanceId != answerInstance || snapshot.activeTurnId != frozenTurnID {
+                frozenAnswer = nil
+                frozenTurnID = nil
+            }
+            if snapshot.stopping, let turnID = snapshot.activeTurnId,
+               currentAnswer?.instanceID == snapshot.instanceId, currentAnswer?.turnID == turnID {
+                freezeAnswer(turnID: turnID)
+            }
             service = snapshot.entity
             if answerInstance != snapshot.instanceId {
                 cancelAnswerSubscription()
@@ -627,6 +639,7 @@ public final class SharedSessions: SessionAccess {
             if let instance = snapshot.instanceId, let revision = snapshot.answerRevision {
                 try adoptAnswer(instance: instance, revision: revision, preview: snapshot.answerPreview)
             }
+            if snapshot.stopping, let turnID = snapshot.activeTurnId { freezeAnswer(turnID: turnID) }
             if stopOperation == nil {
                 switch stopState {
                 case .requesting(let target), .waiting(let target), .uncertain(let target):
@@ -751,7 +764,15 @@ public final class SharedSessions: SessionAccess {
         }
     }
 
+    private func freezeAnswer(turnID: String) {
+        guard frozenTurnID != turnID else { return }
+        frozenTurnID = turnID
+        frozenAnswer = currentAnswer?.turnID == turnID ? currentAnswer : nil
+    }
+
     private func resetAnswer() {
+        frozenAnswer = nil
+        frozenTurnID = nil
         cancelAnswerSubscription()
         currentAnswer = nil
         answerInstance = nil
@@ -773,7 +794,9 @@ public final class SharedSessions: SessionAccess {
                 throw SessionFailure.invalidResponse
             }
             // 全局状态尚未核对到新轮次时，等下一次累计快照，不能混入原轮次。
-            guard preview.turnID == service?.activeTurnID, preview.sessionID == service?.activeSessionID else { return }
+            let active = preview.turnID == service?.activeTurnID && preview.sessionID == service?.activeSessionID
+            let unsaved = service?.storageError != nil && service?.unsavedFact?["turn_id"] == preview.turnID
+            guard active || unsaved else { return }
         }
         answerRevision = revision
         currentAnswer = preview

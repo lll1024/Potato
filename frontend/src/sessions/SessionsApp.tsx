@@ -44,7 +44,7 @@ export function SessionsApp({PreferencesView}: {PreferencesView: ComponentType<{
   const [traceLocation,setTraceLocation]=useState<TraceLocation | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const {draft, setDraft, removeDraft, clearSubmittedDraft, clearDrafts} = useConversationDraft(sessionId);
-  const {state, revision: serviceRevision, datasetRevision, deletedSession, connectionError, recoveryNotice, refresh: refreshService} = useServiceEvents();
+  const {state, revision: serviceRevision, datasetRevision, deletedSession, connectionError, recoveryNotice, refresh: refreshService, beginStop} = useServiceEvents();
   const {snapshot, error, setError, loadingEarlier, loadEarlier: readEarlier, invalidate} = useSessionPage<Snapshot>(sessionId, serviceRevision, 'include_messages=false', datasetRevision, true);
 
   const submission = useSubmission((accepted, submitted) => {
@@ -66,6 +66,7 @@ export function SessionsApp({PreferencesView}: {PreferencesView: ComponentType<{
   }
 
   async function stopTurn(turn: Turn) {
+    beginStop(turn.turn_id);
     try {
       await api(`/api/turns/${turn.turn_id}/stop`, {method: 'POST'});
       await refreshService();

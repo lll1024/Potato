@@ -572,6 +572,107 @@ struct AnswerStreamingTests {
         await clock.advance()
     }
 
+    @Test(arguments: ["output_limit", "budget", "user_stop"])
+    func incompleteSavedOutcomeReplacesPreviewWithoutChangingItsReason(reason: String) async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        defer { sessions.setForeground(false) }
+        await fixture.next().reply(body: snapshot(revision: 1, text: "暂存正文"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let stream = await fixture.next()
+        stream.beginStream()
+        await clock.advance()
+        await fixture.next().reply(body: snapshot(revision: 2, active: false))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page(answer: "本轮已保存的不完整结果")
+            .replacingOccurrences(of: "\"status\":\"completed\"", with: "\"status\":\"terminated\",\"reason\":\"\(reason)\""))
+        _ = await clock.nextInterval()
+        stream.send(event(text: "迟到正文不能覆盖终态", revision: 3))
+        stream.fail()
+        try await observed { sessions.answerFailure != nil }
+        #expect(sessions.answerPreview == nil)
+        #expect(sessions.conversation?.turns.first?.status == "terminated")
+        #expect(sessions.conversation?.turns.first?.reason == reason)
+        #expect(sessions.conversation?.turns.first?.answer == "本轮已保存的不完整结果")
+        sessions.setForeground(false)
+        await clock.advance()
+    }
+
+    @Test func firstSnapshotAlreadyStoppingRestoresAndFreezesItsCurrentBody() async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        defer { sessions.setForeground(false) }
+        await fixture.next().reply(body: snapshot(revision: 1, text: "停止中的已有正文")
+            .replacingOccurrences(of: "\"stopping\":false", with: "\"stopping\":true"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        #expect(sessions.answerPreview?.text == "停止中的已有正文")
+        let stream = await fixture.next()
+        stream.beginStream()
+        stream.send(event(text: "停止后继续增加的文字", revision: 2))
+        stream.fail()
+        try await observed { sessions.answerFailure != nil }
+        #expect(sessions.answerPreview?.text == "停止中的已有正文")
+        sessions.setForeground(false)
+        await clock.advance()
+    }
+
+    @Test(arguments: [false, true]) func stopFreezesUntilSavedOrUnsavedResultIsConfirmed(unsaved: Bool) async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        defer { sessions.setForeground(false) }
+        await fixture.next().reply(body: snapshot(revision: 1, text: "停止前正文"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let stream = await fixture.next()
+        stream.beginStream()
+        let target = try #require(sessions.stopTarget)
+        let stop = Task { try await sessions.stop(target: target) }
+        let response = await fixture.next()
+        stream.send(event(text: "停止后的全文", revision: 2, status: "generated"))
+        // 等同一订阅处理完后续状态，避免用固定睡眠推测冻结。
+        stream.fail()
+        try await observed { sessions.answerFailure != nil }
+        #expect(sessions.answerPreview?.text == "停止前正文")
+        let fault = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: snapshot(revision: 2, text: "停止后的全文")
+            .replacingOccurrences(of: "\"accepting\":true", with: "\"accepting\":false,\"storage_error\":\"改名未保存\",\"unsaved_fact\":{\"kind\":\"session.rename\"}"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        _ = try await fault.value
+        #expect(sessions.answerPreview?.text == "停止前正文")
+        #expect(sessions.stopState == .requesting(target))
+        #expect(!sessions.canSubmit)
+        response.reply(body: "{\"schema_version\":1,\"turn_id\":\"turn\",\"status\":\"running\",\"stopping\":true}")
+        try await stop.value
+        await clock.advance()
+        let finalState = unsaved ? snapshot(revision: 3, text: "停止后的全文", active: false)
+            .replacingOccurrences(of: "\"accepting\":true", with: "\"accepting\":false,\"storage_error\":\"未保存\",\"unsaved_fact\":{\"turn_id\":\"turn\",\"kind\":\"turn.finished\"}")
+            : snapshot(revision: 3, active: false)
+        await fixture.next().reply(body: finalState)
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page(answer: unsaved ? nil : "停止后的全文"))
+        _ = await clock.nextInterval()
+        #expect(sessions.answerPreview?.text == (unsaved ? "停止后的全文" : nil))
+        #expect(sessions.service?.storageError == (unsaved ? "未保存" : nil))
+        #expect(sessions.conversation?.turns.first?.answer == (unsaved ? nil : "停止后的全文"))
+        #expect(sessions.canSubmit == !unsaved)
+        sessions.setForeground(false)
+        await clock.advance()
+    }
+
     private func snapshot(revision: Int = 0, text: String? = nil, active: Bool = true) -> String {
         """
         {"schema_version":1,"stream_id":"dataset","instance_id":"process","answer_revision":\(revision),

@@ -188,8 +188,46 @@ final class ReadingNavigationTests: XCTestCase {
         }
     }
 
-    private func streamControl(_ action: String, method: String = "POST") async throws {
-        var request = URLRequest(url: URL(string: "https://localhost:18497/__test__/" + action)!)
+    func testStoppedStreamFreezesThenShowsSavedOrUnsavedCopy() async throws {
+        for port in [18497, 18498] {
+            let unsaved = port == 18498
+            let app = connectedApp(address: "https://localhost:\(port)")
+            try await streamControl("arm", port: port)
+            app.buttons["new-conversation"].tap()
+            let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+            XCTAssertTrue(input.waitForExistence(timeout: 5))
+            input.tap()
+            input.typeText("停止及保存验收")
+            app.buttons["send-input"].tap()
+            try await streamControl("entered", method: "GET", port: port)
+            try await streamControl("step", port: port)
+            XCTAssertTrue(app.staticTexts["实时杭州旅行"].waitForExistence(timeout: 5))
+            app.buttons["stop-turn"].tap()
+            XCTAssertTrue(app.staticTexts["正在停止 · 正文已暂停追加"].waitForExistence(timeout: 5))
+            try await streamControl("step", port: port)
+            try await streamControl("step", port: port)
+            XCTAssertFalse(app.staticTexts["上午游览西湖。"].exists)
+            XCTAssertFalse(app.staticTexts["下午参观博物馆。"].exists)
+            XCTAssertFalse(app.buttons["send-input"].isEnabled)
+            attach(app, "停止后冻结当前正文")
+            try await streamControl("step", port: port)
+            let copy = app.buttons["copy-answer"]
+            let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", unsaved ? "复制未保存正文" : "复制完整回答"), object: copy)
+            await fulfillment(of: [ready], timeout: 10)
+            XCTAssertTrue(app.staticTexts["下午参观博物馆。"].exists)
+            if unsaved {
+                XCTAssertTrue(app.staticTexts["未保存 · 请复制保留，刷新后可能丢失"].exists)
+                XCTAssertFalse(app.buttons["send-input"].isEnabled)
+            }
+            copy.tap()
+            XCTAssertEqual(copy.label, unsaved ? "已复制未保存正文" : "已复制完整回答")
+            attach(app, unsaved ? "保存失败保留正文与复制入口" : "停止后真实完成并保存")
+            app.terminate()
+        }
+    }
+
+    private func streamControl(_ action: String, method: String = "POST", port: Int = 18497) async throws {
+        var request = URLRequest(url: URL(string: "https://localhost:\(port)/__test__/" + action)!)
         request.httpMethod = method
         let (_, response) = try await URLSession.shared.data(for: request)
         XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)

@@ -6,6 +6,9 @@ import UIKit
 struct AnswerView: View {
     let text: String
     var isPreview = false
+    var isUnsaved = false
+    var isIncomplete = false
+    private var copyLabel: String { isUnsaved ? "未保存正文" : isPreview ? "当前正文" : isIncomplete ? "不完整回答" : "完整回答" }
     @State private var copied = false
     @ScaledMetric(relativeTo: .body) private var columnWidth = 180.0
 
@@ -39,7 +42,7 @@ struct AnswerView: View {
                 }
                 .markdownTheme(.basic)
                 .textSelection(.enabled)
-            Button(copied ? (isPreview ? "已复制当前正文" : "已复制完整回答") : (isPreview ? "复制当前正文" : "复制完整回答"), systemImage: copied ? "checkmark" : "doc.on.doc") {
+            Button((copied ? "已复制" : "复制") + copyLabel, systemImage: copied ? "checkmark" : "doc.on.doc") {
                 UIPasteboard.general.string = text
                 copied = true
             }

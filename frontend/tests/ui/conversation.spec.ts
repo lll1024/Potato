@@ -593,3 +593,78 @@ test('失败正文清空并提示重试，降级后保留完整回答与原因',
   await page.getByRole('button', {name: '收起会话导航'}).first().click();
   await page.screenshot({path: test.info().outputPath('answer-fallback-mobile.png')});
 });
+
+
+test('点击停止立即冻结正文，保存故障后保留可复制的未保存全文', async ({page, context}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  app.state.answer_revision = 1;
+  app.state.answer_preview = {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+    attempt_id: 'answer', revision: 1, text: '停止前正文。', status: 'generating'};
+  await page.reload();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  await expect(page.getByText('停止前正文。', {exact: true})).toBeVisible();
+  let release!: () => void;
+  const pending = new Promise<void>(resolve => {release = resolve;});
+  await page.route('**/api/turns/turn/stop', async route => {await pending; await route.fulfill({json: {schema_version: 1, stopping: true}});});
+  await page.getByRole('button', {name: '停止生成'}).click();
+  await expect(page.getByText('正在停止 · 正文已暂停追加', {exact: true})).toBeVisible();
+  Object.assign(app.state, {storage_error: '改名未保存', unsaved_fact: {turn_id: '', kind: 'session.rename'}});
+  await app.notify();
+  app.state.answer_revision = 2;
+  app.state.answer_preview = {...app.state.answer_preview!, revision: 2, text: '停止前正文。收束后的完整正文。', status: 'generated'};
+  await page.evaluate(preview => (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {
+    data: JSON.stringify({schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision: 2, preview}),
+  })), app.state.answer_preview);
+  await expect(page.locator('.message.answer')).not.toContainText('收束后的完整正文');
+  release();
+  app.state.stopping = true;
+  await app.notify();
+  await expect(page.getByRole('button', {name: '发送旅行需求'})).toBeDisabled();
+  app.state.active_turn_id = null; app.state.stopping = false; app.state.accepting = false;
+  Object.assign(app.state, {storage_error: '轮次结果未保存', unsaved_fact: {turn_id: 'turn', kind: 'turn.finished', message: '未保存'}});
+  await app.notify();
+  await expect(page.getByText('未保存 · 请复制保留，刷新后可能丢失', {exact: true})).toBeVisible();
+  await expect(page.locator('.message.answer')).toContainText('收束后的完整正文');
+  await page.getByRole('button', {name: '复制未保存正文', exact: true}).click();
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('停止前正文。收束后的完整正文。');
+  await page.screenshot({path: test.info().outputPath('unsaved-answer-desktop.png')});
+  await page.setViewportSize({width: 390, height: 844});
+  await page.getByRole('button', {name: '收起会话导航'}).first().click();
+  await page.screenshot({path: test.info().outputPath('unsaved-answer-mobile.png')});
+});
+
+
+test('远端停止冻结当前预览，真实保存结果与截断状态优先于迟到正文', async ({page}) => {
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  app.state.answer_revision = 1;
+  app.state.answer_preview = {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+    attempt_id: 'answer', revision: 1, text: '正在阅读的正文。', status: 'generating'};
+  await page.reload();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  await expect(page.getByText('正在阅读的正文。', {exact: true})).toBeVisible();
+  app.state.stopping = true;
+  await app.notify();
+  app.state.answer_revision = 2;
+  await page.evaluate(() => (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {
+    data: JSON.stringify({schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision: 2,
+      preview: {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+        attempt_id: 'answer', revision: 2, text: '不应追加的正文', status: 'generating'}}),
+  })));
+  await expect(page.getByText('正在停止 · 正文已暂停追加', {exact: true})).toBeVisible();
+  await expect(page.getByText('不应追加的正文', {exact: true})).toHaveCount(0);
+  app.turn.status = 'completed'; app.turn.answer = '真实保存的完整结果。';
+  app.state.active_turn_id = null; app.state.stopping = false;
+  await app.notify();
+  await expect(page.getByText('真实保存的完整结果。', {exact: true})).toBeVisible();
+  await expect(page.getByRole('button', {name: '复制完整回答', exact: true})).toBeVisible();
+  for (const reason of ['output_limit', 'budget']) {
+    app.turn.status = 'terminated'; app.turn.reason = reason; app.turn.answer = '达到限制时已保存的部分安排。';
+    await app.notify();
+    await expect(page.getByText('回答不完整', {exact: true})).toBeVisible();
+    await expect(page.getByRole('button', {name: '复制不完整回答', exact: true})).toBeVisible();
+    await expect(page.getByRole('button', {name: '复制完整回答', exact: true})).toHaveCount(0);
+  }
+});

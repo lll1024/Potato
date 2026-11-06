@@ -13,6 +13,7 @@ from http_fixtures import serving, wait_finished, tool_reply
 from service_fixtures import ModelService, response
 from process_fixtures import ExternalServices, process
 from model_fixtures import connection_error, status_error
+from record_faults import fail_event
 
 
 class FailingAnswerModel:
@@ -61,7 +62,9 @@ class FailingAnswerModel:
 
 
 class StreamingModel:
-    def __init__(self):
+    def __init__(self, *, query_rounds=2, stop_reason="end_turn"):
+        self.query_rounds = query_rounds
+        self.stop_reason = stop_reason
         self.messages = self
         self.requests = []
         self.release = asyncio.Queue()
@@ -75,6 +78,9 @@ class StreamingModel:
         self.requests.append(parameters)
         if len(self.requests) == 1:
             return tool_reply(1)
+        if len(self.requests) < self.query_rounds:
+            return response([{"type": "tool_use", "id": f"history-{len(self.requests)}",
+                "name": "session_history_search", "input": {"query": "西湖"}}], "tool_use")
         return response([{"type": "text", "text": "工具前后的说明，不应成为正文。"}])
 
     @asynccontextmanager
@@ -101,11 +107,80 @@ class StreamingModel:
                         blocks.append({"type": "text", "text": part})
                     else:
                         blocks[-1]["text"] += part
-                return response(blocks)
+                return response(blocks, model.stop_reason)
         yield Stream()
 
 
 class AnswerStreamingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_stop_waits_for_stream_and_saves_real_normal_or_budget_outcome(self):
+        for query_rounds in (2, 63):
+            with self.subTest(query_rounds=query_rounds), tempfile.TemporaryDirectory() as directory:
+                model = StreamingModel(query_rounds=query_rounds)
+                async with serving(directory, model) as client:
+                    accepted = (await client.post("/api/turns", json={"input": "杭州一天"})).json()
+                    await asyncio.wait_for(model.entered.wait(), 8)
+                    model.release.put_nowait(None)
+                    await model.delivered.get()
+                    stopped = await client.post("/api/turns/" + accepted["turn_id"] + "/stop")
+                    self.assertTrue(stopped.json()["stopping"])
+                    current = (await client.get("/api/snapshot")).json()
+                    self.assertEqual(current["active_turn_id"], accepted["turn_id"])
+                    self.assertTrue(current["stopping"])
+                    self.assertEqual((await client.post("/api/turns", json={"input": "下一轮"})).status_code, 409)
+                    for _ in model.parts:
+                        model.release.put_nowait(None)
+                    saved = await asyncio.wait_for(wait_finished(client, accepted["session_id"]), 5)
+                    turn = saved["turns"][0]
+                    self.assertEqual((turn["status"], turn["reason"]), ("completed", None) if query_rounds == 2 else ("terminated", "user_stop"))
+                    if query_rounds == 2:
+                        self.assertEqual(turn["answer"], "".join(model.parts))
+                    self.assertEqual(len(model.requests), query_rounds + 1)
+                    self.assertNotIn("tools", model.requests[-1])
+                    self.assertIsNone((await client.get("/api/snapshot")).json()["answer_preview"])
+
+    async def test_stream_result_and_fact_storage_failures_keep_unsaved_body_without_history(self):
+        for kind in ("turn.finished", "request.completed"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as directory:
+                model = StreamingModel()
+                async with serving(directory, model) as client:
+                    accepted = (await client.post("/api/turns", json={"input": "杭州一天"})).json()
+                    await asyncio.wait_for(model.entered.wait(), 5)
+                    fail_event(directory, kind)
+                    for _ in range(len(model.parts) + 1):
+                        model.release.put_nowait(None)
+                    async with asyncio.timeout(5):
+                        while True:
+                            state = (await client.get("/api/snapshot")).json()
+                            if state["active_turn_id"] is None:
+                                break
+                    self.assertFalse(state["accepting"])
+                    self.assertEqual(state["unsaved_fact"]["kind"], kind)
+                    self.assertEqual(state["answer_preview"]["text"], "".join(model.parts))
+                    self.assertEqual(state["answer_preview"]["status"], "generated")
+                    self.assertEqual((await client.post("/api/turns", json={"input": "下一轮"})).status_code, 503)
+                    page = (await client.get("/api/sessions/" + accepted["session_id"])).json()
+                    self.assertEqual(page["turns"][0]["status"], "running")
+                    self.assertIsNone(page["turns"][0]["answer"])
+                    self.assertEqual(len(model.requests), 3)
+
+    async def test_truncated_stream_keeps_incomplete_normal_and_budget_outcomes(self):
+        for query_rounds in (2, 63):
+            with self.subTest(query_rounds=query_rounds), tempfile.TemporaryDirectory() as directory:
+                model = StreamingModel(query_rounds=query_rounds, stop_reason="max_tokens")
+                for _ in range(len(model.parts) + 1):
+                    model.release.put_nowait(None)
+                async with serving(directory, model) as client:
+                    accepted = (await client.post("/api/turns", json={"input": "杭州一天"})).json()
+                    saved = await asyncio.wait_for(wait_finished(client, accepted["session_id"]), 10)
+                    turn = saved["turns"][0]
+                    self.assertEqual((turn["status"], turn["reason"]), ("terminated", "output_limit" if query_rounds == 2 else "budget"))
+                    self.assertEqual(turn["answer_source"], "model" if query_rounds == 2 else "application")
+                    self.assertEqual(len(model.requests), query_rounds + 1)
+                    if query_rounds == 2:
+                        self.assertEqual(turn["answer"], "".join(model.parts))
+                    else:
+                        self.assertNotIn("下午品尝", turn["answer"])
+
     async def test_sdk_stream_ending_without_stop_reason_is_retried_instead_of_saved(self):
         for empty in (False, True):
             with self.subTest(empty=empty):
