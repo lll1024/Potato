@@ -520,7 +520,9 @@ test('恢复正文采用累计快照，重复、迟到与失效尝试不会回�
 });
 
 
-for (const restart of [false, true]) test(`断线先核对累计正文并隔离旧连接${restart ? '，同库重启只读中断历史' : ''}`, async ({page}) => {
+for (const outcome of ['running', 'retrying', 'restarted']) test(`断线先核对累计正文并隔离旧连接：${outcome}`, async ({page}) => {
+  const restart = outcome === 'restarted';
+  const retrying = outcome === 'retrying';
   const app = await conversation(page);
   app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
   app.state.answer_revision = 1;
@@ -540,7 +542,8 @@ for (const restart of [false, true]) test(`断线先核对累计正文并隔离�
     app.turn.status = 'terminated'; app.turn.reason = 'service_interrupted'; app.sessions[0].status = 'terminated';
   } else {
     app.state.answer_revision = 4;
-    app.state.answer_preview = {...app.state.answer_preview, revision: 4, text: '断线期间的累计正文'};
+    app.state.answer_preview = {...app.state.answer_preview, revision: 4,
+      text: retrying ? '' : '断线期间的累计正文', status: retrying ? 'retrying' : 'generating'};
   }
   await expect.poll(() => page.evaluate(() => (window as unknown as {sources: EventTarget[]}).sources.length)).toBe(2);
   await page.evaluate(state => (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('service.state', {
@@ -548,6 +551,9 @@ for (const restart of [false, true]) test(`断线先核对累计正文并隔离�
   })), app.state);
   if (restart) {
     await expect(page.getByRole('region', {name: '第 1 轮异常提示'}).getByRole('status')).toHaveText('服务中断');
+    await expect(page.getByText('断线前的正文', {exact: true})).toHaveCount(0);
+  } else if (retrying) {
+    await expect(page.getByText('正在重试，新尝试将从头作答。', {exact: true})).toBeVisible();
     await expect(page.getByText('断线前的正文', {exact: true})).toHaveCount(0);
   } else await expect(page.getByText('断线期间的累计正文', {exact: true})).toBeVisible();
   // 旧连接中已排队的正文、服务状态、删除事件及 error 均无效。
@@ -568,7 +574,7 @@ for (const restart of [false, true]) test(`断线先核对累计正文并隔离�
     await page.evaluate(() => (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {
       data: JSON.stringify({schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision: 5,
         preview: {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
-          attempt_id: 'attempt', revision: 5, text: '重连后继续增长', status: 'generating'}}),
+          attempt_id: 'new-attempt', revision: 5, text: '重连后继续增长', status: 'generating'}}),
     })));
     await expect(page.getByText('重连后继续增长', {exact: true})).toBeVisible();
   }

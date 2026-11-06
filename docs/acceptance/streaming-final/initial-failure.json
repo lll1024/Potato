@@ -1,0 +1,76 @@
+{
+  "environment": {
+    "kind": "configured-model-answer-acceptance",
+    "model": "deepseek-v4-flash",
+    "provider": "api.deepseek.com"
+  },
+  "turn_id": "909012746b464a7e9d8024e9130d0c86",
+  "status": "failed",
+  "reason": "model_error",
+  "error": {
+    "stage": "response_processing",
+    "category": "ValueError",
+    "message": "最终作答不能包含工具调用。",
+    "code": "UNKNOWN"
+  },
+  "response_block_types": [
+    "thinking",
+    "text"
+  ],
+  "stop_reason": "end_turn",
+  "requests": [
+    {
+      "request_id": "8b25f92cc1414fc1b795c3adb60d7941",
+      "session_id": "dfa1465920a642fcaf7741e471e1610a",
+      "turn_id": "909012746b464a7e9d8024e9130d0c86",
+      "ordinal": 1,
+      "status": "completed",
+      "started_at": "2026-11-06T14:23:43.852438+00:00",
+      "finished_at": "2026-11-06T14:23:58.568238+00:00",
+      "duration_ms": 14709.423583000898,
+      "input_payload_id": "149154611cb547a3a7f19d7a2f510a98",
+      "response_payload_id": "c52f6f64f61549f7a67e72a8fcac30a7",
+      "error_payload_id": null,
+      "usage": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 5120,
+        "input_tokens": 2604,
+        "output_tokens": 1863,
+        "service_tier": "standard"
+      },
+      "usage_state": "returned",
+      "step": 1,
+      "attempt": 1,
+      "retry_id": "ddcbb31ad60e407cba392aa7ed10be83",
+      "purpose": "travel",
+      "answer_phase": "query"
+    },
+    {
+      "request_id": "7229b306e89d4bd09ff9bc4df18a9438",
+      "session_id": "dfa1465920a642fcaf7741e471e1610a",
+      "turn_id": "909012746b464a7e9d8024e9130d0c86",
+      "ordinal": 2,
+      "status": "failed",
+      "started_at": "2026-11-06T14:23:58.577960+00:00",
+      "finished_at": "2026-11-06T14:24:16.541053+00:00",
+      "duration_ms": 17961.922959424555,
+      "input_payload_id": "3b010cbd16f84273b71490ca79880266",
+      "response_payload_id": "eb1e8612541b44b19b53ecba89e89fd8",
+      "error_payload_id": "3a3b2159e0a24948a5d531f11d045460",
+      "usage": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 5120,
+        "input_tokens": 396,
+        "output_tokens": 2317,
+        "service_tier": "standard"
+      },
+      "usage_state": "returned",
+      "step": 2,
+      "attempt": 1,
+      "retry_id": "9a79a762e20c447c89f5f3244de0d52d",
+      "purpose": "travel_answer",
+      "answer_phase": "answer",
+      "answer_delivery": "stream"
+    }
+  ]
+}

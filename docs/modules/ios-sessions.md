@@ -50,6 +50,8 @@
 
 ## 实时正文（#99）
 
+当前实际配置模型的两端同轮分批展示与 58 条故事覆盖见 [#104 联合验收](../acceptance/streaming-final.md)；该证据使用 iOS 模拟器，不代替真机或 TestFlight 交付。
+
 `SessionAccess.answerPreview` 是当前观察会话的可选 `AnswerPreview`，包含服务进程 `instanceID`、数据集 `streamID`、会话 `sessionID`、轮次 `turnID`、尝试 `attemptID`、递增 `revision`、累计 `text` 和 `status`。`answerFailure` 单独表示实时接收错误；不会将网络错误写成后端失败终态，也不清除最后已保存历史。没有流式字段的旧服务继续通过既有轮询读取完整回答。
 
 共享能力在前台恢复 `GET /api/snapshot` 的当前正文与服务身份，读取当前历史后使用现有 `GET /api/events?stream_id=...&after=...`，从已读取历史的持久游标接入，避免重放整库轨迹。同一时间只有一个正文订阅；重复前台通知或重复观察同一会话不另建连接。页面及 Presenter 不操作传输。流式传输独立于普通 HTTP 的短总时限，使用服务心跳保持接收；按完整 SSE 事件投影累计正文，网络块可截断 UTF-8 中文或事件行，不进行逐字播放。

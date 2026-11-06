@@ -77,6 +77,8 @@ async def answer(text):
 
 ## 作答重试与非流式降级（#101）
 
+普通作答允许模型协议中的 `thinking`／`redacted_thinking` 与 `text` 一同返回，正文更新及最终聊天回答仍只提取文本块，不展示推理块，禁止工具调用。没有非空正文时按原有 `EMPTY_RESPONSE` 分类处理，不保存为空白完成。第 64 次预算收尾继续要求纯文本且完整结束，未因兼容当前模型而放宽。当前 DeepSeek 实连及公开 HTTP 复现见 [#104 联合验收](../acceptance/streaming-final.md)。
+
 普通作答失败先发出空 `invalidated`；现有分类允许且有额度时，退避前发出空 `retrying`，下一实际请求使用新的 `attempt_id` 从空正文开始。沿用最多追加五次、指数退避、`Retry-After` 和停止检查。流读取中的底层连接／超时错误按 `TRANSPORT`／`TIMEOUT` 处理；SDK 返回但缺少结束原因也按连接中断处理，未收到任何事件的空流按 `EMPTY_RESPONSE` 处理，不能保存为完整回答。停止后不启动新尝试；在途真实失败仍保留原有模型失败终态，不把已返回故障一律改成停止。
 
 只有正在使用流式的请求得到明确流式能力拒绝，才分类为 `STREAM_UNSUPPORTED`：400／404／405／422／501 中明确的“不支持 stream／streaming”、`stream must be false` 或针对 `stream` 的 `unsupported_parameter`。认证、额度、限流、上下文超限优先保留原分类；普通 5xx、网络、超时和无明确归因的非法请求不能触发降级。此轮后续作答改用原有完整响应调用，不建立供应商探测或永久缓存。

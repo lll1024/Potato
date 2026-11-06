@@ -22,7 +22,7 @@ from travel_app.limits import MAX_ROUNDS, MAX_TOOL_CALLS
 from .resources import connected_model
 from .budget import TurnBudget
 from .batch import BUDGET_MESSAGE, execute_batch
-from travel_app.model_retry import MAX_RETRIES, retry_delay
+from travel_app.model_retry import EmptyModelResponse, MAX_RETRIES, retry_delay
 from travel_app.model_execution import request_model
 from .dates import current_time, model_date_context, turn_date_context
 
@@ -421,8 +421,10 @@ async def _execute_plan(
                     "attempt": attempt})
             recovery_pending = False
             def validate_final(response):
-                if answering and any(block.type != "text" for block in response.content):
+                if answering and any(block.type not in {"text", "thinking", "redacted_thinking"} for block in response.content):
                     raise ValueError("最终作答不能包含工具调用。")
+                if answering and not any(block.text.strip() for block in response.content if block.type == "text"):
+                    raise EmptyModelResponse("模型返回空作答正文。")
                 if finalizing and (response.stop_reason != "end_turn" or any(block.type != "text" for block in response.content)
                                    or not any(block.text.strip() for block in response.content if block.type == "text")):
                     raise ValueError("最终回答未完整结束或包含无效内容。")

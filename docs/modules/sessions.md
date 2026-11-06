@@ -1,5 +1,7 @@
 # 助手会话：当前公开契约
 
+Web／iOS 的当前真实模型联合证据与父规格 58 条故事覆盖见 [#104 联合验收](../acceptance/streaming-final.md)。可控外部模型、真实模型、模拟器及实际设备按该记录分别解释。
+
 公开入口为 [travel_app.sessions](../../travel_app/sessions/__init__.py)。`create_app(data_dir, *, resources=..., static_dir=None, request_shutdown=None, clock=None, preference_clock=..., preference_wait=..., preference_timeout=60)` 构造现有 FastAPI 服务；根 `web.py` 调用公开 `main(*, app_factory=create_app, load_environment=load_dotenv)`，启动参数、数据目录、配置和 HTTP/SSE 协议保持。
 
 服务 lifespan 创建并锁定数据目录，打开本机记录、恢复已提交事实、配置外部资源，再启动会话及既有偏好后台处理；退出时停止接受输入，等待当前执行和保存收束，关闭资源并释放锁。`resources` 是异步上下文管理器，产出 `Runtime(client, tools, model)`；模型客户端及已发现的查询 adapter 在服务使用期间保持有效。已被占用的数据目录、版本不兼容及配置错误保留固定启动诊断。

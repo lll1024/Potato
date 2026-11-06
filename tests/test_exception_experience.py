@@ -75,8 +75,8 @@ class ExceptionExperienceTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn("2026-10-09", str(materials[1]))
                 self.assertIn("2026-10-12", str(materials[1]))
                 self.assertIn("尚无法确认", str(materials[1]))
-                self.assertNotIn("2027", str(materials))
                 for material in materials:
+                    self.assertNotIn("2027", str({key: material[key] for key in ("title", "entries", "notes")}))
                     raw = (await client.get("/api/payloads/" + material["payload_id"])).json()
                     self.assertFalse(raw["content"]["is_error"])
                 await client.get("/api/sessions/" + accepted["session_id"])

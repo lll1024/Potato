@@ -455,7 +455,7 @@ struct AnswerStreamingTests {
         await clock.advance()
     }
 
-    @Test(arguments: ["running", "completed", "restarted"])
+    @Test(arguments: ["running", "retrying", "completed", "restarted"])
     func disconnectedStreamReconcilesSnapshotAndHistoryBeforeResubscribing(result: String) async throws {
         let clock = PollClock()
         let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
@@ -473,21 +473,25 @@ struct AnswerStreamingTests {
         try await observed { sessions.answerFailure != nil }
         #expect(sessions.answerPreview?.text == "断线前正文")
         await clock.advance()
-        let body = result == "running" ? snapshot(revision: 4, text: "断线期间累计正文")
+        let continuing = result == "running" || result == "retrying"
+        let body = result == "retrying" ? snapshot(revision: 4, text: "")
+            .replacingOccurrences(of: "\"status\":\"generating\"", with: "\"status\":\"retrying\"")
+            : result == "running" ? snapshot(revision: 4, text: "断线期间累计正文")
             : result == "completed" ? snapshot(revision: 4, active: false)
             : snapshot(active: false).replacingOccurrences(of: "process", with: "new-process")
         await fixture.next().reply(body: body)
         await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
-        let history = result == "running" ? page() : result == "completed" ? page(answer: "离开期间保存的完整正文")
+        let history = continuing ? page() : result == "completed" ? page(answer: "离开期间保存的完整正文")
             : page().replacingOccurrences(of: "\"status\":\"running\"", with: "\"status\":\"terminated\",\"reason\":\"service_interrupted\"")
         await fixture.next().reply(body: history)
         _ = await clock.nextInterval()
         let resumed = await fixture.next()
         #expect(resumed.protocolRequest.request.url?.path == "/api/events")
         resumed.beginStream()
-        if result == "running" {
-            #expect(sessions.answerPreview?.text == "断线期间累计正文")
-            resumed.send(event(text: "继续生成", revision: 5))
+        if continuing {
+            #expect(sessions.answerPreview?.text == (result == "retrying" ? "" : "断线期间累计正文"))
+            if result == "retrying" { #expect(sessions.answerPreview?.status == "retrying") }
+            resumed.send(event(text: "继续生成", revision: 5, attempt: "new-attempt"))
             try await observed { sessions.answerPreview?.text == "继续生成" }
             // 返回列表再进入相同会话，同次序的有效累计对象仍可恢复。
             sessions.watchConversation(sessionID: nil)
@@ -497,7 +501,7 @@ struct AnswerStreamingTests {
             _ = try await read.value
             let reopened = await fixture.next()
             reopened.beginStream()
-            reopened.send(event(text: "继续生成", revision: 5))
+            reopened.send(event(text: "继续生成", revision: 5, attempt: "new-attempt"))
             try await observed { sessions.answerPreview?.text == "继续生成" }
             reopened.finish()
         } else {

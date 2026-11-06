@@ -45,6 +45,14 @@
   },
   "legacy": {},
   "files": {
+    "tests/live_answer_eval.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/ui/answer-model-live.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
     "scripts/check_modules.py": {
       "owner": "tooling",
       "role": "tooling"

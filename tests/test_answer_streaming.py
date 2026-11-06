@@ -72,6 +72,7 @@ class StreamingModel:
         self.entered = asyncio.Event()
         self.returned = False
         self.block_breaks = set()
+        self.prefix_blocks = []
         self.parts = ["## 杭州旅行\n\n", "上午游览西湖。\n\n", "下午品尝杭帮菜。\n"]
 
     async def create(self, **parameters):
@@ -90,6 +91,8 @@ class StreamingModel:
         class Stream:
             async def __aiter__(self):
                 model.entered.set()
+                for block in model.prefix_blocks:
+                    yield SimpleNamespace(type="content_block_start", content_block=SimpleNamespace(**block))
                 for index, part in enumerate(model.parts):
                     if index == 0 or index in model.block_breaks:
                         yield SimpleNamespace(type="content_block_start", content_block=SimpleNamespace(type="text", text=""))
@@ -107,11 +110,117 @@ class StreamingModel:
                         blocks.append({"type": "text", "text": part})
                     else:
                         blocks[-1]["text"] += part
-                return response(blocks, model.stop_reason)
+                return response(model.prefix_blocks + blocks, model.stop_reason)
         yield Stream()
 
 
 class AnswerStreamingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_reasoning_without_answer_text_retries_instead_of_saving_empty_completion(self):
+        thinking = {"type": "thinking", "thinking": "不可作为正文。", "signature": "signed-thinking"}
+        model = ModelService([
+            response([thinking]),
+            response([thinking]),
+            response([{"type": "text", "text": "重新生成的真实正文。"}]),
+        ])
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory, model) as client:
+                accepted = (await client.post("/api/turns", json={"input": "杭州一天"})).json()
+                history = await asyncio.wait_for(wait_finished(client, accepted["session_id"]), 5)
+                self.assertEqual(history["turns"][0]["answer"], "重新生成的真实正文。")
+                self.assertEqual(history["turns"][0]["status"], "completed")
+                self.assertEqual(len(history["requests"]), 3)
+                self.assertEqual(history["requests"][1]["status"], "failed")
+                error_id = history["requests"][1]["error_payload_id"]
+                error = (await client.get("/api/payloads/" + error_id)).json()["content"]
+                self.assertEqual(error["code"], "EMPTY_RESPONSE")
+                self.assertEqual(model.requests[1], model.requests[2])
+
+    async def test_answer_accepts_reasoning_blocks_without_exposing_them_as_body(self):
+        model = StreamingModel()
+        model.prefix_blocks = [
+            {"type": "thinking", "thinking": "内部推理不可作为聊天正文。", "signature": "signed-thinking"},
+            {"type": "redacted_thinking", "data": "opaque-reasoning"},
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory, model) as client:
+                accepted = (await client.post("/api/turns", json={"input": "杭州一天"})).json()
+                try:
+                    await asyncio.wait_for(model.entered.wait(), 3)
+                    model.release.put_nowait(None)
+                    await asyncio.wait_for(model.delivered.get(), 3)
+                    state = (await client.get("/api/snapshot")).json()
+                    self.assertEqual(state["answer_preview"]["text"], model.parts[0])
+                    for _ in model.parts:
+                        model.release.put_nowait(None)
+                    history = await asyncio.wait_for(wait_finished(client, accepted["session_id"]), 3)
+                    self.assertEqual(history["turns"][0]["status"], "completed")
+                    self.assertEqual(history["turns"][0]["answer"], "".join(model.parts))
+                    self.assertEqual(len(model.requests), 3)
+                    self.assertNotIn("tools", model.requests[-1])
+                finally:
+                    for _ in range(5):
+                        model.release.put_nowait(None)
+
+    async def test_reconnect_during_retry_then_stop_and_failed_save_preserves_real_body(self):
+        model = FailingAnswerModel([status_error(429, headers={"Retry-After": "3"}), None])
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory, model) as client:
+                accepted = (await client.post("/api/turns", json={"input": "杭州一天"})).json()
+                try:
+                    model.release.put_nowait(None)
+                    await asyncio.wait_for(model.delivered.get(), 3)
+                    old = (await client.get("/api/snapshot")).json()["answer_preview"]
+
+                    async def preview(lines):
+                        async with asyncio.timeout(5):
+                            async for line in lines:
+                                if line.startswith("data:"):
+                                    event = json.loads(line[5:])
+                                    if event.get("kind") == "answer.preview" and event.get("preview"):
+                                        return event["preview"]
+                        self.fail("未收到正文核对结果")
+
+                    async with client.stream("GET", "/api/events") as stream:
+                        lines = stream.aiter_lines()
+                        await preview(lines)
+                        model.release.put_nowait(None)
+                        while (retry := await preview(lines))["status"] != "retrying":
+                            pass
+                        self.assertEqual(retry["text"], "")
+                    # 断开期间正在退避；快照与新订阅均不能恢复失败的旧正文。
+                    snapshot = (await client.get("/api/snapshot")).json()
+                    self.assertEqual(snapshot["answer_preview"], retry)
+                    path = f'/api/events?stream_id={snapshot["stream_id"]}&after={snapshot["cursor"]}'
+                    async with client.stream("GET", path) as resumed:
+                        lines = resumed.aiter_lines()
+                        self.assertEqual(await preview(lines), retry)
+                        model.release.put_nowait(None)
+                        await asyncio.wait_for(model.delivered.get(), 5)
+                        while not (current := await preview(lines))["text"]:
+                            pass
+                        self.assertEqual(current["text"], "重新作答。")
+                        self.assertNotEqual(current["attempt_id"], old["attempt_id"])
+                        self.assertEqual(model.requests[2], model.requests[3])
+                        await client.post("/api/turns/" + accepted["turn_id"] + "/stop")
+                        self.assertEqual((await client.post("/api/turns", json={"input": "下一轮"})).status_code, 409)
+                        fail_event(directory, "turn.finished")
+                        model.release.put_nowait(None)
+                        async with asyncio.timeout(5):
+                            while (state := (await client.get("/api/snapshot")).json())["active_turn_id"]:
+                                await asyncio.sleep(.01)
+                        self.assertEqual(state["answer_preview"]["text"], "重新作答。")
+                        self.assertEqual(state["unsaved_fact"]["turn_id"], accepted["turn_id"])
+                        self.assertFalse(state["accepting"])
+                        history = (await client.get("/api/sessions/" + accepted["session_id"])).json()
+                        self.assertIsNone(history["turns"][0]["answer"])
+                        self.assertEqual(history["turns"][0]["status"], "running")
+                        self.assertEqual(len(history["requests"]), 4)
+                        self.assertEqual(len(history["tool_calls"]), 1)
+                        self.assertEqual((await client.post("/api/turns", json={"input": "下一轮"})).status_code, 503)
+                finally:
+                    for _ in range(5):
+                        model.release.put_nowait(None)
+
     async def test_stop_waits_for_stream_and_saves_real_normal_or_budget_outcome(self):
         for query_rounds in (2, 63):
             with self.subTest(query_rounds=query_rounds), tempfile.TemporaryDirectory() as directory:

@@ -2,6 +2,66 @@ import XCTest
 
 @MainActor
 final class ReadingNavigationTests: XCTestCase {
+    func testCurrentConfiguredModelShowsBatchesBeforeSavedHistory() async throws {
+        // 显式启动 live_answer_eval.py 才启用；日常回归不调用真实模型。
+        let base = "https://localhost:18499"
+        guard let (metadata, response) = try? await URLSession.shared.data(from: URL(string: base + "/__acceptance__/environment")!),
+              (response as? HTTPURLResponse)?.statusCode == 200 else {
+            throw XCTSkip("未启动当前配置模型联合验收服务")
+        }
+        let environment = try XCTUnwrap(JSONSerialization.jsonObject(with: metadata) as? [String: Any])
+        XCTAssertEqual(environment["kind"] as? String, "configured-model-answer-acceptance")
+        let app = connectedApp(address: base)
+        app.buttons["new-conversation"].tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        input.tap()
+        input.typeText("联合验收：只依据我给定的信息，用中文详细写一份居家旅行行前准备清单，不查询外部资料，不需要实时价格、天气或开放信息。请以标题‘联合验收旅行’开头，分成十个主题，每个主题至少写五条具体建议，最后附一张十行的检查表。全文约两千字，直接给出完整正文。")
+        app.buttons["send-input"].tap()
+        let copy = app.buttons["copy-answer"]
+        XCTAssertTrue(copy.waitForExistence(timeout: 120))
+        var observations: [[String: Any]] = []
+        var previous = ""
+        let deadline = Date().addingTimeInterval(90)
+        while observations.count < 2 && Date() < deadline {
+            let displayed = app.scrollViews.firstMatch.staticTexts.allElementsBoundByIndex.map(\.label).joined(separator: "\n")
+            if displayed.count > previous.count + 50 && copy.label == "复制当前正文" {
+                let (data, _) = try await URLSession.shared.data(from: URL(string: base + "/api/snapshot")!)
+                let snapshot = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+                let preview = try XCTUnwrap(snapshot["answer_preview"] as? [String: Any])
+                let id = try XCTUnwrap(snapshot["active_session_id"] as? String)
+                let (history, _) = try await URLSession.shared.data(from: URL(string: base + "/api/sessions/" + id)!)
+                let page = try XCTUnwrap(JSONSerialization.jsonObject(with: history) as? [String: Any])
+                let turns = try XCTUnwrap(page["turns"] as? [[String: Any]])
+                let requests = try XCTUnwrap(page["requests"] as? [[String: Any]])
+                XCTAssertEqual(preview["status"] as? String, "generating")
+                XCTAssertEqual(preview["delivery"] as? String, "stream")
+                XCTAssertEqual(turns.first?["status"] as? String, "running")
+                XCTAssertTrue(turns.first?["answer"] is NSNull)
+                XCTAssertEqual(requests.filter { $0["status"] as? String == "running" }.count, 1)
+                observations.append(["at": ISO8601DateFormatter().string(from: Date()),
+                    "session_id": id, "turn_id": snapshot["active_turn_id"]!,
+                    "revision": preview["revision"]!, "displayed": displayed,
+                    "preview_chars": (preview["text"] as? String)?.count ?? 0,
+                    "history_status": "running", "history_answer": NSNull()])
+                attach(app, "真实模型第\(observations.count)批，响应与保存尚未完成")
+                previous = displayed
+            }
+            // 只轮询观察界面，不控制或延迟模型、服务与客户端输出。
+            if observations.count < 2 { try await Task.sleep(for: .milliseconds(300)) }
+        }
+        XCTAssertEqual(observations.count, 2)
+        let evidence = try JSONSerialization.data(withJSONObject: ["environment": environment, "observations": observations], options: [.prettyPrinted, .sortedKeys])
+        let attachment = XCTAttachment(data: evidence, uniformTypeIdentifier: "public.json")
+        attachment.name = "真实模型与 iOS 多批正文证据"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "复制完整回答"), object: copy)
+        await fulfillment(of: [saved], timeout: 120)
+        XCTAssertFalse(app.staticTexts["正在生成 · 尚未保存"].exists)
+        attach(app, "真实模型回答已保存")
+    }
+
     func testPaginationExternalLinkAndFullCopy() async throws {
         let app = connectedApp()
 
