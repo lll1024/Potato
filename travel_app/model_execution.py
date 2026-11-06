@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Callable
 
-from travel_app.model_retry import EmptyModelResponse, model_failure
+from travel_app.model_retry import EmptyModelResponse, IncompleteModelResponse, model_failure
 
 
 @dataclass(frozen=True)
@@ -34,7 +34,9 @@ async def request_model(client, parameters, *, redact: Callable[[str], str], val
             async with client.messages.stream(**parameters) as stream:
                 text_blocks = 0
                 in_text_block = False
+                received_event = False
                 async for event in stream:
+                    received_event = True
                     if event.type == "content_block_start":
                         in_text_block = event.content_block.type == "text"
                         if in_text_block:
@@ -45,6 +47,8 @@ async def request_model(client, parameters, *, redact: Callable[[str], str], val
                                 await on_text(event.content_block.text)
                     elif event.type == "content_block_delta" and in_text_block and event.delta.type == "text_delta":
                         await on_text(event.delta.text)
+                if not received_event:
+                    raise EmptyModelResponse(empty_message)
                 response = await stream.get_final_message()
         duration_ms = max(0, (asyncio.get_running_loop().time() - start) * 1000)
         finished_at = datetime.now(timezone.utc).isoformat()
@@ -53,6 +57,8 @@ async def request_model(client, parameters, *, redact: Callable[[str], str], val
         service_request_id = getattr(response, "_request_id", None)
         if service_request_id is not None:
             parsed["_request_id"] = service_request_id
+        if on_text is not None and response.stop_reason is None:
+            raise IncompleteModelResponse("模型正文连接中断，未收到完整结束信息。")
         if not response.content:
             raise EmptyModelResponse(empty_message)
         if validate:
@@ -63,7 +69,7 @@ async def request_model(client, parameters, *, redact: Callable[[str], str], val
         if duration_ms is None:
             duration_ms = max(0, (asyncio.get_running_loop().time() - start) * 1000)
             finished_at = datetime.now(timezone.utc).isoformat()
-        failure = model_failure(error, stage)
+        failure = model_failure(error, stage, streaming=on_text is not None)
     return ModelReturn(response, parsed, failure, finished_at, duration_ms)
 
 

@@ -151,6 +151,43 @@ final class ReadingNavigationTests: XCTestCase {
         XCTAssertEqual(app.buttons["copy-answer"].label, "复制完整回答")
     }
 
+    func testFailedAnswerRetriesFromBeginningAndFallbackExplainsCompleteAnswer() async throws {
+        for mode in ["retry", "fallback"] {
+            let app = connectedApp(address: "https://localhost:18497")
+            try await streamControl("arm?mode=" + mode)
+            app.buttons["new-conversation"].tap()
+            let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+            XCTAssertTrue(input.waitForExistence(timeout: 5))
+            input.tap()
+            input.typeText("手机故障验收 " + mode)
+            app.buttons["send-input"].tap()
+            try await streamControl("entered", method: "GET")
+            try await streamControl("step")
+            XCTAssertTrue(app.staticTexts["失败旧正文"].waitForExistence(timeout: 5))
+            try await streamControl("step")
+            let status = app.staticTexts["answer-status"]
+            let notice = mode == "retry" ? "正在重试" : "模型服务不支持流式"
+            let feedback = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label CONTAINS %@", notice), object: status)
+            await fulfillment(of: [feedback], timeout: 5)
+            XCTAssertFalse(app.staticTexts["失败旧正文"].exists)
+            attach(app, mode == "retry" ? "清空失败正文并提示正在重试" : "说明不支持流式并等待完整回答")
+            try await streamControl("step")
+            if mode == "retry" {
+                XCTAssertTrue(app.staticTexts["实时杭州旅行"].waitForExistence(timeout: 10))
+                XCTAssertFalse(app.staticTexts["失败旧正文"].exists)
+                for _ in 0..<3 { try await streamControl("step") }
+            }
+            let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "复制完整回答"), object: app.buttons["copy-answer"])
+            await fulfillment(of: [saved], timeout: 10)
+            if mode == "fallback" {
+                XCTAssertTrue(app.staticTexts["完整的杭州安排。"].exists)
+                XCTAssertTrue(status.label.contains("模型服务不支持流式"))
+                attach(app, "降级后保存完整回答并保留原因")
+            }
+            app.terminate()
+        }
+    }
+
     private func streamControl(_ action: String, method: String = "POST") async throws {
         var request = URLRequest(url: URL(string: "https://localhost:18497/__test__/" + action)!)
         request.httpMethod = method

@@ -21,6 +21,7 @@ from travel_app.retrieval import Retrieval
 from travel_app.sessions import Runtime, create_app
 from service_fixtures import MapService, ModelService, response
 from preference_fixtures import Clock, PreferenceModel
+from model_fixtures import status_error
 
 INPUT = "请安排杭州两日旅行。" + "保留完整的当前旅行要求。" * 20 + "输入全文结尾"
 ANSWER = "# 杭州旅行\n\n" + "西湖步行，午后休息，次日参观博物馆。\n\n" * 20 + "回答全文结尾"
@@ -90,23 +91,43 @@ class StreamingModel:
         self.messages = self
         self.reset()
 
-    def reset(self):
+    def reset(self, mode="normal"):
         self.release = asyncio.Queue()
         self.delivered = asyncio.Queue()
         self.entered = asyncio.Event()
         self.returned = False
+        self.mode = mode
+        self.attempts = 0
+        self.query_done = False
 
     async def create(self, **parameters):
+        if self.query_done and self.mode == "fallback":
+            await self.release.get()
+            self.returned = True
+            self.delivered.put_nowait("returned")
+            return response([{"type": "text", "text": "完整的杭州安排。"}])
+        self.query_done = True
         return response([{"type": "text", "text": "查询阶段说明，不是最终回答。"}])
 
     @asynccontextmanager
     async def stream(self, **parameters):
         model = self
+        self.attempts += 1
+        fail = self.mode != "normal" and self.attempts == 1
 
         class Stream:
             async def __aiter__(self):
                 model.entered.set()
                 yield SimpleNamespace(type="content_block_start", content_block=SimpleNamespace(type="text", text=""))
+                if fail:
+                    await model.release.get()
+                    yield SimpleNamespace(type="content_block_delta", delta=SimpleNamespace(type="text_delta", text="失败旧正文"))
+                    model.delivered.put_nowait("partial")
+                    await model.release.get()
+                    model.delivered.put_nowait("failed")
+                    if model.mode == "fallback":
+                        raise status_error(400, {"error": {"code": "streaming_not_supported"}})
+                    raise status_error(429, headers={"Retry-After": "3"})
                 for part in model.parts:
                     await model.release.get()
                     yield SimpleNamespace(type="content_block_delta", delta=SimpleNamespace(type="text_delta", text=part))
@@ -206,8 +227,8 @@ async def main():
                                  static_dir=Path(directory) / "no-static")
 
                 @app.post("/__test__/arm")
-                async def arm_stream():
-                    streaming_model.reset()
+                async def arm_stream(mode: str = "normal"):
+                    streaming_model.reset(mode)
                     return {"armed": True}
 
                 @app.get("/__test__/entered")

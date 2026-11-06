@@ -769,7 +769,7 @@ public final class SharedSessions: SessionAccess {
         guard instance == answerInstance, revision > answerRevision else { return }
         if let preview {
             guard preview.instanceID == instance, preview.streamID == datasetID, preview.revision == revision,
-                  ["generating", "generated", "invalidated"].contains(preview.status) else {
+                  ["generating", "generated", "invalidated", "retrying"].contains(preview.status) else {
                 throw SessionFailure.invalidResponse
             }
             // 全局状态尚未核对到新轮次时，等下一次累计快照，不能混入原轮次。

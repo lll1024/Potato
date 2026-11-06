@@ -349,6 +349,7 @@ async def _execute_plan(
 
     finalizing = False
     answering = False
+    stream_answer = True
     for ordinal in range(1, max_rounds + 1):
         if stop_requested and stop_requested.is_set():
             stopped = "已停止本轮查询，尚未完成的信息待核实。"
@@ -410,6 +411,7 @@ async def _execute_plan(
                 await observer("request.started", {
                     "request_id": request_id,
                     **({"answer_phase": "answer" if answering or finalizing else "query"} if answer_observer is not None else {}),
+                    **({"answer_delivery": "stream" if stream_answer else "complete"} if answer_observer is not None and (answering or finalizing) else {}),
                     "purpose": "travel_final" if finalizing else "travel_answer" if answering else "travel", "ordinal": budget.request_ordinal, "step": ordinal, "attempt": attempt, "retry_id": retry_id,
                     "started_at": datetime.now(timezone.utc).isoformat(),
                     "input": copy.deepcopy(parameters),
@@ -425,23 +427,24 @@ async def _execute_plan(
                                    or not any(block.text.strip() for block in response.content if block.type == "text")):
                     raise ValueError("最终回答未完整结束或包含无效内容。")
             raw_text = ""
+            delivery = {"delivery": "stream" if stream_answer else "complete"}
             if answer_observer is not None and (answering or finalizing):
-                await answer_observer({"attempt_id": request_id, "text": "", "status": "generating"})
+                await answer_observer({"attempt_id": request_id, "text": "", "status": "generating", **delivery})
 
             async def receive_text(text):
                 nonlocal raw_text
                 raw_text += text
                 if answer_observer is not None:
                     await answer_observer({"attempt_id": request_id,
-                        "text": tools.redact_preview(raw_text), "status": "generating"})
+                        "text": tools.redact_preview(raw_text), "status": "generating", **delivery})
 
             returned = await request_model(client, parameters, redact=tools.redact, validate=validate_final,
-                on_text=receive_text if answer_observer is not None and (answering or finalizing) else None)
+                on_text=receive_text if answer_observer is not None and (answering or finalizing) and stream_answer else None)
             if answer_observer is not None and (answering or finalizing):
                 await answer_observer({"attempt_id": request_id,
                     "text": tools.redact("\n".join(block.text for block in returned.response.content if block.type == "text"))
                         if returned.failure is None else "",
-                    "status": "generated" if returned.failure is None else "invalidated"})
+                    "status": "generated" if returned.failure is None else "invalidated", **delivery})
             response, parsed, failure = returned.response, returned.parsed, returned.failure
             duration_ms, finished_at = returned.duration_ms, returned.finished_at
             if parsed is not None:
@@ -462,6 +465,13 @@ async def _execute_plan(
                         reason = "budget"
                         stopped = BUDGET_MESSAGE + "\n调用预算内的最终回答失败，已停止本轮查询。"
                     break
+                if failure["code"] == "STREAM_UNSUPPORTED":
+                    stream_answer = False
+                    if not budget.remaining_requests():
+                        finalizing = True
+                        break
+                    attempt += 1
+                    continue
                 if not budget.remaining_requests() and (failure["code"] == "CONTEXT_WINDOW_EXCEEDED" or retry_delay(failure, 1) is not None):
                     finalizing = True
                     break
@@ -513,6 +523,8 @@ async def _execute_plan(
                               "code": failure["code"], "message": failure["message"]}
                 if observer:
                     await observer("request.retry_scheduled", retry_data)
+                if answer_observer is not None and answering:
+                    await answer_observer({"attempt_id": request_id, "text": "", "status": "retrying", **delivery})
                 if stop_requested:
                     try:
                         await asyncio.wait_for(stop_requested.wait(), delay)

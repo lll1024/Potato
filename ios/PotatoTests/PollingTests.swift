@@ -534,6 +534,44 @@ struct AnswerStreamingTests {
         await clock.advance()
     }
 
+    @Test func failedAnswerClearsBeforeRetryAndCompleteDeliveryRemainsInHistory() async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        defer { sessions.setForeground(false) }
+        await fixture.next().reply(body: snapshot())
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let stream = await fixture.next()
+        stream.beginStream()
+        stream.send(event(text: "失败旧正文", revision: 1))
+        try await observed { sessions.answerPreview?.text == "失败旧正文" }
+        stream.send(event(text: "", revision: 2, status: "retrying"))
+        try await observed { sessions.answerPreview?.status == "retrying" }
+        #expect(sessions.answerPreview?.text == "")
+        stream.send(event(text: "新尝试正文", revision: 3, attempt: "second"))
+        try await observed { sessions.answerPreview?.revision == 3 }
+        #expect(sessions.answerPreview?.text == "新尝试正文")
+        stream.send(event(text: "", revision: 4, attempt: "complete", delivery: "complete"))
+        try await observed { sessions.answerPreview?.revision == 4 }
+        #expect(sessions.answerPreview?.text == "")
+        #expect(sessions.answerPreview?.delivery == "complete")
+        await clock.advance()
+        await fixture.next().reply(body: snapshot(revision: 5, active: false))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page(answer: "完整回答。").replacingOccurrences(of: "\"status\":\"completed\"", with: "\"status\":\"completed\",\"answer_delivery\":\"complete\""))
+        _ = await clock.nextInterval()
+        #expect(sessions.answerPreview == nil)
+        #expect(sessions.conversation?.turns.first?.answer == "完整回答。")
+        #expect(sessions.conversation?.turns.first?.answerDelivery == "complete")
+        stream.finish()
+        sessions.setForeground(false)
+        await clock.advance()
+    }
+
     private func snapshot(revision: Int = 0, text: String? = nil, active: Bool = true) -> String {
         """
         {"schema_version":1,"stream_id":"dataset","instance_id":"process","answer_revision":\(revision),
@@ -555,8 +593,10 @@ struct AnswerStreamingTests {
         return try! JSONSerialization.data(withJSONObject: preview)
     }
 
-    private func event(text: String, revision: Int, attempt: String = "attempt", turn: String = "turn") -> Data {
-        let preview = try! JSONSerialization.jsonObject(with: preview(text: text, revision: revision, attempt: attempt, turn: turn))
+    private func event(text: String, revision: Int, attempt: String = "attempt", turn: String = "turn", status: String = "generating", delivery: String = "stream") -> Data {
+        var preview = try! JSONSerialization.jsonObject(with: preview(text: text, revision: revision, attempt: attempt, turn: turn)) as! [String: Any]
+        preview["status"] = status
+        preview["delivery"] = delivery
         let body = try! JSONSerialization.data(withJSONObject: ["schema_version":1, "kind":"answer.preview",
             "instance_id":"process", "revision":revision, "preview":preview])
         return Data("event: answer.preview\r\ndata: ".utf8) + body + Data("\r\n\r\n".utf8)

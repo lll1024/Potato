@@ -67,3 +67,7 @@
 验证：[公开 HTTP 双订阅、交接及真实进程重启](../../tests/test_answer_streaming.py)、[Web 快照／状态／正文交错与旧连接隔离](../../frontend/tests/ui/conversation.spec.ts)，以及 [#100 验收](../acceptance/answer-recovery.md)。完整停止／未保存体验仍由 #102 验收。
 
 主验收：[真实 HTTP 流式作答](../../tests/test_answer_streaming.py)，通过可控外部模型分块屏障验证多个正文批次先于模型返回和原子完成；查询期间不出现说明文字，最终历史一致，正文不推进轨迹游标，并验证跨块密钥、认证头、链接和 JSON 脱敏。[Web 交互](../../frontend/tests/ui/conversation.spec.ts)覆盖预览 Markdown、安全链接与保存后的历史展示。
+
+### 重试与降级投影（#101）
+
+当前正文的 `status` 增加 `retrying`，其 `text` 为空；`delivery` 可为 `stream` 或 `complete`（旧服务可省略）。两端清除失败尝试后显示“正在重试，新尝试将从头作答”，新尝试整体替换。`complete` 表示模型服务明确拒绝流式后改为完整响应，等待期间说明原因，完成后展示真实保存的全文。历史轮次增加可选 `answer_delivery`，由已保存请求开始事实投影，刷新仍能解释降级；不将提示文案放入正文或模型上下文。重试耗尽及不可重试错误采用历史真实失败终态并清除预览。

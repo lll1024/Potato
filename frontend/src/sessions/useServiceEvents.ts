@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type AnswerPreview = {
   instance_id: string; stream_id: string; session_id: string; turn_id: string;
-  attempt_id: string; revision: number; text: string; status: 'generating' | 'generated' | 'invalidated';
+  attempt_id: string; revision: number; text: string; status: 'generating' | 'generated' | 'invalidated' | 'retrying';
+  delivery?: 'stream' | 'complete';
 };
 export type ServiceState = {
   instance_id?: string; answer_revision?: number; answer_preview?: AnswerPreview | null;

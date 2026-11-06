@@ -7,6 +7,7 @@ export type Turn = {
   turn_id: string; ordinal: number; input: string; status: 'running' | 'completed' | 'failed' | 'terminated';
   reason: string | null; answer: string | null; answer_source: 'model' | 'application' | null;
   model_error_code?: string | null;
+  answer_delivery?: 'stream' | 'complete' | null;
   tool_error_count: number; context_excluded?: boolean; created_at?: string; finished_at?: string | null; duration_ms?: number | null;
   query_materials?: QueryMaterial[]; unreadable_query_count?: number;
 };
@@ -27,6 +28,8 @@ export function ConversationRounds({turns, statusText, onTrace, activity, stoppi
     {(isExceptional(turn) || turn.turn_id === storageTurnId) && <ExceptionOutcome turn={turn} storageFault={turn.turn_id === storageTurnId}
       onRetry={turn.turn_id === retryTurnId ? onRetry : undefined} retryBlocked={retryBlocked} />}
     {!isExceptional(turn) && turn.turn_id !== storageTurnId && <RoundProgress turn={turn} activity={activity} stopping={stoppingTurnId === turn.turn_id} disconnected={disconnected} statusText={statusText(turn)} onStop={onStop ? () => onStop(turn) : undefined} />}
+    {current?.status === 'retrying' && <p className="hint" role="status">正在重试，新尝试将从头作答。</p>}
+    {(current?.delivery === 'complete' || turn.answer_delivery === 'complete') && <p className="hint">模型服务不支持流式，改为生成完整回答。</p>}
     {current?.text.trim() && <article className="message answer" data-reading-anchor={`answer:${turn.turn_id}`}>
       <div className="answer-heading"><h3>旅行助手</h3><span>正在生成 · 尚未保存</span></div>
       <AnswerBody text={current.text} />

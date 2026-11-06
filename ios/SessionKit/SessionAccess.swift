@@ -168,6 +168,7 @@ public struct ConversationTurn: Equatable, Identifiable, Sendable {
     public let answer: String?
     public let status: String
     public let reason: String?
+    public let answerDelivery: String?
     let observedAt: Int?
 }
 
@@ -190,6 +191,7 @@ public struct AnswerPreview: Decodable, Equatable, Sendable {
     public let revision: Int
     public let text: String
     public let status: String
+    public let delivery: String?
 }
 
 // JSONDecoder 的 convertFromSnakeCase 产生 Id；公开领域数据沿用项目的 ID 命名。
@@ -197,6 +199,6 @@ extension AnswerPreview {
     enum CodingKeys: String, CodingKey {
         case instanceID = "instanceId", streamID = "streamId", sessionID = "sessionId"
         case turnID = "turnId", attemptID = "attemptId"
-        case revision, text, status
+        case revision, text, status, delivery
     }
 }

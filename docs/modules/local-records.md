@@ -40,3 +40,7 @@
 验证：[记录值与公开保存](../../tests/test_record_contracts.py)、[原子接受](../../tests/test_submissions.py)、[故障回滚与在途返回](../../tests/test_storage.py)、[上下文恢复](../../tests/test_context_recovery.py)及[固定真实入口基线](../../tests/test_migration_baseline.py)。
 
 流式作答的请求开始事实可带 `answer_phase: "query" | "answer"`。`history_records` 不将 `query` 阶段的说明文字列为可回读的助手回答，避免阶段结束信号或工具说明成为后续旅行安排依据；原始响应仍可通过执行轨迹查看。缺少该字段的旧记录保持原读取语义，数据库 schema 不变。
+
+流式／完整作答的开始事实还可带 `answer_delivery: "stream" | "complete"`，随原 `request.started` 事务保存。请求读取保留此字段，轮次的 `answer_delivery` 为该轮最近一次带此字段的请求方式；旧数据为 `null`。这只是客户端解释降级的投影，不新增数据库列，不改写回答或模型协议。
+
+`history_records` 不将 `answer_phase=answer` 且请求未成功完成的部分响应列入模型回读白名单。其原始响应与错误仍保存在执行轨迹，客户端诊断读取不受影响；模型通过搜索或已知记录身份均不能取得失败作答正文。

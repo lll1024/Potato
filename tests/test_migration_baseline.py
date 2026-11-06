@@ -14,7 +14,7 @@ from compatibility.compare import normalize, read_capture, validate
 
 
 def streaming_projection(actual):
-    """只剥离 #98 明确新增的作答事实；固定旧基线及通用 normalize 保持原样。"""
+    """只剥离 #98／#101 明确新增的作答事实；固定旧基线及通用 normalize 保持原样。"""
     validate(actual)
     data = copy.deepcopy(actual)
     expected_streams = {}
@@ -25,6 +25,9 @@ def streaming_projection(actual):
             continue
         saved, payloads = scenario["snapshot"], scenario["payloads"]
         answers = [r for r in saved["requests"] if r["purpose"] == "travel_answer"]
+        for turn in saved["turns"]:
+            delivery = turn.pop("answer_delivery", None)
+            assert delivery == ("stream" if any(r["turn_id"] == turn["turn_id"] for r in answers) else None)
         identifiers = {r["request_id"] for r in answers}
         steps = {(r["turn_id"], r["step"]) for r in answers}
         assert all(count == 1 for count in Counter(r["turn_id"] for r in answers).values())
@@ -114,6 +117,10 @@ class MigrationBaselineTests(unittest.IsolatedAsyncioTestCase):
         unaccounted["model_requests"].append(next(r for r in actual["model_requests"] if r.get("stream")))
         with self.assertRaises(AssertionError):
             streaming_projection(unaccounted)
+        wrong_delivery = copy.deepcopy(actual)
+        wrong_delivery["normal"]["snapshot"]["turns"][0]["answer_delivery"] = "complete"
+        with self.assertRaises(AssertionError):
+            streaming_projection(wrong_delivery)
         unsafe = copy.deepcopy(actual)
         scenario = unsafe["normal"]
         answer_step = next(r["step"] for r in scenario["snapshot"]["requests"] if r["purpose"] == "travel_answer")

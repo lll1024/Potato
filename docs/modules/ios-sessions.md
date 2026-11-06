@@ -56,7 +56,7 @@
 
 只采用当前连接身份、当前进程、数据集和活动轮次的正文，相同或低于已见 `revision` 的更新失效。不同尝试整体替换，不能拼接；`invalidated` 清空原尝试文字，带次序的 `null` 明确表示预览缺失，重复消息不能使其复活。服务进程变更时清除预览，即使 `stream_id` 未变也重新核对；订阅先发现进程变化时立即使旧预览和在途旧快照失效，再读取真实状态。配置、数据集、会话变化、会话 404、退出页面或离开前台均取消客户端接收，使旧连接回调失效。切换观察会话时清除正文及其展示次序，新连接可恢复同次序的有效累计对象，原连接仍按操作身份失效。后台／锁屏不发送停止请求；恢复前台先读累计快照，断线后由后续前台核对先恢复快照和历史，再重建订阅；离开期间已保存时采用真实历史。完整重连竞争、同库重启和实际前后台交互见 [#100 验收](../acceptance/answer-recovery.md)。
 
-预览与 `ConversationTurn.answer` 分开；历史仍为 `running` 时可读取多批正文，不能将其视为已保存。Presenter 通过同一轮次投影预览和“正在生成 · 尚未保存”／“正在保存回答”，复用 `AnswerView` 的 Markdown。复制预览使用“复制当前正文”；持久终态优先使用历史回答，迟到预览不能覆盖已保存结果。两端使用相同提交与接受身份，不另建手机专用轮次。错误重试、停止／未保存正文体验和长文滚动打磨分别由 #101、#102、#103 继续验收。
+预览与 `ConversationTurn.answer` 分开；历史仍为 `running` 时可读取多批正文，不能将其视为已保存。Presenter 通过同一轮次投影预览和“正在生成 · 尚未保存”／“正在保存回答”，复用 `AnswerView` 的 Markdown。复制预览使用“复制当前正文”；持久终态优先使用历史回答，迟到预览不能覆盖已保存结果。两端使用相同提交与接受身份，不另建手机专用轮次。错误重试与降级见下文 #101；停止／未保存正文体验和长文滚动打磨分别由 #102、#103 继续验收。
 
 验证通过公开 `SessionAccess`、可控分块 HTTP 传输、真实 GRDB 文件与后端临时 SQLite；少量界面测试验证多批正文在最终响应返回前真实增长，再转为一致的保存历史。步骤及证据见 [#99 验收](../acceptance/ios-answer-streaming.md)。
 
@@ -99,3 +99,9 @@ App 的 scene phase 在活跃时启用唯一共享轮询、离开活跃态时取
 回答排版由 `AnswerView` 封装 MarkdownUI。完整回答与实时预览均支持系统文字选择、打开链接与复制；复制不截断、不去除 Markdown 标记。表格在独立横向滚动区展示，列宽随 Dynamic Type 缩放，保留中文换行。列表和对话的继续加载经 Presenter → Interactor → `SessionAccess`，Router 仍负责进入和返回；查看更早内容与回到最新均为当前页面的阅读定位，不增加搜索、改名、删除入口。
 
 工程：`ios/Potato.xcodeproj`；生成源：`ios/project.yml`（XcodeGen 2.46.0）。Swift 6，最低 iOS 17，仅 iPhone；依赖解析结果随工程提交。`ios/PotatoTests/` 通过共享公开 interface、真实文件数据库及真实 HTTP／HTTPS 后端验证；`ios/PotatoUITests/` 验证模拟器免配置启动、本地连接重试、设置、进入、返回、草稿重启、离线编辑、分页与完整复制和外链。运行步骤见 [iOS README](../../ios/README.md)；证据见 [本地模拟器调试](../acceptance/ios-local-debug.md)、[#89](../acceptance/ios-readonly.md)、[#90](../acceptance/ios-submission.md)、[#91](../acceptance/ios-drafts.md)、[#92](../acceptance/ios-recovery.md)、[#93](../acceptance/ios-lifecycle.md) 与 [#94](../acceptance/ios-reading.md)。
+
+## 作答失败与降级（#101）
+
+`AnswerPreview.status` 接受 `retrying`，此时共享投影为空正文，Presenter 显示“正在重试，新尝试将从头作答”。新 `attemptID` 的累计正文整体替换；传输读取失败仍使用独立 `answerFailure`，不会触发手机自行重发模型或用户输入。后端失败终态到达后采用历史，不无限显示正在生成。
+
+`AnswerPreview.delivery` 和 `ConversationTurn.answerDelivery` 为可选方式字段，兼容旧服务。`complete` 由后端的明确流式拒绝产生，Presenter 在等待期间及已保存回答旁说明“模型服务不支持流式，改为生成完整回答”。原因与正文分开，保存后仍可通过历史恢复；手机不根据普通网络错误自行推断不支持流式。公开能力与模拟器真实 HTTPS 故障场景见 [#101 验收](../acceptance/answer-retries.md)。

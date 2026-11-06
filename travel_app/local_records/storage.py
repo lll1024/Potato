@@ -216,6 +216,8 @@ class LocalRecords:
             start_data = json.loads(start["data"]) if start else {}
             if start_data.get("purpose", "travel") == "context_summary" or start_data.get("answer_phase") == "query":
                 continue
+            if start_data.get("answer_phase") == "answer" and row["request_status"] != "completed":
+                continue
             for index, block in enumerate(json.loads(row["content"]).get("content", [])):
                 if block.get("type") == "text":
                     add(row, "assistant_text", block["text"], "assistant", row["request_status"],
@@ -286,7 +288,7 @@ class LocalRecords:
                 payload_id = self.save_payload(session_id,turn_id,"input",data["input"])
                 self._db.execute("INSERT INTO requests (request_id,session_id,turn_id,ordinal,status,started_at,input_payload_id,usage_state) VALUES (?,?,?,?,'running',?,?,'not_completed')", (data["request_id"],session_id,turn_id,data["ordinal"],data["started_at"],payload_id))
                 summary = {"ordinal":data["ordinal"],"status":"running","input_payload_id":payload_id}
-                summary.update({field:data[field] for field in ("step","attempt","retry_id","purpose","answer_phase") if field in data})
+                summary.update({field:data[field] for field in ("step","attempt","retry_id","purpose","answer_phase","answer_delivery") if field in data})
             else:
                 failed = kind == "request.failed"
                 field = "error" if failed else "response"
@@ -532,7 +534,7 @@ class LocalRecords:
         for row in self._db.execute("SELECT requests.* FROM requests JOIN turns USING(turn_id) WHERE requests.session_id=? AND turns.ordinal>=? AND turns.ordinal<=? ORDER BY turns.ordinal,requests.ordinal", (session_id,first_ordinal,last_ordinal)):
             request = dict(row)
             request["usage"] = json.loads(request["usage"]) if request["usage"] else None
-            request.update({field:starts[row["request_id"]][field] for field in ("step","attempt","retry_id","purpose","answer_phase")
+            request.update({field:starts[row["request_id"]][field] for field in ("step","attempt","retry_id","purpose","answer_phase","answer_delivery")
                             if field in starts.get(row["request_id"],{})})
             requests.append(request)
         tool_calls = [json.loads(row["data"]) | {"turn_id":row["turn_id"]} for row in self._db.execute(
@@ -545,6 +547,8 @@ class LocalRecords:
             if tool["turn_id"] in interrupted and tool["status"] in ("pending","waiting","running"):
                 tool["interrupted"] = True
         for turn in turns:
+            turn["answer_delivery"] = next((request["answer_delivery"] for request in reversed(requests)
+                if request["turn_id"] == turn["turn_id"] and "answer_delivery" in request), None)
             turn["model_error_code"] = None
             if turn["reason"] == "model_error":
                 last_request = next((request for request in reversed(requests) if request["turn_id"] == turn["turn_id"]), None)

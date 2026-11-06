@@ -135,12 +135,16 @@ final class ConversationPresenter {
         }
         return .loaded(ConversationPresentation(title: page.session.title, turns: page.turns.map { turn in
             let preview = interactor.answerPreview.flatMap { $0.turnID == turn.id && turn.status == "running" ? $0 : nil }
-            let message: String?
+            var message: String?
             if let preview {
                 if interactor.answerFailure != nil { message = "实时正文连接中断，正在重新连接。当前正文尚未保存。" }
                 else if preview.status == "invalidated" { message = "本次正文已失效，等待后端处理。" }
+                else if preview.status == "retrying" { message = "正在重试，新尝试将从头作答。" }
                 else { message = preview.status == "generated" ? "正在保存回答。" : "正在生成 · 尚未保存" }
             } else { message = statusText(turn) }
+            if preview?.delivery == "complete" || turn.answerDelivery == "complete" {
+                message = [message, "模型服务不支持流式，改为生成完整回答。"].compactMap { $0 }.joined(separator: "\n")
+            }
             return ConversationPresentation.Turn(id: turn.id, input: turn.input,
                 answer: preview?.text ?? turn.answer, statusMessage: message, isPreview: preview != nil)
         }, hasEarlierTurns: page.nextBefore != nil))

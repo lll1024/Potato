@@ -12,7 +12,7 @@ async function conversation(page: Page) {
   ];
   const turn = {turn_id: 'turn', ordinal: 1, input: '查询西湖', status: 'running', reason: null as string | null,
     answer: null as string | null, answer_source: 'model', model_error_code: null as string | null,
-    tool_error_count: 0, created_at: new Date(Date.now() - 5000).toISOString()};
+    answer_delivery: null as string | null, tool_error_count: 0, created_at: new Date(Date.now() - 5000).toISOString()};
   const activity = {requests: [] as object[], tool_calls: [] as object[], events: [] as object[]};
   const writes: string[] = [];
   let cursor = 0;
@@ -555,4 +555,41 @@ test('快照与订阅之间服务重启时，发现进程变化立即清除旧�
   // 新快照尚未返回，此刻仍须清除已确认属于旧进程的预览，不虚构持久终态。
   await expect(page.getByText('已经失去进程归属的正文', {exact: true})).toHaveCount(0);
   await expect(page.getByText('第 1 轮 · 正在执行', {exact: true})).toBeVisible();
+});
+
+test('失败正文清空并提示重试，降级后保留完整回答与原因', async ({page}) => {
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  await app.notify();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  async function publish(text: string, revision: number, status: string, attempt: string, delivery = 'stream') {
+    await page.evaluate(values => {
+      (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {data: JSON.stringify({
+        schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision: values.revision,
+        preview: {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+          text: values.text, revision: values.revision, status: values.status, attempt_id: values.attempt, delivery: values.delivery},
+      })}));
+    }, {text, revision, status, attempt, delivery});
+  }
+  await publish('失败旧正文', 1, 'generating', 'first');
+  await expect(page.getByText('失败旧正文', {exact: true})).toBeVisible();
+  await publish('', 2, 'retrying', 'first');
+  await expect(page.getByText('失败旧正文', {exact: true})).toHaveCount(0);
+  await expect(page.getByText('正在重试，新尝试将从头作答。', {exact: true})).toBeVisible();
+  await page.screenshot({path: test.info().outputPath('answer-retrying.png')});
+  await publish('新尝试正文', 3, 'generating', 'second');
+  await expect(page.getByText('新尝试正文', {exact: true})).toBeVisible();
+  await expect(page.getByText('正在重试，新尝试将从头作答。', {exact: true})).toHaveCount(0);
+  await publish('', 4, 'generating', 'complete', 'complete');
+  const notice = page.getByText('模型服务不支持流式，改为生成完整回答。', {exact: true});
+  await expect(notice).toBeVisible();
+  await expect(page.getByText('新尝试正文', {exact: true})).toHaveCount(0);
+  app.turn.status = 'completed'; app.turn.answer = '完整的杭州安排。'; app.turn.answer_delivery = 'complete';
+  app.state.active_turn_id = null; app.state.active_session_id = null;
+  await app.notify();
+  await expect(page.getByText('完整的杭州安排。', {exact: true})).toBeVisible();
+  await expect(notice).toBeVisible();
+  await page.setViewportSize({width: 390, height: 844});
+  await page.getByRole('button', {name: '收起会话导航'}).first().click();
+  await page.screenshot({path: test.info().outputPath('answer-fallback-mobile.png')});
 });
