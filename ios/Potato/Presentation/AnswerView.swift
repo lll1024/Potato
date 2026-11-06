@@ -2,7 +2,7 @@ import MarkdownUI
 import SwiftUI
 import UIKit
 
-/// 排版依赖与系统复制操作收在回答视图内；始终使用后端完整原文。
+/// 排版依赖与系统复制操作收在回答视图内；复制当前展示的 Markdown 原文。
 struct AnswerView: View {
     let text: String
     var isPreview = false
@@ -49,6 +49,7 @@ struct AnswerView: View {
             .font(.subheadline).frame(minHeight: 44)
             .accessibilityIdentifier("copy-answer")
             .onChange(of: text) { copied = false }
+            .onChange(of: copyLabel) { copied = false }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

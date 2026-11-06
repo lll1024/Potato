@@ -36,6 +36,8 @@
 
 ## 前端入口与状态归属
 
+Web 回答复用 `AnswerBody` 的安全 Markdown 排版；每批累计正文重新解析，半成型代码、表格和链接可随后续正文重排。正文版本变化触发底部跟随；上翻暂停后保持阅读位置，点击“回到最新”恢复。复制保留当前展示的 Markdown 原文，并区分当前正文、未保存正文、不完整回答和完整回答。两端阅读验证见 [#103 验收](../acceptance/stream-reading.md)。
+
 公开入口 [frontend/src/sessions/index.ts](../../frontend/src/sessions/index.ts) 导出 `SessionsApp`。外层 [main.tsx](../../frontend/src/main.tsx) 只装配会话界面与旅行者偏好的公开 `PreferencesView`；`SessionsApp` 接收该组件（`onBack` 回到对话），不接管偏好规则。
 
 提交身份、不确定接受结果、同身份核对与重试、仅清理匹配的已提交草稿、当前会话和停止目标均在会话能力内部协调。通知恢复维持最后实际处理游标，状态核对不跳过未收到事件；数据目录变化使历史、草稿、提交回调和分页请求失效。侧栏删除会话清理相应草稿与缓存，切换会话保留独立草稿与已加载历史。

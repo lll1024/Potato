@@ -98,6 +98,15 @@ class StreamingModel:
         self.entered = asyncio.Event()
         self.returned = False
         self.mode = mode
+        self.parts = type(self).parts
+        if mode == "reading":
+            self.parts = [
+                "## 流式中文阅读\n\n" + "沿湖慢行，按体力安排休息。\n\n" * 16 + "```swift\nlet city = \"杭州\"",
+                "\n```\n\n| 日期 | 上午 | 下午 | 晚间 | 提醒 |\n",
+                "| --- | --- | --- | --- | --- |\n| 周六 | 西湖漫步 | 博物馆 | 湖畔晚餐 | 提前预约 |\n\n[预约说明](https://example.com",
+                ")\n\n" + "继续阅读中文旅行安排，保留已经读到的位置。\n\n" * 12 + "第四批阅读标记。\n\n",
+                "- 步行路线按体力调整。\n- 午后留出休息时间。\n\n" + "最新一批旅行建议。\n\n" * 12,
+            ]
         self.attempts = 0
         self.query_done = False
 
@@ -114,7 +123,7 @@ class StreamingModel:
     async def stream(self, **parameters):
         model = self
         self.attempts += 1
-        fail = self.mode != "normal" and self.attempts == 1
+        fail = self.mode in {"retry", "fallback"} and self.attempts == 1
 
         class Stream:
             async def __aiter__(self):

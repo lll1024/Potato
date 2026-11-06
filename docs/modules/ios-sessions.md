@@ -98,6 +98,8 @@ App 的 scene phase 在活跃时启用唯一共享轮询、离开活跃态时取
 
 回答排版由 `AnswerView` 封装 MarkdownUI。完整回答与实时预览均支持系统文字选择、打开链接与复制；复制不截断、不去除 Markdown 标记。表格在独立横向滚动区展示，列宽随 Dynamic Type 缩放，保留中文换行。列表和对话的继续加载经 Presenter → Interactor → `SessionAccess`，Router 仍负责进入和返回；查看更早内容与回到最新均为当前页面的阅读定位，不增加搜索、改名、删除入口。
 
+流式正文按真实接收批次整体重排，包括尚未闭合的代码、表格和链接。同一轮排版高度增长时，停留底部继续跟随；纵向上翻暂停跟随，横向阅读表格不暂停。主动“回到最新”或手动滚动到底部恢复跟随，加载更早对话继续保留原锚点。复制取当前展示的 Markdown 原文，正文或其保存／完整性状态变化后清除旧的已复制提示。
+
 工程：`ios/Potato.xcodeproj`；生成源：`ios/project.yml`（XcodeGen 2.46.0）。Swift 6，最低 iOS 17，仅 iPhone；依赖解析结果随工程提交。`ios/PotatoTests/` 通过共享公开 interface、真实文件数据库及真实 HTTP／HTTPS 后端验证；`ios/PotatoUITests/` 验证模拟器免配置启动、本地连接重试、设置、进入、返回、草稿重启、离线编辑、分页与完整复制和外链。运行步骤见 [iOS README](../../ios/README.md)；证据见 [本地模拟器调试](../acceptance/ios-local-debug.md)、[#89](../acceptance/ios-readonly.md)、[#90](../acceptance/ios-submission.md)、[#91](../acceptance/ios-drafts.md)、[#92](../acceptance/ios-recovery.md)、[#93](../acceptance/ios-lifecycle.md) 与 [#94](../acceptance/ios-reading.md)。
 
 ## 作答失败与降级（#101）

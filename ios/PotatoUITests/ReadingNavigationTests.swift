@@ -226,6 +226,61 @@ final class ReadingNavigationTests: XCTestCase {
         }
     }
 
+    func testStreamingMarkdownFollowsGrowthAndPreservesReadingPosition() async throws {
+        let app = connectedApp(address: "https://localhost:18497")
+        try await streamControl("arm?mode=reading")
+        defer { app.terminate() }
+        app.buttons["new-conversation"].tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        input.tap()
+        input.typeText("流式中文排版验收")
+        app.buttons["send-input"].tap()
+        try await streamControl("entered", method: "GET")
+        let copy = app.buttons["copy-answer"]
+        try await streamControl("step")
+        XCTAssertTrue(copy.waitForExistence(timeout: 10))
+        await fulfillment(of: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: copy)], timeout: 5)
+        XCTAssertEqual(copy.label, "复制当前正文")
+        attach(app, "未闭合代码与长中文正文跟随到底部")
+        try await streamControl("step")
+        try await streamControl("step")
+        let table = app.scrollViews["answer-table"]
+        XCTAssertTrue(table.waitForExistence(timeout: 5))
+        await fulfillment(of: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: copy)], timeout: 5)
+        table.swipeLeft()
+        XCTAssertFalse(app.buttons["latest-answer"].exists)
+        try await streamControl("step")
+        let marker = app.staticTexts["第四批阅读标记。"]
+        XCTAssertTrue(marker.waitForExistence(timeout: 5))
+        await fulfillment(of: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: copy)], timeout: 5)
+        app.scrollViews.firstMatch.swipeDown()
+        XCTAssertTrue(app.buttons["latest-answer"].waitForExistence(timeout: 5))
+        let position = marker.frame.minY
+        try await streamControl("step")
+        XCTAssertTrue(app.staticTexts["最新一批旅行建议。"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertEqual(marker.frame.minY, position, accuracy: 3)
+        XCTAssertFalse(copy.isHittable)
+        attach(app, "上翻后新正文不抢位置")
+        app.buttons["latest-answer"].tap()
+        XCTAssertTrue(copy.isHittable)
+        copy.tap()
+        XCTAssertEqual(copy.label, "已复制当前正文")
+        let (snapshotData, _) = try await URLSession.shared.data(from: URL(string: "https://localhost:18497/api/snapshot")!)
+        let snapshot = try XCTUnwrap(JSONSerialization.jsonObject(with: snapshotData) as? [String: Any])
+        let preview = try XCTUnwrap(snapshot["answer_preview"] as? [String: Any])
+        let copiedText = try XCTUnwrap(preview["text"] as? String)
+        try await streamControl("step")
+        await fulfillment(of: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "复制完整回答"), object: copy)], timeout: 10)
+        XCTAssertTrue(copy.isHittable)
+        attach(app, "主动回到最新并跟随保存结果")
+        input.tap()
+        input.press(forDuration: 1.2)
+        let paste = app.menuItems.matching(NSPredicate(format: "label IN %@", ["粘贴", "Paste"])).firstMatch
+        XCTAssertTrue(paste.waitForExistence(timeout: 5))
+        paste.tap()
+        XCTAssertEqual(input.value as? String, copiedText)
+    }
+
     private func streamControl(_ action: String, method: String = "POST", port: Int = 18497) async throws {
         var request = URLRequest(url: URL(string: "https://localhost:\(port)/__test__/" + action)!)
         request.httpMethod = method

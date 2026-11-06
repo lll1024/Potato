@@ -425,6 +425,62 @@ test('最终回答在保存之前分批展示 Markdown，保存后使用历史�
 });
 
 
+for (const width of [1440, 390]) test(`流式中文 Markdown 重排、同轮跟随、上翻和当前全文复制 ${width}`, async ({page, context}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.setViewportSize({width: 1440, height: 844});
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  await app.notify();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  await page.setViewportSize({width, height: 844});
+  if (width < 760) await page.getByRole('button', {name: '收起会话导航'}).first().click();
+  const messages = page.locator('.messages');
+  const body = messages.locator('.answer-body');
+  let text = '';
+  let revision = 0;
+  async function append(part: string, rendered: string) {
+    text += part; revision++;
+    await page.evaluate(({text, revision}) => {
+      (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {data: JSON.stringify({
+        schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision,
+        preview: {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+          attempt_id: 'reading', revision, text, status: 'generating'},
+      })}));
+    }, {text, revision});
+    await expect(body).toContainText(rendered);
+  }
+  const bottomGap = () => messages.evaluate(element => element.scrollHeight - element.scrollTop - element.clientHeight);
+  await append('## 中文旅行安排\n\n' + '沿湖慢行，按体力安排休息。\n\n'.repeat(25) + '```swift\nlet city = "杭州"', 'let city = "杭州"');
+  await expect(body.locator('pre code')).toContainText('let city = "杭州"');
+  await expect.poll(bottomGap).toBeLessThan(8);
+  await append('\n```\n\n| 日期 | 上午 | 下午 | 提醒 |\n', '| 日期 | 上午 | 下午 | 提醒 |');
+  await expect(body.locator('table')).toHaveCount(0);
+  // 分隔行和数据到达后，同一段文本重新成为表格。
+  text += '| --- | --- | --- | --- |\n| 周六 | 西湖漫步 | 博物馆 | 提前预约 |\n\n[预约说明](https://example.com';
+  await append('', '提前预约');
+  await expect(body.locator('table')).toHaveCount(1);
+  await append(')\n\n- 午后留出休息时间。\n', '午后留出休息时间。');
+  await expect(body.getByRole('link', {name: '预约说明'})).toHaveAttribute('href', 'https://example.com');
+  await expect.poll(bottomGap).toBeLessThan(8);
+  await page.getByRole('button', {name: '复制当前正文', exact: true}).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(text);
+  await messages.hover();
+  await page.mouse.wheel(0, -500);
+  const latest = page.getByRole('button', {name: '回到最新', exact: true});
+  await expect(latest).toBeVisible();
+  const position = await messages.evaluate(element => element.scrollTop);
+  await append('\n' + '继续安排中文旅行活动。\n\n'.repeat(20), '继续安排中文旅行活动。');
+  expect(await messages.evaluate(element => element.scrollTop)).toBeCloseTo(position, 0);
+  await latest.click();
+  await expect.poll(bottomGap).toBeLessThan(8);
+  await append('\n最新到达的旅行建议。\n', '最新到达的旅行建议。');
+  await expect.poll(bottomGap).toBeLessThan(8);
+  await page.getByRole('button', {name: '复制当前正文', exact: true}).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(text);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({path: test.info().outputPath(`stream-reading-${width}.png`)});
+});
+
 test('恢复正文采用累计快照，重复、迟到与失效尝试不会回滚当前回答', async ({page}) => {
   const app = await conversation(page);
   app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
