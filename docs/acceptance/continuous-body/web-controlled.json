@@ -1,0 +1,89 @@
+{
+  "observations": [
+    {
+      "at": "2026-11-07T08:44:27.252Z",
+      "displayed_chars": 12,
+      "backend_chars": 12,
+      "revision": 16,
+      "status": "generating",
+      "turn_id": "cbea208889384b6c94a12195ecc00a6c",
+      "model_returned": false
+    },
+    {
+      "at": "2026-11-07T08:44:27.290Z",
+      "displayed_chars": 23,
+      "backend_chars": 23,
+      "revision": 17,
+      "status": "generating",
+      "turn_id": "cbea208889384b6c94a12195ecc00a6c",
+      "model_returned": false
+    },
+    {
+      "at": "2026-11-07T08:44:27.297Z",
+      "displayed_chars": 34,
+      "backend_chars": 34,
+      "revision": 18,
+      "status": "generating",
+      "turn_id": "cbea208889384b6c94a12195ecc00a6c",
+      "model_returned": false
+    },
+    {
+      "at": "2026-11-07T08:44:27.302Z",
+      "displayed_chars": 45,
+      "backend_chars": 45,
+      "revision": 19,
+      "status": "generating",
+      "turn_id": "cbea208889384b6c94a12195ecc00a6c",
+      "model_returned": false
+    },
+    {
+      "at": "2026-11-07T08:44:27.307Z",
+      "displayed_chars": 56,
+      "backend_chars": 56,
+      "revision": 20,
+      "status": "generating",
+      "turn_id": "cbea208889384b6c94a12195ecc00a6c",
+      "model_returned": false
+    },
+    {
+      "at": "2026-11-07T08:44:27.313Z",
+      "displayed_chars": 67,
+      "backend_chars": 67,
+      "revision": 21,
+      "status": "generating",
+      "turn_id": "cbea208889384b6c94a12195ecc00a6c",
+      "model_returned": false
+    },
+    {
+      "at": "2026-11-07T08:44:27.322Z",
+      "displayed_chars": 78,
+      "backend_chars": 78,
+      "revision": 22,
+      "status": "generating",
+      "turn_id": "cbea208889384b6c94a12195ecc00a6c",
+      "model_returned": false
+    },
+    {
+      "at": "2026-11-07T08:44:27.328Z",
+      "displayed_chars": 89,
+      "backend_chars": 89,
+      "revision": 23,
+      "status": "generating",
+      "turn_id": "cbea208889384b6c94a12195ecc00a6c",
+      "model_returned": false
+    },
+    {
+      "at": "2026-11-07T08:44:27.334Z",
+      "displayed_chars": 100,
+      "backend_chars": 100,
+      "revision": 24,
+      "status": "generating",
+      "turn_id": "cbea208889384b6c94a12195ecc00a6c",
+      "model_returned": false
+    }
+  ],
+  "final": {
+    "status": "completed",
+    "answer": "连续阅读：\"先沿西湖步行第1站观察湖畔风景🙂第2站观察湖畔风景🙂第3站观察湖畔风景🙂第4站观察湖畔风景🙂第5站观察湖畔风景🙂第6站观察湖畔风景🙂第7站观察湖畔风景🙂第8站观察湖畔风景🙂"
+  }
+}

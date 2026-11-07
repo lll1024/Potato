@@ -1,0 +1,14 @@
+
+> travel-local-ui@0.1.0 test:ui
+> playwright test tests/ui/conversation.spec.ts -g 无换行中文与未闭合引号
+
+[WebServer] (node:56943) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:56948) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/ui/conversation.spec.ts:734:1 › 无换行中文与未闭合引号按连续小片段展示并保留最终原文 (1.2s)
+
+  1 passed (7.1s)
