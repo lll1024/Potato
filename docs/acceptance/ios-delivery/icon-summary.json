@@ -1,0 +1,82 @@
+{
+  "date": "2026-11-07",
+  "timezone": "Asia/Shanghai",
+  "base": "b8e451e6f8c57d6136e8c7ce33a8c924e112e99b",
+  "icon": {
+    "width": 1024,
+    "height": 1024,
+    "color_type": "RGB (no alpha)",
+    "sha256": "de03d1d6496460a12fc3a429d5da5d057511d1a6f81d1cd41a1d388c9de6dfc9",
+    "repeat_generation_identical": true
+  },
+  "archive": {
+    "signed": false,
+    "bundle_id": "com.potato.travel",
+    "version": "0.1.0",
+    "build": "1",
+    "device_family": [
+      1
+    ],
+    "minimum_os": "17.0",
+    "primary_icon": {
+      "CFBundleIconFiles": [
+        "AppIcon60x60"
+      ],
+      "CFBundleIconName": "AppIcon"
+    },
+    "compiled_catalog_bytes": 32552,
+    "catalog_icon_renditions": [
+      {
+        "AssetType": "Icon Image",
+        "BitsPerComponent": 8,
+        "ColorModel": "RGB",
+        "Colorspace": "srgb",
+        "Compression": "lzfse",
+        "Encoding": "ARGB",
+        "Icon Index": 1,
+        "Idiom": "phone",
+        "Name": "AppIcon",
+        "NameIdentifier": 6849,
+        "Opaque": true,
+        "PixelHeight": 1024,
+        "PixelWidth": 1024,
+        "RenditionName": "AppIcon.png",
+        "Scale": 1,
+        "SHA1Digest": "869EDB4A45C610C7840C26245F8E4BA8A22355F481D60EDB26BBDF147861288F",
+        "SizeOnDisk": 14325
+      }
+    ],
+    "loose_icons": [
+      "AppIcon60x60@2x.png",
+      "AppIcon76x76@2x~ipad.png"
+    ],
+    "privacy_manifests": [
+      "Factory_FactoryKit.bundle/PrivacyInfo.xcprivacy",
+      "GRDB_GRDB.bundle/PrivacyInfo.xcprivacy",
+      "Alamofire_Alamofire.bundle/PrivacyInfo.xcprivacy"
+    ],
+    "Potato": "/tmp/potato-88-icon.xcarchive/Products/Applications/Potato.app/Potato:\nLoad command 11\n      cmd LC_BUILD_VERSION\n  cmdsize 32\n platform IOS\n    minos 17.0\n      sdk 27.2\n   ntools 1\n     tool LD\n  version 27106.1\n",
+    "Frameworks/SessionKit.framework/SessionKit": "/tmp/potato-88-icon.xcarchive/Products/Applications/Potato.app/Frameworks/SessionKit.framework/SessionKit:\nLoad command 10\n      cmd LC_BUILD_VERSION\n  cmdsize 32\n platform IOS\n    minos 17.0\n      sdk 27.2\n   ntools 1\n     tool LD\n  version 27106.1\n",
+    "Potato_architectures": "arm64",
+    "Frameworks/SessionKit.framework/SessionKit_architectures": "arm64"
+  },
+  "environment": {
+    "xcode": "27.2 (27B52)",
+    "simulator": "iPhone 17 Pro / iOS 26.5 (23F77)",
+    "valid_signing_identities": 0,
+    "physical_device_connected": false,
+    "user_has_iphone": true,
+    "paid_developer_membership": false,
+    "tailscale_status": "10-second timeout",
+    "tailscale_serve_status": "10-second timeout"
+  },
+  "not_verified": [
+    "paid signing",
+    "Organizer validation",
+    "upload",
+    "TestFlight installation/update",
+    "iOS 17 execution",
+    "Tailscale private HTTPS",
+    "five cellular device scenarios"
+  ]
+}

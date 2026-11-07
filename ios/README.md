@@ -18,6 +18,10 @@ xcodebuild build -project ios/Potato.xcodeproj -scheme Potato \
 
 `-skipMacroValidation` 用于 CI 对已固定来源的 Swift 宏进行非交互构建；Xcode 中可审阅并信任这些包的宏后正常构建。它不关闭 HTTPS 校验。签名与 TestFlight 分发由 #95 验收，模拟器运行不需要 Apple 账户。
 
+## 应用图标
+
+蓝白旅行路线标记保存在 `Potato/Assets.xcassets/AppIcon.appiconset`，使用不透明的 1024 × 1024 PNG，圆角由系统裁切。`project.yml` 指定 AppIcon，Xcode 为 iPhone 和 App Store 编译相应资源。绘图源文件为 [generate-app-icon.swift](Design/generate-app-icon.swift)；在仓库根目录运行 `swift ios/Design/generate-app-icon.swift` 可重新生成，不需要额外图片库。图标加入工程不代表已经通过签名、上传或 TestFlight 验收。
+
 ## 本地模拟器调试
 
 先在仓库根目录启动现有后端：
