@@ -94,3 +94,5 @@ async def answer(text):
 回调每次发送一个累计条目 `{id, attempt_id, kind, text, status}`。`kind=model` 的状态为 `generating/generated/invalidated/retrying`，只表示行动说明的生成与有效性；不同请求身份不拼接。`kind=tool` 的状态为 `pending/running/completed/failed/not_executed`，在对应执行事实可靠保存后投影，文字仅按工具能力描述行动，不暴露原始名称或参数。`completed` 只表示已取得查询资料，不能称为完成信息核实。批次提出顺序保留，工具执行次序和结果仍由原有批次协调与预算决定。
 
 验证见 [公开查询进展测试](../../tests/test_query_progress.py)：外部模型分片和工具屏障之前观察说明增长、执行中及真实完成状态、无查询长正文隔离、跨块标记与凭据脱敏。
+
+查询进展的保存自 #112 起复用原观察事实：成功查询响应的最终简短行动说明放入 `request.completed.progress`，工具条目放入对应生命周期事实的 `progress`。相同条目随后发给当前进展回调；工具事实须先可靠提交再发布对外状态。完整响应中的说明仍按原协议由上下文管理；新增显示投影不自行追加模型消息。模型失败尝试的临时文字不保存为进展，原始诊断载荷仍遵循执行轨迹和回读约束。

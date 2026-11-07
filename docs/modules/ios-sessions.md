@@ -123,6 +123,12 @@ App 的 scene phase 在活跃时启用唯一共享轮询、离开活跃态时取
 
 `SessionAccess.progressPreview` 是当前观察会话的可选 `ProgressPreview`，含进程、数据集、会话、轮次、独立 `revision` 及 `[ProgressEntry]`；条目的模型行动说明与工具真实状态见[规划契约](planning.md#查询进展111)。旧服务没有新增字段时继续原有阅读路径。
 
-共享 `SharedSessions` 使用现有唯一前台 SSE 连接解析 `progress.preview` 和 `answer.preview`，不增加轮询或模型执行。快照恢复后采用更新的累计对象；重复、较旧次序、错误轮次、旧进程或旧订阅不改变当前进展。切换观察对象、配置或数据集后使旧投影失效。停止立即同时冻结进展与正文，后台断开只取消客户端读取。页面通过原 Interactor／Presenter 读取进展，分别呈现简短行动、准备／执行／取得资料／失败状态与最终 Markdown 正文；正文复制不包含进展。成功保存后以真实历史为准；#112 继续交付进展持久回看。
+共享 `SharedSessions` 使用现有唯一前台 SSE 连接解析 `progress.preview` 和 `answer.preview`，不增加轮询或模型执行。快照恢复后采用更新的累计对象；重复、较旧次序、错误轮次、旧进程或旧订阅不改变当前进展。切换观察对象、配置或数据集后使旧投影失效。停止立即同时冻结进展与正文，后台断开只取消客户端读取。页面通过原 Interactor／Presenter 读取进展，分别呈现简短行动、准备／执行／取得资料／失败状态与最终 Markdown 正文；正文复制不包含进展。成功保存后以真实历史为准；已保存进展从下述历史字段读取。
 
 验证：[SessionAccess 同订阅、错序及归属测试](../../ios/PotatoTests/PollingTests.swift)、[真实 HTTPS／SQLite 查询进展页面](../../ios/PotatoUITests/ReadingNavigationTests.swift)。
+
+## 已保存进展与原生折叠（#112）
+
+`ConversationTurn.queryProgress` 为可选 `[ProgressEntry]`，由同一会话历史 HTTP 读取，不另存手机历史副本；旧服务缺少字段时为 `nil`。重新创建本地客户端、重开 App 或换设备后重新读取后端可靠事实，失败临时说明不从手机缓存补回。历史分页仍以真实轮次身份与后端游标合并整条记录。
+
+对话页面在当前归属匹配的进展和已保存数组之间选择其一，以 `DisclosureGroup` 呈现；首次正文非空即收起，用户可主动展开，随后增长不再次收起。新打开的已回答历史默认收起，展开显示真实动作顺序与成功、失败或中断结果未知。当前与已保存进展的提示分开，取得资料不称为完成核实；复制回答不包含进展。`hasAnswerStarted` 使用原始正文是否已出现，折叠状态不控制后端生成、保存或最终状态。验证见[查询进展历史与两端折叠验收](../acceptance/query-progress-history.md)。

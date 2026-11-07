@@ -1,0 +1,26 @@
+{
+  "at": "2026-11-07T09:06:12.413Z",
+  "session_id": "b9e28e781d16401c8a8165b0a35bd972",
+  "turn_id": "338b67cb84e4447abd0c9e44e719000c",
+  "answer": "## 实时杭州旅行\n\n上午游览西湖。\n\n下午参观博物馆。\n",
+  "query_progress": [
+    {
+      "id": "91db03662eac402f9be50cf25349e20b",
+      "attempt_id": "91db03662eac402f9be50cf25349e20b",
+      "kind": "model",
+      "text": "准备查找西湖的地点资料。",
+      "status": "generated"
+    },
+    {
+      "id": "517e5356608b4bca85f1a600eab414c7",
+      "attempt_id": "91db03662eac402f9be50cf25349e20b",
+      "kind": "tool",
+      "text": "查找地点资料",
+      "status": "completed"
+    }
+  ],
+  "afterRefresh": [
+    "准备查找西湖的地点资料。",
+    "查找地点资料"
+  ]
+}
