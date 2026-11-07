@@ -7,7 +7,9 @@ from contextlib import asynccontextmanager
 from types import SimpleNamespace
 
 from http_fixtures import serving, wait_finished
-from service_fixtures import MapService, response
+from service_fixtures import MapService, ModelService, response
+from record_faults import fail_event
+from model_fixtures import status_error
 
 
 class QueryModel:
@@ -20,6 +22,7 @@ class QueryModel:
         self.answer_release = asyncio.Event()
         self.parts = ["进展：准备查找西湖", "的地点资料。"]
         self.has_queries = True
+        self.query_failure = None
 
     @asynccontextmanager
     async def stream(self, **parameters):
@@ -36,6 +39,7 @@ class QueryModel:
                         yield SimpleNamespace(type="content_block_delta", delta=SimpleNamespace(type="text_delta", text=part))
                         model.delivered.put_nowait(part)
                     await model.release.get()
+                    if model.query_failure: raise model.query_failure
                 else:
                     if not query:
                         model.answer_entered.set()
@@ -193,5 +197,109 @@ class QueryProgressTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(history["turns"][0]["tool_error_count"], 1)
                 finally:
                     maps.release.set()
+                    model.answer_release.set()
+                    for _ in range(10): model.release.put_nowait(None)
+
+    async def test_saved_progress_survives_second_client_and_same_database_restart(self):
+        model = QueryModel()
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory, model) as client:
+                accepted = (await client.post("/api/turns", json={"input":"保存查询进展"})).json()
+                try:
+                    for _ in range(3): model.release.put_nowait(None)
+                    await asyncio.wait_for(model.answer_entered.wait(), 3)
+                    live = (await client.get("/api/snapshot")).json()["progress_preview"]["entries"]
+                    expected = [entry for entry in live if entry["text"]]
+                    model.answer_release.set()
+                    history = await asyncio.wait_for(wait_finished(client, accepted["session_id"]), 3)
+                    self.assertEqual(history["turns"][0]["query_progress"], expected)
+                    import httpx
+                    async with httpx.AsyncClient(base_url=client.base_url) as other:
+                        second = (await other.get("/api/sessions/" + accepted["session_id"], params={"include_messages":False})).json()
+                        self.assertEqual(second["turns"][0]["query_progress"], expected)
+                finally:
+                    model.answer_release.set()
+                    for _ in range(10): model.release.put_nowait(None)
+            async with serving(directory, ModelService([])) as reopened:
+                history = (await reopened.get("/api/sessions/" + accepted["session_id"])).json()
+                self.assertEqual(history["turns"][0]["query_progress"], expected)
+                self.assertEqual(history["turns"][0]["answer"], "西湖旅行安排。")
+
+    async def test_progress_fact_rollback_and_restart_never_promote_unsaved_text_or_tool_success(self):
+        for kind in ("request.completed", "tool.completed"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as directory:
+                model = QueryModel()
+                async with serving(directory, model) as client:
+                    accepted = (await client.post("/api/turns", json={"input":"查询事实保存失败"})).json()
+                    try:
+                        for _ in model.parts:
+                            model.release.put_nowait(None)
+                            await asyncio.wait_for(model.delivered.get(), 2)
+                        self.assertIn("准备查找西湖", (await client.get("/api/snapshot")).json()["progress_preview"]["entries"][0]["text"])
+                        fail_event(directory, kind)
+                        model.release.put_nowait(None)
+                        async with asyncio.timeout(3):
+                            while (await client.get("/api/snapshot")).json()["active_turn_id"]:
+                                await asyncio.sleep(.01)
+                        history = (await client.get("/api/sessions/" + accepted["session_id"])).json()
+                        entries = history["turns"][0]["query_progress"]
+                        self.assertIsNone(history["turns"][0]["answer"])
+                        if kind == "request.completed":
+                            self.assertEqual(entries, [])
+                        else:
+                            self.assertEqual([entry["status"] for entry in entries], ["generated", "running"])
+                            self.assertFalse(any(entry["status"] == "completed" for entry in entries))
+                    finally:
+                        model.answer_release.set()
+                        for _ in range(10): model.release.put_nowait(None)
+                async with serving(directory, ModelService([])) as reopened:
+                    history = (await reopened.get("/api/sessions/" + accepted["session_id"])).json()
+                    self.assertEqual(history["turns"][0]["reason"], "service_interrupted")
+                    entries = history["turns"][0]["query_progress"]
+                    if kind == "request.completed": self.assertEqual(entries, [])
+                    else: self.assertEqual(entries[-1]["status"], "interrupted")
+
+    async def test_old_records_without_progress_metadata_remain_readable_and_can_continue(self):
+        # 原 CLI 入口不启用显示进展；其保存事实与旧库缺少元数据的形状相同。
+        from pathlib import Path
+        from travel_app.local_records import LocalRecords
+        from travel_app.planning import plan
+        from travel_app.retrieval import Retrieval
+        from typing import cast
+        from mcp import Client
+        with tempfile.TemporaryDirectory() as directory:
+            tools = Retrieval(cast(Client, MapService()))
+            await tools.discover()
+            records = LocalRecords(Path(directory))
+            accepted = records.accept("旧会话")
+            result = await plan("旧会话", ModelService([response([{"type":"text", "text":"旧回答"}])]), tools, "test")
+            records.finish(accepted["session_id"], accepted["turn_id"], result.answer, result.material, result.fields(), 0)
+            records.close()
+            async with serving(directory, ModelService([response([{"type":"text", "text":"续聊回答"}])])) as client:
+                history = (await client.get("/api/sessions/" + accepted["session_id"])).json()
+                self.assertEqual(history["turns"][0]["query_progress"], [])
+                self.assertEqual(history["turns"][0]["answer"], "旧回答")
+                later = (await client.post("/api/turns", json={"input":"继续", "session_id":accepted["session_id"]})).json()
+                history = await asyncio.wait_for(wait_finished(client, accepted["session_id"], later["turn_id"]), 3)
+                self.assertEqual(history["turns"][0]["answer"], "旧回答")
+                self.assertEqual(history["turns"][1]["answer"], "续聊回答")
+
+    async def test_failed_model_attempt_partial_progress_is_not_saved_as_history(self):
+        model = QueryModel()
+        model.query_failure = status_error(401)
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory, model) as client:
+                accepted = (await client.post("/api/turns", json={"input":"失败进展不进入历史"})).json()
+                try:
+                    for _ in model.parts:
+                        model.release.put_nowait(None)
+                        await asyncio.wait_for(model.delivered.get(), 2)
+                    self.assertIn("准备查找西湖", (await client.get("/api/snapshot")).json()["progress_preview"]["entries"][0]["text"])
+                    model.release.put_nowait(None)
+                    history = await asyncio.wait_for(wait_finished(client, accepted["session_id"]), 3)
+                    self.assertEqual(history["turns"][0]["status"], "failed")
+                    self.assertEqual(history["turns"][0]["query_progress"], [])
+                    self.assertEqual(history["tool_calls"], [])
+                finally:
                     model.answer_release.set()
                     for _ in range(10): model.release.put_nowait(None)

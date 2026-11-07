@@ -790,3 +790,44 @@ test('无换行中文与未闭合引号按连续小片段展示并保留最终�
   await expect(page.locator('.answer-body').first()).toHaveText(text);
   await expect(page.getByRole('button', {name: '复制完整回答', exact: true})).toBeVisible();
 });
+
+test('正文出现自动折叠查询进展，手动展开和刷新历史回看保持真实顺序', async ({page}) => {
+  const app = await conversation(page);
+  app.sessions[0].status = 'running';
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip';
+  Object.assign(app.turn, {query_progress: [
+    {id:'note', attempt_id:'query', kind:'model', text:'准备查找西湖资料。', status:'generated'},
+    {id:'tool', attempt_id:'query', kind:'tool', text:'查找地点资料', status:'failed'},
+  ]});
+  await app.notify();
+  await page.getByRole('button', {name: /正在处理 杭州行程/}).click();
+  const progress = page.getByRole('region', {name:'查询进展', exact:true});
+  await expect(progress).toContainText('准备查找西湖资料。');
+  await expect(progress).toHaveJSProperty('open', true);
+  async function answer(revision: number, text: string) {
+    await page.evaluate(({revision,text}) => {
+      (window as unknown as {source:EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {data:JSON.stringify({
+        schema_version:1, kind:'answer.preview', instance_id:'process', revision,
+        preview:{instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',attempt_id:'answer',revision,text,status:'generating'},
+      })}));
+    }, {revision,text});
+  }
+  await answer(1,'# 旅行安排');
+  await expect(progress).toHaveJSProperty('open', false);
+  await progress.locator('summary').click();
+  await expect(progress).toHaveJSProperty('open', true);
+  await expect(progress).toContainText('查询失败');
+  await answer(2,'# 旅行安排\n\n按需调整。');
+  await expect(progress).toHaveJSProperty('open', true);
+  app.sessions[0].status='completed'; app.turn.status='completed'; app.turn.answer='# 旅行安排\n\n按需调整。';
+  app.state.active_turn_id=null; app.state.active_session_id=null;
+  await app.notify();
+  await expect(page.getByRole('button',{name:'复制完整回答',exact:true})).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', {name:/杭州行程.*已完成/}).click();
+  const saved = page.getByRole('region',{name:'查询进展',exact:true});
+  await expect(saved).toHaveJSProperty('open',false);
+  await saved.locator('summary').click();
+  await expect(saved.locator('li')).toHaveText(['准备查找西湖资料。 行动说明','查找地点资料 查询失败']);
+  await expect(saved).toContainText('已保存的查询进展');
+});

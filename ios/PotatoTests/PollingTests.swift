@@ -276,6 +276,28 @@ struct StopTests {
 
 @MainActor
 struct AnswerStreamingTests {
+    @Test func savedProgressIsReadAgainAfterReopeningClientWithoutLocalHistoryCopy() async throws {
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, address) = try await HTTPFixture.client(databaseURL: file)
+        let saved = page(answer: "已保存回答").replacingOccurrences(of: "\"status\":\"completed\"", with:
+            "\"status\":\"completed\",\"query_progress\":[{\"id\":\"note\",\"attempt_id\":\"query\",\"kind\":\"model\",\"text\":\"准备查找地点资料。\",\"status\":\"generated\"},{\"id\":\"tool\",\"attempt_id\":\"query\",\"kind\":\"tool\",\"text\":\"查找地点资料\",\"status\":\"failed\"}]")
+        sessions.watchConversation(sessionID: "existing")
+        let reading = Task { try await sessions.history(sessionID: "existing") }
+        await fixture.next().reply(body: saved)
+        let first = try await reading.value
+        #expect(first.turns.first?.queryProgress?.map(\.status) == ["generated", "failed"])
+        #expect(sessions.progressPreview == nil)
+        let (reopened, other, _) = try await HTTPFixture.client(databaseURL: file, address: address)
+        #expect(reopened.conversation == nil)
+        reopened.watchConversation(sessionID: "existing")
+        let restored = Task { try await reopened.history(sessionID: "existing") }
+        await other.next().reply(body: saved)
+        #expect(try await restored.value.turns.first?.queryProgress == first.turns.first?.queryProgress)
+        let old = Task { try await reopened.history(sessionID: "existing") }
+        await other.next().reply(body: page(answer: "旧记录回答"))
+        #expect(try await old.value.turns.first?.queryProgress == nil)
+    }
+
     @Test func queryProgressUsesExistingSubscriptionAndKeepsAnswerSeparate() async throws {
         let clock = PollClock()
         let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")

@@ -59,6 +59,8 @@ struct ConversationPresentation {
         let isUnsaved: Bool
         let isIncomplete: Bool
         let progress: [ProgressEntry]
+        let hasAnswerStarted: Bool
+        let isCurrentProgress: Bool
     }
     let title: String
     let turns: [Turn]
@@ -164,7 +166,9 @@ final class ConversationPresenter {
             return ConversationPresentation.Turn(id: turn.id, input: turn.input,
                 answer: preview?.text ?? turn.answer, statusMessage: message, isPreview: preview != nil,
                 isUnsaved: isUnsaved, isIncomplete: turn.status != "running" && turn.status != "completed",
-                progress: interactor.progressPreview.flatMap { $0.turnID == turn.id ? $0.entries : nil } ?? [])
+                progress: interactor.progressPreview.flatMap { $0.turnID == turn.id ? $0.entries : nil } ?? turn.queryProgress ?? [],
+                hasAnswerStarted: !(preview?.text ?? turn.answer ?? "").isEmpty,
+                isCurrentProgress: interactor.progressPreview?.turnID == turn.id)
         }, hasEarlierTurns: page.nextBefore != nil))
     }
 
