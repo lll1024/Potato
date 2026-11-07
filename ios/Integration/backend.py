@@ -100,9 +100,11 @@ class StreamingModel:
         self.returned = False
         self.mode = mode
         self.parts = type(self).parts
+        if mode == "smooth":
+            self.parts = ["## 短暂平滑\n\n第一小片段。", "\n\n" + "湖畔观察🙂" * 30 + "大块末尾。", "后续小片段。"]
         if mode == "continuous":
             self.parts = ["连续阅读：\"先沿西湖步行"] + [f"第{index}站观察湖畔风景🙂" for index in range(1, 9)]
-        if mode == "reading":
+        if mode in {"reading", "query-reading"}:
             self.parts = [
                 "## 流式中文阅读\n\n" + "沿湖慢行，按体力安排休息。\n\n" * 16 + "```swift\nlet city = \"杭州\"",
                 "\n```\n\n| 日期 | 上午 | 下午 | 晚间 | 提醒 |\n",
@@ -126,7 +128,7 @@ class StreamingModel:
     async def stream(self, **parameters):
         model = self
         if "tools" in parameters:
-            if self.mode == "query-progress" and not self.query_done:
+            if self.mode in {"query-progress", "query-reading"} and not self.query_done:
                 self.query_done = True
                 class QueryStream:
                     async def __aiter__(self):

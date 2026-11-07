@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { AnswerPreview, ProgressPreview, ProgressEntry } from './useServiceEvents';
 import { AnswerBody } from './AnswerBody';
+import { StreamingText } from './StreamingText';
 import { RoundProgress, type RoundActivity } from './RoundProgress';
 import { ExceptionOutcome, isExceptional, type QueryMaterial } from './ExceptionOutcome';
 
@@ -24,8 +25,9 @@ function AnswerCopy({text, label}: {text: string; label: string}) {
   return <><button type="button" onClick={() => void copy()}>{label}</button><span role="status">{notice}</span></>;
 }
 
-function QueryProgress({entries, turnID, hasAnswerStarted, isCurrent}: {
+function QueryProgress({entries, turnID, hasAnswerStarted, isCurrent, identity, stopped, recovery}: {
   entries: ProgressEntry[]; turnID: string; hasAnswerStarted: boolean; isCurrent: boolean;
+  identity: string; stopped: boolean; recovery?: number;
 }) {
   const [open, setOpen] = useState(!hasAnswerStarted);
   const [answerSeen, setAnswerSeen] = useState(hasAnswerStarted);
@@ -39,14 +41,19 @@ function QueryProgress({entries, turnID, hasAnswerStarted, isCurrent}: {
     <summary>查询进展 <span>（{visible.length} 项）</span></summary>
     <p className="hint">{isCurrent ? '当前进展 · 尚未全部保存' : '已保存的查询进展'}，取得资料不代表已完成核实</p>
     <ol>{visible.map(entry => <li key={entry.id}>
-      <span>{entry.text}</span> <small>{entry.kind === 'model'
+      <StreamingText text={entry.text} identity={`${identity}:${entry.id}:${entry.attempt_id}`}
+        live={isCurrent && entry.status === 'generating'} stopped={stopped} recovery={recovery}>
+        {text => <span>{text}</span>}
+      </StreamingText> <small>{entry.kind === 'model'
         ? ({generating: '正在说明', generated: '行动说明', invalidated: '说明已失效', retrying: '正在重试'}[entry.status] ?? '行动说明')
         : ({pending: '准备中', running: '执行中', completed: '已取得资料', failed: '查询失败', not_executed: '未执行', interrupted: '已中断 · 结果未知'}[entry.status] ?? '状态未知')}</small>
     </li>)}</ol>
   </details>;
 }
 
-export function ConversationRounds({turns, statusText, onTrace, activity, stoppingTurnId, disconnected, onRetry, retryTurnId, retryBlocked, storageTurnId, onStop, preview, progress}: {
+export function ConversationRounds({turns, statusText, onTrace, activity, stoppingTurnId, disconnected, onRetry, retryTurnId, retryBlocked, storageTurnId, onStop, preview, progress, rawPreview, contentRecoveryRevision}: {
+  rawPreview?: AnswerPreview | null;
+  contentRecoveryRevision?: number;
   progress?: ProgressPreview | null;
   preview?: AnswerPreview | null;
   turns: Turn[]; statusText: (turn: Turn) => string; onTrace?: (turn: Turn) => void; activity?: RoundActivity;
@@ -64,7 +71,9 @@ export function ConversationRounds({turns, statusText, onTrace, activity, stoppi
       onRetry={turn.turn_id === retryTurnId ? onRetry : undefined} retryBlocked={retryBlocked} />}
     {!isExceptional(turn) && turn.turn_id !== storageTurnId && <RoundProgress turn={turn} activity={activity} stopping={stoppingTurnId === turn.turn_id} disconnected={disconnected} statusText={statusText(turn)} onStop={onStop ? () => onStop(turn) : undefined} />}
     <QueryProgress entries={turn.status === 'running' && progress?.turn_id === turn.turn_id ? progress.entries : turn.query_progress ?? []}
-      turnID={turn.turn_id} hasAnswerStarted={Boolean(current?.text.trim() || turn.answer?.trim())}
+      turnID={turn.turn_id} hasAnswerStarted={Boolean((rawPreview?.turn_id === turn.turn_id ? rawPreview.text : current?.text)?.trim() || turn.answer?.trim())}
+      identity={`${progress?.instance_id}:${progress?.stream_id}:${turn.turn_id}`}
+      stopped={stoppingTurnId === turn.turn_id} recovery={contentRecoveryRevision}
       isCurrent={turn.status === 'running' && progress?.turn_id === turn.turn_id} />
     {(current || progress?.turn_id === turn.turn_id) && current?.status !== 'retrying' && turn.turn_id !== storageTurnId && onStop && <button type="button"
       disabled={stoppingTurnId === turn.turn_id || disconnected} onClick={() => onStop(turn)}>停止生成</button>}

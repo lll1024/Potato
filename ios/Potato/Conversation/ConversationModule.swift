@@ -61,6 +61,11 @@ struct ConversationPresentation {
         let progress: [ProgressEntry]
         let hasAnswerStarted: Bool
         let isCurrentProgress: Bool
+        var answerIdentity: String? = nil
+        var progressIdentity = ""
+        var isGenerating = false
+        var isStopped = false
+        var contentRecoveryRevision = 0
     }
     let title: String
     let turns: [Turn]
@@ -168,7 +173,12 @@ final class ConversationPresenter {
                 isUnsaved: isUnsaved, isIncomplete: turn.status != "running" && turn.status != "completed",
                 progress: interactor.progressPreview.flatMap { $0.turnID == turn.id ? $0.entries : nil } ?? turn.queryProgress ?? [],
                 hasAnswerStarted: !(preview?.text ?? turn.answer ?? "").isEmpty,
-                isCurrentProgress: interactor.progressPreview?.turnID == turn.id)
+                isCurrentProgress: interactor.progressPreview?.turnID == turn.id,
+                answerIdentity: preview.map { "\($0.instanceID):\($0.streamID):\($0.sessionID):\($0.turnID):\($0.attemptID)" },
+                progressIdentity: interactor.progressPreview.map { "\($0.instanceID):\($0.streamID):\($0.sessionID):\($0.turnID)" } ?? "saved:\(turn.id)",
+                isGenerating: preview?.status == "generating" && preview?.delivery != "complete" && !isUnsaved,
+                isStopped: (execution.service?.stopping == true && execution.service?.activeTurnID == turn.id) || requestedStop,
+                contentRecoveryRevision: interactor.sessions.contentRecoveryRevision)
         }, hasEarlierTurns: page.nextBefore != nil))
     }
 
