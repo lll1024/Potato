@@ -53,6 +53,8 @@ async def request_model(client, parameters, *, redact: Callable[[str], str], val
         duration_ms = max(0, (asyncio.get_running_loop().time() - start) * 1000)
         finished_at = datetime.now(timezone.utc).isoformat()
         stage = "response_processing"
+        if response is None:
+            raise EmptyModelResponse(empty_message)
         parsed = response.model_dump(mode="json", exclude_unset=True, warnings=False)
         service_request_id = getattr(response, "_request_id", None)
         if service_request_id is not None:

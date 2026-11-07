@@ -56,7 +56,8 @@ struct PollingTests {
         await clock.advance()
     }
 
-    @Test func foregroundPollingReadsPersistedCompletionWithoutTreatingAcceptanceAsCompletion() async throws {
+    @Test(arguments: ["completed", "failed"])
+    func foregroundPollingReadsPersistedOutcomeAndReleasesInput(status: String) async throws {
         let clock = PollClock()
         let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
         let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
@@ -74,10 +75,12 @@ struct PollingTests {
         sessions.setForeground(true)
         await fixture.next().reply(body: snapshot(active: false))
         await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
-        await fixture.next().reply(body: page(status: "completed", answer: "完整保存的回答"))
+        await fixture.next().reply(body: page(status: status, answer: "本轮保存的结果"))
         #expect(await clock.nextInterval() == .seconds(2))
         #expect(sessions.service?.activeTurnID == nil)
-        #expect(sessions.conversation?.turns.first?.answer == "完整保存的回答")
+        #expect(sessions.conversation?.turns.first?.status == status)
+        #expect(sessions.conversation?.turns.first?.answer == "本轮保存的结果")
+        #expect(sessions.canSubmit)
         sessions.setForeground(false)
         await clock.advance()
         #expect(await fixture.receivedCount == 6)

@@ -23,6 +23,43 @@ from model_fixtures import RetryModel, connection_error, status_error
 
 
 class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
+    async def test_null_model_response_retries_then_releases_slot_without_repeating_input(self):
+        model = RetryModel([None, response([{"type": "text", "text": "请提供出发地。"}])])
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory, model) as client:
+                accepted = (await client.post("/api/turns", json={"input": "规划本周末岳阳两日游"})).json()
+                saved = await asyncio.wait_for(wait_finished(client, accepted["session_id"]), 5)
+                self.assertEqual(saved["turns"][0]["status"], "completed")
+                self.assertEqual(saved["turns"][0]["answer"], "请提供出发地。")
+                error = (await client.get("/api/payloads/" + saved["requests"][0]["error_payload_id"])).json()["content"]
+                self.assertEqual(error["code"], "EMPTY_RESPONSE")
+                self.assertEqual(model.requests[0], model.requests[1])
+                self.assertEqual(saved["requests"][0]["usage_state"], "not_returned")
+                state = (await client.get("/api/snapshot")).json()
+                self.assertIsNone(state["active_turn_id"])
+                self.assertTrue(state["accepting"])
+
+    async def test_null_response_exhaustion_releases_slot_and_allows_followup(self):
+        model = RetryModel([None] * 6 + [response([{"type": "text", "text": "已恢复，可以继续规划。"}])])
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory, model) as client:
+                client.timeout = 20
+                accepted = (await client.post("/api/turns", json={"input": "规划本周末岳阳两日游"})).json()
+                saved = await asyncio.wait_for(wait_finished(client, accepted["session_id"]), 20)
+                self.assertEqual(saved["turns"][0]["status"], "failed")
+                self.assertEqual(saved["turns"][0]["model_error_code"], "EMPTY_RESPONSE")
+                self.assertEqual(len(saved["requests"]), 6)
+                self.assertTrue(all(request == model.requests[0] for request in model.requests))
+                state = (await client.get("/api/snapshot")).json()
+                self.assertIsNone(state["active_turn_id"])
+                self.assertIsNone(state["answer_preview"])
+                self.assertTrue(state["accepting"])
+                followup = await client.post("/api/turns", json={"input": "继续规划", "session_id": accepted["session_id"]})
+                self.assertEqual(followup.status_code, 202)
+                finished = await asyncio.wait_for(wait_finished(client, accepted["session_id"], followup.json()["turn_id"]), 5)
+                self.assertEqual(finished["turns"][1]["status"], "completed")
+                self.assertEqual(finished["turns"][1]["answer"], "已恢复，可以继续规划。")
+
     async def test_snapshot_reports_terminal_failure_code_without_reusing_previous_attempt(self):
         model = RetryModel([connection_error(), status_error(401), response([{"type": "text", "text": "请提供城市。"}])])
         with tempfile.TemporaryDirectory() as directory:
