@@ -43,6 +43,16 @@ class FailingAnswerModel:
 
     @asynccontextmanager
     async def stream(self, **parameters):
+        if "tools" in parameters:
+            reply = await self.create(**parameters)
+            class QueryStream:
+                async def __aiter__(self):
+                    for block in reply.content:
+                        yield SimpleNamespace(type="content_block_start", content_block=block)
+                async def get_final_message(self):
+                    return reply
+            yield QueryStream()
+            return
         self.requests.append(copy.deepcopy(parameters))
         failure = next(self.failures)
         model = self
@@ -88,6 +98,16 @@ class StreamingModel:
 
     @asynccontextmanager
     async def stream(self, **parameters):
+        if "tools" in parameters:
+            reply = await self.create(**parameters)
+            class QueryStream:
+                async def __aiter__(self):
+                    for block in reply.content:
+                        yield SimpleNamespace(type="content_block_start", content_block=block)
+                async def get_final_message(self):
+                    return reply
+            yield QueryStream()
+            return
         self.requests.append(parameters)
         model = self
         class Stream:
@@ -305,13 +325,13 @@ class AnswerStreamingTests(unittest.IsolatedAsyncioTestCase):
             message = response([{"type": "text", "text": "重新作答。"}]).model_dump(mode="json")
             if not parameters.get("stream"):
                 return httpx2.Response(200, json=message)
-            attempt = len([call for call in calls if call.get("stream")])
+            attempt = len([call for call in calls if call.get("stream") and "tools" not in call])
             frames = [
                 {"type": "message_start", "message": {**message, "content": [], "stop_reason": None}},
                 {"type": "content_block_start", "index": 0, "content_block": {"type": "text", "text": ""}},
                 {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "失败旧正文" if attempt == 1 else "重新作答。"}},
             ]
-            if attempt > 1:
+            if attempt != 1:
                 frames.extend([{"type": "content_block_stop", "index": 0},
                     {"type": "message_delta", "delta": {"stop_reason": "end_turn", "stop_sequence": None}, "usage": {"output_tokens": 3}},
                     {"type": "message_stop"}])
@@ -365,7 +385,7 @@ class AnswerStreamingTests(unittest.IsolatedAsyncioTestCase):
                             async for line in stream.aiter_lines():
                                 if line.startswith("data:"):
                                     event = json.loads(line[5:])
-                                    preview = event.get("preview")
+                                    preview = event.get("preview") if event.get("kind") == "answer.preview" else None
                                     if preview and preview["status"] == "retrying":
                                         self.assertEqual(preview["text"], "")
                                         self.assertEqual(preview["attempt_id"], before["attempt_id"])

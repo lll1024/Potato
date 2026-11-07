@@ -86,3 +86,11 @@ Web 在正常最终作答期间提供“停止生成”；点击时捕获原 `tu
 原轮次收束释放名额后，若 `storage_error` 与关联轮次的 `unsaved_fact` 仍存在，当前页面以最新内存正文替换停止时的冻结展示，标注“未保存 · 请复制保留，刷新后可能丢失”，提供“复制未保存正文”。此正文不写入历史或模型上下文，也不改变原轮次最后持久状态。执行事实保存失败仍阻止后续调用，服务保持 `accepting=false`。没有可用正文时不生成虚假回答。普通预览使用“复制当前正文”；已保存正常回答使用“复制完整回答”；截断或预算产生的模型回答明确显示“回答不完整”和“复制不完整回答”。
 
 验证：[公开 HTTP 停止、保存故障、截断与 64 次预算边界](../../tests/test_answer_streaming.py)、[原目标停止](../../tests/test_stop.py)、[Web 冻结及未保存复制](../../frontend/tests/ui/conversation.spec.ts)。
+
+## 当前查询进展（#111）
+
+公开快照另含 `progress_revision` 和 `progress_preview`；后者为 `{instance_id, stream_id, session_id, turn_id, revision, entries}` 或 `null`。`entries` 是规划提供的简短行动说明和真实工具状态，结构见[规划契约](planning.md#查询进展111)。它与 `answer_preview` 独立，不冒充旅行行程或已保存回答。
+
+现有唯一 `/api/events` 增加瞬时 `progress.preview`，信封与正文同形：`{schema_version:1, kind:"progress.preview", transient:true, instance_id, revision, preview}`，没有 `id:`，不推进持久游标。订阅首次发出最新累计对象；同进程内独立递增次序、明确 `null`、归属核对与旧连接失效用于快照交接。此票的进展仅在当前轮内暂存，成功原子完成后清除；保存失败保留当前可见内容，重启不伪造未保存进展。持久回看由 #112 扩展。
+
+Web 在回答之外展示“查询进展”，按事实显示准备中、执行中、已取得资料、查询失败或未执行；模型文字标记为行动说明。进展、正文、状态分别读取，复制正文不混入进展。原目标停止在发送 HTTP 前同时冻结进展与正文；迟到进展仍可核对，但不能继续追加到停止中的阅读区域。断线、重连与数据集隔离沿用现有会话接收链路。

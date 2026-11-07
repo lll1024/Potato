@@ -125,6 +125,32 @@ class StreamingModel:
     @asynccontextmanager
     async def stream(self, **parameters):
         model = self
+        if "tools" in parameters:
+            if self.mode == "query-progress" and not self.query_done:
+                self.query_done = True
+                class QueryStream:
+                    async def __aiter__(self):
+                        model.entered.set()
+                        yield SimpleNamespace(type="content_block_start", content_block=SimpleNamespace(type="text", text=""))
+                        for part in ("进展：准备查找西湖", "的地点资料。"):
+                            await model.release.get()
+                            yield SimpleNamespace(type="content_block_delta", delta=SimpleNamespace(type="text_delta", text=part))
+                            model.delivered.put_nowait(part)
+                        await model.release.get()
+                    async def get_final_message(self):
+                        model.delivered.put_nowait("query-returned")
+                        return response([{"type": "text", "text": "进展：准备查找西湖的地点资料。"},
+                            {"type": "tool_use", "id": "lake", "name": "maps_text_search", "input": {"keywords": "西湖", "city": "杭州"}}], "tool_use")
+                yield QueryStream()
+            else:
+                reply = await self.create(**parameters)
+                class QueryStream:
+                    async def __aiter__(self):
+                        for block in reply.content:
+                            yield SimpleNamespace(type="content_block_start", content_block=block)
+                    async def get_final_message(self): return reply
+                yield QueryStream()
+            return
         self.attempts += 1
         fail = self.mode in {"retry", "fallback"} and self.attempts == 1
 

@@ -118,3 +118,11 @@ App 的 scene phase 在活跃时启用唯一共享轮询、离开活跃态时取
 原轮次真实收束释放名额后，若服务返回 `storageError` 及关联轮次的 `unsavedFact`，仍接受该轮最新内存正文供当前页面阅读；界面显示“未保存 · 请复制保留，刷新后可能丢失”及“复制未保存正文”。它保持预览身份，不进入已保存历史，`canSubmit` 继续为假。没有正文则只展示真实故障。普通截断与预算终态沿用原原因，正文复制文案使用“不完整回答”，不称完整回答。
 
 验证：公开 `SessionAccess` 的停止／真实保存和未保存结果、旧目标、配置失效见 [PollingTests](../../ios/PotatoTests/PollingTests.swift)；模拟器通过真实 HTTPS／SQLite 检查冻结、保存后全文及未保存复制，见 [ReadingNavigationTests](../../ios/PotatoUITests/ReadingNavigationTests.swift)。
+
+## 当前查询进展（#111）
+
+`SessionAccess.progressPreview` 是当前观察会话的可选 `ProgressPreview`，含进程、数据集、会话、轮次、独立 `revision` 及 `[ProgressEntry]`；条目的模型行动说明与工具真实状态见[规划契约](planning.md#查询进展111)。旧服务没有新增字段时继续原有阅读路径。
+
+共享 `SharedSessions` 使用现有唯一前台 SSE 连接解析 `progress.preview` 和 `answer.preview`，不增加轮询或模型执行。快照恢复后采用更新的累计对象；重复、较旧次序、错误轮次、旧进程或旧订阅不改变当前进展。切换观察对象、配置或数据集后使旧投影失效。停止立即同时冻结进展与正文，后台断开只取消客户端读取。页面通过原 Interactor／Presenter 读取进展，分别呈现简短行动、准备／执行／取得资料／失败状态与最终 Markdown 正文；正文复制不包含进展。成功保存后以真实历史为准；#112 继续交付进展持久回看。
+
+验证：[SessionAccess 同订阅、错序及归属测试](../../ios/PotatoTests/PollingTests.swift)、[真实 HTTPS／SQLite 查询进展页面](../../ios/PotatoUITests/ReadingNavigationTests.swift)。

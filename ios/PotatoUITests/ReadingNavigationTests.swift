@@ -169,6 +169,39 @@ final class ReadingNavigationTests: XCTestCase {
         attach(app, "横向表格末列")
     }
 
+    func testQueryProgressGrowsBeforeToolReturnAndStaysSeparateFromAnswer() async throws {
+        let app = connectedApp(address: "https://localhost:18497")
+        try await streamControl("arm?mode=query-progress")
+        app.buttons["new-conversation"].tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        input.tap()
+        input.typeText("查询进展手机验收")
+        app.buttons["send-input"].tap()
+        try await streamControl("entered", method: "GET")
+        try await streamControl("step")
+        XCTAssertTrue(app.staticTexts["准备查找西湖"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["copy-answer"].exists)
+        attach(app, "查询阶段第一批行动说明，尚未执行工具")
+        try await streamControl("step")
+        XCTAssertTrue(app.staticTexts["准备查找西湖的地点资料。"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["正在说明"].exists)
+        attach(app, "查询阶段第二批行动说明，模型尚未完整返回")
+        try await streamControl("step")
+        XCTAssertTrue(app.staticTexts["已取得资料"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["copy-answer"].exists)
+        attach(app, "真实工具成功与行动说明区分，不声称完成核实")
+        try await streamControl("step")
+        XCTAssertTrue(app.staticTexts["实时杭州旅行"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["查询进展"].exists)
+        XCTAssertEqual(app.buttons["copy-answer"].label, "复制当前正文")
+        attach(app, "最终正文与查询进展分别展示")
+        for _ in 0..<3 { try await streamControl("step") }
+        let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "复制完整回答"), object: app.buttons["copy-answer"])
+        await fulfillment(of: [saved], timeout: 10)
+        attach(app, "真实回答保存完成")
+    }
+
     func testAnswerReallyGrowsBeforeCompletionAndThenBecomesSavedHistory() async throws {
         let app = connectedApp(address: "https://localhost:18497")
         try await streamControl("arm")

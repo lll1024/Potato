@@ -7,6 +7,7 @@ struct ExecutionState {
     let canSubmit: Bool
     let stopState: StopState
     let answerPreview: AnswerPreview?
+    let progressPreview: ProgressPreview?
 
     @MainActor init(_ sessions: any SessionAccess) {
         submission = sessions.submission
@@ -15,6 +16,7 @@ struct ExecutionState {
         canSubmit = sessions.canSubmit
         stopState = sessions.stopState
         answerPreview = sessions.answerPreview
+        progressPreview = sessions.progressPreview
     }
 }
 
@@ -38,6 +40,7 @@ func executionMessage(_ sessions: ExecutionState) -> String? {
         if sessions.answerPreview != nil {
             return "正文尚未保存，请等待轮次完成。输入不会自动排队。"
         }
+        if sessions.progressPreview != nil { return "查询进展尚未保存。输入不会自动排队。" }
         if service.activeTurnID != nil { return "电脑端正在处理，回答将在保存后显示。输入不会自动排队。" }
     }
     if !sessions.canSubmit, case .accepted = sessions.submission { return "输入已接受，正在核对轮次状态。" }

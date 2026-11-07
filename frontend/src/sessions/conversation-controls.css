@@ -33,3 +33,9 @@
   .history-list .history-item .history-select time { visibility: visible; }
   .history-menu button { min-height: 44px; }
 }
+
+.query-progress { margin-block: 16px; color: var(--text-muted); }
+.query-progress h3 { font-size: 14px; margin-bottom: 4px; color: var(--text); }
+.query-progress ol { padding-left: 22px; margin-block: 8px; }
+.query-progress li { margin-block: 6px; overflow-wrap: anywhere; }
+.query-progress small { white-space: nowrap; }

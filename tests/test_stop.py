@@ -175,6 +175,10 @@ class StopTests(unittest.IsolatedAsyncioTestCase):
                 class WaitingModel(ModelService):
                     @asynccontextmanager
                     async def stream(self, **kwargs):
+                        if "tools" in kwargs:
+                            async with super().stream(**kwargs) as stream:
+                                yield stream
+                            return
                         entered.set()
                         await release.wait()
                         if ending == 'failure':

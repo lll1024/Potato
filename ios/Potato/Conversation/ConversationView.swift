@@ -63,6 +63,20 @@ struct ConversationView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(.quaternary, in: RoundedRectangle(cornerRadius: 14))
                                 .accessibilityLabel("你的输入：" + turn.input)
+                            if turn.progress.contains(where: { !$0.text.isEmpty }) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("查询进展").font(.subheadline.weight(.semibold))
+                                    Text("过程说明 · 尚未保存，取得资料不代表已完成核实")
+                                        .font(.footnote).foregroundStyle(.secondary)
+                                    ForEach(turn.progress.filter { !$0.text.isEmpty }) { entry in
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(entry.text).textSelection(.enabled)
+                                            Text(entry.statusText).font(.caption).foregroundStyle(.secondary)
+                                        }
+                                    }
+                                }
+                                .accessibilityIdentifier("query-progress")
+                            }
                             if let answer = turn.answer, !answer.isEmpty {
                                 AnswerView(text: answer, isPreview: turn.isPreview,
                                            isUnsaved: turn.isUnsaved, isIncomplete: turn.isIncomplete)
