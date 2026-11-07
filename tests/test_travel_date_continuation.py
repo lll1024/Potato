@@ -34,15 +34,15 @@ class TravelDateContinuationTests(DateSessionHarness, unittest.IsolatedAsyncioTe
                     history = saved["turns"][0]["messages"]
                     self.moment = datetime.fromisoformat("2026-10-10T00:00:01+08:00")
                     await self.finish(client, "保留日期，只调整餐馆", first["session_id"])
-                    dates = context_from_request(model.requests[2])["travel_dates"]
-                    self.assertEqual(context_from_request(model.requests[2])["today"], "2026-10-10")
-                    self.assertEqual(model.requests[2]["messages"], history + [{"role": "user", "content": "保留日期，只调整餐馆"}])
+                    dates = context_from_request(model.requests[3])["travel_dates"]
+                    self.assertEqual(context_from_request(model.requests[3])["today"], "2026-10-10")
+                    self.assertEqual(model.requests[3]["messages"], history + [{"role": "user", "content": "保留日期，只调整餐馆"}])
                     before_restart = (await client.get("/api/sessions/" + first["session_id"])).json()
                 self.moment = datetime.fromisoformat("2026-10-12T09:00:00+08:00")
                 async with self.service(directory, model) as client:
                     self.assertEqual((await client.get("/api/sessions/" + first["session_id"])).json(), before_restart)
                     _, restored = await self.finish(client, "减少一个景点", first["session_id"])
-                    context = context_from_request(model.requests[3])
+                    context = context_from_request(model.requests[5])
                     self.assertEqual(context["today"], "2026-10-12")
                     self.assertEqual(restored["turns"][-1]["travel_date_context"], context)
                     self.assertEqual(restored["turns"][0], before_restart["turns"][0])
@@ -59,11 +59,11 @@ class TravelDateContinuationTests(DateSessionHarness, unittest.IsolatedAsyncioTe
                 self.moment = datetime.fromisoformat("2026-10-12T09:00:00+08:00")
                 await self.finish(client, "把本周末行程的餐馆换一家", first["session_id"])
                 await self.finish(client, "旅行日期改到下周末，其他条件不变", first["session_id"])
-        reference = context_from_request(model.requests[1])
+        reference = context_from_request(model.requests[2])
         self.assertEqual((reference["travel_dates"]["start_date"], reference["travel_dates"]["end_date"]),
                          ("2026-10-10", "2026-10-11"))
         self.assertEqual(reference["travel_dates"]["reference_time"], "2026-10-09T09:00:00+08:00")
-        changed = context_from_request(model.requests[2])
+        changed = context_from_request(model.requests[4])
         self.assertEqual((changed["travel_dates"]["start_date"], changed["travel_dates"]["end_date"]),
                          ("2026-10-24", "2026-10-25"))
         self.assertEqual(changed["previous_travel_dates"]["start_date"], "2026-10-10")
@@ -77,7 +77,7 @@ class TravelDateContinuationTests(DateSessionHarness, unittest.IsolatedAsyncioTe
             async with self.service(directory, model) as client:
                 first, _ = await self.finish(client, "本周末去北京")
                 await self.finish(client, "旅行日期改到下个月", first["session_id"])
-        dates = context_from_request(model.requests[1])["travel_dates"]
+        dates = context_from_request(model.requests[2])["travel_dates"]
         self.assertEqual(dates["status"], "needs_clarification")
         self.assertNotIn("start_date", dates)
 
@@ -111,7 +111,7 @@ class TravelDateContinuationTests(DateSessionHarness, unittest.IsolatedAsyncioTe
         self.assertEqual(model.requests[-1]["messages"], completed["turns"][0]["messages"] +
                          [{"role": "user", "content": "继续原旅行安排，只换餐馆"}])
         self.assertTrue(resumed["turns"][1]["context_excluded"])
-        self.assertEqual(resumed["requests"][:2], interrupted["requests"])
+        self.assertEqual(resumed["requests"][:4], interrupted["requests"])
         self.assertEqual(resumed["turns"][1]["turn_id"], accepted["turn_id"])
 
 
@@ -142,8 +142,8 @@ class TravelDateContinuationTests(DateSessionHarness, unittest.IsolatedAsyncioTe
                 first, _ = await self.finish(client, "本周末去北京")
                 await self.finish(client, "去杭州旅行")
                 await self.finish(client, "只改餐馆", first["session_id"])
-        self.assertEqual(context_from_request(model.requests[1])["travel_dates"]["status"], "unspecified")
-        self.assertEqual(context_from_request(model.requests[2])["travel_dates"]["start_date"], "2026-10-10")
+        self.assertEqual(context_from_request(model.requests[2])["travel_dates"]["status"], "unspecified")
+        self.assertEqual(context_from_request(model.requests[4])["travel_dates"]["start_date"], "2026-10-10")
 
     async def test_unsaved_date_change_does_not_replace_last_reliable_dates(self):
         import sqlite3
@@ -174,7 +174,7 @@ class TravelDateContinuationTests(DateSessionHarness, unittest.IsolatedAsyncioTe
         self.assertFalse(state["accepting"])
         self.assertEqual(state["unsaved_fact"]["kind"], "request.started")
         self.assertEqual(interrupted["requests"], completed["requests"])
-        self.assertEqual(len(initial.requests), 1)
+        self.assertEqual(len(initial.requests), 2)
         self.assertEqual(context_from_request(next_model.requests[0])["travel_dates"]["start_date"], "2026-10-10")
         self.assertEqual(context_from_request(next_model.requests[0])["travel_dates"]["end_date"], "2026-10-11")
 

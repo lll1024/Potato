@@ -41,7 +41,7 @@ class ReconnectTests(unittest.IsolatedAsyncioTestCase):
                 path = f'/api/events?after={baseline["cursor"]}&stream_id={baseline["stream_id"]}'
                 replay = await asyncio.wait_for(notices(client, path), 2)
                 actual = [item for item in replay if not item.get("transient")]
-                self.assertEqual([item["kind"] for item in actual], ["turn.accepted","request.started","request.completed","turn.finished"])
+                self.assertEqual([item["kind"] for item in actual], ["turn.accepted","request.started","request.completed","request.started","request.completed","turn.finished"])
                 again = await asyncio.wait_for(notices(client, path, {"Last-Event-ID":str(actual[1]["cursor"])}), 2)
                 self.assertEqual([item for item in again if not item.get("transient")], actual[2:])
                 duplicate = await asyncio.wait_for(notices(client, path), 2)
@@ -74,12 +74,12 @@ class ReconnectTests(unittest.IsolatedAsyncioTestCase):
                     release.set()
                 await asyncio.wait_for(wait_finished(client, accepted["session_id"]), 2)
                 page_b = await asyncio.wait_for(notices(client, f'/api/events?after={baseline["cursor"]}&stream_id={baseline["stream_id"]}'), 2)
-                self.assertEqual(page_b[-2]["kind"], "turn.finished")
+                self.assertEqual([item for item in page_b if not item.get("transient")][-1]["kind"], "turn.finished")
                 self.assertEqual(page_b[-2]["turn_id"], accepted["turn_id"])
                 self.assertIsNone(page_b[-1]["state"]["active_turn_id"])
                 self.assertTrue(page_b[-1]["state"]["accepting"])
                 self.assertNotIn("cursor", page_b[-1])
-                self.assertEqual(len(model.requests), 1)
+                self.assertEqual(len(model.requests), 2)
 
     async def test_dataset_change_and_invalid_cursor_require_explicit_snapshot(self):
         with tempfile.TemporaryDirectory() as original, tempfile.TemporaryDirectory() as replacement:

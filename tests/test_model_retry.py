@@ -148,10 +148,10 @@ class ModelRetryTests(unittest.IsolatedAsyncioTestCase):
                 accepted = (await client.post("/api/turns", json={"input": "明天去杭州"})).json()
                 saved = await asyncio.wait_for(wait_finished(client, accepted["session_id"]), 3)
                 self.assertEqual(saved["turns"][0]["status"], "completed")
-                self.assertEqual([item["step"] for item in saved["requests"]], [1, 1])
-                self.assertEqual([item["attempt"] for item in saved["requests"]], [1, 2])
+                self.assertEqual([item["step"] for item in saved["requests"]], [1, 1, 2])
+                self.assertEqual([item["attempt"] for item in saved["requests"]], [1, 2, 1])
                 self.assertEqual(saved["usage_summary"]["input_tokens"],
-                                 {"value": 1, "known_count": 1, "request_count": 2})
+                                 {"value": 2, "known_count": 2, "request_count": 3})
                 retries = [event for event in saved["events"] if event["kind"].startswith("request.retry_")]
                 self.assertEqual([event["kind"] for event in retries], ["request.retry_scheduled", "request.retry_started"])
                 self.assertEqual(retries[0]["data"]["retry_id"], retries[1]["data"]["retry_id"])

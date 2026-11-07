@@ -69,6 +69,9 @@ class Retrieval:
                             FAILURE_MESSAGES.get(self._map.failure or "", ""),
                             source_status if self._include_source_status else None, self._map.failure)
 
+    def redact_preview(self, text: str) -> str:
+        return self._map.redact_preview(text)
+
     def redact(self, text: str) -> str:
         return self._map.redact(text)
 

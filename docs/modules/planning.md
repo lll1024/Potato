@@ -64,3 +64,23 @@ async def answer(text):
 完整协议、模型视图、摘要、容量和回读通过[模型上下文](context.md)管理；日期解释在 [dates.py](../../travel_app/planning/dates.py)。旧 `travel_app/agent.py`、查询 adapter 和日期文件已迁入所属能力，生产和测试调用均更新到当前入口。阶段证据见 [#83 验收](../acceptance/retrieval-planning.md)。
 
 验证：[规划契约测试](../../tests/test_agent.py)、[记录故障](../../tests/test_storage.py)、[调用预算](../../tests/test_call_budget.py)、[固定 Web/SSE/CLI 与旧库基线](../../tests/test_migration_baseline.py)。
+
+## 最终回答预览（#98）
+
+`plan(..., answer_observer=None)` 可选接收异步 `answer_observer(update)`。提供时启用显式的资料获取／最终作答两阶段：查询阶段仍调用工具，其文字只作为阶段结束信号，不追加为最终回答或作答上下文；下一逻辑步骤关闭工具并通过模型 SDK 的真实文本流作答。摘要、恢复和工具参数不发出正文更新。CLI 不提供该回调，继续完整输出既有结果。
+
+每次作答尝试在请求开始事实可靠记录后发送 `{attempt_id, text: "", status: "generating"}`；`attempt_id` 为该实际模型请求身份。随后发送累计的安全 `text`，不会要求消费方拼接分片。模型的多个文本块按最终回答相同的换行边界组装后再脱敏，避免跨块密钥因边界丢失而泄露。`generated` 只表示该模型响应生成成功，尚不表示轮次结果已持久保存；失败尝试发送空正文与 `invalidated`。失败正文不追加至模型上下文，已有普通重试和上下文恢复继续走同一实际请求总账。
+
+新增作答占用一个逻辑步骤和实际请求，并经 `ModelContext.prepare_request` 检查完整输入容量；普通请求限前 63 次，第 64 次仍是无工具预算收尾。预算收尾也可提供正文预览，但不新增重试、摘要或恢复，仍校验完整响应并执行原停止检查。最终结果、预算说明与保存材料仍以 `PlanningResult` 为准，预览不替代结果。重试与明确不支持流式的降级见下节；停止期间客户端冻结展示，规划仍交付真实响应，保存与未保存投影见[会话契约](sessions.md)。
+
+启用预览时，`request.started` 同时标记 `answer_phase`（`query` 或 `answer`）；普通作答的 `purpose` 为 `travel_answer`，预算收尾继续使用 `travel_final`。该分类随开始事实可靠记录，供记录能力区分查询说明和真正助手回答；旧请求及不启用预览的 CLI 保持原字段语义。
+
+## 作答重试与非流式降级（#101）
+
+普通作答允许模型协议中的 `thinking`／`redacted_thinking` 与 `text` 一同返回，正文更新及最终聊天回答仍只提取文本块，不展示推理块，禁止工具调用。没有非空正文时按原有 `EMPTY_RESPONSE` 分类处理，不保存为空白完成。第 64 次预算收尾继续要求纯文本且完整结束，未因兼容当前模型而放宽。当前 DeepSeek 实连及公开 HTTP 复现见 [#104 联合验收](../acceptance/streaming-final.md)。
+
+普通作答失败先发出空 `invalidated`；现有分类允许且有额度时，退避前发出空 `retrying`，下一实际请求使用新的 `attempt_id` 从空正文开始。沿用最多追加五次、指数退避、`Retry-After` 和停止检查。流读取中的底层连接／超时错误按 `TRANSPORT`／`TIMEOUT` 处理；SDK 返回但缺少结束原因也按连接中断处理，未收到任何事件的空流按 `EMPTY_RESPONSE` 处理，不能保存为完整回答。停止后不启动新尝试；在途真实失败仍保留原有模型失败终态，不把已返回故障一律改成停止。
+
+只有正在使用流式的请求得到明确流式能力拒绝，才分类为 `STREAM_UNSUPPORTED`：400／404／405／422／501 中明确的“不支持 stream／streaming”、`stream must be false` 或针对 `stream` 的 `unsupported_parameter`。认证、额度、限流、上下文超限优先保留原分类；普通 5xx、网络、超时和无明确归因的非法请求不能触发降级。此轮后续作答改用原有完整响应调用，不建立供应商探测或永久缓存。
+
+正文更新增加可选 `delivery: "stream" | "complete"`，完整响应等待期间仍发出空 `generating`，生成成功才交付安全完整正文。`request.started.answer_delivery` 同步记录真实调用方式。降级原因由客户端按 `complete` 展示，独立于回答和模型上下文；失败预览、错误和展示原因均不追加至重试协议。每次降级请求重新经过容量检查并扣同一实际请求预算，不重做工具查询。第 63 次失败后可使用第 64 次无工具收尾；第 64 次自身失败不再降级、恢复或重试，也不增加摘要。CLI 保持原有完整响应流程。

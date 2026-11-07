@@ -5,6 +5,8 @@ struct ConversationView: View {
     @State private var presenter: ConversationPresenter
     @FocusState private var inputFocused: Bool
     @State private var followsLatest = true
+    @State private var contentHeight: CGFloat = 0
+    @State private var bottomDistance: CGFloat = 0
 
     init(session: AssistantSession?, sessions: any SessionAccess, router: ConversationRouter) {
         _presenter = State(initialValue: ConversationPresenter(session: session,
@@ -13,7 +15,8 @@ struct ConversationView: View {
 
     var body: some View {
         @Bindable var presenter = presenter
-        ScrollViewReader { proxy in
+        GeometryReader { viewport in
+          ScrollViewReader { proxy in
           ScrollView {
             VStack(alignment: .leading, spacing: 28) {
                 SubmissionRecoveryView(presentation: presenter.recovery, check: presenter.checkSubmission,
@@ -61,10 +64,12 @@ struct ConversationView: View {
                                 .background(.quaternary, in: RoundedRectangle(cornerRadius: 14))
                                 .accessibilityLabel("你的输入：" + turn.input)
                             if let answer = turn.answer, !answer.isEmpty {
-                                AnswerView(text: answer)
+                                AnswerView(text: answer, isPreview: turn.isPreview,
+                                           isUnsaved: turn.isUnsaved, isIncomplete: turn.isIncomplete)
                             }
                             if let message = turn.statusMessage {
                                 Text(message)
+                                    .accessibilityIdentifier("answer-status")
                                     .font(.subheadline).foregroundStyle(.secondary)
                             }
                         }
@@ -76,11 +81,30 @@ struct ConversationView: View {
             .id("history-start")
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .onGeometryChange(for: CGRect.self) { content in
+                content.frame(in: .named("conversation-reading"))
+            } action: { frame in
+                bottomDistance = frame.maxY - viewport.size.height
+                if frame.height != contentHeight {
+                    contentHeight = frame.height
+                } else if bottomDistance <= 24 {
+                    followsLatest = true
+                }
+            }
         }
+        .coordinateSpace(name: "conversation-reading")
         .scrollDismissesKeyboard(.interactively)
-        .simultaneousGesture(DragGesture(minimumDistance: 10).onChanged { _ in followsLatest = false })
-        .onChange(of: presenter.latestTurnID) { previous, _ in
-            if previous == nil || followsLatest { proxy.scrollTo("latest", anchor: .bottom) }
+        .simultaneousGesture(DragGesture(minimumDistance: 10)
+            .onChanged { value in
+                if value.translation.height > 10 && abs(value.translation.height) > abs(value.translation.width) {
+                    followsLatest = false
+                }
+            }
+            .onEnded { _ in if bottomDistance <= 24 { followsLatest = true } })
+        .task(id: contentHeight) { @MainActor in
+            // 等这一批 Markdown 的布局提交后，再使用更新后的底部位置。
+            await Task.yield()
+            if followsLatest { proxy.scrollTo("latest", anchor: .bottom) }
         }
         .overlay(alignment: .bottomTrailing) {
             if !followsLatest, presenter.latestTurnID != nil {
@@ -105,6 +129,7 @@ struct ConversationView: View {
                     .accessibilityIdentifier("earlier-history")
                 }
             }
+        }
         }
         }
         .navigationTitle(presenter.title)

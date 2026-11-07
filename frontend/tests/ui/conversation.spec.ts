@@ -1,7 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
 
 async function conversation(page: Page) {
-  const state = {active_turn_id: null as string | null, active_session_id: null as string | null,
+  const state = {instance_id: 'process', answer_revision: 0, answer_preview: null as null | {
+    instance_id: string; stream_id: string; session_id: string; turn_id: string;
+    attempt_id: string; revision: number; text: string; status: string;
+  }, active_turn_id: null as string | null, active_session_id: null as string | null,
     accepting: true, stopping: false, map_paused: false, map_pause_reason: null, service_status: 'available'};
   const sessions = [
     {session_id: 'trip', title: '杭州行程', updated_at: '2026-10-09T02:00:00Z', status: 'completed', reason: null, tool_error_count: 0},
@@ -9,14 +12,14 @@ async function conversation(page: Page) {
   ];
   const turn = {turn_id: 'turn', ordinal: 1, input: '查询西湖', status: 'running', reason: null as string | null,
     answer: null as string | null, answer_source: 'model', model_error_code: null as string | null,
-    tool_error_count: 0, created_at: new Date(Date.now() - 5000).toISOString()};
+    answer_delivery: null as string | null, tool_error_count: 0, created_at: new Date(Date.now() - 5000).toISOString()};
   const activity = {requests: [] as object[], tool_calls: [] as object[], events: [] as object[]};
   const writes: string[] = [];
   let cursor = 0;
   await page.addInitScript(() => {
     Object.defineProperty(window, 'EventSource', {value: class extends EventTarget {
       onerror: (() => void) | null = null;
-      constructor() {super(); (window as unknown as {source: EventTarget}).source = this;}
+      constructor() {super(); const browser = window as unknown as {source: EventTarget; sources: EventTarget[]}; browser.source = this; (browser.sources ??= []).push(this);}
       close() {}
     }});
   });
@@ -380,4 +383,350 @@ test('并发查询乱序完成时状态及时更新，工具列表保持提出�
     await page.screenshot({path: test.info().outputPath(`concurrent-tools-${width}.png`)});
   }
   expect(app.writes).toEqual([]);
+});
+
+
+test('最终回答在保存之前分批展示 Markdown，保存后使用历史正文', async ({page}) => {
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  await app.notify();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  async function preview(text: string, revision: number) {
+    app.state.answer_revision = revision;
+    await page.evaluate(({text, revision}) => {
+      (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {data: JSON.stringify({
+        schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision, preview: {
+          instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+          attempt_id: 'answer-request', revision, text, status: 'generating',
+        },
+      })}));
+    }, {text, revision});
+  }
+  await preview('## 西湖安排\n\n上午漫步湖畔。\n', 1);
+  await expect(page.getByRole('heading', {name: '西湖安排', exact: true})).toBeVisible();
+  await expect(page.getByText('正在生成 · 尚未保存', {exact: true})).toBeVisible();
+  await expect(page.getByText('上午漫步湖畔。', {exact: true})).toBeVisible();
+  await preview('## 西湖安排\n\n上午漫步湖畔。\n\n[预约](javascript:alert(1))\n下午品尝杭帮菜。', 2);
+  await expect(page.getByText(/下午品尝杭帮菜/)).toBeVisible();
+  await expect(page.locator('a[href^="javascript:"]')).toHaveCount(0);
+  await page.setViewportSize({width: 1440, height: 900});
+  await page.screenshot({path: test.info().outputPath('answer-stream-desktop.png')});
+  await page.setViewportSize({width: 390, height: 844});
+  await page.getByRole('button', {name: '收起会话导航'}).first().click();
+  await page.screenshot({path: test.info().outputPath('answer-stream-mobile.png')});
+  app.turn.status = 'completed'; app.turn.answer = '## 已保存安排\n\n完整旅行回答。';
+  app.state.active_turn_id = null; app.state.active_session_id = null;
+  await app.notify();
+  await expect(page.getByRole('heading', {name: '已保存安排'})).toBeVisible();
+  await expect(page.getByText('正在生成 · 尚未保存', {exact: true})).toHaveCount(0);
+  await preview('迟到的旧正文', 3);
+  await expect(page.getByText('迟到的旧正文', {exact: true})).toHaveCount(0);
+
+});
+
+
+for (const width of [1440, 390]) test(`流式中文 Markdown 重排、同轮跟随、上翻和当前全文复制 ${width}`, async ({page, context}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.setViewportSize({width: 1440, height: 844});
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  await app.notify();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  await page.setViewportSize({width, height: 844});
+  if (width < 760) await page.getByRole('button', {name: '收起会话导航'}).first().click();
+  const messages = page.locator('.messages');
+  const body = messages.locator('.answer-body');
+  let text = '';
+  let revision = 0;
+  async function append(part: string, rendered: string) {
+    text += part; revision++;
+    await page.evaluate(({text, revision}) => {
+      (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {data: JSON.stringify({
+        schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision,
+        preview: {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+          attempt_id: 'reading', revision, text, status: 'generating'},
+      })}));
+    }, {text, revision});
+    await expect(body).toContainText(rendered);
+  }
+  const bottomGap = () => messages.evaluate(element => element.scrollHeight - element.scrollTop - element.clientHeight);
+  await append('## 中文旅行安排\n\n' + '沿湖慢行，按体力安排休息。\n\n'.repeat(25) + '```swift\nlet city = "杭州"', 'let city = "杭州"');
+  await expect(body.locator('pre code')).toContainText('let city = "杭州"');
+  await expect.poll(bottomGap).toBeLessThan(8);
+  await append('\n```\n\n| 日期 | 上午 | 下午 | 提醒 |\n', '| 日期 | 上午 | 下午 | 提醒 |');
+  await expect(body.locator('table')).toHaveCount(0);
+  // 分隔行和数据到达后，同一段文本重新成为表格。
+  text += '| --- | --- | --- | --- |\n| 周六 | 西湖漫步 | 博物馆 | 提前预约 |\n\n[预约说明](https://example.com';
+  await append('', '提前预约');
+  await expect(body.locator('table')).toHaveCount(1);
+  await append(')\n\n- 午后留出休息时间。\n', '午后留出休息时间。');
+  await expect(body.getByRole('link', {name: '预约说明'})).toHaveAttribute('href', 'https://example.com');
+  await expect.poll(bottomGap).toBeLessThan(8);
+  await page.getByRole('button', {name: '复制当前正文', exact: true}).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(text);
+  await messages.hover();
+  await page.mouse.wheel(0, -500);
+  const latest = page.getByRole('button', {name: '回到最新', exact: true});
+  await expect(latest).toBeVisible();
+  const position = await messages.evaluate(element => element.scrollTop);
+  await append('\n' + '继续安排中文旅行活动。\n\n'.repeat(20), '继续安排中文旅行活动。');
+  expect(await messages.evaluate(element => element.scrollTop)).toBeCloseTo(position, 0);
+  await latest.click();
+  await expect.poll(bottomGap).toBeLessThan(8);
+  await append('\n最新到达的旅行建议。\n', '最新到达的旅行建议。');
+  await expect.poll(bottomGap).toBeLessThan(8);
+  await page.getByRole('button', {name: '复制当前正文', exact: true}).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(text);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({path: test.info().outputPath(`stream-reading-${width}.png`)});
+});
+
+test('恢复正文采用累计快照，重复、迟到与失效尝试不会回滚当前回答', async ({page}) => {
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  app.state.answer_revision = 4;
+  app.state.answer_preview = {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+    attempt_id: 'first', revision: 4, text: '恢复时已有的正文', status: 'generating'};
+  await page.reload();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  await expect(page.getByText('恢复时已有的正文', {exact: true})).toBeVisible();
+  await page.evaluate(state => (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('service.state', {
+    data: JSON.stringify({schema_version: 1, state: {...state, answer_revision: 3, active_turn_id: null, active_session_id: null}}),
+  })), app.state);
+  await expect(page.getByText('恢复时已有的正文', {exact: true})).toBeVisible();
+  async function publish(revision: number, text: string | null, attempt = 'first', status = 'generating') {
+    await page.evaluate(({revision, text, attempt, status}) => {
+      (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {data: JSON.stringify({
+        schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision,
+        preview: text === null ? null : {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+          attempt_id: attempt, revision, text, status},
+      })}));
+    }, {revision, text, attempt, status});
+  }
+  await publish(6, '订阅交接期间已增加的正文');
+  await expect(page.getByText('订阅交接期间已增加的正文', {exact: true})).toBeVisible();
+  await publish(5, '旧次序正文');
+  await publish(6, '重复事件不得修改正文');
+  await expect(page.getByText('订阅交接期间已增加的正文', {exact: true})).toBeVisible();
+  await publish(7, '', 'first', 'invalidated');
+  await expect(page.getByText('订阅交接期间已增加的正文', {exact: true})).toHaveCount(0);
+  await publish(8, '另一尝试从头开始', 'second');
+  await expect(page.getByText('另一尝试从头开始', {exact: true})).toBeVisible();
+  await publish(7, '旧尝试迟到');
+  await expect(page.getByText('另一尝试从头开始', {exact: true})).toBeVisible();
+  await publish(9, null);
+  await publish(8, '已清除的预览不得复活', 'second');
+  await expect(page.getByText('已清除的预览不得复活', {exact: true})).toHaveCount(0);
+});
+
+
+for (const outcome of ['running', 'retrying', 'restarted']) test(`断线先核对累计正文并隔离旧连接：${outcome}`, async ({page}) => {
+  const restart = outcome === 'restarted';
+  const retrying = outcome === 'retrying';
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  app.state.answer_revision = 1;
+  app.state.answer_preview = {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+    attempt_id: 'attempt', revision: 1, text: '断线前的正文', status: 'generating'};
+  await page.reload();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  await expect(page.getByText('断线前的正文', {exact: true})).toBeVisible();
+  await page.evaluate(() => {
+    const source = (window as unknown as {source: EventSource}).source;
+    source.onerror?.(new Event('error'));
+    source.onerror?.(new Event('error'));
+  });
+  if (restart) {
+    app.state.instance_id = 'new-process'; app.state.answer_revision = 0; app.state.answer_preview = null;
+    app.state.active_turn_id = null; app.state.active_session_id = null;
+    app.turn.status = 'terminated'; app.turn.reason = 'service_interrupted'; app.sessions[0].status = 'terminated';
+  } else {
+    app.state.answer_revision = 4;
+    app.state.answer_preview = {...app.state.answer_preview, revision: 4,
+      text: retrying ? '' : '断线期间的累计正文', status: retrying ? 'retrying' : 'generating'};
+  }
+  await expect.poll(() => page.evaluate(() => (window as unknown as {sources: EventTarget[]}).sources.length)).toBe(2);
+  await page.evaluate(state => (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('service.state', {
+    data: JSON.stringify({schema_version: 1, state}),
+  })), app.state);
+  if (restart) {
+    await expect(page.getByRole('region', {name: '第 1 轮异常提示'}).getByRole('status')).toHaveText('服务中断');
+    await expect(page.getByText('断线前的正文', {exact: true})).toHaveCount(0);
+  } else if (retrying) {
+    await expect(page.getByText('正在重试，新尝试将从头作答。', {exact: true})).toBeVisible();
+    await expect(page.getByText('断线前的正文', {exact: true})).toHaveCount(0);
+  } else await expect(page.getByText('断线期间的累计正文', {exact: true})).toBeVisible();
+  // 旧连接中已排队的正文、服务状态、删除事件及 error 均无效。
+  await page.evaluate(() => {
+    const old = (window as unknown as {sources: EventSource[]}).sources[0];
+    old.dispatchEvent(new MessageEvent('answer.preview', {data: JSON.stringify({schema_version: 1, kind: 'answer.preview',
+      instance_id: 'process', revision: 99, preview: {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip',
+        turn_id: 'turn', attempt_id: 'old', revision: 99, text: '失效连接的迟到正文', status: 'generating'}})}));
+    old.dispatchEvent(new MessageEvent('service.state', {data: JSON.stringify({schema_version: 1,
+      state: {instance_id: 'process', active_turn_id: 'turn', active_session_id: 'trip', accepting: false}})}));
+    old.dispatchEvent(new MessageEvent('trace', {data: JSON.stringify({schema_version: 1, cursor: 100, event_id: 'old-delete',
+      kind: 'session.deleted', session_id: 'trip'})}));
+    old.onerror?.(new Event('error'));
+  });
+  await expect(page.getByText('失效连接的迟到正文', {exact: true})).toHaveCount(0);
+  await expect(page.getByRole('heading', {name: '杭州行程', exact: true})).toBeVisible();
+  if (!restart) {
+    await page.evaluate(() => (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {
+      data: JSON.stringify({schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision: 5,
+        preview: {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+          attempt_id: 'new-attempt', revision: 5, text: '重连后继续增长', status: 'generating'}}),
+    })));
+    await expect(page.getByText('重连后继续增长', {exact: true})).toBeVisible();
+  }
+  await page.screenshot({path: test.info().outputPath(restart ? 'restarted.png' : 'reconnected.png')});
+  expect(app.writes).toEqual([]);
+});
+
+
+test('状态通知与新轮正文交错时，核对归属后仍能读到暂停中的当前正文', async ({page}) => {
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  await app.notify();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  // 服务已切换到下一轮，但旧状态通知先于新轮正文到达。
+  await page.evaluate(() => (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {
+    data: JSON.stringify({schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision: 8,
+      preview: {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'next-turn',
+        attempt_id: 'next-attempt', revision: 8, text: '新轮已生成但暂时暂停的正文', status: 'generating'}}),
+  })));
+  await expect(page.getByText('新轮已生成但暂时暂停的正文', {exact: true})).toHaveCount(0);
+  app.state.active_turn_id = 'next-turn'; app.state.answer_revision = 8;
+  app.turn.turn_id = 'next-turn';
+  await app.notify();
+  await expect(page.getByText('新轮已生成但暂时暂停的正文', {exact: true})).toBeVisible();
+});
+
+
+test('快照与订阅之间服务重启时，发现进程变化立即清除旧预览', async ({page}) => {
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  app.state.answer_revision = 2;
+  app.state.answer_preview = {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+    attempt_id: 'attempt', revision: 2, text: '已经失去进程归属的正文', status: 'generating'};
+  await page.reload();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  await expect(page.getByText('已经失去进程归属的正文', {exact: true})).toBeVisible();
+  await page.evaluate(() => (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {
+    data: JSON.stringify({schema_version: 1, kind: 'answer.preview', instance_id: 'new-process', revision: 0, preview: null}),
+  })));
+  // 新快照尚未返回，此刻仍须清除已确认属于旧进程的预览，不虚构持久终态。
+  await expect(page.getByText('已经失去进程归属的正文', {exact: true})).toHaveCount(0);
+  await expect(page.getByText('第 1 轮 · 正在执行', {exact: true})).toBeVisible();
+});
+
+test('失败正文清空并提示重试，降级后保留完整回答与原因', async ({page}) => {
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  await app.notify();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  async function publish(text: string, revision: number, status: string, attempt: string, delivery = 'stream') {
+    await page.evaluate(values => {
+      (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {data: JSON.stringify({
+        schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision: values.revision,
+        preview: {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+          text: values.text, revision: values.revision, status: values.status, attempt_id: values.attempt, delivery: values.delivery},
+      })}));
+    }, {text, revision, status, attempt, delivery});
+  }
+  await publish('失败旧正文', 1, 'generating', 'first');
+  await expect(page.getByText('失败旧正文', {exact: true})).toBeVisible();
+  await publish('', 2, 'retrying', 'first');
+  await expect(page.getByText('失败旧正文', {exact: true})).toHaveCount(0);
+  await expect(page.getByText('正在重试，新尝试将从头作答。', {exact: true})).toBeVisible();
+  await page.screenshot({path: test.info().outputPath('answer-retrying.png')});
+  await publish('新尝试正文', 3, 'generating', 'second');
+  await expect(page.getByText('新尝试正文', {exact: true})).toBeVisible();
+  await expect(page.getByText('正在重试，新尝试将从头作答。', {exact: true})).toHaveCount(0);
+  await publish('', 4, 'generating', 'complete', 'complete');
+  const notice = page.getByText('模型服务不支持流式，改为生成完整回答。', {exact: true});
+  await expect(notice).toBeVisible();
+  await expect(page.getByText('新尝试正文', {exact: true})).toHaveCount(0);
+  app.turn.status = 'completed'; app.turn.answer = '完整的杭州安排。'; app.turn.answer_delivery = 'complete';
+  app.state.active_turn_id = null; app.state.active_session_id = null;
+  await app.notify();
+  await expect(page.getByText('完整的杭州安排。', {exact: true})).toBeVisible();
+  await expect(notice).toBeVisible();
+  await page.setViewportSize({width: 390, height: 844});
+  await page.getByRole('button', {name: '收起会话导航'}).first().click();
+  await page.screenshot({path: test.info().outputPath('answer-fallback-mobile.png')});
+});
+
+
+test('点击停止立即冻结正文，保存故障后保留可复制的未保存全文', async ({page, context}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  app.state.answer_revision = 1;
+  app.state.answer_preview = {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+    attempt_id: 'answer', revision: 1, text: '停止前正文。', status: 'generating'};
+  await page.reload();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  await expect(page.getByText('停止前正文。', {exact: true})).toBeVisible();
+  let release!: () => void;
+  const pending = new Promise<void>(resolve => {release = resolve;});
+  await page.route('**/api/turns/turn/stop', async route => {await pending; await route.fulfill({json: {schema_version: 1, stopping: true}});});
+  await page.getByRole('button', {name: '停止生成'}).click();
+  await expect(page.getByText('正在停止 · 正文已暂停追加', {exact: true})).toBeVisible();
+  Object.assign(app.state, {storage_error: '改名未保存', unsaved_fact: {turn_id: '', kind: 'session.rename'}});
+  await app.notify();
+  app.state.answer_revision = 2;
+  app.state.answer_preview = {...app.state.answer_preview!, revision: 2, text: '停止前正文。收束后的完整正文。', status: 'generated'};
+  await page.evaluate(preview => (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {
+    data: JSON.stringify({schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision: 2, preview}),
+  })), app.state.answer_preview);
+  await expect(page.locator('.message.answer')).not.toContainText('收束后的完整正文');
+  release();
+  app.state.stopping = true;
+  await app.notify();
+  await expect(page.getByRole('button', {name: '发送旅行需求'})).toBeDisabled();
+  app.state.active_turn_id = null; app.state.stopping = false; app.state.accepting = false;
+  Object.assign(app.state, {storage_error: '轮次结果未保存', unsaved_fact: {turn_id: 'turn', kind: 'turn.finished', message: '未保存'}});
+  await app.notify();
+  await expect(page.getByText('未保存 · 请复制保留，刷新后可能丢失', {exact: true})).toBeVisible();
+  await expect(page.locator('.message.answer')).toContainText('收束后的完整正文');
+  await page.getByRole('button', {name: '复制未保存正文', exact: true}).click();
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('停止前正文。收束后的完整正文。');
+  await page.screenshot({path: test.info().outputPath('unsaved-answer-desktop.png')});
+  await page.setViewportSize({width: 390, height: 844});
+  await page.getByRole('button', {name: '收起会话导航'}).first().click();
+  await page.screenshot({path: test.info().outputPath('unsaved-answer-mobile.png')});
+});
+
+
+test('远端停止冻结当前预览，真实保存结果与截断状态优先于迟到正文', async ({page}) => {
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  app.state.answer_revision = 1;
+  app.state.answer_preview = {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+    attempt_id: 'answer', revision: 1, text: '正在阅读的正文。', status: 'generating'};
+  await page.reload();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  await expect(page.getByText('正在阅读的正文。', {exact: true})).toBeVisible();
+  app.state.stopping = true;
+  await app.notify();
+  app.state.answer_revision = 2;
+  await page.evaluate(() => (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {
+    data: JSON.stringify({schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision: 2,
+      preview: {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+        attempt_id: 'answer', revision: 2, text: '不应追加的正文', status: 'generating'}}),
+  })));
+  await expect(page.getByText('正在停止 · 正文已暂停追加', {exact: true})).toBeVisible();
+  await expect(page.getByText('不应追加的正文', {exact: true})).toHaveCount(0);
+  app.turn.status = 'completed'; app.turn.answer = '真实保存的完整结果。';
+  app.state.active_turn_id = null; app.state.stopping = false;
+  await app.notify();
+  await expect(page.getByText('真实保存的完整结果。', {exact: true})).toBeVisible();
+  await expect(page.getByRole('button', {name: '复制完整回答', exact: true})).toBeVisible();
+  for (const reason of ['output_limit', 'budget']) {
+    app.turn.status = 'terminated'; app.turn.reason = reason; app.turn.answer = '达到限制时已保存的部分安排。';
+    await app.notify();
+    await expect(page.getByText('回答不完整', {exact: true})).toBeVisible();
+    await expect(page.getByRole('button', {name: '复制不完整回答', exact: true})).toBeVisible();
+    await expect(page.getByRole('button', {name: '复制完整回答', exact: true})).toHaveCount(0);
+  }
 });

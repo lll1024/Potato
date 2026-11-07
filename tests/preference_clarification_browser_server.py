@@ -26,7 +26,9 @@ async def main():
         if not kwargs['system'].startswith('旅行者偏好提取'):
             text = kwargs['messages'][-1]['content']
             if text == '以后给我推荐餐馆时怎么选口味？' and '是否以后长期接受辣味' in kwargs['system']:
-                return response([{'type': 'text', 'text': '你说现在可以吃辣，是只限这次，还是以后长期接受辣味？'}])
+                model.requests.append(kwargs)
+                model.last_response = response([{'type': 'text', 'text': '你说现在可以吃辣，是只限这次，还是以后长期接受辣味？'}])
+                return model.last_response
         return await create(**kwargs)
     model.create = controlled
     @asynccontextmanager

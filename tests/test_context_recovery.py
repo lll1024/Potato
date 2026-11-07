@@ -47,7 +47,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
                     continued = (await client.post('/api/turns', json={'input': '2026-10-19读取早餐资料', 'session_id': accepted['session_id']})).json()
                     saved = await asyncio.wait_for(wait_finished(client, accepted['session_id'], continued['turn_id']), 4)
                     self.assertEqual(saved['turns'][-1]['answer'], '历史资料仍需核对。')
-                    self.assertEqual(calls, 4)
+                    self.assertEqual(calls, 5)
                     data = external.model_calls[2]
                     material = json.loads(data['system'].split('<saved_source_materials>')[1].split('</saved_source_materials>')[0])[0]
                     self.assertNotIn(source, data['system'])
@@ -80,7 +80,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
         entered, release = asyncio.Event(), asyncio.Event()
         class WaitingModel(ModelService):
             async def create(self, **kwargs):
-                if len(self.requests) == 1:
+                if len(self.requests) == 2:
                     entered.set()
                     await release.wait()
                 return await super().create(**kwargs)
@@ -100,7 +100,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(state['unsaved_fact']['kind'], 'tool.history_read')
                 saved = (await client.get('/api/sessions/' + first['session_id'])).json()
                 self.assertFalse(any(event['turn_id'] == accepted['turn_id'] and event['kind'] in ('turn.finished', 'tool.completed', 'tool.failed') for event in saved['events']))
-                self.assertEqual(len(model.requests), 2)
+                self.assertEqual(len(model.requests), 3)
 
     async def test_killed_summary_or_adopted_candidate_restores_previous_saved_version(self):
         from context_fixtures import ENV, OLD
@@ -203,7 +203,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual('context.candidate' in events, boundary != 'context.candidate')
                         self.assertEqual('context.adopted' in events, boundary in ('context.saved', 'turn.finished'))
                         self.assertIsNone(saved['turns'][-1]['answer'])
-                        self.assertEqual(len(external.model_calls), 4 if boundary in ('context.candidate', 'context.adopted') else 5)
+                        self.assertEqual(len(external.model_calls), 6 if boundary in ('context.candidate', 'context.adopted') else 8)
                         child.kill()
                         await child.wait()
                     with sqlite3.connect(Path(directory) / 'travel.sqlite3') as database:
@@ -228,7 +228,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
                 external.entered.set()
                 await external.release.wait()
                 content = [{'type': 'text', 'text': '迟到回答'}]
-            elif number == 5:
+            elif number == 6:
                 content = [{'type': 'tool_use', 'id': 'search', 'name': 'session_history_search', 'input': {'query': '西湖位于杭州'}}]
             else:
                 content = [{'type': 'text', 'text': '仅作待核实历史资料'}]
@@ -249,7 +249,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
                     await wait_finished(client, complete['session_id'], complete['turn_id'])
                     search = (await client.post('/api/turns', json={'input': '搜索西湖历史', 'session_id': complete['session_id']})).json()
                     await wait_finished(client, complete['session_id'], search['turn_id'])
-                    matches = json.loads(external.model_calls[-1]['messages'][-1]['content'][0]['content'])['matches']
+                    matches = json.loads(next(request for request in reversed(external.model_calls) if 'tools' in request)['messages'][-1]['content'][0]['content'])['matches']
                     self.assertEqual(len(matches), 2)
                     old, valid = matches
                     self.assertEqual(old['turn_reason'], 'service_interrupted')
@@ -314,7 +314,7 @@ class ContextRecoveryTests(unittest.IsolatedAsyncioTestCase):
                 state = await wait_state(client, lambda item: item["active_turn_id"] is None)
                 self.assertFalse(state["accepting"])
                 self.assertEqual(state["unsaved_fact"]["kind"], "turn.context")
-                self.assertEqual(len(model.requests), 1)
+                self.assertEqual(len(model.requests), 2)
                 saved = (await client.get("/api/sessions/" + first["session_id"])).json()
                 self.assertEqual(saved["turns"][-1]["status"], "running")
                 self.assertFalse(any(event["turn_id"] == accepted["turn_id"] and

@@ -1,0 +1,30 @@
+{
+  "environment": {
+    "kind": "configured-model-answer-acceptance",
+    "model": "deepseek-v4-flash",
+    "provider": "api.deepseek.com"
+  },
+  "session_id": "e01a0a852e1d431b888f65183022dc8a",
+  "turn_id": "0a8fcd978de743e7818ea02f71568769",
+  "test_result": "passed",
+  "test_seconds": 39.4,
+  "screenshots": [
+    {
+      "file": "web-live-batch-1.png",
+      "at": "2026-11-06T14:31:37.993217+00:00"
+    },
+    {
+      "file": "web-live-batch-2.png",
+      "at": "2026-11-06T14:31:38.333868+00:00"
+    },
+    {
+      "file": "web-live-saved.png",
+      "at": "2026-11-06T14:31:50.351419+00:00"
+    }
+  ],
+  "assertions": [
+    "两次 DOM 正文增长均在生成状态，历史 running、answer 为空，恰有一个实际模型请求 running",
+    "保存后为 completed，系统剪贴板全文与持久历史回答相同"
+  ],
+  "observation_detail": "本轮使用默认列表报告器，内存 JSON 附件未落盘；截图时间取原输出文件 mtime。后续脚本已改为显式写入 live-evidence.json。"
+}

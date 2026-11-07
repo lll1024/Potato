@@ -32,7 +32,7 @@ class PayloadSearchTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn('尾部独有关键词',answer['excerpt'])
                 summary = (await client.get(f"/api/sessions/{first['session_id']}/search",params={'q':'尾部独有关键词','scope':'summary'})).json()
                 self.assertEqual(summary['matches'],[])
-                self.assertEqual(len(model.requests),2)
+                self.assertEqual(len(model.requests),4)
 
     async def test_unicode_segments_reassemble_complete_saved_response_without_secrets(self):
         text = '甲🌸乙\n' * 3000 + '尾部完整标记 known-secret https://example.test/?key=known-secret'
@@ -97,7 +97,7 @@ class PayloadSearchTests(unittest.IsolatedAsyncioTestCase):
                     self.assertNotIn('known-secret',str(result))
                     self.assertNotIn('unknown-secret',str(result))
                 self.assertEqual(maps.calls,2)
-                self.assertEqual(len(model.requests),2)
+                self.assertEqual(len(model.requests),3)
                 other = (await client.post('/api/turns',json={'input':'新会话'})).json()
                 await asyncio.wait_for(wait_finished(client,other['session_id']),2)
                 result=(await client.get(f"/api/sessions/{other['session_id']}/search",params={'q':'错误独有匹配词'})).json()

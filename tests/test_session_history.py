@@ -50,7 +50,7 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
             async with serving(directory, model) as client:
                 first = (await client.post("/api/turns", json={"input": "查酒店"})).json()
                 saved = await wait_finished(client, first["session_id"])
-                response_id = saved["requests"][0]["response_payload_id"]
+                response_id = saved["requests"][-1]["response_payload_id"]
                 input_id = saved["requests"][0]["input_payload_id"]
                 model.replies = iter([call("session_history_search", {"query": "酒店"}),
                     call("session_history_read", {"record_id": "payload:" + response_id + ":text:0", "limit": 99999}),
@@ -59,15 +59,15 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
                     response([{"type": "text", "text": "读取完毕"}])])
                 second = (await client.post("/api/turns", json={"input": "回读", "session_id": first["session_id"]})).json()
                 await wait_finished(client, second["session_id"], second["turn_id"])
-                search = json.loads(model.requests[2]["messages"][-1]["content"][0]["content"])
+                search = json.loads(model.requests[3]["messages"][-1]["content"][0]["content"])
                 self.assertTrue(all(len(match["excerpt"]) <= 200 for match in search["matches"]))
-                page = json.loads(model.requests[3]["messages"][-1]["content"][0]["content"])
+                page = json.loads(model.requests[4]["messages"][-1]["content"][0]["content"])
                 self.assertEqual(len(page["text"]), 4000)
                 self.assertEqual(page["next_offset"], 4000)
-                followup = json.loads(model.requests[4]["messages"][-1]["content"][0]["content"])
+                followup = json.loads(model.requests[5]["messages"][-1]["content"][0]["content"])
                 self.assertEqual(followup["offset"], 4000)
                 self.assertEqual(followup["text"], original[4000:8000])
-                self.assertTrue(model.requests[5]["messages"][-1]["content"][0]["is_error"])
+                self.assertTrue(model.requests[6]["messages"][-1]["content"][0]["is_error"])
                 model.replies = iter([call("session_history_read", {"record_id": "payload:" + response_id + ":text:0"}), response([{"type": "text", "text": "无法读另一会话"}])])
                 other = (await client.post("/api/turns", json={"input": "新会话"})).json()
                 other_saved = await wait_finished(client, other["session_id"])
@@ -120,7 +120,7 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
             async with serving(directory, model) as client:
                 first = (await client.post("/api/turns", json={"input": "查酒店"})).json()
                 saved = await wait_finished(client, first["session_id"])
-                identifier = "payload:" + saved["requests"][0]["response_payload_id"] + ":text:0"
+                identifier = "payload:" + saved["requests"][-1]["response_payload_id"] + ":text:0"
                 summary = response([{"type": "text", "text": json.dumps({
                     "travel_conditions": {"hotel_breakfast": "旧报价68元，未预订"},
                     "confirmed_itinerary": [], "corrections": [], "unresolved": ["当前价格待核实"],
@@ -151,11 +151,11 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
                 await wait_finished(client, first["session_id"])
                 second = (await client.post("/api/turns", json={"input": "回读", "session_id": first["session_id"]})).json()
                 await wait_finished(client, second["session_id"], second["turn_id"])
-                matches = json.loads(model.requests[2]["messages"][-1]["content"][0]["content"])["matches"]
+                matches = json.loads(model.requests[3]["messages"][-1]["content"][0]["content"])["matches"]
                 self.assertEqual(len(matches), 5)
                 self.assertEqual(len({match["record_id"] for match in matches}), 5)
                 self.assertTrue(all(len(match["excerpt"]) == 200 for match in matches))
-                self.assertEqual(json.loads(model.requests[3]["messages"][-1]["content"][0]["content"])["matches"], [])
+                self.assertEqual(json.loads(model.requests[4]["messages"][-1]["content"][0]["content"])["matches"], [])
 
     async def test_tool_result_can_be_read_by_full_protocol_reference(self):
         model = ModelService([call("maps_text_search", {"keywords": "西湖", "city": "杭州"}),
@@ -169,8 +169,8 @@ class SessionHistoryTests(unittest.IsolatedAsyncioTestCase):
                 await wait_finished(client, first["session_id"])
                 second = (await client.post("/api/turns", json={"input": "回读", "session_id": first["session_id"]})).json()
                 await wait_finished(client, second["session_id"], second["turn_id"])
-                matches = json.loads(model.requests[3]["messages"][-1]["content"][0]["content"])["matches"]
-                page = json.loads(model.requests[4]["messages"][-1]["content"][0]["content"])
+                matches = json.loads(model.requests[4]["messages"][-1]["content"][0]["content"])["matches"]
+                page = json.loads(model.requests[5]["messages"][-1]["content"][0]["content"])
                 self.assertEqual(len(matches), 1)
                 self.assertEqual(page["kind"], "tool_result")
                 self.assertEqual(page["source"], "maps_text_search")

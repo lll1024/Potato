@@ -12,6 +12,24 @@ public final class SharedSessions: SessionAccess {
     public private(set) var sessionList: SessionList?
     public private(set) var conversation: ConversationPage?
     public private(set) var conversationFailure: SessionFailure?
+    public private(set) var answerFailure: SessionFailure?
+    private var currentAnswer: AnswerPreview?
+    private var frozenAnswer: AnswerPreview?
+    private var frozenTurnID: String?
+    private var answerInstance: String?
+    private var answerRevision = -1
+    private var answerSubscription: Task<Void, Never>?
+    private var answerOperation = UUID()
+    private var isForeground = false
+
+    public var answerPreview: AnswerPreview? {
+        let frozen = frozenTurnID != nil && frozenTurnID == service?.activeTurnID
+        guard let preview = frozen ? frozenAnswer : currentAnswer, preview.sessionID == watchedSessionID,
+              preview.streamID == datasetID, preview.instanceID == answerInstance else { return nil }
+        if let turn = conversation?.turns.first(where: { $0.id == preview.turnID }), turn.status != "running" { return nil }
+        return preview
+    }
+
     public private(set) var stopState = StopState.idle
     public private(set) var isLoadingMoreSessions = false
     public private(set) var moreSessionsFailure: SessionFailure?
@@ -120,6 +138,8 @@ public final class SharedSessions: SessionAccess {
                 invalidateEarlierTurns()
                 conversation = nil
                 conversationFailure = .http(404)
+                currentAnswer = nil
+                cancelAnswerSubscription()
             } else if !(error is CancellationError), error as? SessionFailure != .obsolete {
                 earlierTurnsFailure = error as? SessionFailure ?? .invalidResponse
             }
@@ -172,6 +192,7 @@ public final class SharedSessions: SessionAccess {
         let configuration = configurationGeneration
         let dataset = datasetGeneration
         stopOperation = operation
+        if target.turnID == service?.activeTurnID { freezeAnswer(turnID: target.turnID) }
         stopState = .requesting(target)
         // 请求之前取得的快照不能解除停止核对屏障。
         refreshGeneration += 1
@@ -274,6 +295,7 @@ public final class SharedSessions: SessionAccess {
                            arguments: [normalized])
             return try String.fetchOne(db, sql: "SELECT stream_id FROM server_dataset WHERE address = ?", arguments: [normalized])
         }
+        resetAnswer()
         serverAddress = normalized
         connection = normalized.isEmpty ? .unconfigured : .connecting
         service = nil
@@ -431,6 +453,9 @@ public final class SharedSessions: SessionAccess {
 
     public func watchConversation(sessionID: String?) {
         guard watchedSessionID != sessionID else { return }
+        cancelAnswerSubscription()
+        currentAnswer = nil
+        answerRevision = -1
         watchedSessionID = sessionID
         invalidateEarlierTurns()
         historyGeneration += 1
@@ -512,7 +537,12 @@ public final class SharedSessions: SessionAccess {
     }
 
     public func setForeground(_ active: Bool) {
-        guard active else { polling?.cancel(); polling = nil; return }
+        isForeground = active
+        guard active else {
+            polling?.cancel(); polling = nil
+            cancelAnswerSubscription()
+            return
+        }
         guard polling == nil else { return }
         let wait = wait
         polling = Task { [weak self] in
@@ -523,6 +553,7 @@ public final class SharedSessions: SessionAccess {
                     if let sessionID = self.watchedSessionID {
                         _ = try await self.history(sessionID: sessionID)
                     }
+                    self.updateAnswerSubscription()
                 } catch is CancellationError { return }
                 catch { /* 读取入口保留错误及最后保存事实，下轮重新核对。 */ }
                 guard !Task.isCancelled else { return }
@@ -574,6 +605,7 @@ public final class SharedSessions: SessionAccess {
             guard snapshot.schemaVersion == 1 else { throw SessionFailure.invalidResponse }
             try rememberDataset(snapshot.streamId)
             if let datasetID, datasetID != snapshot.streamId {
+                resetAnswer()
                 datasetGeneration += 1
                 submissionOperation = nil
                 submission = pendingSubmission == nil ? .idle : .unknown
@@ -589,7 +621,25 @@ public final class SharedSessions: SessionAccess {
             }
             datasetID = snapshot.streamId
             dataset = datasetGeneration
+            if snapshot.instanceId != answerInstance || snapshot.activeTurnId != frozenTurnID {
+                frozenAnswer = nil
+                frozenTurnID = nil
+            }
+            if snapshot.stopping, let turnID = snapshot.activeTurnId,
+               currentAnswer?.instanceID == snapshot.instanceId, currentAnswer?.turnID == turnID {
+                freezeAnswer(turnID: turnID)
+            }
             service = snapshot.entity
+            if answerInstance != snapshot.instanceId {
+                cancelAnswerSubscription()
+                currentAnswer = nil
+                answerRevision = -1
+                answerInstance = snapshot.instanceId
+            }
+            if let instance = snapshot.instanceId, let revision = snapshot.answerRevision {
+                try adoptAnswer(instance: instance, revision: revision, preview: snapshot.answerPreview)
+            }
+            if snapshot.stopping, let turnID = snapshot.activeTurnId { freezeAnswer(turnID: turnID) }
             if stopOperation == nil {
                 switch stopState {
                 case .requesting(let target), .waiting(let target), .uncertain(let target):
@@ -668,6 +718,7 @@ public final class SharedSessions: SessionAccess {
             try rememberDataset(page.streamId)
             if let datasetID, datasetID != page.streamId {
                 self.datasetID = page.streamId
+                resetAnswer()
                 datasetGeneration += 1
                 submissionOperation = nil
                 submission = pendingSubmission == nil ? .idle : .unknown
@@ -690,6 +741,7 @@ public final class SharedSessions: SessionAccess {
             if watchedSessionID == sessionID {
                 conversation = conversation?.merging(page.entity) ?? page.entity
                 conversationFailure = nil
+                updateAnswerSubscription()
             }
             return watchedSessionID == sessionID ? conversation! : page.entity
         } catch {
@@ -699,11 +751,93 @@ public final class SharedSessions: SessionAccess {
             if watchedSessionID == sessionID { conversationFailure = error as? SessionFailure ?? .invalidResponse }
             if error as? SessionFailure == .http(404) {
                 if connectionRead == connectionGeneration { connection = .connected }
-                if watchedSessionID == sessionID { conversation = nil; invalidateEarlierTurns() }
+                if watchedSessionID == sessionID {
+                    conversation = nil
+                    currentAnswer = nil
+                    cancelAnswerSubscription()
+                    invalidateEarlierTurns()
+                }
             } else {
                 if connectionRead == connectionGeneration { connection = .unavailable(connectionFailureMessage(error)) }
             }
             throw error
         }
     }
+
+    private func freezeAnswer(turnID: String) {
+        guard frozenTurnID != turnID else { return }
+        frozenTurnID = turnID
+        frozenAnswer = currentAnswer?.turnID == turnID ? currentAnswer : nil
+    }
+
+    private func resetAnswer() {
+        frozenAnswer = nil
+        frozenTurnID = nil
+        cancelAnswerSubscription()
+        currentAnswer = nil
+        answerInstance = nil
+        answerRevision = -1
+    }
+
+    private func cancelAnswerSubscription() {
+        answerOperation = UUID()
+        answerSubscription?.cancel()
+        answerSubscription = nil
+        answerFailure = nil
+    }
+
+    private func adoptAnswer(instance: String, revision: Int, preview: AnswerPreview?) throws {
+        guard instance == answerInstance, revision > answerRevision else { return }
+        if let preview {
+            guard preview.instanceID == instance, preview.streamID == datasetID, preview.revision == revision,
+                  ["generating", "generated", "invalidated", "retrying"].contains(preview.status) else {
+                throw SessionFailure.invalidResponse
+            }
+            // 全局状态尚未核对到新轮次时，等下一次累计快照，不能混入原轮次。
+            let active = preview.turnID == service?.activeTurnID && preview.sessionID == service?.activeSessionID
+            let unsaved = service?.storageError != nil && service?.unsavedFact?["turn_id"] == preview.turnID
+            guard active || unsaved else { return }
+        }
+        answerRevision = revision
+        currentAnswer = preview
+    }
+
+    private func updateAnswerSubscription() {
+        guard isForeground, answerSubscription == nil, let sessionID = watchedSessionID,
+              conversation?.session.id == sessionID, conversationFailure != .http(404),
+              let instance = answerInstance, let streamID = datasetID else { return }
+        let operation = UUID()
+        answerOperation = operation
+        let address = serverAddress
+        let bytes = http.events(address: address, streamID: streamID, after: conversation?.cursor ?? 0)
+        answerSubscription = Task { [weak self] in
+            do {
+                var parser = SessionEventParser()
+                for try await data in bytes {
+                    try Task.checkCancellation()
+                    guard let self, self.answerOperation == operation else { return }
+                    for event in try parser.append(data) {
+                        guard event.schemaVersion == 1 else { throw SessionFailure.invalidResponse }
+                        // 同库重启也必须重新读取快照；旧进程消息不能作为新状态。
+                        guard event.instanceId == instance else {
+                            self.currentAnswer = nil
+                            self.answerInstance = nil
+                            self.answerRevision = -1
+                            self.refreshGeneration += 1
+                            throw SessionFailure.obsolete
+                        }
+                        try self.adoptAnswer(instance: event.instanceId, revision: event.revision, preview: event.preview)
+                        self.answerFailure = nil
+                    }
+                }
+                throw SessionFailure.unreachable
+            } catch {
+                guard let self, self.answerOperation == operation, !Task.isCancelled else { return }
+                self.answerSubscription = nil
+                self.answerFailure = error as? SessionFailure ?? .unreachable
+                // 保留最后正文，下一轮前台核对先恢复快照，再创建订阅。
+            }
+        }
+    }
+
 }

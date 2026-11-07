@@ -224,7 +224,7 @@ class PreferenceRecoveryTests(unittest.IsolatedAsyncioTestCase):
                     state = await until(client, '/api/preferences', lambda s: bool(s['preferences']))
                     self.assertEqual(state['processing'], [])
                     self.assertEqual(len(external.extract_calls), 2)
-                    self.assertEqual(len([r for r in external.model_calls if not r['system'].startswith('旅行者偏好提取')]), 1)
+                    self.assertEqual(len([r for r in external.model_calls if not r['system'].startswith('旅行者偏好提取')]), 2)
 
     async def test_repeated_kills_cannot_reset_the_three_request_limit(self):
         external = PreferenceServices()

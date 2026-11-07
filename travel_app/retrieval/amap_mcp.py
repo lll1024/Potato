@@ -261,6 +261,48 @@ class AmapTools:
         message = FAILURE_MESSAGES[failure]
         return {"content": message, "is_error": True}
 
+    def redact_preview(self, text: str) -> str:
+        variants = [value for secret in self._secrets if secret
+                    for value in (secret, quote(secret, safe=""), quote_plus(secret, safe=""))]
+        reserve = max((size for value in variants for size in range(1, len(value))
+                       if text.endswith(value[:size])), default=0)
+        limit = len(text) - reserve
+        depth, quote_char, escaped, boundary = 0, None, False, 0
+        for index, char in enumerate(text[:limit]):
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif quote_char:
+                if char == quote_char:
+                    quote_char = None
+            elif char == '"' or (char == "'" and (index == 0 or not text[index - 1].isalnum())):
+                quote_char = char
+            elif char in "{[":
+                depth += 1
+            elif char in "}]":
+                depth = max(0, depth - 1)
+            if not depth and quote_char is None:
+                boundary = index + 1
+        # URL 在后续块中可能增加认证用户或敏感参数；完整行凭据头也必须等结束。
+        url = re.search(r'https?://[^\s<>"\'\\]*\Z', text, flags=re.IGNORECASE)
+        if url:
+            boundary = min(boundary, url.start())
+        header = re.search(r'^[ \t]*(?:authorization|cookie|set[_-]cookie)[ \t]*:[^\r\n]*\Z',
+                           text, flags=re.IGNORECASE | re.MULTILINE)
+        if header and not text.endswith(("\n", "\r")):
+            boundary = min(boundary, header.start())
+        matches = []
+        for value in variants:
+            start = text.find(value)
+            while start != -1:
+                matches.append((start, start + len(value)))
+                start = text.find(value, start + 1)
+        for start, end in sorted(matches, reverse=True):
+            if start < boundary < end:
+                boundary = start
+        return self.redact(text[:boundary])
+
     def redact(self, text: str) -> str:
         variants = {value for secret in self._secrets if secret
                     for value in (secret, quote(secret, safe=""), quote_plus(secret, safe=""))}

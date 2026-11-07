@@ -59,6 +59,8 @@ public protocol SessionAccess: AnyObject {
     var sessionList: SessionList? { get }
     var conversation: ConversationPage? { get }
     var conversationFailure: SessionFailure? { get }
+    var answerPreview: AnswerPreview? { get }
+    var answerFailure: SessionFailure? { get }
     var canSubmit: Bool { get }
     func configure(address: String) throws
     func refresh() async throws -> SessionList
@@ -166,6 +168,7 @@ public struct ConversationTurn: Equatable, Identifiable, Sendable {
     public let answer: String?
     public let status: String
     public let reason: String?
+    public let answerDelivery: String?
     let observedAt: Int?
 }
 
@@ -176,4 +179,26 @@ public struct ConversationPage: Equatable, Sendable {
     public let streamID: String
     public let cursor: Int?
     var windows: [HistoryWindow]
+}
+
+/// 当前服务内存中的累计正文，独立于已保存历史；新尝试整体替换旧预览。
+public struct AnswerPreview: Decodable, Equatable, Sendable {
+    public let instanceID: String
+    public let streamID: String
+    public let sessionID: String
+    public let turnID: String
+    public let attemptID: String
+    public let revision: Int
+    public let text: String
+    public let status: String
+    public let delivery: String?
+}
+
+// JSONDecoder 的 convertFromSnakeCase 产生 Id；公开领域数据沿用项目的 ID 命名。
+extension AnswerPreview {
+    enum CodingKeys: String, CodingKey {
+        case instanceID = "instanceId", streamID = "streamId", sessionID = "sessionId"
+        case turnID = "turnId", attemptID = "attemptId"
+        case revision, text, status, delivery
+    }
 }

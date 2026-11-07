@@ -224,6 +224,6 @@ class CallBudgetTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(restarted.requests, [])
                 next_turn = (await client.post("/api/turns", json={"input": "继续", "session_id": accepted["session_id"]})).json()
                 continued = await wait_finished(client, accepted["session_id"], next_turn["turn_id"])
-                self.assertEqual(continued["requests"][-1]["ordinal"], 1)
+                self.assertEqual(continued["requests"][-1]["ordinal"], 2)
                 self.assertEqual(continued["turns"][-1]["status"], "completed")
-                self.assertEqual(len(restarted.requests), 1)
+                self.assertEqual(len(restarted.requests), 2)

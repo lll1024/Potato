@@ -15,7 +15,7 @@ class PreferenceTests(PreferenceHarness, unittest.IsolatedAsyncioTestCase):
                 self.assertEqual((await client.get('/api/preferences')).json()['preferences'], [])
                 first = await self.finish(client, '我一直不吃辣')
                 await clock.advance(3599)
-                self.assertEqual(len(model.requests), 1)
+                self.assertEqual(len(model.requests), 2)
                 self.assertEqual((await client.get('/api/preferences')).json()['preferences'], [])
                 await clock.advance(1)
                 saved = (await client.get('/api/preferences')).json()['preferences']

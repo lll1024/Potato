@@ -2,9 +2,13 @@ import MarkdownUI
 import SwiftUI
 import UIKit
 
-/// 排版依赖与系统复制操作收在回答视图内；始终使用后端完整原文。
+/// 排版依赖与系统复制操作收在回答视图内；复制当前展示的 Markdown 原文。
 struct AnswerView: View {
     let text: String
+    var isPreview = false
+    var isUnsaved = false
+    var isIncomplete = false
+    private var copyLabel: String { isUnsaved ? "未保存正文" : isPreview ? "当前正文" : isIncomplete ? "不完整回答" : "完整回答" }
     @State private var copied = false
     @ScaledMetric(relativeTo: .body) private var columnWidth = 180.0
 
@@ -38,13 +42,14 @@ struct AnswerView: View {
                 }
                 .markdownTheme(.basic)
                 .textSelection(.enabled)
-            Button(copied ? "已复制完整回答" : "复制完整回答", systemImage: copied ? "checkmark" : "doc.on.doc") {
+            Button((copied ? "已复制" : "复制") + copyLabel, systemImage: copied ? "checkmark" : "doc.on.doc") {
                 UIPasteboard.general.string = text
                 copied = true
             }
             .font(.subheadline).frame(minHeight: 44)
             .accessibilityIdentifier("copy-answer")
             .onChange(of: text) { copied = false }
+            .onChange(of: copyLabel) { copied = false }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

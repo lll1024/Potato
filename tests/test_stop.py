@@ -173,12 +173,15 @@ class StopTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(ending=ending):
                 entered,release=asyncio.Event(),asyncio.Event()
                 class WaitingModel(ModelService):
-                    async def create(self,**kwargs):
-                        entered.set();await release.wait()
-                        if ending=='failure':
+                    @asynccontextmanager
+                    async def stream(self, **kwargs):
+                        entered.set()
+                        await release.wait()
+                        if ending == 'failure':
                             self.requests.append(kwargs)
                             raise AnthropicError('模型确实失败')
-                        return await super().create(**kwargs)
+                        async with super().stream(**kwargs) as stream:
+                            yield stream
                 model=WaitingModel([response([{'type':'text','text':'真实最终回答'}], 'max_tokens' if ending=='output_limit' else 'end_turn')])
                 with tempfile.TemporaryDirectory() as directory:
                     async with serving_tools(directory,model,MapService()) as client:
@@ -190,11 +193,11 @@ class StopTests(unittest.IsolatedAsyncioTestCase):
                         turn=saved['turns'][0]
                         expected={'answer':('completed',None,'model'),'output_limit':('terminated','output_limit','model'),'failure':('failed','model_error','application')}[ending]
                         self.assertEqual((turn['status'],turn['reason'],turn['answer_source']),expected)
-                        self.assertEqual(saved['requests'][0]['status'],'failed' if ending=='failure' else 'completed')
+                        self.assertEqual(saved['requests'][-1]['status'],'failed' if ending=='failure' else 'completed')
                         before=json.dumps(saved,sort_keys=True)
                         await client.post('/api/turns/'+accepted['turn_id']+'/stop')
                         self.assertEqual(json.dumps((await client.get('/api/sessions/'+accepted['session_id'])).json(),sort_keys=True),before)
-                        self.assertEqual(len(model.requests),1)
+                        self.assertEqual(len(model.requests),2)
 
     async def test_map_pause_survives_stop_and_real_failure_remains_recorded(self):
         from mcp.types import CallToolResult,TextContent

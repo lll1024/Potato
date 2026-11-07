@@ -4,12 +4,15 @@ import Foundation
 /// 传输类型只在能力内部使用；页面不依赖服务器 JSON 命名或 Alamofire。
 struct SessionHTTP {
     let session: Session
+    private let eventSession: Session
 
     init(session: Session? = nil) {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = 15
         configuration.timeoutIntervalForResource = 30
         self.session = session ?? Session(configuration: configuration)
+        configuration.timeoutIntervalForResource = 7 * 24 * 60 * 60
+        eventSession = session ?? Session(configuration: configuration)
     }
 
     func get<T: Decodable & Sendable>(_ type: T.Type, address: String, path: String,
@@ -135,6 +138,10 @@ struct WireSnapshot: Decodable, Sendable {
     let storageError: String?
     let unsavedFact: [String: String]?
 
+    let instanceId: String?
+    let answerRevision: Int?
+    let answerPreview: AnswerPreview?
+
     var entity: ServiceState {
         ServiceState(streamID: streamId, activeSessionID: activeSessionId, activeTurnID: activeTurnId,
                      accepting: accepting, stopping: stopping, storageError: storageError, unsavedFact: unsavedFact)
@@ -149,6 +156,7 @@ struct WirePage: Decodable, Sendable {
         let answer: String?
         let status: String
         let reason: String?
+        let answerDelivery: String?
     }
     let schemaVersion: Int
     let streamId: String
@@ -160,8 +168,74 @@ struct WirePage: Decodable, Sendable {
     var entity: ConversationPage {
         ConversationPage(session: session.entity, turns: turns.map {
             ConversationTurn(id: $0.turnId, ordinal: $0.ordinal, input: $0.input, answer: $0.answer,
-                             status: $0.status, reason: $0.reason, observedAt: cursor)
+                             status: $0.status, reason: $0.reason, answerDelivery: $0.answerDelivery, observedAt: cursor)
         }, nextBefore: nextBefore, streamID: streamId, cursor: cursor,
             windows: HistoryWindow.page(ordinals: turns.compactMap(\.ordinal), before: nextBefore))
     }
+}
+
+extension SessionHTTP {
+    /// 传输只交付原始字节；关闭接收只取消此 GET，不调用后端停止。
+    func events(address: String, streamID: String, after: Int) -> AsyncThrowingStream<Data, any Error> {
+        AsyncThrowingStream { continuation in
+            var request = URLRequest(url: URL(string: address + "/api/events")!)
+            var url = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)!
+            url.queryItems = [URLQueryItem(name: "stream_id", value: streamID),
+                              URLQueryItem(name: "after", value: String(after))]
+            request.url = url.url
+            request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+            // 服务每 15 秒发送心跳；正文流不使用普通读取的 30 秒总时限。
+            request.timeoutInterval = 60
+            let receiving = eventSession.streamRequest(request).validate(statusCode: 200..<300)
+            continuation.onTermination = { _ in receiving.cancel() }
+            receiving.responseStream { response in
+                switch response.event {
+                case .stream(.success(let data)): continuation.yield(data)
+                case .complete(let completion):
+                    if let error = completion.error { continuation.finish(throwing: error) }
+                    else { continuation.finish() }
+                }
+            }
+        }
+    }
+}
+
+/// 按字节留住未完成行，避免网络块切断中文；只解析完整的 SSE 事件。
+struct SessionEventParser {
+    private var pending = Data()
+    private var kind = ""
+    private var lines: [String] = []
+
+    mutating func append(_ data: Data) throws -> [WireAnswerEvent] {
+        pending.append(data)
+        var events: [WireAnswerEvent] = []
+        while let end = pending.firstIndex(of: 10) {
+            var bytes = pending.prefix(upTo: end)
+            if bytes.last == 13 { bytes = bytes.dropLast() }
+            guard let line = String(data: bytes, encoding: .utf8) else { throw SessionFailure.invalidResponse }
+            pending.removeSubrange(...end)
+            if line.isEmpty {
+                if kind == "answer.preview", !lines.isEmpty {
+                    let decoder = JSONDecoder()
+                    decoder.keyDecodingStrategy = .convertFromSnakeCase
+                    events.append(try decoder.decode(WireAnswerEvent.self, from: Data(lines.joined(separator: "\n").utf8)))
+                }
+                kind = ""
+                lines = []
+            } else if line.hasPrefix("event:") {
+                kind = String(line.dropFirst(6)).trimmingCharacters(in: .whitespaces)
+            } else if line.hasPrefix("data:") {
+                let value = line.dropFirst(5)
+                lines.append(String(value.first == " " ? value.dropFirst() : value))
+            }
+        }
+        return events
+    }
+}
+
+struct WireAnswerEvent: Decodable, Sendable {
+    let schemaVersion: Int
+    let instanceId: String
+    let revision: Int
+    let preview: AnswerPreview?
 }

@@ -4,6 +4,13 @@
 
 | 行为范围 | 结论入口 | 证据与适用范围 |
 | --- | --- | --- |
+| 当前真实模型与 Web／iOS 最终联合验收 | [#104 联合验收](streaming-final.md)、[58 条故事映射](streaming-final-mapping.md) | DeepSeek 当前配置实连、同轮保存前多批正文、恢复／重试／停止／保存失败交叉与兼容；模拟器与真机范围分别记录 |
+| Web／iOS 流式 Markdown 与阅读跟随 | [#103 验收](stream-reading.md) | 半成型代码／表格／链接、长中文、同轮增长、上翻保位、回到最新及当前 Markdown 全文复制 |
+| Web／iOS 停止、未保存正文与未完成结果 | [#102 验收](answer-outcomes.md) | 公开 HTTP／SSE、SessionAccess、停止完成竞争、SQLite 故障、截断、63／64 预算与两端复制界面 |
+| Web／iOS 流式失败重试与完整回答降级 | [#101 验收](answer-retries.md) | 公开 HTTP／SSE、SDK 截断流、原有错误分类、63／64 预算、SessionAccess 与模拟器真实 HTTPS 故障界面 |
+| Web／iOS 当前正文恢复与失效隔离 | [#100 验收](answer-recovery.md) | 双订阅、快照交接、旧状态／新正文交错、真实进程重启、公开 SessionAccess 及模拟器前后台；生产模型联合验收另见 #104 |
+| iOS 最终回答实时阅读 | [#99 验收](ios-answer-streaming.md) | 共享前台订阅、分块 HTTP、真实 HTTPS／SQLite、前后台恢复与模拟器界面增长；生产模型实连另见后续任务 |
+| Web 最终回答真实流式展示 | [#98 验收](web-answer-streaming.md) | 公开 HTTP／SSE、真实 SQLite、分块屏障、阶段隔离、63／64 预算及跨块脱敏；iOS 与生产模型联合验收另见后续任务 |
 | iOS 模拟器本地免配置调试 | [本地调试验收](ios-local-debug.md) | 模拟器 Debug 默认回环 HTTP、失败重试、真实后端读取／新建／续聊；真机及 Release 保留 HTTPS，验证结果与适用范围见正文 |
 | 原生 iPhone 本机集成与交付准备 | [#95 验收](ios-delivery.md) | 50 条故事映射、本机回归与无签名归档；TestFlight、iOS 17 实跑、私网和蜂窝真机未完成，任务保持打开 |
 | 原生 iPhone 历史分页与中文回答阅读 | [#94 验收](ios-reading.md) | 游标、历史缺口、迟到事实、真实 HTTPS 完整读取及表格、链接和复制交互 |

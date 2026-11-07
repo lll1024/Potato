@@ -21,7 +21,7 @@
 | `append_response(content)` | 已脱敏响应块；复制后同时追加完整协议和模型视图 |
 | `append_tool_results(results)` | 按模型提出顺序收齐的完整工具结果；身份须与上一响应一一配对，不符则抛出 `ValueError` 且不修改任一视图 |
 | `append_answer(answer, *, replace_response=False)` | 应用终止说明；预算收尾时替换刚追加的最终响应，统一更新两份表示 |
-| `await prepare_request(parameters, *, step, attempt, recovering=False, final=False)` | 将独立模型消息副本填入完整请求，执行计量、整理及必要摘要；返回 `None` 或阻止原因 `context_budget` |
+| `await prepare_request(parameters, *, step, attempt, recovering=False, final=False, compact_on_pressure=True)` | 将独立模型消息副本填入完整请求，执行计量、整理及必要摘要；返回 `None` 或阻止原因 `context_budget` |
 | `await prepare_recovery(parameters, *, request_id, step, attempt)` | 明确超限后，同一步骤最多一次整理及摘要；必须严格缩小且容纳完整请求。返回 `None`、`context_recovery_unavailable` 或重复恢复的 `context_window_exceeded` |
 | `await observe_usage(request_id, usage)` | 根据实际返回用量校准后续检查，缺失用量不伪造为零 |
 | `await recovery_started(data)` | 记录恢复请求事实并在内部补入当前版本，调用方不读取版本 |
@@ -42,3 +42,5 @@
 [公开接口测试](../../tests/test_context_contracts.py)验证统一追加、身份配对、冻结、请求隔离、日期延续、前段回读与一次恢复；[预算](../../tests/test_context_budget.py)、[摘要](../../tests/test_context_summary.py)、[增量压缩](../../tests/test_context_incremental.py)、[超限](../../tests/test_context_limit_recovery.py)、[原文回读](../../tests/test_session_history.py)、[进程恢复及故障](../../tests/test_context_recovery.py)、[日期续聊](../../tests/test_travel_date_continuation.py)及[固定 Web/SSE/CLI 与旧库基线](../../tests/test_migration_baseline.py)覆盖真实调用链。阶段证据见 [#82 验收](../acceptance/model-context.md)。
 
 修改本能力内部时再展开 [runtime.py](../../travel_app/context/runtime.py) 的状态协调、[view.py](../../travel_app/context/view.py) 的视图与计量、[summary.py](../../travel_app/context/summary.py) 的摘要和采用校验、[history.py](../../travel_app/context/history.py) 的原文索引与分页。普通规划与摘要仅复用 [model_execution.py](../../travel_app/model_execution.py) 采集实际模型返回事实，重试和摘要采用仍由各自策略决定。共享模型错误识别及重试等待在 [model_retry.py](../../travel_app/model_retry.py)，不引用任何能力运行状态。普通调用无需阅读这些内部文件。
+
+显式最终作答使用 `compact_on_pressure=False`，对刚准备过且未增长的协议避免仅因压力阈值再次摘要；仍重新计量完整请求，超出硬输入预算时照常整理／摘要和阻止发送。预算收尾的 `final=True` 保留更严格的禁止摘要规则。

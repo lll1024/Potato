@@ -14,13 +14,13 @@ from travel_app.sessions import Runtime, create_app
 
 
 @asynccontextmanager
-async def serving(directory, model, *, maps=None, sources=None):
+async def serving(directory, model, *, maps=None, sources=None, api_key="known-secret"):
     @asynccontextmanager
     async def resources():
-        tools = Retrieval(cast(Client, maps if maps is not None else MapService()), api_key="known-secret")
+        tools = Retrieval(cast(Client, maps if maps is not None else MapService()), api_key=api_key)
         await tools.discover()
         if sources is not None:
-            tools = Retrieval(cast(Client, maps if maps is not None else MapService()), source_client=cast(Client, sources), api_key="known-secret", source_interval=0)
+            tools = Retrieval(cast(Client, maps if maps is not None else MapService()), source_client=cast(Client, sources), api_key=api_key, source_interval=0)
             await tools.discover()
             yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
         else:

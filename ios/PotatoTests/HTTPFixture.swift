@@ -5,6 +5,8 @@ import Foundation
 /// 故障替身只位于 HTTP 传输边界，测试断言经 SessionAccess 进入。
 actor HTTPFixture {
     private(set) var receivedCount = 0
+    private(set) var cancelledStreams = 0
+    func cancelled(path: String) { if path == "/api/events" { cancelledStreams += 1 } }
     private var requests: [ControlledRequest] = []
     private var waiters: [CheckedContinuation<ControlledRequest, Never>] = []
     private var replies: [(Int, String)] = []
@@ -64,7 +66,11 @@ final class ControlledURLProtocol: URLProtocol, @unchecked Sendable {
             }
         }
     }
-    override func stopLoading() { }
+    override func stopLoading() {
+        let host = request.url!.host!
+        let path = request.url!.path
+        Task { await HTTPRegistry.shared.fixture(host: host)?.cancelled(path: path) }
+    }
 }
 
 /// URLProtocol 的响应按 fixture 的顺序只完成一次，不共享可变测试状态。
@@ -85,6 +91,13 @@ struct ControlledRequest: @unchecked Sendable {
         }
         return try JSONDecoder().decode([String: String].self, from: data)
     }
+    func beginStream(status: Int = 200) {
+        let response = HTTPURLResponse(url: protocolRequest.request.url!, statusCode: status, httpVersion: "HTTP/1.1",
+            headerFields: ["Content-Type": "text/event-stream"])!
+        protocolRequest.client?.urlProtocol(protocolRequest, didReceive: response, cacheStoragePolicy: .notAllowed)
+    }
+    func send(_ data: Data) { protocolRequest.client?.urlProtocol(protocolRequest, didLoad: data) }
+    func finish() { protocolRequest.client?.urlProtocolDidFinishLoading(protocolRequest) }
     func fail() {
         protocolRequest.client?.urlProtocol(protocolRequest, didFailWithError: URLError(.cannotConnectToHost))
     }

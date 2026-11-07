@@ -126,7 +126,7 @@ class TravelDateCorrectionTests(unittest.IsolatedAsyncioTestCase):
             ("2026-10-14T00:10:00+08:00", "请回述已确定的旅行日期。来源B能保证10月14日开放吗？"),
             ("2026-10-14T00:15:00+08:00", "旅行日期改到2026年10月18日至20日，核对公告"),
         ])
-        for request, turn in zip(model.requests[:3], saved["turns"][:3]):
+        for request, turn in zip(model.requests[::2][:3], saved["turns"][:3]):
             context = context_from_request(request)
             self.assertEqual(context["travel_dates"]["start_date"], "2026-10-13")
             self.assertEqual(context["travel_dates"]["end_date"], "2026-10-13")

@@ -3,9 +3,16 @@ import asyncio
 import unittest
 from typing import cast
 
+from service_fixtures import MapService
 from mcp import Client
 from mcp.server import MCPServer
 from travel_app.retrieval import Query, Retrieval
+
+
+class PreviewRedactionTests(unittest.TestCase):
+    def test_preview_never_cuts_a_complete_multiline_secret(self):
+        tools = Retrieval(cast(Client, MapService()), secrets=("alpha\nbeta",))
+        self.assertNotIn("alpha", tools.redact_preview("safe\nalpha\nbeta"))
 
 
 class RetrievalContractTests(unittest.IsolatedAsyncioTestCase):

@@ -27,3 +27,5 @@
 [公开契约测试](../../tests/test_retrieval_contracts.py)覆盖身份及原序、真实 MCP adapter、停止、开始事实失败、结果保存失败时等待其他真实返回，以及观察隔离；[公开 Web 并发回归](../../tests/test_tool_concurrency.py)覆盖地图串行、网页十个在途、启动间隔、故障隔离及全局名额；[混合批次与预算](../../tests/test_call_budget.py)和[固定 Web/SSE/CLI 与旧库基线](../../tests/test_migration_baseline.py)覆盖跨能力协作。
 
 只在修改内部时展开：[service.py](../../travel_app/retrieval/service.py)负责分段收齐与能力视图，[amap_mcp.py](../../travel_app/retrieval/amap_mcp.py)和[exa_mcp.py](../../travel_app/retrieval/exa_mcp.py)保留供应商调度、错误分类及内容处理，[connections.py](../../travel_app/retrieval/connections.py)和[source_connection.py](../../travel_app/retrieval/source_connection.py)管理生产连接。阶段证据见 [#83 验收](../acceptance/retrieval-planning.md)。
+
+`redact_preview(text) -> str` 接收尚未完成的累计模型正文，返回当前可安全展示的脱敏前缀。它沿用 `redact` 的完整规则，暂缓未结束的 URL、凭据头、引号／结构及跨块已知密钥前缀，防止凭据或敏感 URL 因截断而提前暴露；普通中文段落可直接分批显示；仅存在上述匹配风险的尾部可能缓冲至响应结束。调用方在完整响应成功后再用 `redact` 发布尾部，不将暂存原文发送给客户端或写入历史。

@@ -75,8 +75,8 @@ class ExceptionExperienceTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn("2026-10-09", str(materials[1]))
                 self.assertIn("2026-10-12", str(materials[1]))
                 self.assertIn("尚无法确认", str(materials[1]))
-                self.assertNotIn("2027", str(materials))
                 for material in materials:
+                    self.assertNotIn("2027", str({key: material[key] for key in ("title", "entries", "notes")}))
                     raw = (await client.get("/api/payloads/" + material["payload_id"])).json()
                     self.assertFalse(raw["content"]["is_error"])
                 await client.get("/api/sessions/" + accepted["session_id"])
@@ -90,6 +90,6 @@ class ExceptionExperienceTests(unittest.IsolatedAsyncioTestCase):
                 self.assertNotEqual(turn["turn_id"], next_turn["turn_id"])
                 self.assertEqual(finished["turns"][0], turn)
                 self.assertEqual(finished["turns"][1]["input"], original)
-                self.assertEqual(len(model.requests), 3)
+                self.assertEqual(len(model.requests), 4)
                 self.assertIn("tool_result", json.dumps(model.requests[-1]["messages"]))
                 self.assertEqual(finished["tool_calls"], saved["tool_calls"])

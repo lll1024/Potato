@@ -1,0 +1,64 @@
+{
+  "devicesAndConfigurations" : [
+    {
+      "device" : {
+        "architecture" : "arm64",
+        "deviceId" : "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName" : "iPhone 17 Pro",
+        "modelName" : "iPhone 17 Pro",
+        "osBuildNumber" : "23F77",
+        "osVersion" : "26.5",
+        "platform" : "iOS Simulator"
+      },
+      "expectedFailures" : 0,
+      "failedTests" : 1,
+      "passedTests" : 151,
+      "skippedTests" : 1,
+      "testPlanConfiguration" : {
+        "configurationId" : "1",
+        "configurationName" : "Test Scheme Action"
+      }
+    }
+  ],
+  "environmentDescription" : "Potato · Built with macOS 27.0",
+  "expectedFailures" : 0,
+  "failedTests" : 1,
+  "finishTime" : 1793976468.036,
+  "passedTests" : 102,
+  "result" : "Failed",
+  "runtimeWarnings" : [
+
+  ],
+  "skippedTests" : 1,
+  "startTime" : 1793975684.829,
+  "statistics" : [
+    {
+      "subtitle" : "64 test runs",
+      "title" : "15 tests ran with dynamic parameters"
+    }
+  ],
+  "testFailures" : [
+    {
+      "failureText" : "XCTAssertEqual failed: (\"Optional(\"[非预期剪贴板文本，已省略]\")\") is not equal to (\"Optional(\"# 杭州两日旅行\\n\\n这份安排以西湖步行、博物馆和午后休息为主，保留慢慢逛的时间。同行者不吃辣，点餐时请向餐馆明确说明；具体开放、预约和交通安排仍需在出行前核对。\\n\\n## 第一天：沿湖慢行\\n\\n1. 上午从湖滨出发，沿湖散步；看到喜欢的景色就停下来，不必赶着打卡。\\n2. 午餐选择清淡的家常菜，提醒服务员不放辣椒、辣油，酱汁分开。\\n3. 午后回住处休息。傍晚再去湖边，根据体力和天气缩短步行距离。\\n\\n### 两日安排对照\\n\\n| 日期 | 上午 | 午餐与饮食 | 午后 | 预约及交通提醒 |\\n| --- | --- | --- | --- | --- |\\n| 第一天 | 西湖湖滨步行，按体力折返 | 清淡家常菜，不放辣油 | 回住处休息后再沿湖散步 | 步行段预留休息时间；下雨可减少户外活动 |\\n| 第二天 | 博物馆，先核对具体馆区 | 在馆区附近就餐，提前说明不吃辣 | 留出返程缓冲，不再安排远距离景点 | 预约、开放时间和到达路线均需出行前确认 |\\n\\n## 第二天：博物馆与返程\\n\\n优先选择一个馆区，避免在不同馆区之间往返。确认当天开放、预约规则及入口后，再决定出发时间；看展时给自己留出坐下休息的间隔。如果没有合适的入馆时段，可以改为短距离散步或室内休息，不把行程排满。\\n\\n### 出发前逐项核对\\n\\n- 核对旅行日期、天气及馆区开放安排。\\n- 根据住处位置查询当天交通，不把估算耗时当成实时路况。\\n- 保存需要的预约页面，并自行完成预约；**提供入口不代表已经预约成功**。\\n- 携带饮水、雨具和舒适的鞋，按实际体力调整步行距离。\\n\\n[查看预约说明](https://localhost:18495/__test__/booking)\\n\\n此链接是阅读验收服务提供的预约入口样例，用于验证在系统浏览器打开网页，不会发起预约或付款。\\n\\n回答全文结尾：完整内容包含两日安排、饮食要求、休息时间与预约提醒。\\n\")\")",
+      "targetName" : "PotatoUITests",
+      "testIdentifier" : 102,
+      "testIdentifierString" : "ReadingNavigationTests/testPaginationExternalLinkAndFullCopy()",
+      "testIdentifierURL" : "test://com.apple.xcode/Potato/PotatoUITests/ReadingNavigationTests/testPaginationExternalLinkAndFullCopy",
+      "testName" : "testPaginationExternalLinkAndFullCopy()"
+    }
+  ],
+  "title" : "Test - Potato",
+  "topInsights" : [
+    {
+      "category" : "Longest Test Runs",
+      "impact" : "24% of duration",
+      "text" : "1 longest test run with outlier durations exceeding 153.95s (three standard deviations)"
+    },
+    {
+      "category" : "Longest Test Runs",
+      "impact" : "63% of duration",
+      "text" : "5 longest test runs with outlier durations exceeding 1.55s (three standard deviations)"
+    }
+  ],
+  "totalTestCount" : 104
+}

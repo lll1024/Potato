@@ -6,6 +6,7 @@ import time
 from email.utils import parsedate_to_datetime
 from typing import Any
 
+import httpx2
 from anthropic import APIConnectionError, APIStatusError, APITimeoutError
 
 MAX_RETRIES = 5
@@ -16,14 +17,20 @@ class EmptyModelResponse(RuntimeError):
     """服务已返回，但没有任何可提交的内容块。"""
 
 
-def failure_code(error: Exception, stage: str) -> str:
+class IncompleteModelResponse(RuntimeError):
+    """流已断开，但没有收到模型的结束原因。"""
+
+
+def failure_code(error: Exception, stage: str, *, streaming: bool = False) -> str:
     if isinstance(error, EmptyModelResponse):
         return "EMPTY_RESPONSE"
+    if isinstance(error, IncompleteModelResponse):
+        return "TRANSPORT"
     if stage != "model_call":
         return "UNKNOWN"
-    if isinstance(error, APITimeoutError):
+    if isinstance(error, (APITimeoutError, httpx2.TimeoutException)):
         return "TIMEOUT"
-    if isinstance(error, APIConnectionError):
+    if isinstance(error, (APIConnectionError, httpx2.TransportError)):
         return "TRANSPORT"
     if not isinstance(error, APIStatusError):
         return "UNKNOWN"
@@ -50,6 +57,15 @@ def failure_code(error: Exception, stage: str) -> str:
                  r"\b(?:input|prompt|request|messages?)\b.{0,40}\b(?:exceed(?:s|ed)?|overflows?|is\s+larger\s+than)\b.{0,40}\b(?:the\s+)?(?:model(?:'s)?\s+)?context(?:\s+(?:length|window))?\b|"
                  r"\b(?:input|prompt|request)\s+(?:is\s+)?too\s+(?:long|large)\s+for\s+(?:this|the)\s+model\b", text, re.I):
         return "CONTEXT_WINDOW_EXCEEDED"
+    unsupported_stream = (
+        detail.get("param") == "stream" and detail.get("code") == "unsupported_parameter"
+    ) or re.search(
+        r"\b(?:stream(?:ing)?[\s_-]+(?:parameter[\s_-]+)?(?:is[\s_-]+)?(?:not[\s_-]+supported|unsupported)|"
+        r"(?:does[\s_-]+not|doesn't|cannot)[\s_-]+support[\s_-]+stream(?:ing)?|"
+        r"unsupported[\s_-]+stream(?:ing)?|stream(?:ing)?[\s_-]+must[\s_-]+be[\s_-]+false)\b|"
+        r"\bunsupported[\s_-]+(?:parameter|argument)\s*:\s*['\"]?stream\b", text, re.I)
+    if streaming and status in (400, 404, 405, 422, 501) and unsupported_stream:
+        return "STREAM_UNSUPPORTED"
     if status in (400, 413) or kind == "invalid_request_error":
         return "INVALID_REQUEST"
     if status >= 500 or kind in ("api_error", "overloaded_error"):
@@ -57,9 +73,9 @@ def failure_code(error: Exception, stage: str) -> str:
     return f"HTTP_{status}"
 
 
-def model_failure(error: Exception, stage: str) -> dict[str, Any]:
+def model_failure(error: Exception, stage: str, *, streaming: bool = False) -> dict[str, Any]:
     failure: dict[str, Any] = {"stage": stage, "category": type(error).__name__, "message": str(error),
-               "code": failure_code(error, stage)}
+               "code": failure_code(error, stage, streaming=streaming)}
     for field in ("status_code", "request_id", "body"):
         value = getattr(error, field, None)
         if value is not None:
@@ -103,4 +119,4 @@ def retry_delay(failure: dict[str, Any], retry: int) -> float | None:
     return min(min(0.5 * 2 ** (retry - 1), 10) * (0.9 + 0.2 * random.random()), 10)
 
 
-__all__ = ["MAX_RETRIES", "EmptyModelResponse", "model_failure", "retry_delay"]
+__all__ = ["MAX_RETRIES", "EmptyModelResponse", "IncompleteModelResponse", "model_failure", "retry_delay"]
