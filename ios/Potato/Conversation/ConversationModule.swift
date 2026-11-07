@@ -59,6 +59,10 @@ struct ConversationPresentation {
         let isUnsaved: Bool
         let isIncomplete: Bool
         let progress: [ProgressEntry]
+        var answerIdentity: String? = nil
+        var isGenerating = false
+        var isStopped = false
+        var contentRecoveryRevision = 0
     }
     let title: String
     let turns: [Turn]
@@ -164,7 +168,11 @@ final class ConversationPresenter {
             return ConversationPresentation.Turn(id: turn.id, input: turn.input,
                 answer: preview?.text ?? turn.answer, statusMessage: message, isPreview: preview != nil,
                 isUnsaved: isUnsaved, isIncomplete: turn.status != "running" && turn.status != "completed",
-                progress: interactor.progressPreview.flatMap { $0.turnID == turn.id ? $0.entries : nil } ?? [])
+                progress: interactor.progressPreview.flatMap { $0.turnID == turn.id ? $0.entries : nil } ?? [],
+                answerIdentity: preview.map { "\($0.instanceID):\($0.streamID):\($0.sessionID):\($0.turnID):\($0.attemptID)" },
+                isGenerating: preview?.status == "generating" && preview?.delivery != "complete" && !isUnsaved,
+                isStopped: (execution.service?.stopping == true && execution.service?.activeTurnID == turn.id) || requestedStop,
+                contentRecoveryRevision: interactor.sessions.contentRecoveryRevision)
         }, hasEarlierTurns: page.nextBefore != nil))
     }
 

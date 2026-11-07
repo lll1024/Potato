@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { AnswerPreview, ProgressPreview } from './useServiceEvents';
 import { AnswerBody } from './AnswerBody';
+import { StreamingText } from './StreamingText';
 import { RoundProgress, type RoundActivity } from './RoundProgress';
 import { ExceptionOutcome, isExceptional, type QueryMaterial } from './ExceptionOutcome';
 
@@ -23,7 +24,9 @@ function AnswerCopy({text, label}: {text: string; label: string}) {
   return <><button type="button" onClick={() => void copy()}>{label}</button><span role="status">{notice}</span></>;
 }
 
-export function ConversationRounds({turns, statusText, onTrace, activity, stoppingTurnId, disconnected, onRetry, retryTurnId, retryBlocked, storageTurnId, onStop, preview, progress}: {
+export function ConversationRounds({turns, statusText, onTrace, activity, stoppingTurnId, disconnected, onRetry, retryTurnId, retryBlocked, storageTurnId, onStop, preview, progress, rawPreview, contentRecoveryRevision}: {
+  rawPreview?: AnswerPreview | null;
+  contentRecoveryRevision?: number;
   progress?: ProgressPreview | null;
   preview?: AnswerPreview | null;
   turns: Turn[]; statusText: (turn: Turn) => string; onTrace?: (turn: Turn) => void; activity?: RoundActivity;
@@ -44,7 +47,10 @@ export function ConversationRounds({turns, statusText, onTrace, activity, stoppi
       <div className="query-progress" role="region" aria-label="查询进展" data-reading-anchor={`query:${turn.turn_id}`}>
         <h3>查询进展</h3><p className="hint">过程说明 · 尚未保存，取得资料不代表已完成核实</p>
         <ol>{progress.entries.filter(entry => entry.text).map(entry => <li key={entry.id}>
-          <span>{entry.text}</span> <small>{entry.kind === 'model'
+          <StreamingText text={entry.text} identity={`${progress.instance_id}:${turn.turn_id}:${entry.id}:${entry.attempt_id}`}
+            live={entry.status === 'generating'} stopped={stoppingTurnId === turn.turn_id} recovery={contentRecoveryRevision}>
+            {text => <span>{text}</span>}
+          </StreamingText> <small>{entry.kind === 'model'
             ? ({generating: '正在说明', generated: '行动说明', invalidated: '说明已失效', retrying: '正在重试'}[entry.status] ?? '行动说明')
             : ({pending: '准备中', running: '执行中', completed: '已取得资料', failed: '查询失败', not_executed: '未执行'}[entry.status] ?? '状态未知')}</small>
         </li>)}</ol>

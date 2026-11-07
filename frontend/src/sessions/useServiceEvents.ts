@@ -22,6 +22,7 @@ export function useServiceEvents() {
   const [state, setState] = useState<ServiceState>({active_turn_id:null,active_session_id:null,
     accepting:false,stopping:false,map_paused:false,map_pause_reason:null,service_status:'unavailable'});
   const [revision, setRevision] = useState(0);
+  const [contentRecoveryRevision, setContentRecoveryRevision] = useState(0);
   const [datasetRevision, setDatasetRevision] = useState(0);
   const [deletedSession, setDeletedSession] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState('');
@@ -65,6 +66,7 @@ export function useServiceEvents() {
       if (!previous || previous.stream_id !== next.stream_id || previous.instance_id !== next.instance_id
         || (next.answer_revision ?? -1) >= (previous.answer_revision ?? -1)) {
         currentSnapshot.current = next;
+        setContentRecoveryRevision(value => value + 1);
         publish(next);
       }
     }
@@ -121,6 +123,7 @@ export function useServiceEvents() {
         }
         // 断线时保持最后实际处理的 cursor；核对状态不能跳过尚未收到的事件。
         setRevision(current => current + 1);
+        let firstAnswer = true, firstProgress = true;
         stream = new EventSource(`/api/events?after=${cursor}&stream_id=${encodeURIComponent(streamId!)}`);
         stream.addEventListener('trace', event => {
           if (!isCurrent()) return;
@@ -141,6 +144,7 @@ export function useServiceEvents() {
             const notice = JSON.parse((event as MessageEvent).data);
             if (notice.schema_version !== 1 || notice.kind !== 'answer.preview' || !Number.isSafeInteger(notice.revision)) throw new Error('正文更新无法识别。');
             const current = requireInstance(notice.instance_id);
+            if (firstAnswer) {firstAnswer = false; setContentRecoveryRevision(value => value + 1);}
             if (notice.revision <= (current.answer_revision ?? -1)) return;
             const preview: AnswerPreview | null = notice.preview;
             if (preview && (preview.instance_id !== current.instance_id || preview.stream_id !== current.stream_id
@@ -156,6 +160,7 @@ export function useServiceEvents() {
             const notice = JSON.parse((event as MessageEvent).data);
             if (notice.schema_version !== 1 || notice.kind !== 'progress.preview' || !Number.isSafeInteger(notice.revision)) throw new Error('进展更新无法识别。');
             const current = requireInstance(notice.instance_id);
+            if (firstProgress) {firstProgress = false; setContentRecoveryRevision(value => value + 1);}
             if (notice.revision <= (current.progress_revision ?? -1)) return;
             const preview: ProgressPreview | null = notice.preview;
             if (preview && (preview.instance_id !== current.instance_id || preview.stream_id !== current.stream_id
@@ -190,5 +195,5 @@ export function useServiceEvents() {
     return () => {cancelled = true; ++stateRead.current; stream?.close(); window.clearTimeout(reconnectTimer);};
   }, [refresh, publish]);
 
-  return {state,setState,revision,datasetRevision,deletedSession,connectionError,recoveryNotice,refresh,beginStop};
+  return {state,setState,revision,contentRecoveryRevision,datasetRevision,deletedSession,connectionError,recoveryNotice,refresh,beginStop};
 }

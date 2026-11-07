@@ -100,6 +100,8 @@ class StreamingModel:
         self.returned = False
         self.mode = mode
         self.parts = type(self).parts
+        if mode == "smooth":
+            self.parts = ["## 短暂平滑\n\n第一小片段。", "\n\n" + "湖畔观察🙂" * 30 + "大块末尾。", "后续小片段。"]
         if mode == "continuous":
             self.parts = ["连续阅读：\"先沿西湖步行"] + [f"第{index}站观察湖畔风景🙂" for index in range(1, 9)]
         if mode == "reading":

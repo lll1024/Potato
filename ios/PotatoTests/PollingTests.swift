@@ -289,6 +289,8 @@ struct AnswerStreamingTests {
         _ = await clock.nextInterval()
         let stream = await fixture.next()
         stream.beginStream()
+        let snapshotRecovery = sessions.contentRecoveryRevision
+        #expect(snapshotRecovery > 0)
         func progress(_ revision: Int, _ text: String, turn: String = "turn") -> Data {
             let preview: [String: Any] = ["instance_id":"process", "stream_id":"dataset", "session_id":"existing",
                 "turn_id":turn, "revision":revision, "entries":[["id":"query", "attempt_id":"request", "kind":"model", "text":text, "status":"generating"]]]
@@ -298,10 +300,13 @@ struct AnswerStreamingTests {
         }
         stream.send(progress(1, "准备查找交通资料"))
         try await observed { sessions.progressPreview?.entries.first?.text == "准备查找交通资料" }
+        #expect(sessions.contentRecoveryRevision > snapshotRecovery)
+        let subscriptionRecovery = sessions.contentRecoveryRevision
         #expect(sessions.answerPreview == nil)
         #expect(sessions.conversation?.turns.first?.answer == nil)
         stream.send(progress(2, "准备查找交通资料并比较出行方式。"))
         try await observed { sessions.progressPreview?.revision == 2 }
+        #expect(sessions.contentRecoveryRevision == subscriptionRecovery)
         stream.send(progress(1, "重复旧内容"))
         stream.send(progress(3, "错误归属", turn: "other"))
         stream.send(event(text: "真实正文", revision: 1))

@@ -12,6 +12,7 @@ public final class SharedSessions: SessionAccess {
     public private(set) var sessionList: SessionList?
     public private(set) var conversation: ConversationPage?
     public private(set) var conversationFailure: SessionFailure?
+    public private(set) var contentRecoveryRevision = 0
     public private(set) var answerFailure: SessionFailure?
     private var currentProgress: ProgressPreview?
     private var frozenProgress: ProgressPreview?
@@ -660,6 +661,7 @@ public final class SharedSessions: SessionAccess {
             if let instance = snapshot.instanceId, let revision = snapshot.progressRevision {
                 try adoptProgress(instance: instance, revision: revision, preview: snapshot.progressPreview)
             }
+            contentRecoveryRevision += 1
             if snapshot.stopping, let turnID = snapshot.activeTurnId { freezeAnswer(turnID: turnID) }
             if stopOperation == nil {
                 switch stopState {
@@ -854,6 +856,7 @@ public final class SharedSessions: SessionAccess {
         answerSubscription = Task { [weak self] in
             do {
                 var parser = SessionEventParser()
+                var firstAnswer = true, firstProgress = true
                 for try await data in bytes {
                     try Task.checkCancellation()
                     guard let self, self.answerOperation == operation else { return }
@@ -870,8 +873,10 @@ public final class SharedSessions: SessionAccess {
                             throw SessionFailure.obsolete
                         }
                         if event.kind == "progress.preview" {
+                            if firstProgress {firstProgress = false; self.contentRecoveryRevision += 1}
                             try self.adoptProgress(instance: event.instanceId, revision: event.revision, preview: event.progress)
                         } else {
+                            if firstAnswer {firstAnswer = false; self.contentRecoveryRevision += 1}
                             try self.adoptAnswer(instance: event.instanceId, revision: event.revision, preview: event.preview)
                         }
                         self.answerFailure = nil

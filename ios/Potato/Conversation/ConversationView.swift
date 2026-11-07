@@ -79,7 +79,9 @@ struct ConversationView: View {
                             }
                             if let answer = turn.answer, !answer.isEmpty {
                                 AnswerView(text: answer, isPreview: turn.isPreview,
-                                           isUnsaved: turn.isUnsaved, isIncomplete: turn.isIncomplete)
+                                           isUnsaved: turn.isUnsaved, isIncomplete: turn.isIncomplete,
+                                           transitionID: turn.answerIdentity, isGenerating: turn.isGenerating,
+                                           isStopped: turn.isStopped, recoveryRevision: turn.contentRecoveryRevision)
                             }
                             if let message = turn.statusMessage {
                                 Text(message)

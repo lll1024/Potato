@@ -62,6 +62,7 @@ public protocol SessionAccess: AnyObject {
     var answerPreview: AnswerPreview? { get }
     var progressPreview: ProgressPreview? { get }
     var answerFailure: SessionFailure? { get }
+    var contentRecoveryRevision: Int { get }
     var canSubmit: Bool { get }
     func configure(address: String) throws
     func refresh() async throws -> SessionList
@@ -244,3 +245,6 @@ public struct ProgressPreview: Decodable, Equatable, Sendable {
         case instanceID = "instanceId", streamID = "streamId", sessionID = "sessionId", turnID = "turnId", revision, entries
     }
 }
+
+// 静态装配没有实时显示队列；共享会话在快照及订阅交接时推进恢复次序。
+public extension SessionAccess { var contentRecoveryRevision: Int { 0 } }

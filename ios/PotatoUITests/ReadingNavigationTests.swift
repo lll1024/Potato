@@ -282,6 +282,33 @@ final class ReadingNavigationTests: XCTestCase {
         attach(app, "连续正文成为保存历史")
     }
 
+    func testLargeBurstThenSmallAppendKeepsRealCompletionAndCopy() async throws {
+        let app = connectedApp(address: "https://localhost:18497")
+        defer { app.terminate() }
+        try await streamControl("arm?mode=smooth")
+        app.buttons["new-conversation"].tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        input.tap(); input.typeText("短暂平滑阅读验收")
+        app.buttons["send-input"].tap()
+        try await streamControl("entered", method: "GET")
+        try await streamControl("step")
+        XCTAssertTrue(app.staticTexts["第一小片段。"].waitForExistence(timeout: 5))
+        try await streamControl("step")
+        let body = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "大块末尾。")).firstMatch
+        XCTAssertTrue(body.waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["copy-answer"].label, "复制当前正文")
+        XCTAssertTrue(app.staticTexts["正在生成 · 尚未保存"].exists)
+        attach(app, "大块在真实模型屏障返回前完成短暂展开")
+        try await streamControl("step")
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "后续小片段。")).firstMatch.waitForExistence(timeout: 5))
+        try await streamControl("step")
+        let copy = app.buttons["copy-answer"]
+        await fulfillment(of: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "复制完整回答"), object: copy)], timeout: 10)
+        copy.tap()
+        XCTAssertEqual(copy.label, "已复制完整回答")
+        attach(app, "最终保存直接采用全文与完整复制状态")
+    }
+
     func testFailedAnswerRetriesFromBeginningAndFallbackExplainsCompleteAnswer() async throws {
         for mode in ["retry", "fallback"] {
             let app = connectedApp(address: "https://localhost:18497")

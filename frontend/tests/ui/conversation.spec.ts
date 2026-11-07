@@ -790,3 +790,90 @@ test('无换行中文与未闭合引号按连续小片段展示并保留最终�
   await expect(page.locator('.answer-body').first()).toHaveText(text);
   await expect(page.getByRole('button', {name: '复制完整回答', exact: true})).toBeVisible();
 });
+
+test('正文大块追加在200毫秒内赶上并且持续追加不延长截止时间', async ({page}) => {
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  await app.notify();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  async function publish(text: string, revision: number, status = 'generating') {
+    await page.evaluate(({text, revision, status}) => {
+      (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {data: JSON.stringify({
+        schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision,
+        preview: {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+          attempt_id: 'smooth', revision, text, status},
+      })}));
+    }, {text, revision, status});
+  }
+  await publish('先看西湖。', 1);
+  await expect(page.locator('.answer-body').first()).toHaveText('先看西湖。');
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  const large = '先看西湖。' + '连续中文🙂'.repeat(200);
+  await publish(large, 2);
+  const first = await page.locator('.answer-body').first().innerText();
+  expect(first.length).toBeGreaterThan('先看西湖。'.length);
+  expect(first.length).toBeLessThan(large.length);
+  await page.clock.runFor(100);
+  const middle = await page.locator('.answer-body').first().innerText();
+  expect(middle.length).toBeGreaterThan(first.length);
+  const final = large + '后续收到的安全正文👨‍👩‍👧‍👦'.repeat(100);
+  await publish(final, 3);
+  await page.clock.runFor(116);
+  await expect(page.locator('.answer-body').first()).toHaveText(final);
+  await publish(final + '短小追加。', 4);
+  await expect(page.locator('.answer-body').first()).toHaveText(final + '短小追加。');
+});
+
+test('平滑期间停止冻结可见原文，终态不等待显示队列', async ({page, context}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  await app.notify();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  async function publish(text: string, revision: number, status = 'generating') {
+    await page.evaluate(({text, revision, status}) => (window as unknown as {source: EventTarget}).source.dispatchEvent(
+      new MessageEvent('answer.preview', {data: JSON.stringify({schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision,
+        preview: {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+          attempt_id: 'smooth-stop', revision, text, status}})})), {text, revision, status});
+  }
+  await publish('可读正文。', 1);
+  await expect(page.locator('.answer-body').first()).toHaveText('可读正文。');
+  await page.clock.install(); await page.clock.pauseAt(new Date(Date.now() + 1000));
+  const large = '可读正文。' + '中文👨‍👩‍👧‍👦继续阅读。'.repeat(200);
+  await publish(large, 2);
+  const frozen = await page.locator('.answer-body').first().innerText();
+  expect(frozen.length).toBeLessThan(large.length);
+  await page.getByRole('button', {name: '停止生成', exact: true}).click();
+  await page.clock.runFor(500);
+  await expect(page.locator('.answer-body').first()).toHaveText(frozen);
+  await page.getByRole('button', {name: '复制当前正文', exact: true}).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(frozen);
+  app.turn.status = 'completed'; app.turn.answer = large;
+  app.state.active_turn_id = null; app.state.active_session_id = null;
+  await app.notify();
+  await expect(page.locator('.answer-body').first()).toHaveText(large);
+  await page.getByRole('button', {name: '复制完整回答', exact: true}).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(large);
+});
+
+test('生成完成立即展示全文，减少动态效果直接呈现并保留安全Markdown', async ({page}) => {
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  await app.notify(); await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  async function publish(text: string, revision: number, status = 'generating') {
+    await page.evaluate(({text, revision, status}) => (window as unknown as {source: EventTarget}).source.dispatchEvent(
+      new MessageEvent('answer.preview', {data: JSON.stringify({schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision,
+        preview: {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+          attempt_id: 'smooth-complete', revision, text, status}})})), {text, revision, status});
+  }
+  await publish('正文。', 1); await expect(page.locator('.answer-body').first()).toHaveText('正文。');
+  await page.clock.install(); await page.clock.pauseAt(new Date(Date.now() + 1000));
+  const text = '正文。' + '安全中文🙂'.repeat(300);
+  await publish(text, 2); expect((await page.locator('.answer-body').first().innerText()).length).toBeLessThan(text.length);
+  await publish(text, 3, 'generated');
+  await expect(page.locator('.answer-body').first()).toHaveText(text);
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  await publish(text + '继续追加中文'.repeat(300), 4);
+  await expect(page.locator('.answer-body').first()).toHaveText(text + '继续追加中文'.repeat(300));
+});
