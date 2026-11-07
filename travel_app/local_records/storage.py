@@ -300,6 +300,8 @@ class LocalRecords:
                     response_payload_id = self.save_payload(session_id,turn_id,"response",data["response"])
                     self._db.execute("UPDATE requests SET response_payload_id=? WHERE request_id=?",(response_payload_id,data["request_id"]))
                     summary["response_payload_id"] = response_payload_id
+                if not failed and data.get("progress"):
+                    summary["progress"] = data["progress"]
             return self.event(session_id,turn_id,kind,summary,request_id=data["request_id"])
 
     def observe_tool(self, session_id, turn_id, kind, data):
@@ -547,6 +549,17 @@ class LocalRecords:
             if tool["turn_id"] in interrupted and tool["status"] in ("pending","waiting","running"):
                 tool["interrupted"] = True
         for turn in turns:
+            # 仅重建已可靠提交的展示事实；文字分片和失败尝试没有历史条目。
+            progress = {}
+            for event in events:
+                entry = event["data"].get("progress")
+                if event["turn_id"] == turn["turn_id"] and entry and entry.get("text"):
+                    progress[entry["id"]] = dict(entry)
+            if turn["turn_id"] in interrupted:
+                for entry in progress.values():
+                    if entry["status"] in {"pending", "running"}:
+                        entry["status"] = "interrupted"
+            turn["query_progress"] = list(progress.values())
             turn["answer_delivery"] = next((request["answer_delivery"] for request in reversed(requests)
                 if request["turn_id"] == turn["turn_id"] and "answer_delivery" in request), None)
             turn["model_error_code"] = None
