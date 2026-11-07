@@ -12,6 +12,8 @@ export class ReadingScroll extends Component<Props, object, Anchor | null> {
   private element: HTMLDivElement | null = null;
   private anchor: Anchor | null = null;
   private frame = 0;
+  private layoutChanging = false;
+  private userScrolling = false;
   private resize?: ResizeObserver;
   private mutations?: MutationObserver;
   private remember = () => {this.anchor = this.visibleAnchor();};
@@ -39,12 +41,16 @@ export class ReadingScroll extends Component<Props, object, Anchor | null> {
   componentDidMount() {
     const changed = () => {
       cancelAnimationFrame(this.frame);
-      this.frame = requestAnimationFrame(() => this.restore(this.anchor));
+      this.layoutChanging = true;
+      this.frame = requestAnimationFrame(() => {
+        this.restore(this.anchor);
+        this.frame = requestAnimationFrame(() => {this.layoutChanging = false;});
+      });
     };
     this.resize = new ResizeObserver(changed);
     const observe = () => {for (const child of this.element?.children ?? []) this.resize?.observe(child); changed();};
     this.mutations = new MutationObserver(observe);
-    if (this.element) this.mutations.observe(this.element, {subtree: true, childList: true, characterData: true});
+    if (this.element) this.mutations.observe(this.element, {subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['open']});
     observe();
   }
   componentWillUnmount() {cancelAnimationFrame(this.frame); this.resize?.disconnect(); this.mutations?.disconnect();}
@@ -57,11 +63,16 @@ export class ReadingScroll extends Component<Props, object, Anchor | null> {
     if (!this.props.paused || previous.identity !== this.props.identity || !this.element) return null;
     return this.visibleAnchor();
   }
-  componentDidUpdate(_previous: Props, _state: object, anchor: Anchor | null) {
+  componentDidUpdate(previous: Props, _state: object, anchor: Anchor | null) {
+    if (previous.paused && !this.props.paused) this.userScrolling = false;
     if (anchor) this.restore(anchor);
     else this.remember();
   }
   render() {
-    return <div className={this.props.className} ref={this.attach} onScroll={event => {this.remember(); this.props.onScroll(event);}} onClickCapture={this.props.onClickCapture}>{this.props.children}</div>;
+    return <div className={this.props.className} ref={this.attach} onWheel={event => {if (event.deltaY) this.userScrolling = true;}}
+      onTouchMove={() => {this.userScrolling = true;}}
+      onPointerDown={event => {if (event.target === this.element) this.userScrolling = true;}}
+      onKeyDown={event => {if (['ArrowUp', 'PageUp', 'Home'].includes(event.key)) this.userScrolling = true;}}
+      onScroll={event => {if (!this.layoutChanging || this.userScrolling) {this.remember(); this.props.onScroll(event);}}} onClickCapture={this.props.onClickCapture}>{this.props.children}</div>;
   }
 }
