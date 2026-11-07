@@ -15,6 +15,7 @@ import httpx
 import uvicorn
 from fastapi.responses import JSONResponse
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from anthropic import AsyncAnthropic
 from mcp import Client
 from travel_app.retrieval import Retrieval
@@ -99,6 +100,8 @@ class StreamingModel:
         self.returned = False
         self.mode = mode
         self.parts = type(self).parts
+        if mode == "continuous":
+            self.parts = ["连续阅读：\"先沿西湖步行"] + [f"第{index}站观察湖畔风景🙂" for index in range(1, 9)]
         if mode == "reading":
             self.parts = [
                 "## 流式中文阅读\n\n" + "沿湖慢行，按体力安排休息。\n\n" * 16 + "```swift\nlet city = \"杭州\"",
@@ -260,6 +263,11 @@ async def main():
                     async with asyncio.timeout(10):
                         await streaming_model.delivered.get()
                     return {"returned": streaming_model.returned}
+
+                # 控制路由先注册，Web 与 iOS 可读取同一隔离会话。
+                dist = ROOT / "frontend" / "dist"
+                if dist.is_dir():
+                    app.mount("/", StaticFiles(directory=dist, html=True), name="page")
 
             if name == "unsaved":
                 app = create_app(Path(directory) / "unsaved", resources=unsaved_resources,

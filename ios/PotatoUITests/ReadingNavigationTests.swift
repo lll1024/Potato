@@ -211,6 +211,44 @@ final class ReadingNavigationTests: XCTestCase {
         XCTAssertEqual(app.buttons["copy-answer"].label, "复制完整回答")
     }
 
+    func testContinuousChineseWithUnclosedQuoteIsReadableBeforeModelReturns() async throws {
+        let app = connectedApp(address: "https://localhost:18497")
+        try await streamControl("arm?mode=continuous")
+        app.buttons["new-conversation"].tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        input.tap()
+        input.typeText("连续中文阅读验收")
+        app.buttons["send-input"].tap()
+        try await streamControl("entered", method: "GET")
+        var observations: [[String: Any]] = []
+        for index in 0..<9 {
+            try await streamControl("step")
+            let marker = index == 0 ? "先沿西湖步行" : "第\(index)站观察湖畔风景"
+            let text = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", marker)).firstMatch
+            XCTAssertTrue(text.waitForExistence(timeout: 5))
+            XCTAssertEqual(app.buttons["copy-answer"].label, "复制当前正文")
+            XCTAssertTrue(app.staticTexts["正在生成 · 尚未保存"].exists)
+            let (data, _) = try await URLSession.shared.data(from: URL(string: "https://localhost:18497/api/snapshot")!)
+            let snapshot = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+            let preview = try XCTUnwrap(snapshot["answer_preview"] as? [String: Any])
+            XCTAssertEqual(preview["status"] as? String, "generating")
+            observations.append(["at": ISO8601DateFormatter().string(from: Date()),
+                "step": index, "displayed": text.label, "preview_chars": (preview["text"] as? String)?.count ?? 0,
+                "revision": preview["revision"]!, "turn_id": snapshot["active_turn_id"]!])
+        }
+        let evidence = try JSONSerialization.data(withJSONObject: observations, options: [.prettyPrinted, .sortedKeys])
+        let attachment = XCTAttachment(data: evidence, uniformTypeIdentifier: "public.json")
+        attachment.name = "无换行中文九批可见增长"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        attach(app, "九批连续正文先于模型完整返回及保存")
+        try await streamControl("step")
+        let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "复制完整回答"), object: app.buttons["copy-answer"])
+        await fulfillment(of: [saved], timeout: 10)
+        attach(app, "连续正文成为保存历史")
+    }
+
     func testFailedAnswerRetriesFromBeginningAndFallbackExplainsCompleteAnswer() async throws {
         for mode in ["retry", "fallback"] {
             let app = connectedApp(address: "https://localhost:18497")
