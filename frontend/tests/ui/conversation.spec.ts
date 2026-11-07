@@ -730,3 +730,35 @@ test('远端停止冻结当前预览，真实保存结果与截断状态优先�
     await expect(page.getByRole('button', {name: '复制完整回答', exact: true})).toHaveCount(0);
   }
 });
+
+test('查询说明与工具真实状态持续更新，正文保持独立且停止立即冻结', async ({page}) => {
+  const app = await conversation(page);
+  app.sessions[0].status = 'running';
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip';
+  await app.notify();
+  await page.getByRole('button', {name: /正在处理 杭州行程/}).click();
+  async function progress(revision: number, text: string, status = 'running') {
+    await page.evaluate(({revision, text, status}) => {
+      const preview = {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn', revision,
+        entries: [{id: 'note', attempt_id: 'request', kind: 'model', status: 'generated', text},
+          {id: 'tool', attempt_id: 'request', kind: 'tool', status, text: '查找地点资料'}]};
+      (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('progress.preview', {
+        data: JSON.stringify({schema_version: 1, kind: 'progress.preview', instance_id: 'process', revision, preview}),
+      }));
+    }, {revision, text, status});
+  }
+  await progress(1, '准备查找西湖');
+  const region = page.getByRole('region', {name: '查询进展', exact: true});
+  await expect(region).toContainText('准备查找西湖');
+  await expect(region).toContainText('执行中');
+  await expect(page.getByRole('heading', {name: '旅行助手', exact: true})).toHaveCount(0);
+  await progress(2, '准备查找西湖的开放资料。', 'failed');
+  await expect(region).toContainText('准备查找西湖的开放资料。');
+  await expect(region).toContainText('查询失败');
+  await progress(1, '迟到旧说明');
+  await expect(region).not.toContainText('迟到旧说明');
+  // 查询阶段也能停止，不必等待最终回答开始。
+  await page.getByRole('button', {name: '停止生成', exact: true}).click();
+  await progress(3, '停止后迟到说明');
+  await expect(region).not.toContainText('停止后迟到说明');
+});

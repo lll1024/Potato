@@ -60,6 +60,7 @@ public protocol SessionAccess: AnyObject {
     var conversation: ConversationPage? { get }
     var conversationFailure: SessionFailure? { get }
     var answerPreview: AnswerPreview? { get }
+    var progressPreview: ProgressPreview? { get }
     var answerFailure: SessionFailure? { get }
     var canSubmit: Bool { get }
     func configure(address: String) throws
@@ -200,5 +201,46 @@ extension AnswerPreview {
         case instanceID = "instanceId", streamID = "streamId", sessionID = "sessionId"
         case turnID = "turnId", attemptID = "attemptId"
         case revision, text, status, delivery
+    }
+}
+
+/// 面向旅行者的行动说明和真实查询状态；不包含工具参数或原始资料。
+public struct ProgressEntry: Decodable, Equatable, Sendable, Identifiable {
+    public let id: String
+    public let attemptID: String
+    public let kind: String
+    public let text: String
+    public let status: String
+    enum CodingKeys: String, CodingKey { case id, attemptID = "attemptId", kind, text, status }
+    public var statusText: String {
+        if kind == "model" {
+            switch status {
+            case "generating": "正在说明"
+            case "invalidated": "说明已失效"
+            case "retrying": "正在重试"
+            default: "行动说明"
+            }
+        } else {
+            switch status {
+            case "pending": "准备中"
+            case "running": "执行中"
+            case "completed": "已取得资料"
+            case "failed": "查询失败"
+            case "not_executed": "未执行"
+            default: "状态未知"
+            }
+        }
+    }
+}
+
+public struct ProgressPreview: Decodable, Equatable, Sendable {
+    public let instanceID: String
+    public let streamID: String
+    public let sessionID: String
+    public let turnID: String
+    public let revision: Int
+    public let entries: [ProgressEntry]
+    enum CodingKeys: String, CodingKey {
+        case instanceID = "instanceId", streamID = "streamId", sessionID = "sessionId", turnID = "turnId", revision, entries
     }
 }

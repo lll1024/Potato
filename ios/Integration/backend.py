@@ -122,6 +122,32 @@ class StreamingModel:
     @asynccontextmanager
     async def stream(self, **parameters):
         model = self
+        if "tools" in parameters:
+            if self.mode == "query-progress" and not self.query_done:
+                self.query_done = True
+                class QueryStream:
+                    async def __aiter__(self):
+                        model.entered.set()
+                        yield SimpleNamespace(type="content_block_start", content_block=SimpleNamespace(type="text", text=""))
+                        for part in ("进展：准备查找西湖", "的地点资料。"):
+                            await model.release.get()
+                            yield SimpleNamespace(type="content_block_delta", delta=SimpleNamespace(type="text_delta", text=part))
+                            model.delivered.put_nowait(part)
+                        await model.release.get()
+                    async def get_final_message(self):
+                        model.delivered.put_nowait("query-returned")
+                        return response([{"type": "text", "text": "进展：准备查找西湖的地点资料。"},
+                            {"type": "tool_use", "id": "lake", "name": "maps_text_search", "input": {"keywords": "西湖", "city": "杭州"}}], "tool_use")
+                yield QueryStream()
+            else:
+                reply = await self.create(**parameters)
+                class QueryStream:
+                    async def __aiter__(self):
+                        for block in reply.content:
+                            yield SimpleNamespace(type="content_block_start", content_block=block)
+                    async def get_final_message(self): return reply
+                yield QueryStream()
+            return
         self.attempts += 1
         fail = self.mode in {"retry", "fallback"} and self.attempts == 1
 
@@ -240,8 +266,7 @@ async def main():
                     return '<html lang="zh"><meta charset="utf-8"><title>预约入口样例</title><h1>预约入口样例</h1><p>尚未预约。这是客户端链接验收页面。</p></html>'
 
             if name == "streaming":
-                app = create_app(Path(directory) / name, resources=streaming_resources,
-                                 static_dir=Path(directory) / "no-static")
+                app = create_app(Path(directory) / name, resources=streaming_resources)
 
                 @app.post("/__test__/arm")
                 async def arm_stream(mode: str = "normal"):
@@ -307,6 +332,9 @@ async def main():
                         # 仅延迟 HTTP 接受响应；真实轮次与 SQLite 由原后端推进。
                         await asyncio.sleep(20 if long_input else 8 if submitted_input in ("延迟接受时保留草稿", "重启核对原提交") else 4)
                     return result
+            # create_app 的静态兜底先注册；验收控制路由需在该兜底之前。
+            app.router.routes[:] = [route for route in app.router.routes if route.name != "page"] + [
+                route for route in app.router.routes if route.name == "page"]
             server = uvicorn.Server(uvicorn.Config(
                 app,
                 host="127.0.0.1", port=port, log_level="critical", access_log=False,

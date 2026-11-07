@@ -5,7 +5,11 @@ export type AnswerPreview = {
   attempt_id: string; revision: number; text: string; status: 'generating' | 'generated' | 'invalidated' | 'retrying';
   delivery?: 'stream' | 'complete';
 };
+export type ProgressEntry = {id: string; attempt_id: string; kind: 'model' | 'tool'; text: string; status: string};
+export type ProgressPreview = {instance_id: string; stream_id: string; session_id: string; turn_id: string;
+  revision: number; entries: ProgressEntry[]};
 export type ServiceState = {
+  progress_revision?: number; progress_preview?: ProgressPreview | null;
   instance_id?: string; answer_revision?: number; answer_preview?: AnswerPreview | null;
   active_turn_id: string | null; active_session_id: string | null; accepting: boolean;
   stopping: boolean; map_paused: boolean; map_pause_reason: string | null;
@@ -25,7 +29,7 @@ export function useServiceEvents() {
   const stateRead = useRef(0);
   const currentSnapshot = useRef<ServiceSnapshot | null>(null);
   const displayed = useRef<ServiceState>(state);
-  const frozen = useRef<{instance: string | undefined; stream: string; turn: string; preview: AnswerPreview | null} | null>(null);
+  const frozen = useRef<{instance: string | undefined; stream: string; turn: string; preview: AnswerPreview | null; progress: ProgressPreview | null} | null>(null);
   const publish = useCallback((next: ServiceSnapshot) => {
     const matches = frozen.current?.instance === next.instance_id && frozen.current?.stream === next.stream_id
       && frozen.current?.turn === next.active_turn_id;
@@ -33,10 +37,11 @@ export function useServiceEvents() {
     if (!frozen.current && next.stopping && next.active_turn_id) {
       const previous = displayed.current.answer_preview;
       frozen.current = {instance: next.instance_id, stream: next.stream_id, turn: next.active_turn_id,
+        progress: displayed.current.progress_preview ?? next.progress_preview ?? null,
         preview: previous && previous.instance_id === next.instance_id && previous.turn_id === next.active_turn_id ? previous : next.answer_preview ?? null};
     }
     const value = frozen.current
-      ? {...next, stopping: true, answer_preview: frozen.current.preview} : next;
+      ? {...next, stopping: true, answer_preview: frozen.current.preview, progress_preview: frozen.current.progress} : next;
     displayed.current = value;
     setState(value);
   }, []);
@@ -52,7 +57,11 @@ export function useServiceEvents() {
     if (result.schema_version !== 1) throw new Error('数据版本不兼容，请更新页面和服务。');
     if (reading === stateRead.current) {
       const previous = currentSnapshot.current;
-      const next = {...result, ...result.state};
+      let next = {...result, ...result.state};
+      if (previous?.instance_id === next.instance_id && previous?.stream_id === next.stream_id
+        && (previous.progress_revision ?? -1) > (next.progress_revision ?? -1)) {
+        next = {...next, progress_revision: previous.progress_revision, progress_preview: previous.progress_preview};
+      }
       if (!previous || previous.stream_id !== next.stream_id || previous.instance_id !== next.instance_id
         || (next.answer_revision ?? -1) >= (previous.answer_revision ?? -1)) {
         currentSnapshot.current = next;
@@ -76,7 +85,7 @@ export function useServiceEvents() {
         ++stateRead.current;
         if (current) {
           frozen.current = null;
-          currentSnapshot.current = {...current, answer_preview: null, stopping: false};
+          currentSnapshot.current = {...current, answer_preview: null, progress_preview: null, stopping: false};
           publish(currentSnapshot.current);
         }
         throw new Error('服务已重启，需要重新核对。');
@@ -141,6 +150,21 @@ export function useServiceEvents() {
             publish(currentSnapshot.current);
           } catch { reconnect(); }
         });
+        stream.addEventListener('progress.preview', event => {
+          if (!isCurrent()) return;
+          try {
+            const notice = JSON.parse((event as MessageEvent).data);
+            if (notice.schema_version !== 1 || notice.kind !== 'progress.preview' || !Number.isSafeInteger(notice.revision)) throw new Error('进展更新无法识别。');
+            const current = requireInstance(notice.instance_id);
+            if (notice.revision <= (current.progress_revision ?? -1)) return;
+            const preview: ProgressPreview | null = notice.preview;
+            if (preview && (preview.instance_id !== current.instance_id || preview.stream_id !== current.stream_id
+              || preview.revision !== notice.revision)) return;
+            ++stateRead.current;
+            currentSnapshot.current = {...current, progress_revision: notice.revision, progress_preview: preview};
+            publish(currentSnapshot.current);
+          } catch { reconnect(); }
+        });
         stream.addEventListener('service.state', event => {
           if (!isCurrent()) return;
           try {
@@ -150,7 +174,8 @@ export function useServiceEvents() {
             if (notice.state.answer_revision !== undefined && notice.state.answer_revision < (current.answer_revision ?? -1)) return;
             ++stateRead.current;
             // 状态与正文在网络中可以交错，正文按自己的次序保留，由会话及轮次投影决定是否展示。
-            const next = {...current, ...notice.state, answer_revision: current.answer_revision, answer_preview: current.answer_preview};
+            const next = {...current, ...notice.state, answer_revision: current.answer_revision, answer_preview: current.answer_preview,
+              progress_revision: current.progress_revision, progress_preview: current.progress_preview};
             currentSnapshot.current = next;
             publish(next);
             setConnectionError('');

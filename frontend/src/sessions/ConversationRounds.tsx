@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { AnswerPreview } from './useServiceEvents';
+import type { AnswerPreview, ProgressPreview } from './useServiceEvents';
 import { AnswerBody } from './AnswerBody';
 import { RoundProgress, type RoundActivity } from './RoundProgress';
 import { ExceptionOutcome, isExceptional, type QueryMaterial } from './ExceptionOutcome';
@@ -23,7 +23,8 @@ function AnswerCopy({text, label}: {text: string; label: string}) {
   return <><button type="button" onClick={() => void copy()}>{label}</button><span role="status">{notice}</span></>;
 }
 
-export function ConversationRounds({turns, statusText, onTrace, activity, stoppingTurnId, disconnected, onRetry, retryTurnId, retryBlocked, storageTurnId, onStop, preview}: {
+export function ConversationRounds({turns, statusText, onTrace, activity, stoppingTurnId, disconnected, onRetry, retryTurnId, retryBlocked, storageTurnId, onStop, preview, progress}: {
+  progress?: ProgressPreview | null;
   preview?: AnswerPreview | null;
   turns: Turn[]; statusText: (turn: Turn) => string; onTrace?: (turn: Turn) => void; activity?: RoundActivity;
   stoppingTurnId?: string | null; disconnected?: boolean;
@@ -39,7 +40,16 @@ export function ConversationRounds({turns, statusText, onTrace, activity, stoppi
     {(isExceptional(turn) || turn.turn_id === storageTurnId) && <ExceptionOutcome turn={turn} storageFault={turn.turn_id === storageTurnId}
       onRetry={turn.turn_id === retryTurnId ? onRetry : undefined} retryBlocked={retryBlocked} />}
     {!isExceptional(turn) && turn.turn_id !== storageTurnId && <RoundProgress turn={turn} activity={activity} stopping={stoppingTurnId === turn.turn_id} disconnected={disconnected} statusText={statusText(turn)} onStop={onStop ? () => onStop(turn) : undefined} />}
-    {current && current.status !== 'retrying' && turn.turn_id !== storageTurnId && onStop && <button type="button"
+    {turn.status === 'running' && progress?.turn_id === turn.turn_id && progress.entries.some(entry => entry.text) &&
+      <div className="query-progress" role="region" aria-label="查询进展" data-reading-anchor={`query:${turn.turn_id}`}>
+        <h3>查询进展</h3><p className="hint">过程说明 · 尚未保存，取得资料不代表已完成核实</p>
+        <ol>{progress.entries.filter(entry => entry.text).map(entry => <li key={entry.id}>
+          <span>{entry.text}</span> <small>{entry.kind === 'model'
+            ? ({generating: '正在说明', generated: '行动说明', invalidated: '说明已失效', retrying: '正在重试'}[entry.status] ?? '行动说明')
+            : ({pending: '准备中', running: '执行中', completed: '已取得资料', failed: '查询失败', not_executed: '未执行'}[entry.status] ?? '状态未知')}</small>
+        </li>)}</ol>
+      </div>}
+    {(current || progress?.turn_id === turn.turn_id) && current?.status !== 'retrying' && turn.turn_id !== storageTurnId && onStop && <button type="button"
       disabled={stoppingTurnId === turn.turn_id || disconnected} onClick={() => onStop(turn)}>停止生成</button>}
     {current?.status === 'retrying' && <p className="hint" role="status">正在重试，新尝试将从头作答。</p>}
     {(current?.delivery === 'complete' || turn.answer_delivery === 'complete') && <p className="hint">模型服务不支持流式，改为生成完整回答。</p>}

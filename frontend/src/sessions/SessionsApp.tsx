@@ -111,7 +111,8 @@ export function SessionsApp({PreferencesView}: {PreferencesView: ComponentType<{
     await submission.send(failed.input, sessionId, true);
   }
   const preview = state.answer_preview?.session_id === sessionId ? state.answer_preview : null;
-  const conversationFollow=useReadingFollow(sessionId, turn ? JSON.stringify([turn.turn_id,turn.status,turn.answer,preview?.revision,snapshot?.events?.at(-1)?.event_id]) : '');
+  const progress = state.progress_preview?.session_id === sessionId ? state.progress_preview : null;
+  const conversationFollow=useReadingFollow(sessionId, turn ? JSON.stringify([turn.turn_id,turn.status,turn.answer,preview?.revision,progress?.revision,snapshot?.events?.at(-1)?.event_id]) : '');
   const activity: RoundActivity = snapshot ?? {};
   function showTurnTrace(turn: Turn) {
     conversationFollow.pause();
@@ -145,7 +146,7 @@ export function SessionsApp({PreferencesView}: {PreferencesView: ComponentType<{
           <ReadingScroll className="messages" identity={sessionId} paused={conversationFollow.paused} scrollRef={conversationFollow.ref} onScroll={conversationFollow.onScroll}>
           {sessionId && !snapshot ? <div className="empty" role="status"><h3>正在读取会话…</h3><p>正在恢复已保存的对话与执行记录。</p></div> : turn ? <>
             {canLoadEarlier && <button className="load-earlier" disabled={loadingEarlier} onClick={() => void loadEarlier()}>加载更早对话</button>}
-            <ConversationRounds preview={preview} turns={turns} statusText={statusText} onTrace={showTurnTrace} activity={activity} onStop={stopTurn}
+            <ConversationRounds progress={progress} preview={preview} turns={turns} statusText={statusText} onTrace={showTurnTrace} activity={activity} onStop={stopTurn}
               onRetry={failed => void retryTurn(failed)} retryTurnId={turn && (isExceptional(turn) || turn.turn_id === storageTurnId) ? turn.turn_id : undefined}
               storageTurnId={storageTurnId}
               retryBlocked={retryBlocked}

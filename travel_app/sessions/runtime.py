@@ -52,6 +52,8 @@ class TurnRuntime:
         self._instance_id = uuid4().hex
         self._answer_preview = None
         self._answer_revision = 0
+        self._progress_preview = None
+        self._progress_revision = 0
         self.preferences = Preferences(store, runtime.client, runtime.model, redact=runtime.tools.redact,
                                        clock=preference_clock, wait=preference_wait, timeout=preference_timeout,
                                        storage_failed=self.storage_failed, available=lambda: self._accepting)
@@ -129,6 +131,24 @@ class TurnRuntime:
                 "revision": self._answer_revision}
             self.changed.set()
 
+        async def progress_update(entry):
+            entries = list(self._progress_preview["entries"]) if self._progress_preview else []
+            # 同一步骤的新尝试替换失败的模型文字，工具事实保持原序。
+            if entry["kind"] == "model" and entry["status"] == "generating" and not entry["text"]:
+                entries = [item for item in entries if item["kind"] != "model" or item["status"] not in {"invalidated", "retrying"}]
+            index = next((index for index, item in enumerate(entries) if item["id"] == entry["id"]), None)
+            if index is None:
+                entries.append(entry)
+            elif entries[index] == entry:
+                return
+            else:
+                entries[index] = entry
+            self._progress_revision += 1
+            self._progress_preview = {"instance_id": self._instance_id, "stream_id": preview_stream_id,
+                "session_id": identity["session_id"], "turn_id": identity["turn_id"],
+                "revision": self._progress_revision, "entries": entries}
+            self.changed.set()
+
         try:
             try:
                 preview_stream_id = self.store.stream_position()["stream_id"]
@@ -140,7 +160,7 @@ class TurnRuntime:
             result = await plan(text, self.runtime.client, self.runtime.tools, self.runtime.model,
                 seed=seed, observer=observe, stop_requested=self._stop_requested,
                 stop_reason=lambda: self._stop_reason, preference_background=background,
-                clock=self.clock, history_records=history_records, answer_observer=answer_update)
+                clock=self.clock, history_records=history_records, answer_observer=answer_update, progress_observer=progress_update)
         except RecordAbort as error:
             if self._storage_error is None:
                 kind = error.kind or "turn.context"
@@ -155,6 +175,8 @@ class TurnRuntime:
                               preference_now=self.preference_clock())
             self._answer_revision += 1
             self._answer_preview = None
+            self._progress_revision += 1
+            self._progress_preview = None
         except Exception:
             # 保存失败时停止接受输入，保留最后提交事实，不能伪报终局已保存。
             self.storage_failed("轮次结果未保存；仅保留最后成功提交的事实。",kind="turn.finished",turn_id=identity["turn_id"])
@@ -188,6 +210,8 @@ class TurnRuntime:
             self._stop_reason = "user_stop"
             self._answer_revision += 1
             self._answer_preview = None
+            self._progress_revision += 1
+            self._progress_preview = None
             self._active = identity
             self.changed.set()
             self._task = asyncio.create_task(self._run_turn(identity,text))
@@ -259,7 +283,7 @@ class TurnRuntime:
         return result
 
     def service_snapshot(self):
-        return {**self.snapshot(), "answer_preview": self._answer_preview, "answer_revision": self._answer_revision, **self._read(self.store.stream_position)}
+        return {**self.snapshot(), "answer_preview": self._answer_preview, "answer_revision": self._answer_revision, "progress_revision": self._progress_revision, "progress_preview": self._progress_preview, **self._read(self.store.stream_position)}
 
     def rename(self, session_id: str, title: str):
         title = self.runtime.tools.redact(title).strip()
@@ -300,6 +324,7 @@ class TurnRuntime:
             nonlocal cursor
             last_state = None
             last_preview = object()
+            last_progress = object()
             while True:
                 self.changed.clear()
                 read_failed = False
@@ -325,7 +350,7 @@ class TurnRuntime:
                 if current_state != last_state:
                     last_state = current_state
                     notice = {"schema_version":SCHEMA_VERSION,"kind":"service.state","transient":True,
-                              "state":{**current_state, "answer_revision": self._answer_revision}}
+                              "state":{**current_state, "answer_revision": self._answer_revision, "progress_revision": self._progress_revision}}
                     # 实时运行状态不冒充已提交轨迹，不能推进持久化 cursor。
                     yield f"event: service.state\ndata: {json.dumps(notice,ensure_ascii=False)}\n\n"
                 preview = self._answer_preview
@@ -334,6 +359,12 @@ class TurnRuntime:
                     notice = {"schema_version": SCHEMA_VERSION, "kind": "answer.preview", "transient": True,
                               "instance_id": self._instance_id, "revision": self._answer_revision, "preview": preview}
                     yield f"event: answer.preview\ndata: {json.dumps(notice, ensure_ascii=False)}\n\n"
+                progress = self._progress_preview
+                if progress != last_progress:
+                    last_progress = progress
+                    notice = {"schema_version": SCHEMA_VERSION, "kind": "progress.preview", "transient": True,
+                              "instance_id": self._instance_id, "revision": self._progress_revision, "preview": progress}
+                    yield f"event: progress.preview\ndata: {json.dumps(notice, ensure_ascii=False)}\n\n"
                 # yield 期间可能又有提交；先重新补齐，避免另一个订阅清空唤醒后漏等。
                 if read_failed:
                     await asyncio.sleep(1)
@@ -344,7 +375,7 @@ class TurnRuntime:
                     self.storage_failed("执行通知暂时无法读取；仅保留最后成功提交的事实。")
                     await asyncio.sleep(1)
                     continue
-                if batch or pending or self.changed.is_set() or self.snapshot()!=last_state or self._answer_preview != last_preview:
+                if batch or pending or self.changed.is_set() or self.snapshot()!=last_state or self._answer_preview != last_preview or self._progress_preview != last_progress:
                     continue
 
                 try:

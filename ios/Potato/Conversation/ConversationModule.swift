@@ -7,6 +7,7 @@ struct ConversationInteractor {
     let sessions: any SessionAccess
     var page: ConversationPage? { sessions.conversation }
     var answerPreview: AnswerPreview? { sessions.answerPreview }
+    var progressPreview: ProgressPreview? { sessions.progressPreview }
     var answerFailure: SessionFailure? { sessions.answerFailure }
     var canSubmit: Bool { sessions.canSubmit }
     var execution: ExecutionState { ExecutionState(sessions) }
@@ -57,6 +58,7 @@ struct ConversationPresentation {
         let isPreview: Bool
         let isUnsaved: Bool
         let isIncomplete: Bool
+        let progress: [ProgressEntry]
     }
     let title: String
     let turns: [Turn]
@@ -161,7 +163,8 @@ final class ConversationPresenter {
             }
             return ConversationPresentation.Turn(id: turn.id, input: turn.input,
                 answer: preview?.text ?? turn.answer, statusMessage: message, isPreview: preview != nil,
-                isUnsaved: isUnsaved, isIncomplete: turn.status != "running" && turn.status != "completed")
+                isUnsaved: isUnsaved, isIncomplete: turn.status != "running" && turn.status != "completed",
+                progress: interactor.progressPreview.flatMap { $0.turnID == turn.id ? $0.entries : nil } ?? [])
         }, hasEarlierTurns: page.nextBefore != nil))
     }
 
