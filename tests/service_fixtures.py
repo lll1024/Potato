@@ -43,7 +43,10 @@ class ModelService:
             self.requests.append(copy.deepcopy(parameters))
         class Stream:
             async def __aiter__(self):
-                for block in reply.content:
+                for block in (reply.content if reply is not None else []):
+                    # 流事件保持合法；故意畸形的最终响应仍原样返回，供处理失败测试。
+                    if block.type == "text" and not isinstance(block.text, str):
+                        block = SimpleNamespace(type="text", text="")
                     yield SimpleNamespace(type="content_block_start", content_block=block)
 
             async def get_final_message(self):
