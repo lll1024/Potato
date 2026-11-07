@@ -64,18 +64,8 @@ struct ConversationView: View {
                                 .background(.quaternary, in: RoundedRectangle(cornerRadius: 14))
                                 .accessibilityLabel("你的输入：" + turn.input)
                             if turn.progress.contains(where: { !$0.text.isEmpty }) {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("查询进展").font(.subheadline.weight(.semibold))
-                                    Text("过程说明 · 尚未保存，取得资料不代表已完成核实")
-                                        .font(.footnote).foregroundStyle(.secondary)
-                                    ForEach(turn.progress.filter { !$0.text.isEmpty }) { entry in
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(entry.text).textSelection(.enabled)
-                                            Text(entry.statusText).font(.caption).foregroundStyle(.secondary)
-                                        }
-                                    }
-                                }
-                                .accessibilityIdentifier("query-progress")
+                                QueryProgressView(entries: turn.progress, hasAnswerStarted: turn.hasAnswerStarted,
+                                                  isCurrent: turn.isCurrentProgress)
                             }
                             if let answer = turn.answer, !answer.isEmpty {
                                 AnswerView(text: answer, isPreview: turn.isPreview,
@@ -217,4 +207,49 @@ struct ConversationView: View {
         }
     }
 
+}
+
+private struct QueryProgressView: View {
+    let entries: [ProgressEntry]
+    let hasAnswerStarted: Bool
+    let isCurrent: Bool
+    let identity: String
+    let stopped: Bool
+    let recovery: Int
+    @State private var isExpanded: Bool
+    @State private var answerSeen: Bool
+
+    init(entries: [ProgressEntry], hasAnswerStarted: Bool, isCurrent: Bool, identity: String, stopped: Bool, recovery: Int) {
+        self.entries = entries
+        self.hasAnswerStarted = hasAnswerStarted
+        self.isCurrent = isCurrent
+        self.identity = identity; self.stopped = stopped; self.recovery = recovery
+        _isExpanded = State(initialValue: !hasAnswerStarted)
+        _answerSeen = State(initialValue: hasAnswerStarted)
+    }
+
+    var body: some View {
+        DisclosureGroup(isExpanded: $isExpanded) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text((isCurrent ? "当前进展 · 尚未全部保存" : "已保存的查询进展") + "，取得资料不代表已完成核实")
+                    .font(.footnote).foregroundStyle(.secondary)
+                ForEach(entries.filter { !$0.text.isEmpty }) { entry in
+                    VStack(alignment: .leading, spacing: 4) {
+                        ReadingTransition(text: entry.text, identity: "\(identity):\(entry.id):\(entry.attemptID)",
+                                          live: isCurrent && entry.status == "generating", stopped: stopped, recovery: recovery) {
+                            Text($0).textSelection(.enabled)
+                        }
+                        Text(entry.statusText).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .padding(.top, 8)
+        } label: {
+            Text("查询进展").font(.subheadline.weight(.semibold))
+        }
+        .accessibilityIdentifier("query-progress")
+        .onChange(of: hasAnswerStarted) { _, started in
+            if started && !answerSeen { isExpanded = false; answerSeen = true }
+        }
+    }
 }

@@ -302,8 +302,7 @@ async def _execute_plan(
         record_observer = observer
         tool_names = {}
         async def observe_progress(kind, data):
-            if record_observer:
-                await record_observer(kind, data)
+            entry = None
             if kind.startswith("tool.") and data.get("tool_call_id"):
                 identity = data["tool_call_id"]
                 if kind == "tool.pending":
@@ -316,8 +315,12 @@ async def _execute_plan(
                 states = {"tool.pending": "pending", "tool.waiting": "pending", "tool.running": "running",
                           "tool.completed": "completed", "tool.failed": "failed", "tool.not_executed": "not_executed"}
                 if kind in states:
-                    await progress_observer({"id": identity, "attempt_id": data["request_id"], "kind": "tool",
-                        "text": tool_names.get(identity, "获取资料"), "status": states[kind]})
+                    entry = {"id": identity, "attempt_id": data["request_id"], "kind": "tool",
+                        "text": tool_names.get(identity, "获取资料"), "status": states[kind]}
+            if record_observer:
+                await record_observer(kind, {**data, **({"progress": entry} if entry else {})})
+            if entry:
+                await progress_observer(entry)
         observer = observe_progress
     try:
         context_policy = context_policy or ContextPolicy.from_env()
@@ -465,8 +468,10 @@ async def _execute_plan(
 
             querying = progress_observer is not None and not answering and not finalizing
             async def query_update(state, text):
-                await progress_observer({"id": request_id, "attempt_id": request_id, "kind": "model",
-                    "text": text[:240], "status": state})
+                entry = {"id": request_id, "attempt_id": request_id, "kind": "model",
+                    "text": text[:240], "status": state}
+                await progress_observer(entry)
+                return entry
             async def receive_progress(text):
                 nonlocal raw_text
                 raw_text += text
@@ -481,7 +486,7 @@ async def _execute_plan(
             if querying:
                 safe = tools.redact("\n".join(block.text for block in returned.response.content if block.type == "text")).lstrip() if returned.failure is None else ""
                 has_queries = returned.failure is None and any(block.type == "tool_use" for block in returned.response.content)
-                await query_update("generated" if returned.failure is None else "invalidated",
+                query_entry = await query_update("generated" if returned.failure is None else "invalidated",
                     safe.removeprefix("进展：").split("\n", 1)[0] if has_queries and safe.startswith("进展：") else "")
             if answer_observer is not None and (answering or finalizing):
                 await answer_observer({"attempt_id": request_id,
@@ -601,6 +606,7 @@ async def _execute_plan(
         if observer:
             await observer("request.completed", {
                 "request_id": request_id, "finished_at": finished_at,
+                **({"progress": query_entry} if querying and query_entry["text"] else {}),
                 "duration_ms": duration_ms, "response": parsed,
                 "usage": parsed.get("usage"),
                 "usage_state": "returned" if "usage" in parsed and parsed["usage"] is not None else "not_returned",

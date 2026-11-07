@@ -169,6 +169,51 @@ final class ReadingNavigationTests: XCTestCase {
         attach(app, "横向表格末列")
     }
 
+    func testQueryProgressFoldsAndRemainsReadableAfterRelaunch() async throws {
+        let app = connectedApp(address: "https://localhost:18497")
+        try await streamControl("arm?mode=query-progress")
+        app.buttons["new-conversation"].tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        input.tap()
+        input.typeText("进展保存折叠验收")
+        app.buttons["send-input"].tap()
+        try await streamControl("entered", method: "GET")
+        try await streamControl("step")
+        XCTAssertTrue(app.staticTexts["准备查找西湖"].waitForExistence(timeout: 10))
+        try await streamControl("step")
+        XCTAssertTrue(app.staticTexts["准备查找西湖的地点资料。"].waitForExistence(timeout: 5))
+        try await streamControl("step")
+        XCTAssertTrue(app.staticTexts["已取得资料"].waitForExistence(timeout: 5))
+        try await streamControl("step")
+        XCTAssertTrue(app.staticTexts["实时杭州旅行"].waitForExistence(timeout: 5))
+        let toggle = app.buttons["query-progress"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["准备查找西湖的地点资料。"].isHittable)
+        attach(app, "正文出现后自动折叠查询进展")
+        toggle.tap()
+        XCTAssertTrue(app.staticTexts["准备查找西湖的地点资料。"].waitForExistence(timeout: 5))
+        try await streamControl("step")
+        XCTAssertTrue(app.staticTexts["上午游览西湖。"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["准备查找西湖的地点资料。"].isHittable)
+        for _ in 0..<2 { try await streamControl("step") }
+        let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "复制完整回答"), object: app.buttons["copy-answer"])
+        await fulfillment(of: [saved], timeout: 10)
+        app.terminate()
+        app.launch()
+        let session = app.buttons.matching(identifier: "open-session")
+            .matching(NSPredicate(format: "label CONTAINS %@", "进展保存折叠验收")).firstMatch
+        XCTAssertTrue(session.waitForExistence(timeout: 10))
+        session.tap()
+        XCTAssertTrue(app.buttons["copy-answer"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["准备查找西湖的地点资料。"].isHittable)
+        app.buttons["query-progress"].tap()
+        XCTAssertTrue(app.staticTexts["准备查找西湖的地点资料。"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["已取得资料"].exists)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format:"label CONTAINS %@", "已保存的查询进展")).firstMatch.exists)
+        attach(app, "重开App后重新读取已保存的查询进展")
+    }
+
     func testQueryProgressGrowsBeforeToolReturnAndStaysSeparateFromAnswer() async throws {
         let app = connectedApp(address: "https://localhost:18497")
         try await streamControl("arm?mode=query-progress")

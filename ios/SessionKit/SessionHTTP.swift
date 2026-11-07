@@ -159,6 +159,7 @@ struct WirePage: Decodable, Sendable {
         let status: String
         let reason: String?
         let answerDelivery: String?
+        let queryProgress: [ProgressEntry]?
     }
     let schemaVersion: Int
     let streamId: String
@@ -170,7 +171,7 @@ struct WirePage: Decodable, Sendable {
     var entity: ConversationPage {
         ConversationPage(session: session.entity, turns: turns.map {
             ConversationTurn(id: $0.turnId, ordinal: $0.ordinal, input: $0.input, answer: $0.answer,
-                             status: $0.status, reason: $0.reason, answerDelivery: $0.answerDelivery, observedAt: cursor)
+                             status: $0.status, reason: $0.reason, answerDelivery: $0.answerDelivery, queryProgress: $0.queryProgress, observedAt: cursor)
         }, nextBefore: nextBefore, streamID: streamId, cursor: cursor,
             windows: HistoryWindow.page(ordinals: turns.compactMap(\.ordinal), before: nextBefore))
     }

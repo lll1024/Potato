@@ -171,6 +171,7 @@ public struct ConversationTurn: Equatable, Identifiable, Sendable {
     public let status: String
     public let reason: String?
     public let answerDelivery: String?
+    public let queryProgress: [ProgressEntry]?
     let observedAt: Int?
 }
 
@@ -228,6 +229,7 @@ public struct ProgressEntry: Decodable, Equatable, Sendable, Identifiable {
             case "completed": "已取得资料"
             case "failed": "查询失败"
             case "not_executed": "未执行"
+            case "interrupted": "已中断 · 结果未知"
             default: "状态未知"
             }
         }
