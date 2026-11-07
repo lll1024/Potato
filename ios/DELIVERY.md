@@ -51,7 +51,7 @@ Mac 需联网、接电并保持唤醒，终端服务需持续运行。离开前�
 1. 在 Xcode → Settings → Accounts 登录本人的开发者账号。注册可用的 App ID，在 App Store Connect 建立对应 iOS App 记录；选定 Team、唯一 Bundle ID，保留记录供后续更新。
 2. 用 Xcode 打开 `Potato.xcodeproj`，选择 Potato scheme。在 Potato 的 Signing & Capabilities 选择付费 Team、Automatic Signing 和注册的 Bundle ID；不要选择免费 Personal Team 作为 TestFlight 交付。检查嵌入的 SessionKit framework 签名团队与 App 一致。
 3. 持久配置需同步到 `project.yml` 再用 XcodeGen 2.46.0 生成工程，避免下次生成丢失。当前仓库的 `com.potato.travel` 是未注册验证的初始值，Team 尚未配置。不要把账号令牌、私钥或描述文件提交到仓库。
-4. 目前工程尚未提供 AppIcon 资源。正式分发前在 Potato target 的 Assets.xcassets 新建 AppIcon 组，按 Xcode 要求填入图标槽（含 App Store 所需图标），将 App Icon Set Name 设为该组名称，并同步 project.yml／生成工程；核实隐私清单及第三方 SDK 报告、应用信息和出口合规问答。未经过 Organizer / App Store Connect 校验，不能认为上传条件已全部满足。
+4. 工程已包含蓝白旅行路线 AppIcon，使用不透明的 1024 × 1024 PNG，由资源目录生成设备及 App Store 图标；`project.yml` 明确指定 `AppIcon`。源文件与重新生成方法见 [iOS README](README.md#应用图标)。正式分发前核实隐私清单及第三方 SDK 报告、应用信息和出口合规问答。未经过 Organizer / App Store Connect 校验，不能认为上传条件已全部满足。
 5. 保持部署下限 iOS 17、Swift 6 和提交的 `Package.resolved`。设定版本及递增的 build number（当前 `0.1.0 (1)`），选择 Any iOS Device，Product → Archive。正式归档不要使用 `CODE_SIGNING_ALLOWED=NO`。
 6. 在 Organizer 检查签名归档，执行 Validate App，再 Distribute App → App Store Connect → Upload。根据当前界面完成签名及合规步骤；上传、处理和可测试是不同状态。保留版本、build、Git 提交、归档日期、校验与上传结果，不将本地 Archive Succeeded 写成上传成功。
 7. 构建处理完成后，在 App Store Connect → TestFlight 的内部测试组添加本人并分配构建；完成所需的测试信息和合规问答。本人属于有该 App 权限的 App Store Connect 用户时可使用内部测试；外部测试按 Apple 当前要求处理审核，不建立公开邀请链接作为本次默认方案。

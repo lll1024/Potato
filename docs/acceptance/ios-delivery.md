@@ -1,5 +1,7 @@
 # iPhone 本机集成与交付准备（#95，尚未完整交付）
 
+最新补充见[2026-11-07 图标交付准备](#2026-11-07-图标交付准备88--95)：AppIcon 已补齐，完整 iOS 回归和无签名归档通过；用户已有 iPhone、尚无付费开发者会员，TestFlight 及真机交付仍未完成。下文 2026-11-05 的结果保留为历史证据。
+
 2026-11-05（Asia/Shanghai），继续 `codex/ios-client` 与 [PR #96](https://github.com/lll1024/Potato/pull/96)。复验生产基准为 `f5ca6eb821fa3768e88c632a3088651dac5a6b48`，已集成 #89–#94；#95 的原生阻塞任务 #92、#93、#94 均已关闭。本次补交付文档、导航和证据，并修正 App target 的仅 iPhone 配置；保留工作区原有领域文档改动，不修改后端、Web／CLI、电脑数据库或会话业务实现。
 
 用户在本次实施中明确：**尚未配置，先完成本机验证和交付说明**。因此 [#95](https://github.com/lll1024/Potato/issues/95)保持打开，父规格 #88 不修改、不关闭，PR 不自动合并。本文不是完成 TestFlight 交付的声明。
@@ -31,7 +33,7 @@
 
 初次归档发现 App 实际支持 iPhone 与 iPad（`UIDeviceFamily=[1,2]`），不符合规格的“仅 iPhone”。原因是 XcodeGen 的 target 默认值覆盖 project.yml 全局设置；已在 Potato target 明确设为 `1` 并重新生成工程。实际产物断言先失败后通过，见 [修正前元数据](ios-delivery/archive-before.json)、[红日志](ios-delivery/family-red.log)、[最终元数据](ios-delivery/archive-summary.json)与[绿日志](ios-delivery/family-green.log)。App 与 SessionKit 的 Mach-O 均为 arm64 / IOS / minos 17.0；最终不再出现完整方向警告。生成时同步四个既有快照资源引用，图片及会话实现未修改。
 
-当前仍缺注册验证的 Bundle ID、付费 Team、签名／描述文件及 AppIcon 资源。AppIntents 元数据提取跳过是无该框架依赖的提示。后续签名前须补齐图标并检查隐私清单／SDK 报告、合规及应用信息，再执行实际分发校验；无签名归档通过不能消除这些缺口。具体操作见[交付说明](../../ios/DELIVERY.md)。
+当时仍缺注册验证的 Bundle ID、付费 Team、签名／描述文件及 AppIcon 资源；AppIcon 已在下文 2026-11-07 补充中完成。AppIntents 元数据提取跳过是无该框架依赖的提示。后续签名前须检查隐私清单／SDK 报告、合规及应用信息，再执行实际分发校验；无签名归档通过不能消除这些缺口。具体操作见[交付说明](../../ios/DELIVERY.md)。
 
 ## 后续验收入口
 
@@ -57,3 +59,22 @@
 独立对照 #88、#95 和用户本次“先完成本机验证和交付说明”的范围，初审及最终复核均为 0 项问题。50 条映射、两轮测试范围与机器汇总一致，真实归档确认设备范围与部署下限；签名、分发、最低系统实跑、私网及五项蜂窝场景保留明确缺口。
 
 双轴结论：Standards 0 项，Spec 0 项；两轴均无遗留最高严重问题。该结论不改变尚未完成完整交付的状态。
+
+## 2026-11-07 图标交付准备（#88 / #95）
+
+本次从最新远程主分支 `b8e451e6f8c57d6136e8c7ce33a8c924e112e99b` 建立 `codex/ios-delivery-88`；#89–#94 已完成，原客户端 PR #96 已合并。用户再次要求实施 #88，并确认已有 iPhone、尚无付费 Apple Developer 会员，选择蓝白旅行路线标记。本次补齐可独立处理的 AppIcon 及交付材料，不修改会话业务、依赖、后端或 Web。原有未提交的领域文档保留。
+
+- [AppIcon](../../ios/Potato/Assets.xcassets/AppIcon.appiconset/AppIcon.png) 为不透明的 1024 × 1024 PNG；[绘图源](../../ios/Design/generate-app-icon.swift)可在仓库根目录重新生成。PNG 与 XcodeGen 工程连续重建逐字节一致。`project.yml` 显式指定 AppIcon，生成工程将资源目录加入 Resources。图标独立视觉审查为 `ship`，范围仅资产的小尺寸辨识与系统裁角空间；既有视觉系统和原生页面保持原样。
+- 完整 iOS suite **87 项／含参数化 127 例通过，0 失败、0 跳过**；实际为 iPhone 17 Pro / iOS 26.5（23F77）模拟器。包含 `SessionAccess` 公开边界、真实文件 GRDB、七个本机 HTTP／HTTPS FastAPI 服务与临时 SQLite、原生交互及快照；外部模型和查询可控。证据：[机器汇总](ios-delivery/icon-tests-summary.json)、[完整日志](ios-delivery/icon-tests.log.gz)。这不替代真实私网、付费模型或蜂窝真机验收。
+- Release 无签名归档通过；真实 `Info.plist` 的 `CFBundleIcons` 指向 AppIcon，`Assets.car` 包含 1024 × 1024、`Opaque=true`、`Idiom=phone` 的图标。`UIDeviceFamily=[1]`；App 与嵌入 SessionKit 均为 arm64 / IOS / minos 17.0。归档包含既有 GRDB、Alamofire、FactoryKit 隐私清单，但未执行分发合规校验。证据：[产物及环境元数据](ios-delivery/icon-summary.json)、[归档日志](ios-delivery/icon-archive.log.gz)、[重建与验证命令](ios-delivery/icon-validation.txt)。临时归档 `/tmp/potato-88-icon.xcarchive` 和 xcresult 不提交 Git。
+- 模块归属、18 份公开导航与契约链接、格式检查通过。纯客户端图标与说明变更未重跑 Python／Web 全量 suite；上文旧结果不作为本次重跑结果。
+
+本次本机仍为 0 个有效签名身份，设备查询仅见模拟设备，未连接真实 iPhone。Tailscale `status --json` 和 `serve status` 分别在 10 秒后超时，未取得可核实连接及代理状态，未修改私网配置。**付费会员／Team、注册 Bundle ID、签名、Organizer 校验、上传、TestFlight 安装及覆盖更新、iOS 17 实跑、私人 HTTPS 和五项蜂窝场景均未完成**；无实际上传或到期日。图标补齐后，#88 和 #95 继续保持打开，剩余步骤按[交付说明](../../ios/DELIVERY.md)由本人账号和真机条件继续，不自动合并。
+
+### Standards
+
+以 `b8e451e` 为固定基准，按先审查后提交的顺序，独立审查全部 14 个暂存文件。最终 0 项规范违例、0 项值得报告的判断性代码异味，无最高严重问题。
+
+### Spec
+
+独立对照 #88、#95 及用户本次确认，复核原始归档、xcresult 与提交证据；最终 0 项发现，无最高严重问题。图标补齐与本机检查不等同于完成 TestFlight 或真机交付，两个 Issue 均保持打开。

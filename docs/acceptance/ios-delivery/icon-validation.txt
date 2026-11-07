@@ -1,0 +1,39 @@
+#88 / #95 图标交付补全，2026-11-07（Asia/Shanghai）
+基准：b8e451e6f8c57d6136e8c7ce33a8c924e112e99b（本次 fetch 后的 origin/main）。
+分支：codex/ios-delivery-88。
+用户确认已有 iPhone、尚无付费 Apple Developer 会员，并选择蓝白旅行路线标记。
+测试沿用 #88 的 SessionAccess 公开 interface 及现有完整 iOS suite；无会话业务代码修改。
+
+重建：
+swift -module-cache-path /tmp/potato-88-swift-cache ios/Design/generate-app-icon.swift
+/tmp/potato-xcodegen/xcodegen/bin/xcodegen generate --spec ios/project.yml
+连续两次重建的 PNG SHA-256、project.pbxproj 字节一致。
+sips -g pixelWidth -g pixelHeight -g hasAlpha ios/Potato/Assets.xcassets/AppIcon.appiconset/AppIcon.png
+
+无签名归档：
+xcodebuild archive -project ios/Potato.xcodeproj -scheme Potato -configuration Release -destination 'generic/platform=iOS' -archivePath /tmp/potato-88-icon.xcarchive -derivedDataPath /tmp/potato-95-release -clonedSourcePackagesDirPath /tmp/potato-ios-build/SourcePackages -disableAutomaticPackageResolution -skipMacroValidation CODE_SIGNING_ALLOWED=NO
+/usr/bin/assetutil --info /tmp/potato-88-icon.xcarchive/Products/Applications/Potato.app/Assets.car
+plistlib 检查真实归档 CFBundleIcons 的 AppIcon 声明及其松散图标文件，UIDeviceFamily=[1]、MinimumOSVersion=17.0。
+assetutil 核对 Assets.car 内 AppIcon 为 1024×1024、Opaque=true、Idiom=phone。
+xcrun vtool -show-build 核对 Potato 与嵌入 SessionKit 为 arm64 / IOS / minos 17.0。
+初次人工产物检查错误地要求独立 AppIcon60x60@3x.png，断言失败；实际 Xcode 将完整1024图标打包在 Assets.car。
+随后按 CFBundleIcons 与真实 catalog rendition 验证通过，未为错误的松散文件假设修改产品。
+
+全量 iOS 回归（另一个终端保持测试后端运行）：
+.venv/bin/python ios/Integration/backend.py --cert /tmp/potato-ios-tls/cert.pem --key /tmp/potato-ios-tls/key.pem
+xcrun simctl keychain AB9010DF-6F36-4079-8492-3CE8B5393EF7 add-root-cert /tmp/potato-ios-tls/cert.pem
+xcodebuild test -project ios/Potato.xcodeproj -scheme Potato -destination 'platform=iOS Simulator,id=AB9010DF-6F36-4079-8492-3CE8B5393EF7' -derivedDataPath /tmp/potato-ios-build -disableAutomaticPackageResolution -skipMacroValidation -resultBundlePath /tmp/potato-88-tests.xcresult CODE_SIGNING_ALLOWED=NO
+xcrun xcresulttool get test-results summary --path /tmp/potato-88-tests.xcresult
+
+结构与文档：
+.venv/bin/python scripts/check_modules.py
+.venv/bin/python scripts/check_docs.py
+git diff --check
+
+环境与边界：
+Xcode 27.2（27B52）；实际模拟器 iPhone 17 Pro / iOS 26.5（23F77）。
+security find-identity -v -p codesigning：0 个有效身份。
+xcrun devicectl list devices：仅模拟设备，未连接真机。
+Tailscale status --json / serve status：分别 10 秒超时，未取得可核实连接与代理状态；未修改配置。
+无付费签名、Organizer Validate、上传、TestFlight 安装/更新、iOS 17 实跑或五项蜂窝真机场景证据。
+临时 xcarchive、xcresult 和 localhost 证书不提交；不以无签名归档替代分发。

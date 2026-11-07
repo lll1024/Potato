@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		051E8A29F4903910D4FAB3EE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B5F15D486AEF993D90647C70 /* Assets.xcassets */; };
 		08734ED92EFCC164170BDD93 /* HTTPFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA23BD746BDFE0B66468FBD0 /* HTTPFixture.swift */; };
 		0DD33F94CA5BC709B7311220 /* RecoveryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D7B478D7859C5CED513E1C6 /* RecoveryTests.swift */; };
 		0E290896B5E7729B64B8C9DF /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 81EE37929AE709F85115B131 /* Alamofire */; };
@@ -143,6 +144,7 @@
 		A58251A28FDB6C0E66251B43 /* ConnectionFailureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionFailureTests.swift; sourceTree = "<group>"; };
 		A5E396EADE8031A4D181460C /* testUnconfirmedConversationDarkLargeText.unconfirmed-dark-accessibility3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "testUnconfirmedConversationDarkLargeText.unconfirmed-dark-accessibility3.png"; sourceTree = "<group>"; };
 		A81CA93286F4965AA03F4A96 /* reading-answer.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "reading-answer.md"; sourceTree = "<group>"; };
+		B5F15D486AEF993D90647C70 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BC39691C961D05C4358B04C1 /* PotatoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PotatoApp.swift; sourceTree = "<group>"; };
 		C309A0852F951F7C407A311D /* AppAssembly.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAssembly.swift; sourceTree = "<group>"; };
 		C4CBDAD1740B53A6B32727E2 /* SessionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionListView.swift; sourceTree = "<group>"; };
@@ -255,6 +257,7 @@
 			isa = PBXGroup;
 			children = (
 				C309A0852F951F7C407A311D /* AppAssembly.swift */,
+				B5F15D486AEF993D90647C70 /* Assets.xcassets */,
 				BC39691C961D05C4358B04C1 /* PotatoApp.swift */,
 				F5277BF32265CF5F37907A1A /* Conversation */,
 				8541EF0D89DD655E7FFC342B /* Presentation */,
@@ -345,6 +348,7 @@
 			buildConfigurationList = 50D6CD49A38957BD60F7C721 /* Build configuration list for PBXNativeTarget "Potato" */;
 			buildPhases = (
 				1E427CDB6DAA5880F757AFD6 /* Sources */,
+				5EB25FEE3A52BA572EC1775E /* Resources */,
 				71738A5B5A09F75A058D37B6 /* Frameworks */,
 				943752A9898AFAE1240D5B3A /* Embed Frameworks */,
 			);
@@ -480,6 +484,14 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		5EB25FEE3A52BA572EC1775E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				051E8A29F4903910D4FAB3EE /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D5A7E06F0D6B998EF4F101C0 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
