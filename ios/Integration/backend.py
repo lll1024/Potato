@@ -15,6 +15,7 @@ import httpx
 import uvicorn
 from fastapi.responses import JSONResponse
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from anthropic import AsyncAnthropic
 from mcp import Client
 from travel_app.retrieval import Retrieval
@@ -99,7 +100,11 @@ class StreamingModel:
         self.returned = False
         self.mode = mode
         self.parts = type(self).parts
-        if mode == "reading":
+        if mode == "smooth":
+            self.parts = ["## 短暂平滑\n\n第一小片段。", "\n\n" + "湖畔观察🙂" * 30 + "大块末尾。", "后续小片段。"]
+        if mode == "continuous":
+            self.parts = ["连续阅读：\"先沿西湖步行"] + [f"第{index}站观察湖畔风景🙂" for index in range(1, 9)]
+        if mode in {"reading", "query-reading"}:
             self.parts = [
                 "## 流式中文阅读\n\n" + "沿湖慢行，按体力安排休息。\n\n" * 16 + "```swift\nlet city = \"杭州\"",
                 "\n```\n\n| 日期 | 上午 | 下午 | 晚间 | 提醒 |\n",
@@ -122,6 +127,32 @@ class StreamingModel:
     @asynccontextmanager
     async def stream(self, **parameters):
         model = self
+        if "tools" in parameters:
+            if self.mode in {"query-progress", "query-reading"} and not self.query_done:
+                self.query_done = True
+                class QueryStream:
+                    async def __aiter__(self):
+                        model.entered.set()
+                        yield SimpleNamespace(type="content_block_start", content_block=SimpleNamespace(type="text", text=""))
+                        for part in ("进展：准备查找西湖", "的地点资料。"):
+                            await model.release.get()
+                            yield SimpleNamespace(type="content_block_delta", delta=SimpleNamespace(type="text_delta", text=part))
+                            model.delivered.put_nowait(part)
+                        await model.release.get()
+                    async def get_final_message(self):
+                        model.delivered.put_nowait("query-returned")
+                        return response([{"type": "text", "text": "进展：准备查找西湖的地点资料。"},
+                            {"type": "tool_use", "id": "lake", "name": "maps_text_search", "input": {"keywords": "西湖", "city": "杭州"}}], "tool_use")
+                yield QueryStream()
+            else:
+                reply = await self.create(**parameters)
+                class QueryStream:
+                    async def __aiter__(self):
+                        for block in reply.content:
+                            yield SimpleNamespace(type="content_block_start", content_block=block)
+                    async def get_final_message(self): return reply
+                yield QueryStream()
+            return
         self.attempts += 1
         fail = self.mode in {"retry", "fallback"} and self.attempts == 1
 
@@ -260,6 +291,11 @@ async def main():
                     async with asyncio.timeout(10):
                         await streaming_model.delivered.get()
                     return {"returned": streaming_model.returned}
+
+                # 控制路由先注册，Web 与 iOS 可读取同一隔离会话。
+                dist = ROOT / "frontend" / "dist"
+                if dist.is_dir():
+                    app.mount("/", StaticFiles(directory=dist, html=True), name="page")
 
             if name == "unsaved":
                 app = create_app(Path(directory) / "unsaved", resources=unsaved_resources,

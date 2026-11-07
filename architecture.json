@@ -479,6 +479,7 @@
       "owner": "tooling",
       "role": "tooling"
     },
+    "tests/test_query_progress.py": {"owner": "integration", "role": "caller-test"},
     "tests/test_answer_streaming.py": {
       "owner": "integration",
       "role": "caller-test"

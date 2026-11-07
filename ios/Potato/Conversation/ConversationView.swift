@@ -1,5 +1,6 @@
 import SessionKit
 import SwiftUI
+import UIKit
 
 struct ConversationView: View {
     @State private var presenter: ConversationPresenter
@@ -7,6 +8,7 @@ struct ConversationView: View {
     @State private var followsLatest = true
     @State private var contentHeight: CGFloat = 0
     @State private var bottomDistance: CGFloat = 0
+    @State private var readingAnchors: [String: CGRect] = [:]
 
     init(session: AssistantSession?, sessions: any SessionAccess, router: ConversationRouter) {
         _presenter = State(initialValue: ConversationPresenter(session: session,
@@ -63,9 +65,19 @@ struct ConversationView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(.quaternary, in: RoundedRectangle(cornerRadius: 14))
                                 .accessibilityLabel("你的输入：" + turn.input)
+                                .readingAnchor("input:\(turn.id)")
+                            if turn.progress.contains(where: { !$0.text.isEmpty }) {
+                                QueryProgressView(entries: turn.progress, hasAnswerStarted: turn.hasAnswerStarted,
+                                                  isCurrent: turn.isCurrentProgress, identity: turn.progressIdentity,
+                                                  stopped: turn.isStopped, recovery: turn.contentRecoveryRevision)
+                                    .readingAnchor("query:\(turn.id)")
+                            }
                             if let answer = turn.answer, !answer.isEmpty {
                                 AnswerView(text: answer, isPreview: turn.isPreview,
-                                           isUnsaved: turn.isUnsaved, isIncomplete: turn.isIncomplete)
+                                           isUnsaved: turn.isUnsaved, isIncomplete: turn.isIncomplete,
+                                           transitionID: turn.answerIdentity, isGenerating: turn.isGenerating,
+                                           isStopped: turn.isStopped, recoveryRevision: turn.contentRecoveryRevision)
+                                    .readingAnchor("answer:\(turn.id)")
                             }
                             if let message = turn.statusMessage {
                                 Text(message)
@@ -78,6 +90,9 @@ struct ConversationView: View {
                 }
                 Color.clear.frame(height: 1).id("latest")
             }
+            .background(ReadingPositionKeeper(anchors: readingAnchors, paused: !followsLatest,
+                                              viewportHeight: viewport.size.height, reachedLatest: { followsLatest = true }))
+            .onPreferenceChange(ReadingAnchorFrames.self) { readingAnchors = $0 }
             .id("history-start")
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -87,8 +102,6 @@ struct ConversationView: View {
                 bottomDistance = frame.maxY - viewport.size.height
                 if frame.height != contentHeight {
                     contentHeight = frame.height
-                } else if bottomDistance <= 24 {
-                    followsLatest = true
                 }
             }
         }
@@ -201,4 +214,110 @@ struct ConversationView: View {
         }
     }
 
+}
+
+private struct QueryProgressView: View {
+    let entries: [ProgressEntry]
+    let hasAnswerStarted: Bool
+    let isCurrent: Bool
+    let identity: String
+    let stopped: Bool
+    let recovery: Int
+    @State private var isExpanded: Bool
+    @State private var answerSeen: Bool
+
+    init(entries: [ProgressEntry], hasAnswerStarted: Bool, isCurrent: Bool, identity: String, stopped: Bool, recovery: Int) {
+        self.entries = entries
+        self.hasAnswerStarted = hasAnswerStarted
+        self.isCurrent = isCurrent
+        self.identity = identity; self.stopped = stopped; self.recovery = recovery
+        _isExpanded = State(initialValue: !hasAnswerStarted)
+        _answerSeen = State(initialValue: hasAnswerStarted)
+    }
+
+    var body: some View {
+        DisclosureGroup(isExpanded: $isExpanded) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text((isCurrent ? "当前进展 · 尚未全部保存" : "已保存的查询进展") + "，取得资料不代表已完成核实")
+                    .font(.footnote).foregroundStyle(.secondary)
+                ForEach(entries.filter { !$0.text.isEmpty }) { entry in
+                    VStack(alignment: .leading, spacing: 4) {
+                        ReadingTransition(text: entry.text, identity: "\(identity):\(entry.id):\(entry.attemptID)",
+                                          live: isCurrent && entry.status == "generating", stopped: stopped, recovery: recovery) {
+                            Text($0).textSelection(.enabled)
+                        }
+                        Text(entry.statusText).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .padding(.top, 8)
+        } label: {
+            Text("查询进展").font(.subheadline.weight(.semibold))
+        }
+        .accessibilityIdentifier("query-progress")
+        .onChange(of: hasAnswerStarted) { _, started in
+            if started && !answerSeen { isExpanded = false; answerSeen = true }
+        }
+    }
+}
+
+private struct ReadingAnchorFrames: PreferenceKey {
+    static let defaultValue: [String: CGRect] = [:]
+    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, next in next })
+    }
+}
+private extension View {
+    func readingAnchor(_ identity: String) -> some View {
+        background(GeometryReader { geometry in
+            Color.clear.preference(key: ReadingAnchorFrames.self,
+                                   value: [identity: geometry.frame(in: .named("conversation-reading"))])
+        })
+    }
+}
+
+/// iOS 17 的滚动保位：仅抵消阅读锚点上方的布局变化，不接管用户手势。
+private struct ReadingPositionKeeper: UIViewRepresentable {
+    let anchors: [String: CGRect]
+    let paused: Bool
+    let viewportHeight: CGFloat
+    let reachedLatest: @MainActor () -> Void
+    func makeUIView(context: Context) -> PositionView { PositionView() }
+    func updateUIView(_ view: PositionView, context: Context) { view.keep(anchors, paused: paused, height: viewportHeight, reachedLatest: reachedLatest) }
+
+    final class PositionView: UIView {
+        private var anchor: String?
+        private var offset: CGFloat = 0
+        private var wasPaused = false
+        private var previousOffset: CGFloat?
+        func keep(_ anchors: [String: CGRect], paused: Bool, height: CGFloat, reachedLatest: @escaping @MainActor () -> Void) {
+            var ancestor = superview
+            while ancestor != nil && !(ancestor is UIScrollView) { ancestor = ancestor?.superview }
+            guard let scroll = ancestor as? UIScrollView else { return }
+            let userApproachedBottom = (scroll.isDragging && scroll.panGestureRecognizer.velocity(in: scroll).y < 0)
+                || (scroll.isDecelerating && scroll.contentOffset.y > (previousOffset ?? scroll.contentOffset.y))
+            let gap = scroll.contentSize.height - scroll.contentOffset.y - scroll.bounds.height + scroll.adjustedContentInset.bottom
+            if paused, userApproachedBottom, gap <= 24 { DispatchQueue.main.async { reachedLatest() } }
+            var applied: CGFloat = 0
+            let moved = previousOffset.map { abs(scroll.contentOffset.y - $0) > 0.5 } ?? true
+            if paused, wasPaused, !moved, !scroll.isDragging, !scroll.isDecelerating,
+               let anchor, let frame = anchors[anchor] {
+                let delta = frame.minY - offset
+                if abs(delta) > 0.5 {
+                    let current = scroll.contentOffset.y
+                    let lower = -scroll.adjustedContentInset.top
+                    let upper = max(lower, scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom)
+                    let next = min(upper, max(lower, current + delta))
+                    scroll.setContentOffset(CGPoint(x: scroll.contentOffset.x, y: next), animated: false)
+                    applied = next - current
+                }
+            }
+            wasPaused = paused
+            previousOffset = scroll.contentOffset.y
+            if paused, let selected = anchors.filter({ $0.value.maxY - applied > 0 && $0.value.minY - applied < height })
+                .min(by: { $0.value.minY < $1.value.minY }) {
+                anchor = selected.key; offset = selected.value.minY - applied
+            } else { anchor = nil }
+        }
+    }
 }

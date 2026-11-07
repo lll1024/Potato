@@ -7,6 +7,7 @@ struct ConversationInteractor {
     let sessions: any SessionAccess
     var page: ConversationPage? { sessions.conversation }
     var answerPreview: AnswerPreview? { sessions.answerPreview }
+    var progressPreview: ProgressPreview? { sessions.progressPreview }
     var answerFailure: SessionFailure? { sessions.answerFailure }
     var canSubmit: Bool { sessions.canSubmit }
     var execution: ExecutionState { ExecutionState(sessions) }
@@ -57,6 +58,14 @@ struct ConversationPresentation {
         let isPreview: Bool
         let isUnsaved: Bool
         let isIncomplete: Bool
+        let progress: [ProgressEntry]
+        let hasAnswerStarted: Bool
+        let isCurrentProgress: Bool
+        var answerIdentity: String? = nil
+        var progressIdentity = ""
+        var isGenerating = false
+        var isStopped = false
+        var contentRecoveryRevision = 0
     }
     let title: String
     let turns: [Turn]
@@ -161,7 +170,15 @@ final class ConversationPresenter {
             }
             return ConversationPresentation.Turn(id: turn.id, input: turn.input,
                 answer: preview?.text ?? turn.answer, statusMessage: message, isPreview: preview != nil,
-                isUnsaved: isUnsaved, isIncomplete: turn.status != "running" && turn.status != "completed")
+                isUnsaved: isUnsaved, isIncomplete: turn.status != "running" && turn.status != "completed",
+                progress: interactor.progressPreview.flatMap { $0.turnID == turn.id ? $0.entries : nil } ?? turn.queryProgress ?? [],
+                hasAnswerStarted: !(preview?.text ?? turn.answer ?? "").isEmpty,
+                isCurrentProgress: interactor.progressPreview?.turnID == turn.id,
+                answerIdentity: preview.map { "\($0.instanceID):\($0.streamID):\($0.sessionID):\($0.turnID):\($0.attemptID)" },
+                progressIdentity: interactor.progressPreview.map { "\($0.instanceID):\($0.streamID):\($0.sessionID):\($0.turnID)" } ?? "saved:\(turn.id)",
+                isGenerating: preview?.status == "generating" && preview?.delivery != "complete" && !isUnsaved,
+                isStopped: (execution.service?.stopping == true && execution.service?.activeTurnID == turn.id) || requestedStop,
+                contentRecoveryRevision: interactor.sessions.contentRecoveryRevision)
         }, hasEarlierTurns: page.nextBefore != nil))
     }
 

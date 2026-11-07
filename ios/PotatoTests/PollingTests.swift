@@ -276,6 +276,70 @@ struct StopTests {
 
 @MainActor
 struct AnswerStreamingTests {
+    @Test func savedProgressIsReadAgainAfterReopeningClientWithoutLocalHistoryCopy() async throws {
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, address) = try await HTTPFixture.client(databaseURL: file)
+        let saved = page(answer: "已保存回答").replacingOccurrences(of: "\"status\":\"completed\"", with:
+            "\"status\":\"completed\",\"query_progress\":[{\"id\":\"note\",\"attempt_id\":\"query\",\"kind\":\"model\",\"text\":\"准备查找地点资料。\",\"status\":\"generated\"},{\"id\":\"tool\",\"attempt_id\":\"query\",\"kind\":\"tool\",\"text\":\"查找地点资料\",\"status\":\"failed\"}]")
+        sessions.watchConversation(sessionID: "existing")
+        let reading = Task { try await sessions.history(sessionID: "existing") }
+        await fixture.next().reply(body: saved)
+        let first = try await reading.value
+        #expect(first.turns.first?.queryProgress?.map(\.status) == ["generated", "failed"])
+        #expect(sessions.progressPreview == nil)
+        let (reopened, other, _) = try await HTTPFixture.client(databaseURL: file, address: address)
+        #expect(reopened.conversation == nil)
+        reopened.watchConversation(sessionID: "existing")
+        let restored = Task { try await reopened.history(sessionID: "existing") }
+        await other.next().reply(body: saved)
+        #expect(try await restored.value.turns.first?.queryProgress == first.turns.first?.queryProgress)
+        let old = Task { try await reopened.history(sessionID: "existing") }
+        await other.next().reply(body: page(answer: "旧记录回答"))
+        #expect(try await old.value.turns.first?.queryProgress == nil)
+    }
+
+    @Test func queryProgressUsesExistingSubscriptionAndKeepsAnswerSeparate() async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        defer { sessions.setForeground(false) }
+        await fixture.next().reply(body: snapshot())
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let stream = await fixture.next()
+        stream.beginStream()
+        let snapshotRecovery = sessions.contentRecoveryRevision
+        #expect(snapshotRecovery > 0)
+        func progress(_ revision: Int, _ text: String, turn: String = "turn") -> Data {
+            let preview: [String: Any] = ["instance_id":"process", "stream_id":"dataset", "session_id":"existing",
+                "turn_id":turn, "revision":revision, "entries":[["id":"query", "attempt_id":"request", "kind":"model", "text":text, "status":"generating"]]]
+            let body = try! JSONSerialization.data(withJSONObject: ["schema_version":1, "kind":"progress.preview",
+                "instance_id":"process", "revision":revision, "preview":preview])
+            return Data("event: progress.preview\ndata: ".utf8) + body + Data("\n\n".utf8)
+        }
+        stream.send(progress(1, "准备查找交通资料"))
+        try await observed { sessions.progressPreview?.entries.first?.text == "准备查找交通资料" }
+        #expect(sessions.contentRecoveryRevision > snapshotRecovery)
+        let subscriptionRecovery = sessions.contentRecoveryRevision
+        #expect(sessions.answerPreview == nil)
+        #expect(sessions.conversation?.turns.first?.answer == nil)
+        stream.send(progress(2, "准备查找交通资料并比较出行方式。"))
+        try await observed { sessions.progressPreview?.revision == 2 }
+        #expect(sessions.contentRecoveryRevision == subscriptionRecovery)
+        stream.send(progress(1, "重复旧内容"))
+        stream.send(progress(3, "错误归属", turn: "other"))
+        stream.send(event(text: "真实正文", revision: 1))
+        try await observed { sessions.answerPreview?.text == "真实正文" }
+        #expect(sessions.progressPreview?.entries.first?.text == "准备查找交通资料并比较出行方式。")
+        #expect(await fixture.receivedCount == 4)
+        sessions.watchConversation(sessionID: nil)
+        #expect(sessions.progressPreview == nil)
+        await clock.advance()
+    }
+
     @Test func receivesBatchesBeforeSavedHistoryThroughOneForegroundSubscription() async throws {
         let clock = PollClock()
         let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")

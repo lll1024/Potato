@@ -261,7 +261,8 @@ async def plan(text: str, client: AsyncAnthropic, tools: Retrieval, model: str, 
                history_records: Callable[[], list[dict[str, Any]]] | None = None,
                max_rounds: int = MAX_ROUNDS, max_tool_calls: int = MAX_TOOL_CALLS,
                context_policy: ContextPolicy | None = None,
-               answer_observer: Callable[[dict[str, Any]], Awaitable[None]] | None = None) -> PlanningResult:
+               answer_observer: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
+               progress_observer: Callable[[dict[str, Any]], Awaitable[None]] | None = None) -> PlanningResult:
     context = ModelContext.begin(text, seed=seed, continuation=continuation)
 
     try:
@@ -269,7 +270,7 @@ async def plan(text: str, client: AsyncAnthropic, tools: Retrieval, model: str, 
             stop_requested=stop_requested, stop_reason=stop_reason, clock=clock,
             preference_background=preference_background, history_records=history_records,
             max_rounds=min(max_rounds, MAX_ROUNDS), max_tool_calls=min(max_tool_calls, MAX_TOOL_CALLS),
-            context_policy=context_policy, answer_observer=answer_observer)
+            context_policy=context_policy, answer_observer=answer_observer, progress_observer=progress_observer)
     except RecordAbort:
         raise
     except Exception:
@@ -291,11 +292,36 @@ async def _execute_plan(
     stop_requested: asyncio.Event | None = None, stop_reason: str | Callable[[], str] = "user_stop",
     clock: Callable[[], datetime] | None = None,
     answer_observer: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
+    progress_observer: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
     previous_source_materials: list[dict[str, Any]] | None = None,
     preference_background: str = "",
     context_policy: ContextPolicy | None = None,
     history_records: Callable[[], list[dict[str, Any]]] | None = None,
 ) -> ExecutionOutcome:
+    if progress_observer is not None:
+        record_observer = observer
+        tool_names = {}
+        async def observe_progress(kind, data):
+            entry = None
+            if kind.startswith("tool.") and data.get("tool_call_id"):
+                identity = data["tool_call_id"]
+                if kind == "tool.pending":
+                    name = data.get("name", "")
+                    action = ("读取会话资料" if name.startswith("session_history_") else
+                              "比较交通路线" if "direction" in name or "distance" in name else
+                              "查询天气" if "weather" in name else
+                              "查找地点资料" if name.startswith("maps_") else "查找网页资料")
+                    tool_names[identity] = action
+                states = {"tool.pending": "pending", "tool.waiting": "pending", "tool.running": "running",
+                          "tool.completed": "completed", "tool.failed": "failed", "tool.not_executed": "not_executed"}
+                if kind in states:
+                    entry = {"id": identity, "attempt_id": data["request_id"], "kind": "tool",
+                        "text": tool_names.get(identity, "获取资料"), "status": states[kind]}
+            if record_observer:
+                await record_observer(kind, {**data, **({"progress": entry} if entry else {})})
+            if entry:
+                await progress_observer(entry)
+        observer = observe_progress
     try:
         context_policy = context_policy or ContextPolicy.from_env()
     except ContextConfigurationError as error:
@@ -360,7 +386,7 @@ async def _execute_plan(
         stage_rule = ""
         if answer_observer is not None:
             stage_rule = ("\n资料获取阶段已结束。现在只根据已有资料直接向旅行者给出最终回答，禁止调用工具。"
-                          if answering or finalizing else "\n资料获取阶段：仅按需查询；资料齐全时简短确认，勿作答。")
+                          if answering or finalizing else "\n资料获取阶段：仅按需查询；仅在准备调用查询工具时，以“进展：”开头，用不超过120字的一句简短中文向旅行者说明准备做的行动；不展示内部推理、参数或原始载荷，不声称尚未完成的查询成功。不需查询或资料齐全时只返回“无需查询”，不写旅行行程或最终答案。")
         parameters: dict[str, Any] = dict(model=model, system=system + stage_rule + preference_background
             + ("\n本轮地图服务状态：" + capabilities.map_status if capabilities.map_status else "")
             + ("\n本轮资料服务状态：" + capabilities.source_status if capabilities.source_status is not None else ""),
@@ -440,8 +466,28 @@ async def _execute_plan(
                     await answer_observer({"attempt_id": request_id,
                         "text": tools.redact_preview(raw_text), "status": "generating", **delivery})
 
+            querying = progress_observer is not None and not answering and not finalizing
+            async def query_update(state, text):
+                entry = {"id": request_id, "attempt_id": request_id, "kind": "model",
+                    "text": text[:240], "status": state}
+                await progress_observer(entry)
+                return entry
+            async def receive_progress(text):
+                nonlocal raw_text
+                raw_text += text
+                safe = tools.redact_preview(raw_text).lstrip()
+                if safe.startswith("进展："):
+                    await query_update("generating", safe.removeprefix("进展：").split("\n", 1)[0])
+            if querying:
+                await query_update("generating", "")
             returned = await request_model(client, parameters, redact=tools.redact, validate=validate_final,
-                on_text=receive_text if answer_observer is not None and (answering or finalizing) and stream_answer else None)
+                on_text=(receive_progress if querying else receive_text) if stream_answer and
+                    (querying or answer_observer is not None and (answering or finalizing)) else None)
+            if querying:
+                safe = tools.redact("\n".join(block.text for block in returned.response.content if block.type == "text")).lstrip() if returned.failure is None else ""
+                has_queries = returned.failure is None and any(block.type == "tool_use" for block in returned.response.content)
+                query_entry = await query_update("generated" if returned.failure is None else "invalidated",
+                    safe.removeprefix("进展：").split("\n", 1)[0] if has_queries and safe.startswith("进展：") else "")
             if answer_observer is not None and (answering or finalizing):
                 await answer_observer({"attempt_id": request_id,
                     "text": tools.redact("\n".join(block.text for block in returned.response.content if block.type == "text"))
@@ -525,6 +571,8 @@ async def _execute_plan(
                               "code": failure["code"], "message": failure["message"]}
                 if observer:
                     await observer("request.retry_scheduled", retry_data)
+                if querying:
+                    await query_update("retrying", "")
                 if answer_observer is not None and answering:
                     await answer_observer({"attempt_id": request_id, "text": "", "status": "retrying", **delivery})
                 if stop_requested:
@@ -558,6 +606,7 @@ async def _execute_plan(
         if observer:
             await observer("request.completed", {
                 "request_id": request_id, "finished_at": finished_at,
+                **({"progress": query_entry} if querying and query_entry["text"] else {}),
                 "duration_ms": duration_ms, "response": parsed,
                 "usage": parsed.get("usage"),
                 "usage_state": "returned" if "usage" in parsed and parsed["usage"] is not None else "not_returned",

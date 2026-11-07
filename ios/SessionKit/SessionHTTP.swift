@@ -141,6 +141,8 @@ struct WireSnapshot: Decodable, Sendable {
     let instanceId: String?
     let answerRevision: Int?
     let answerPreview: AnswerPreview?
+    let progressRevision: Int?
+    let progressPreview: ProgressPreview?
 
     var entity: ServiceState {
         ServiceState(streamID: streamId, activeSessionID: activeSessionId, activeTurnID: activeTurnId,
@@ -157,6 +159,7 @@ struct WirePage: Decodable, Sendable {
         let status: String
         let reason: String?
         let answerDelivery: String?
+        let queryProgress: [ProgressEntry]?
     }
     let schemaVersion: Int
     let streamId: String
@@ -168,7 +171,7 @@ struct WirePage: Decodable, Sendable {
     var entity: ConversationPage {
         ConversationPage(session: session.entity, turns: turns.map {
             ConversationTurn(id: $0.turnId, ordinal: $0.ordinal, input: $0.input, answer: $0.answer,
-                             status: $0.status, reason: $0.reason, answerDelivery: $0.answerDelivery, observedAt: cursor)
+                             status: $0.status, reason: $0.reason, answerDelivery: $0.answerDelivery, queryProgress: $0.queryProgress, observedAt: cursor)
         }, nextBefore: nextBefore, streamID: streamId, cursor: cursor,
             windows: HistoryWindow.page(ordinals: turns.compactMap(\.ordinal), before: nextBefore))
     }
@@ -215,7 +218,7 @@ struct SessionEventParser {
             guard let line = String(data: bytes, encoding: .utf8) else { throw SessionFailure.invalidResponse }
             pending.removeSubrange(...end)
             if line.isEmpty {
-                if kind == "answer.preview", !lines.isEmpty {
+                if ["answer.preview", "progress.preview"].contains(kind), !lines.isEmpty {
                     let decoder = JSONDecoder()
                     decoder.keyDecodingStrategy = .convertFromSnakeCase
                     events.append(try decoder.decode(WireAnswerEvent.self, from: Data(lines.joined(separator: "\n").utf8)))
@@ -238,4 +241,21 @@ struct WireAnswerEvent: Decodable, Sendable {
     let instanceId: String
     let revision: Int
     let preview: AnswerPreview?
+    let progress: ProgressPreview?
+    let kind: String
+    enum CodingKeys: String, CodingKey { case schemaVersion, instanceId, revision, preview, kind }
+    init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try values.decode(Int.self, forKey: .schemaVersion)
+        instanceId = try values.decode(String.self, forKey: .instanceId)
+        revision = try values.decode(Int.self, forKey: .revision)
+        kind = try values.decodeIfPresent(String.self, forKey: .kind) ?? "answer.preview"
+        if kind == "progress.preview" {
+            progress = try values.decodeIfPresent(ProgressPreview.self, forKey: .preview)
+            preview = nil
+        } else {
+            preview = try values.decodeIfPresent(AnswerPreview.self, forKey: .preview)
+            progress = nil
+        }
+    }
 }

@@ -28,4 +28,4 @@
 
 只在修改内部时展开：[service.py](../../travel_app/retrieval/service.py)负责分段收齐与能力视图，[amap_mcp.py](../../travel_app/retrieval/amap_mcp.py)和[exa_mcp.py](../../travel_app/retrieval/exa_mcp.py)保留供应商调度、错误分类及内容处理，[connections.py](../../travel_app/retrieval/connections.py)和[source_connection.py](../../travel_app/retrieval/source_connection.py)管理生产连接。阶段证据见 [#83 验收](../acceptance/retrieval-planning.md)。
 
-`redact_preview(text) -> str` 接收尚未完成的累计模型正文，返回当前可安全展示的脱敏前缀。它沿用 `redact` 的完整规则，暂缓未结束的 URL、凭据头、引号／结构及跨块已知密钥前缀，防止凭据或敏感 URL 因截断而提前暴露；普通中文段落可直接分批显示；仅存在上述匹配风险的尾部可能缓冲至响应结束。调用方在完整响应成功后再用 `redact` 发布尾部，不将暂存原文发送给客户端或写入历史。
+`redact_preview(text) -> str` 接收尚未完成的累计模型正文，返回当前可安全展示的脱敏前缀。它沿用 `redact` 的完整规则，暂缓未结束的 URL、凭据头、JSON 结构、带引号凭据值及跨块已知密钥前缀，防止凭据或敏感 URL 因截断而提前暴露；普通中文、阅读引号和 Markdown 标签可直接分批显示；仅存在上述匹配风险的尾部可能缓冲至响应结束。调用方在完整响应成功后再用 `redact` 发布尾部，不将暂存原文发送给客户端或写入历史。

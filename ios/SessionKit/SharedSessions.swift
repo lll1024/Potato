@@ -12,7 +12,11 @@ public final class SharedSessions: SessionAccess {
     public private(set) var sessionList: SessionList?
     public private(set) var conversation: ConversationPage?
     public private(set) var conversationFailure: SessionFailure?
+    public private(set) var contentRecoveryRevision = 0
     public private(set) var answerFailure: SessionFailure?
+    private var currentProgress: ProgressPreview?
+    private var frozenProgress: ProgressPreview?
+    private var progressRevision = -1
     private var currentAnswer: AnswerPreview?
     private var frozenAnswer: AnswerPreview?
     private var frozenTurnID: String?
@@ -25,6 +29,14 @@ public final class SharedSessions: SessionAccess {
     public var answerPreview: AnswerPreview? {
         let frozen = frozenTurnID != nil && frozenTurnID == service?.activeTurnID
         guard let preview = frozen ? frozenAnswer : currentAnswer, preview.sessionID == watchedSessionID,
+              preview.streamID == datasetID, preview.instanceID == answerInstance else { return nil }
+        if let turn = conversation?.turns.first(where: { $0.id == preview.turnID }), turn.status != "running" { return nil }
+        return preview
+    }
+
+    public var progressPreview: ProgressPreview? {
+        let frozen = frozenTurnID != nil && frozenTurnID == service?.activeTurnID
+        guard let preview = frozen ? frozenProgress : currentProgress, preview.sessionID == watchedSessionID,
               preview.streamID == datasetID, preview.instanceID == answerInstance else { return nil }
         if let turn = conversation?.turns.first(where: { $0.id == preview.turnID }), turn.status != "running" { return nil }
         return preview
@@ -139,6 +151,8 @@ public final class SharedSessions: SessionAccess {
                 conversation = nil
                 conversationFailure = .http(404)
                 currentAnswer = nil
+                currentProgress = nil
+                progressRevision = -1
                 cancelAnswerSubscription()
             } else if !(error is CancellationError), error as? SessionFailure != .obsolete {
                 earlierTurnsFailure = error as? SessionFailure ?? .invalidResponse
@@ -455,6 +469,8 @@ public final class SharedSessions: SessionAccess {
         guard watchedSessionID != sessionID else { return }
         cancelAnswerSubscription()
         currentAnswer = nil
+        currentProgress = nil
+        progressRevision = -1
         answerRevision = -1
         watchedSessionID = sessionID
         invalidateEarlierTurns()
@@ -623,6 +639,7 @@ public final class SharedSessions: SessionAccess {
             dataset = datasetGeneration
             if snapshot.instanceId != answerInstance || snapshot.activeTurnId != frozenTurnID {
                 frozenAnswer = nil
+                frozenProgress = nil
                 frozenTurnID = nil
             }
             if snapshot.stopping, let turnID = snapshot.activeTurnId,
@@ -633,12 +650,18 @@ public final class SharedSessions: SessionAccess {
             if answerInstance != snapshot.instanceId {
                 cancelAnswerSubscription()
                 currentAnswer = nil
+                currentProgress = nil
+                progressRevision = -1
                 answerRevision = -1
                 answerInstance = snapshot.instanceId
             }
             if let instance = snapshot.instanceId, let revision = snapshot.answerRevision {
                 try adoptAnswer(instance: instance, revision: revision, preview: snapshot.answerPreview)
             }
+            if let instance = snapshot.instanceId, let revision = snapshot.progressRevision {
+                try adoptProgress(instance: instance, revision: revision, preview: snapshot.progressPreview)
+            }
+            contentRecoveryRevision += 1
             if snapshot.stopping, let turnID = snapshot.activeTurnId { freezeAnswer(turnID: turnID) }
             if stopOperation == nil {
                 switch stopState {
@@ -754,6 +777,8 @@ public final class SharedSessions: SessionAccess {
                 if watchedSessionID == sessionID {
                     conversation = nil
                     currentAnswer = nil
+                    currentProgress = nil
+                    progressRevision = -1
                     cancelAnswerSubscription()
                     invalidateEarlierTurns()
                 }
@@ -768,13 +793,17 @@ public final class SharedSessions: SessionAccess {
         guard frozenTurnID != turnID else { return }
         frozenTurnID = turnID
         frozenAnswer = currentAnswer?.turnID == turnID ? currentAnswer : nil
+        frozenProgress = currentProgress?.turnID == turnID ? currentProgress : nil
     }
 
     private func resetAnswer() {
         frozenAnswer = nil
+        frozenProgress = nil
         frozenTurnID = nil
         cancelAnswerSubscription()
         currentAnswer = nil
+        currentProgress = nil
+        progressRevision = -1
         answerInstance = nil
         answerRevision = -1
     }
@@ -802,6 +831,20 @@ public final class SharedSessions: SessionAccess {
         currentAnswer = preview
     }
 
+    private func adoptProgress(instance: String, revision: Int, preview: ProgressPreview?) throws {
+        guard instance == answerInstance, revision > progressRevision else { return }
+        if let preview {
+            guard preview.instanceID == instance, preview.streamID == datasetID, preview.revision == revision else {
+                throw SessionFailure.invalidResponse
+            }
+            let active = preview.turnID == service?.activeTurnID && preview.sessionID == service?.activeSessionID
+            let unsaved = service?.storageError != nil && service?.unsavedFact?["turn_id"] == preview.turnID
+            guard active || unsaved else { return }
+        }
+        progressRevision = revision
+        currentProgress = preview
+    }
+
     private func updateAnswerSubscription() {
         guard isForeground, answerSubscription == nil, let sessionID = watchedSessionID,
               conversation?.session.id == sessionID, conversationFailure != .http(404),
@@ -813,6 +856,7 @@ public final class SharedSessions: SessionAccess {
         answerSubscription = Task { [weak self] in
             do {
                 var parser = SessionEventParser()
+                var firstAnswer = true, firstProgress = true
                 for try await data in bytes {
                     try Task.checkCancellation()
                     guard let self, self.answerOperation == operation else { return }
@@ -821,12 +865,20 @@ public final class SharedSessions: SessionAccess {
                         // 同库重启也必须重新读取快照；旧进程消息不能作为新状态。
                         guard event.instanceId == instance else {
                             self.currentAnswer = nil
+                            self.currentProgress = nil
+                            self.progressRevision = -1
                             self.answerInstance = nil
                             self.answerRevision = -1
                             self.refreshGeneration += 1
                             throw SessionFailure.obsolete
                         }
-                        try self.adoptAnswer(instance: event.instanceId, revision: event.revision, preview: event.preview)
+                        if event.kind == "progress.preview" {
+                            if firstProgress {firstProgress = false; self.contentRecoveryRevision += 1}
+                            try self.adoptProgress(instance: event.instanceId, revision: event.revision, preview: event.progress)
+                        } else {
+                            if firstAnswer {firstAnswer = false; self.contentRecoveryRevision += 1}
+                            try self.adoptAnswer(instance: event.instanceId, revision: event.revision, preview: event.preview)
+                        }
                         self.answerFailure = nil
                     }
                 }
