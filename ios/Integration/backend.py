@@ -15,6 +15,7 @@ import httpx
 import uvicorn
 from fastapi.responses import JSONResponse
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from anthropic import AsyncAnthropic
 from mcp import Client
 from travel_app.retrieval import Retrieval
@@ -99,6 +100,8 @@ class StreamingModel:
         self.returned = False
         self.mode = mode
         self.parts = type(self).parts
+        if mode == "continuous":
+            self.parts = ["连续阅读：\"先沿西湖步行"] + [f"第{index}站观察湖畔风景🙂" for index in range(1, 9)]
         if mode == "reading":
             self.parts = [
                 "## 流式中文阅读\n\n" + "沿湖慢行，按体力安排休息。\n\n" * 16 + "```swift\nlet city = \"杭州\"",
@@ -266,7 +269,8 @@ async def main():
                     return '<html lang="zh"><meta charset="utf-8"><title>预约入口样例</title><h1>预约入口样例</h1><p>尚未预约。这是客户端链接验收页面。</p></html>'
 
             if name == "streaming":
-                app = create_app(Path(directory) / name, resources=streaming_resources)
+                app = create_app(Path(directory) / name, resources=streaming_resources,
+                                 static_dir=Path(directory) / "no-static")
 
                 @app.post("/__test__/arm")
                 async def arm_stream(mode: str = "normal"):
@@ -285,6 +289,11 @@ async def main():
                     async with asyncio.timeout(10):
                         await streaming_model.delivered.get()
                     return {"returned": streaming_model.returned}
+
+                # 控制路由先注册，Web 与 iOS 可读取同一隔离会话。
+                dist = ROOT / "frontend" / "dist"
+                if dist.is_dir():
+                    app.mount("/", StaticFiles(directory=dist, html=True), name="page")
 
             if name == "unsaved":
                 app = create_app(Path(directory) / "unsaved", resources=unsaved_resources,
@@ -332,9 +341,6 @@ async def main():
                         # 仅延迟 HTTP 接受响应；真实轮次与 SQLite 由原后端推进。
                         await asyncio.sleep(20 if long_input else 8 if submitted_input in ("延迟接受时保留草稿", "重启核对原提交") else 4)
                     return result
-            # create_app 的静态兜底先注册；验收控制路由需在该兜底之前。
-            app.router.routes[:] = [route for route in app.router.routes if route.name != "page"] + [
-                route for route in app.router.routes if route.name == "page"]
             server = uvicorn.Server(uvicorn.Config(
                 app,
                 host="127.0.0.1", port=port, log_level="critical", access_log=False,

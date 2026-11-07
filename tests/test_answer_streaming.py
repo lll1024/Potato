@@ -87,6 +87,8 @@ class StreamingModel:
 
     async def create(self, **parameters):
         self.requests.append(parameters)
+        if self.query_rounds == 0:
+            return response([{"type": "text", "text": "已有信息足够，直接作答。"}])
         if len(self.requests) == 1:
             return tool_reply(1)
         if len(self.requests) < self.query_rounds:
@@ -670,7 +672,8 @@ class AnswerStreamingTests(unittest.IsolatedAsyncioTestCase):
         model = StreamingModel()
         model.parts = ["杭州旅行\n\n", "known-", "secret\n\n", "Authorization: Bea",
                        "rer header-secret, extra=hidden\n\n", "[预约](https://example.test/?api_",
-                       "key=url-secret)\n\n", '{"password":\n', '"json-secret", "city":"杭州"}\n\n', "结束\n"]
+                       "key=url-secret)\n\n", '{"password":\n', '"json-secret", "city":"杭州"}\n\n',
+                       'password="quoted-', 'secret"\n', "api_key='single-", "secret'\n", '"token":\n"field-', 'secret"\n', 'auth=Digest "digest-', 'secret"\n', "结束\n"]
         with tempfile.TemporaryDirectory() as directory:
             async with serving(directory, model) as client:
                 identity = (await client.post("/api/turns", json={"input": "安排杭州一天"})).json()
@@ -681,7 +684,7 @@ class AnswerStreamingTests(unittest.IsolatedAsyncioTestCase):
                         await asyncio.wait_for(model.delivered.get(), 3)
                         state = (await client.get("/api/snapshot")).json()
                         visible = json.dumps(state, ensure_ascii=False)
-                        for secret in ("known-", "header-secret", "extra=hidden", "url-secret", "json-secret"):
+                        for secret in ("known-", "header-secret", "extra=hidden", "url-secret", "json-secret", "quoted-", "single-", "field-", "digest-"):
                             self.assertNotIn(secret, visible)
                     self.assertFalse(model.returned)
                     model.release.put_nowait(None)
@@ -690,7 +693,7 @@ class AnswerStreamingTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIn("杭州", answer)
                     self.assertIn("[REDACTED]", answer)
                     self.assertIn("[REDACTED_URL]", answer)
-                    for secret in ("known-secret", "header-secret", "url-secret", "json-secret"):
+                    for secret in ("known-secret", "header-secret", "url-secret", "json-secret", "quoted-secret", "single-secret", "field-secret", "digest-secret"):
                         self.assertNotIn(secret, answer)
                 finally:
                     for _ in range(len(model.parts) + 1):
@@ -698,7 +701,7 @@ class AnswerStreamingTests(unittest.IsolatedAsyncioTestCase):
 
 
     async def test_plain_chinese_batches_are_visible_without_line_breaks(self):
-        model = StreamingModel()
+        model = StreamingModel(query_rounds=0)
         model.parts = ["上午游览西湖。", "下午品尝杭帮菜。", "傍晚沿湖散步。"]
         with tempfile.TemporaryDirectory() as directory:
             async with serving(directory, model) as client:
@@ -714,10 +717,41 @@ class AnswerStreamingTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(state["answer_preview"]["text"], text)
                         self.assertFalse(model.returned)
                     model.release.put_nowait(None)
-                    await wait_finished(client, identity["session_id"])
+                    history = await wait_finished(client, identity["session_id"])
+                    self.assertEqual(history["tool_calls"], [])
+                    self.assertEqual(history["turns"][0]["answer"], text)
                 finally:
                     for _ in range(4):
                         model.release.put_nowait(None)
+
+
+    async def test_unclosed_reading_punctuation_does_not_buffer_safe_chinese(self):
+        # 普通引号与 Markdown 标签不是凭据；模型仍被屏障阻止完整返回。
+        for opening in ('建议先读"', '推荐[西湖', '行程备注{西湖'):
+            with self.subTest(opening=opening):
+                model = StreamingModel()
+                model.parts = [opening, "上午沿湖慢行", "下午品尝杭帮菜🙂", "最后回酒店休息"]
+                with tempfile.TemporaryDirectory() as directory:
+                    async with serving(directory, model) as client:
+                        identity = (await client.post("/api/turns", json={"input": "杭州一天"})).json()
+                        try:
+                            await asyncio.wait_for(model.entered.wait(), 3)
+                            text = ""
+                            for part in model.parts:
+                                model.release.put_nowait(None)
+                                await asyncio.wait_for(model.delivered.get(), 3)
+                                text += part
+                                state = (await client.get("/api/snapshot")).json()
+                                self.assertEqual(state["answer_preview"]["text"], text)
+                                self.assertFalse(model.returned)
+                                history = (await client.get("/api/sessions/" + identity["session_id"])).json()
+                                self.assertIsNone(history["turns"][0]["answer"])
+                            model.release.put_nowait(None)
+                            history = await wait_finished(client, identity["session_id"])
+                            self.assertEqual(history["turns"][0]["answer"], text)
+                        finally:
+                            for _ in range(len(model.parts) + 1):
+                                model.release.put_nowait(None)
 
 
     async def test_query_commentary_is_not_recalled_as_an_assistant_answer(self):

@@ -762,3 +762,31 @@ test('查询说明与工具真实状态持续更新，正文保持独立且停�
   await progress(3, '停止后迟到说明');
   await expect(region).not.toContainText('停止后迟到说明');
 });
+
+test('无换行中文与未闭合引号按连续小片段展示并保留最终原文', async ({page}) => {
+  const app = await conversation(page);
+  app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip'; app.sessions[0].status = 'running';
+  await app.notify();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  let text = '';
+  for (let index = 0; index < 9; index++) {
+    text += index === 0 ? '连续阅读："先沿西湖步行' : `第${index}站观察湖畔风景🙂`;
+    const revision = index + 1;
+    app.state.answer_revision = revision;
+    await page.evaluate(({text, revision}) => {
+      (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {data: JSON.stringify({
+        schema_version: 1, kind: 'answer.preview', instance_id: 'process', revision,
+        preview: {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn',
+          attempt_id: 'continuous-answer', revision, text, status: 'generating'},
+      })}));
+    }, {text, revision});
+    await expect(page.locator('.answer-body').first()).toHaveText(text);
+    await expect(page.getByText('正在生成 · 尚未保存', {exact: true})).toBeVisible();
+    await expect(page.getByRole('button', {name: '复制当前正文', exact: true})).toBeVisible();
+  }
+  app.turn.status = 'completed'; app.turn.answer = text;
+  app.state.active_turn_id = null; app.state.active_session_id = null;
+  await app.notify();
+  await expect(page.locator('.answer-body').first()).toHaveText(text);
+  await expect(page.getByRole('button', {name: '复制完整回答', exact: true})).toBeVisible();
+});
