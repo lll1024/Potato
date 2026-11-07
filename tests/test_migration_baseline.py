@@ -13,13 +13,16 @@ from compatibility.capture import FIXTURES, ROOT, ScenarioServices, capture, ser
 from compatibility.compare import normalize, read_capture, validate
 
 
+QUERY_PHASE_RULE = "\n资料获取阶段：仅按需查询；仅在准备调用查询工具时，以“进展：”开头，用不超过120字的一句简短中文向旅行者说明准备做的行动；不展示内部推理、参数或原始载荷，不声称尚未完成的查询成功。不需查询或资料齐全时只返回“无需查询”，不写旅行行程或最终答案。"
+
+
 def streaming_projection(actual):
-    """只剥离 #98／#101 明确新增的作答事实；固定旧基线及通用 normalize 保持原样。"""
+    """只剥离 #98／#101／#111 明确新增的流式事实；固定数据与通用 normalize 不变。"""
     validate(actual)
     data = copy.deepcopy(actual)
     expected_streams = {}
     expected_queries = {}
-    phase_rule = "\n资料获取阶段：仅按需查询；资料齐全时简短确认，勿作答。"
+    phase_rule = QUERY_PHASE_RULE
     for scenario in data.values():
         if not isinstance(scenario, dict) or "snapshot" not in scenario:
             continue
@@ -53,6 +56,8 @@ def streaming_projection(actual):
                         summary["known_count"] -= 1
                         summary["value"] -= value
         checked_steps = Counter()
+        query_steps = {(r["turn_id"], r["step"]) for r in saved["requests"] if r.get("answer_phase") == "query"}
+        query_checks = Counter()
         kept_events = []
         for event in saved["events"]:
             if event.get("request_id") in identifiers:
@@ -63,45 +68,67 @@ def streaming_projection(actual):
                 assert event["data"]["allowed"] is True
                 assert event["data"]["estimated_tokens"] <= event["data"]["input_budget"]
                 continue
+            if event["kind"] == "context.checked" and (event["turn_id"], event["data"].get("step")) in query_steps:
+                query_checks[(event["turn_id"], event["data"]["step"])] += 1
+                assert event["data"]["allowed"] is True
+                assert event["data"]["estimated_tokens"] <= event["data"]["input_budget"]
             if event["kind"] == "request.started":
                 assert event["data"].pop("answer_phase", "query") == "query"
             kept_events.append(event)
         assert checked_steps == Counter({step: 1 for step in steps})
+        assert query_checks == Counter({step: 1 for step in query_steps})
         for request in saved["requests"]:
             phase = request.pop("answer_phase", None)
             parameters = payloads[request["input_payload_id"]]["content"]
             if phase == "query":
+                assert request["purpose"] == "travel" and request["ordinal"] <= 63
+                assert request["request_id"] not in expected_queries or expected_queries[request["request_id"]] == parameters
                 expected_queries[request["request_id"]] = copy.deepcopy(parameters)
                 assert parameters["system"].count(phase_rule) == 1
                 parameters["system"] = parameters["system"].replace(phase_rule, "", 1)
+                if request["response_payload_id"]:
+                    reply = payloads[request["response_payload_id"]]["content"]
+                    # SDK 流式聚合显式补齐这两个空停止字段，非空变化不能被投影。
+                    assert reply.pop("stop_sequence") is None
+                    assert reply.pop("stop_details") is None
             else:
                 assert phase_rule not in parameters["system"]
         saved["events"] = kept_events
         for index, event in enumerate(saved["events"], 1):
             event["sequence"] = index
             if event["kind"] in ("context.checked", "context.organized", "context.adopted"):
-                # 固定 test-model 使用 conservative_unicode；新增查询规则恰为 60 tokens。
+                # 公开 HTTP 采集与固定基线独立对照：本次查询规则增加 258 tokens。
                 assert event["data"].get("method", "conservative_unicode") == "conservative_unicode"
                 for field in ("estimated_tokens", "raw_estimated_tokens", "before_tokens", "after_tokens"):
                     if field in event["data"]:
-                        event["data"][field] -= 60
+                        event["data"][field] -= 258
         scenario["sse"] = [{"schema_version": 1, **e} for e in saved["events"]]
     def serialized(parameters):
         return json.dumps(parameters, sort_keys=True, ensure_ascii=False)
+    expected = {**expected_streams, **expected_queries}
     external_streams = [{k: v for k, v in r.items() if k != "stream"} for r in data["model_requests"] if r.get("stream")]
-    assert Counter(map(serialized, external_streams)) == Counter(map(serialized, expected_streams.values()))
-    data["model_requests"] = [r for r in data["model_requests"] if not r.get("stream")]
+    assert Counter(map(serialized, external_streams)) == Counter(map(serialized, expected.values()))
     data["stopping"].pop("instance_id", None)
 
     queries = Counter(map(serialized, expected_queries.values()))
+    answers = Counter(map(serialized, expected_streams.values()))
+    retained = []
     for request in data["model_requests"]:
-        key = serialized(request)
-        if queries[key]:
-            queries[key] -= 1
-            request["system"] = request["system"].replace(phase_rule, "", 1)
+        if request.get("stream"):
+            parameters = {key: value for key, value in request.items() if key != "stream"}
+            key = serialized(parameters)
+            if queries[key]:
+                queries[key] -= 1
+                parameters["system"] = parameters["system"].replace(phase_rule, "", 1)
+                retained.append(parameters)
+            else:
+                assert answers[key] > 0
+                answers[key] -= 1
         else:
             assert phase_rule not in request["system"]
-    assert not any(queries.values())
+            retained.append(request)
+    assert not any(queries.values()) and not any(answers.values())
+    data["model_requests"] = retained
     return data
 
 
@@ -121,30 +148,58 @@ class MigrationBaselineTests(unittest.IsolatedAsyncioTestCase):
         wrong_delivery["normal"]["snapshot"]["turns"][0]["answer_delivery"] = "complete"
         with self.assertRaises(AssertionError):
             streaming_projection(wrong_delivery)
-        unsafe = copy.deepcopy(actual)
-        scenario = unsafe["normal"]
-        answer_step = next(r["step"] for r in scenario["snapshot"]["requests"] if r["purpose"] == "travel_answer")
-        for event in scenario["snapshot"]["events"]:
-            if event["kind"] == "context.checked" and event["data"]["step"] == answer_step:
-                event["data"]["allowed"] = False
-                event["data"]["estimated_tokens"] = event["data"]["input_budget"] + 1
-        scenario["sse"] = [{"schema_version": 1, **e} for e in scenario["snapshot"]["events"]]
+        for purpose in ("travel", "travel_answer"):
+            with self.subTest(rejected_capacity=purpose):
+                unsafe = copy.deepcopy(actual)
+                scenario = unsafe["normal"]
+                step = next(r["step"] for r in scenario["snapshot"]["requests"] if r["purpose"] == purpose)
+                for event in scenario["snapshot"]["events"]:
+                    if event["kind"] == "context.checked" and event["data"]["step"] == step:
+                        event["data"]["allowed"] = False
+                        event["data"]["estimated_tokens"] = event["data"]["input_budget"] + 1
+                scenario["sse"] = [{"schema_version": 1, **e} for e in scenario["snapshot"]["events"]]
+                with self.assertRaises(AssertionError):
+                    streaming_projection(unsafe)
+            with self.subTest(missing_capacity_check=purpose):
+                missing = copy.deepcopy(actual)
+                scenario = missing["normal"]
+                scenario["snapshot"]["events"] = [e for e in scenario["snapshot"]["events"]
+                    if not (e["kind"] == "context.checked" and e["data"]["step"] == step)]
+                for index, event in enumerate(scenario["snapshot"]["events"], 1):
+                    event["sequence"] = index
+                scenario["sse"] = [{"schema_version": 1, **e} for e in scenario["snapshot"]["events"]]
+                with self.assertRaises(AssertionError):
+                    streaming_projection(missing)
+        unknown_rule = copy.deepcopy(actual)
+        scenario = unknown_rule["normal"]
+        query = next(r for r in scenario["snapshot"]["requests"] if r.get("answer_phase") == "query")
+        parameters = scenario["payloads"][query["input_payload_id"]]["content"]
+        parameters["system"] = parameters["system"].replace("不超过120字", "任意长度")
         with self.assertRaises(AssertionError):
-            streaming_projection(unsafe)
-        missing = copy.deepcopy(actual)
-        scenario = missing["normal"]
-        scenario["snapshot"]["events"] = [e for e in scenario["snapshot"]["events"]
-            if not (e["kind"] == "context.checked" and e["data"]["step"] == answer_step)]
-        for index, event in enumerate(scenario["snapshot"]["events"], 1):
-            event["sequence"] = index
-        scenario["sse"] = [{"schema_version": 1, **e} for e in scenario["snapshot"]["events"]]
+            streaming_projection(unknown_rule)
+        changed_stop = copy.deepcopy(actual)
+        scenario = changed_stop["normal"]
+        query = next(r for r in scenario["snapshot"]["requests"] if r.get("answer_phase") == "query")
+        scenario["payloads"][query["response_payload_id"]]["content"]["stop_details"] = {"reason": "unknown"}
         with self.assertRaises(AssertionError):
-            streaming_projection(missing)
+            streaming_projection(changed_stop)
+        changed_delivery = copy.deepcopy(actual)
+        query_call = next(r for r in changed_delivery["model_requests"] if r.get("stream") and "tools" in r)
+        query_call["stream"] = False
+        with self.assertRaises(AssertionError):
+            streaming_projection(changed_delivery)
         polluted = copy.deepcopy(actual)
         summary = next(r for r in polluted["model_requests"] if r["system"].startswith("整理旅行状态"))
-        summary["system"] += "\n资料获取阶段：仅按需查询；资料齐全时简短确认，勿作答。"
+        summary["system"] += QUERY_PHASE_RULE
         with self.assertRaises(AssertionError):
             streaming_projection(polluted)
+        for name, scenario in actual.items():
+            if isinstance(scenario, dict) and "snapshot" in scenario:
+                observed_check = next(e["data"] for e in scenario["snapshot"]["events"] if e["kind"] == "context.checked")
+                original_check = next(e["data"] for e in baseline[name]["snapshot"]["events"] if e["kind"] == "context.checked")
+                self.assertEqual(observed_check["method"], "conservative_unicode")
+                for field in ("estimated_tokens", "raw_estimated_tokens"):
+                    self.assertEqual(observed_check[field] - original_check[field], 258)
         expected, observed = normalize(baseline), normalize(streaming_projection(actual))
         # 按场景分别报告，避免巨型快照 diff 掩盖实际变化。
         self.assertEqual(expected.keys(), observed.keys())

@@ -38,8 +38,9 @@ class ContextOrganizationTests(unittest.IsolatedAsyncioTestCase):
             # 保留完整价格正文，并给新增固定系统规则留下整理后余量。
             body_repeats = 80
 
+        # 40400 的压力阈值为 22720，保留全部价格正文及整理前后的跨阈值条件。
         model = ModelService([query_response(), response([{"type": "text", "text": "两家同名酒店需要澄清，早餐价格条件待核实。"}])])
-        with patch.dict(os.environ, {"CONTEXT_COMPACTION_ENABLED": "true", "MODEL_CONTEXT_WINDOW": "40000"}, clear=True), patch("http_fixtures.MapService", PressureMap), tempfile.TemporaryDirectory() as directory:
+        with patch.dict(os.environ, {"CONTEXT_COMPACTION_ENABLED": "true", "MODEL_CONTEXT_WINDOW": "40400"}, clear=True), patch("http_fixtures.MapService", PressureMap), tempfile.TemporaryDirectory() as directory:
             async with serving(directory, model) as client:
                 accepted = (await client.post("/api/turns", json={"input": "查询杭州西湖附近酒店"})).json()
                 saved = await wait_finished(client, accepted["session_id"])
@@ -57,8 +58,8 @@ class ContextOrganizationTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(len(raw["text"]), 2)
                 self.assertEqual(json.loads(raw["text"][0]), viewed["data"])
                 organized = next(event["data"] for event in saved["events"] if event["kind"] == "context.organized")
-                self.assertGreaterEqual(organized["before_tokens"], 22400)
-                self.assertLess(organized["after_tokens"], 22400)
+                self.assertGreaterEqual(organized["before_tokens"], 22720)
+                self.assertLess(organized["after_tokens"], 22720)
                 self.assertEqual(organized["changed_result_count"], 1)
                 self.assertFalse(organized["pressure_remaining"])
 
