@@ -17,7 +17,7 @@ QUERY_PHASE_RULE = "\n资料获取阶段：仅按需查询；仅在准备调用�
 
 
 def streaming_projection(actual):
-    """只剥离 #98／#101／#111 明确新增的流式事实；固定数据与通用 normalize 不变。"""
+    """只剥离 #98／#101／#111／#112 明确新增的流式和进展事实；固定数据与通用 normalize 不变。"""
     validate(actual)
     data = copy.deepcopy(actual)
     expected_streams = {}
@@ -27,6 +27,29 @@ def streaming_projection(actual):
         if not isinstance(scenario, dict) or "snapshot" not in scenario:
             continue
         saved, payloads = scenario["snapshot"], scenario["payloads"]
+        # 固定场景没有显式模型行动说明，只允许这两项真实工具的可靠进展。
+        actions = {"maps_text_search": "查找地点资料", "web_search_exa": "查找网页资料"}
+        states = {"tool.pending": "pending", "tool.waiting": "pending", "tool.running": "running",
+                  "tool.completed": "completed", "tool.failed": "failed", "tool.not_executed": "not_executed"}
+        tools = {tool["tool_call_id"]: tool for tool in saved["tool_calls"]}
+        progress = {turn["turn_id"]: {} for turn in saved["turns"]}
+        for event in saved["events"]:
+            if event["kind"] in states:
+                tool = tools[event["tool_call_id"]]
+                entry = {"id": tool["tool_call_id"], "attempt_id": tool["request_id"], "kind": "tool",
+                         "text": actions[tool["name"]], "status": states[event["kind"]]}
+                assert event["data"].pop("progress") == entry
+                progress[event["turn_id"]][entry["id"]] = entry
+            else:
+                assert "progress" not in event["data"]
+        for tool in tools.values():
+            assert tool.pop("progress") == progress[tool["turn_id"]][tool["tool_call_id"]]
+        for turn in saved["turns"]:
+            entries = list(progress[turn["turn_id"]].values())
+            if turn["reason"] == "service_interrupted":
+                entries = [{**entry, "status": "interrupted"} if entry["status"] in {"pending", "running"}
+                           else entry for entry in entries]
+            assert turn.pop("query_progress") == entries
         answers = [r for r in saved["requests"] if r["purpose"] == "travel_answer"]
         for turn in saved["turns"]:
             delivery = turn.pop("answer_delivery", None)
@@ -193,6 +216,28 @@ class MigrationBaselineTests(unittest.IsolatedAsyncioTestCase):
         summary["system"] += QUERY_PHASE_RULE
         with self.assertRaises(AssertionError):
             streaming_projection(polluted)
+        wrong_history = copy.deepcopy(actual)
+        wrong_history["normal"]["snapshot"]["turns"][0]["query_progress"][0]["status"] = "failed"
+        with self.assertRaises(AssertionError):
+            streaming_projection(wrong_history)
+        wrong_action = copy.deepcopy(actual)
+        wrong_action["normal"]["snapshot"]["tool_calls"][0]["progress"]["text"] = "已完成信息核实"
+        with self.assertRaises(AssertionError):
+            streaming_projection(wrong_action)
+        wrong_identity = copy.deepcopy(actual)
+        scenario = wrong_identity["normal"]
+        event = next(e for e in scenario["snapshot"]["events"] if e["kind"] == "tool.running")
+        event["data"]["progress"]["attempt_id"] = "unrelated-request"
+        scenario["sse"] = [{"schema_version": 1, **e} for e in scenario["snapshot"]["events"]]
+        with self.assertRaises(AssertionError):
+            streaming_projection(wrong_identity)
+        fake_model_progress = copy.deepcopy(actual)
+        scenario = fake_model_progress["normal"]
+        event = next(e for e in scenario["snapshot"]["events"] if e["kind"] == "request.completed")
+        event["data"]["progress"] = {"kind": "model", "text": "并不存在的进展"}
+        scenario["sse"] = [{"schema_version": 1, **e} for e in scenario["snapshot"]["events"]]
+        with self.assertRaises(AssertionError):
+            streaming_projection(fake_model_progress)
         for name, scenario in actual.items():
             if isinstance(scenario, dict) and "snapshot" in scenario:
                 observed_check = next(e["data"] for e in scenario["snapshot"]["events"] if e["kind"] == "context.checked")
