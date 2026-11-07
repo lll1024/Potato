@@ -128,7 +128,8 @@ class ContextSummaryTests(unittest.IsolatedAsyncioTestCase):
         query2 = response([{"type": "tool_use", "id": "second", "name": "maps_text_search", "input": {"keywords": "餐馆", "city": "杭州"}}], "tool_use")
         model = ModelService([response([{"type": "text", "text": "酒店未预订。"}]), invalid, invalid,
                               query1, invalid, invalid, query2, response([{"type": "text", "text": "保留酒店，查询已完成。"}])])
-        with patch.dict(os.environ, ENV, clear=True), tempfile.TemporaryDirectory() as directory:
+        # 仅补足新查询提示的固定开销，四次摘要和三个旅行步骤的断言保持。
+        with patch.dict(os.environ, {**ENV, "MODEL_CONTEXT_WINDOW": "40400"}, clear=True), tempfile.TemporaryDirectory() as directory:
             async with serving(directory, model) as client:
                 first = await submit(client, OLD)
                 saved = await submit(client, "继续查询", first["session"]["session_id"])
