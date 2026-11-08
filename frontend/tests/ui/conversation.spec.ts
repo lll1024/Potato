@@ -1089,3 +1089,112 @@ test('同一快照独立交接进展和正文，不丢弃另一通道的新内�
   await expect(page.getByText('较旧正文',{exact:true})).toHaveCount(0);
   expect(app.writes).toEqual(['开始查询']);
 });
+
+test('首次停止快照不冻结上一轮的进展归属', async ({page}) => {
+  const app = await conversation(page);
+  app.sessions[0].status = 'running'; app.turn.turn_id = 'previous';
+  app.state.active_turn_id = 'previous'; app.state.active_session_id = 'trip';
+  Object.assign(app.state, {progress_revision:1, progress_preview:{instance_id:'process', stream_id:'conversation-test',
+    session_id:'trip', turn_id:'previous', revision:1,
+    entries:[{id:'old-query', attempt_id:'old', kind:'model', text:'上一轮的查询行动。', status:'generating'}]}});
+  await app.notify(); await page.getByRole('button', {name:/杭州行程.*正在执行/}).click();
+  await page.evaluate(() => (window as unknown as {source:EventTarget}).source.dispatchEvent(new MessageEvent('progress.preview', {
+    data:JSON.stringify({schema_version:1,kind:'progress.preview',instance_id:'process',revision:1,
+      preview:{instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'previous',revision:1,
+        entries:[{id:'old-query',attempt_id:'old',kind:'model',text:'上一轮的查询行动。',status:'generating'}]}}),
+  })));
+  await expect(page.getByRole('region', {name:'查询进展', exact:true})).toContainText('上一轮的查询行动。');
+  app.turn.turn_id = 'turn'; app.turn.ordinal = 2; app.state.active_turn_id = 'turn';
+  await app.notify();
+  const current = page.getByRole('region', {name:'第 2 轮对话', exact:true});
+  await expect(current).toBeVisible();
+  await expect(current.getByRole('region', {name:'查询进展', exact:true})).toHaveCount(0);
+  Object.assign(app.state, {stopping:true, progress_revision:2, progress_preview:{instance_id:'process', stream_id:'conversation-test',
+    session_id:'trip', turn_id:'turn', revision:2,
+    entries:[{id:'current-query', attempt_id:'current', kind:'model', text:'本轮停止前已经收到的资料说明。', status:'generated'}]}});
+  await page.clock.install(); await page.clock.pauseAt(new Date(Date.now()+1000));
+  await page.evaluate(() => (window as unknown as {source:{onerror:()=>void}}).source.onerror());
+  await page.clock.runFor(2000);
+  await expect(current.getByRole('region', {name:'查询进展', exact:true})).toContainText('本轮停止前已经收到的资料说明。');
+  await expect(current.getByRole('region', {name:'查询进展', exact:true})).not.toContainText('上一轮的查询行动。');
+});
+
+for (const outcome of ['saved', 'unsaved', 'truncated', 'failed']) test(`跨端停止冻结两类可见队列并采用真实结果 ${outcome}`, async ({page, context}) => {
+  await context.grantPermissions(['clipboard-read','clipboard-write']);
+  const app = await conversation(page);
+  app.sessions[0].status='running'; app.state.active_turn_id='turn'; app.state.active_session_id='trip';
+  await app.notify(); await page.getByRole('button',{name:/杭州行程.*正在执行/}).click();
+  async function progress(text: string, revision: number, status='generating') {
+    Object.assign(app.state,{progress_revision:revision,progress_preview:{instance_id:'process',stream_id:'conversation-test',
+      session_id:'trip',turn_id:'turn',revision,entries:[{id:'query',attempt_id:'query',kind:'model',text,status}]}});
+    await page.evaluate(({text,revision,status}) => (window as unknown as {source:EventTarget}).source.dispatchEvent(new MessageEvent('progress.preview',{
+      data:JSON.stringify({schema_version:1,kind:'progress.preview',instance_id:'process',revision,
+        preview:{instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',revision,
+          entries:[{id:'query',attempt_id:'query',kind:'model',text,status}]}}),
+    })),{text,revision,status});
+  }
+  async function answer(text: string | null, revision: number, status='generating') {
+    app.state.answer_revision=revision;
+    app.state.answer_preview=text===null?null:{instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',
+      attempt_id:'answer',revision,text,status};
+    await page.evaluate(({text,revision,status}) => (window as unknown as {source:EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview',{
+      data:JSON.stringify({schema_version:1,kind:'answer.preview',instance_id:'process',revision,
+        preview:text===null?null:{instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',attempt_id:'answer',revision,text,status}}),
+    })),{text,revision,status});
+  }
+  await progress('准备查找西湖资料。',1);
+  await answer('# 西湖旅行\n\n先看湖景。',1);
+  await expect(page.locator('.answer-body').first()).toContainText('先看湖景。');
+  const process = page.getByRole('region',{name:'查询进展',exact:true});
+  await process.locator('summary').click();
+  await page.clock.install(); await page.clock.pauseAt(new Date(Date.now()+1000));
+  const fullProgress='准备查找西湖资料。'+'比较沿湖交通🙂'.repeat(20);
+  const body='# 西湖旅行\n\n先看湖景。'+'正文原文👨‍👩‍👧‍👦'.repeat(160);
+  await progress(fullProgress,2); await answer(body,2);
+  await page.clock.runFor(16);
+  await expect(process.locator('li span').first()).not.toHaveText('准备查找西湖资料。');
+  const frozenBody=await page.locator('.answer-body').first().innerText();
+  const frozenProgress=await process.locator('li span').first().innerText();
+  expect(frozenBody.length).toBeLessThan(body.length);
+  expect(frozenProgress.length).toBeLessThan(fullProgress.length);
+  app.state.stopping=true; await app.notify();
+  await expect(page.getByText('正在停止 · 正文已暂停追加',{exact:true})).toBeVisible();
+  await answer(body+'\n\n真实收束尾部。',3,'generated');
+  await progress(fullProgress+'已取得候选资料。',3,'generated');
+  await page.clock.runFor(500);
+  await expect(page.locator('.answer-body').first()).toHaveText(frozenBody);
+  await expect(process.locator('li span').first()).toHaveText(frozenProgress);
+  await expect(page.getByRole('button',{name:'发送旅行需求',exact:true})).toBeDisabled();
+  await page.getByRole('button',{name:'复制当前正文',exact:true}).click();
+  // Markdown 标记不会出现在排版文本中；复制取相同已显示前缀的原文。
+  const frozenMarkdown=await page.evaluate(()=>navigator.clipboard.readText());
+  expect(frozenMarkdown.startsWith('# 西湖旅行')).toBe(true);
+  expect(frozenMarkdown.length).toBeLessThan(body.length);
+  expect(frozenMarkdown).not.toContain('准备查找西湖');
+  Object.assign(app.turn,{query_progress:[{id:'query',attempt_id:'query',kind:'model',text:fullProgress+'已取得候选资料。',status:'generated'}]});
+  app.state.active_turn_id=null; app.state.active_session_id=null; app.state.stopping=false;
+  const final=body+'\n\n真实收束尾部。';
+  if(outcome==='unsaved') {
+    Object.assign(app.state,{accepting:false,storage_error:'最终回答无法保存',unsaved_fact:{turn_id:'turn',kind:'turn.finished',message:'未保存'}});
+  } else {
+    app.turn.status=outcome==='saved'?'completed':outcome==='truncated'?'terminated':'failed';
+    app.turn.reason=outcome==='truncated'?'output_limit':outcome==='failed'?'model_error':null;
+    app.turn.answer=outcome==='failed'?'模型失败说明':final;
+    app.turn.answer_source=outcome==='failed'?'application':'model';
+    app.turn.model_error_code=outcome==='failed'?'AUTH':null;
+    await answer(null,4);
+  }
+  await app.notify();
+  if(outcome==='failed') {
+    await expect(page.getByText('模型认证失败',{exact:true})).toBeVisible();
+    await expect(page.locator('.answer-body')).toHaveCount(0);
+  } else {
+    const label=outcome==='unsaved'?'复制未保存正文':outcome==='truncated'?'复制不完整回答':'复制完整回答';
+    await page.getByRole('button',{name:label,exact:true}).click();
+    expect(await page.evaluate(()=>navigator.clipboard.readText())).toBe(final);
+    if(outcome==='unsaved') {
+      await expect(page.getByText('未保存 · 请复制保留，刷新后可能丢失',{exact:true})).toBeVisible();
+      await expect(page.getByRole('button',{name:'发送旅行需求',exact:true})).toBeDisabled();
+    }
+  }
+});

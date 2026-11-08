@@ -1,0 +1,42 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild test -project ios/Potato.xcodeproj -scheme Potato -destination "platform=iOS Simulator,id=AB9010DF-6F36-4079-8492-3CE8B5393EF7" -derivedDataPath /tmp/potato116-derived -resultBundlePath /tmp/potato116-red.xcresult "-only-testing:PotatoTests/AnswerStreamingTests/queryOnlyRemoteStopFreezesBeforeAdoptingLateSnapshotProgress()" -skipMacroValidation CODE_SIGNING_ALLOWED=NO
+
+◇ Test run started.
+↳ Testing Library Version: 2403
+↳ Target Platform: arm64-apple-ios17.0-simulator
+◇ Suite AnswerStreamingTests started.
+◇ Test queryOnlyRemoteStopFreezesBeforeAdoptingLateSnapshotProgress() started.
+✘ Test queryOnlyRemoteStopFreezesBeforeAdoptingLateSnapshotProgress() recorded an issue at PollingTests.swift:374:9: Expectation failed: sessions.progressPreview == before
+↳ sessions.progressPreview == before → false
+↳   sessions.progressPreview → ProgressPreview(instanceID: "process", streamID: "dataset", sessionID: "existing", turnID: "turn", revision: 2, entries: [SessionKit.ProgressEntry(id: "query", attemptID: "request", kind: "model", text: "准备查找地点资料并比较交通。", status: "generated"), SessionKit.ProgressEntry(id: "tool", attemptID: "request", kind: "tool", text: "查找地点资料", status: "running")])
+↳     some → ProgressPreview(instanceID: "process", streamID: "dataset", sessionID: "existing", turnID: "turn", revision: 2, entries: [SessionKit.ProgressEntry(id: "query", attemptID: "request", kind: "model", text: "准备查找地点资料并比较交通。", status: "generated"), SessionKit.ProgressEntry(id: "tool", attemptID: "request", kind: "tool", text: "查找地点资料", status: "running")])
+↳       instanceID → "process"
+↳       streamID → "dataset"
+↳       sessionID → "existing"
+↳       turnID → "turn"
+↳       revision → 2
+↳       entries → [SessionKit.ProgressEntry(id: "query", attemptID: "request", kind: "model", text: "准备查找地点资料并比较交通。", status: "generated"), SessionKit.ProgressEntry(id: "tool", attemptID: "request", kind: "tool", text: "查找地点资料", status: "running")]
+↳   before → ProgressPreview(instanceID: "process", streamID: "dataset", sessionID: "existing", turnID: "turn", revision: 1, entries: [SessionKit.ProgressEntry(id: "query", attemptID: "request", kind: "model", text: "准备查找地点资料。", status: "generating")])
+↳     some → ProgressPreview(instanceID: "process", streamID: "dataset", sessionID: "existing", turnID: "turn", revision: 1, entries: [SessionKit.ProgressEntry(id: "query", attemptID: "request", kind: "model", text: "准备查找地点资料。", status: "generating")])
+↳       instanceID → "process"
+↳       streamID → "dataset"
+↳       sessionID → "existing"
+↳       turnID → "turn"
+↳       revision → 1
+↳       entries → [SessionKit.ProgressEntry(id: "query", attemptID: "request", kind: "model", text: "准备查找地点资料。", status: "generating")]
+✘ Test queryOnlyRemoteStopFreezesBeforeAdoptingLateSnapshotProgress() failed after 0.032 seconds with 1 issue.
+✘ Suite AnswerStreamingTests failed after 0.033 seconds with 1 issue.
+✘ Test run with 1 test in 1 suite failed after 0.035 seconds with 1 issue.
+2026-11-07 23:08:22.291 xcodebuild[99636:56726119] [MT] IDETestOperationsObserverDebug: 26.191 elapsed -- Testing started completed.
+2026-11-07 23:08:22.291 xcodebuild[99636:56726119] [MT] IDETestOperationsObserverDebug: 0.000 sec, +0.000 sec -- start
+2026-11-07 23:08:22.291 xcodebuild[99636:56726119] [MT] IDETestOperationsObserverDebug: 26.191 sec, +26.191 sec -- end
+
+Test session results, code coverage, and logs:
+	/tmp/potato116-red.xcresult
+
+Failing tests:
+	AnswerStreamingTests.queryOnlyRemoteStopFreezesBeforeAdoptingLateSnapshotProgress()
+
+** TEST FAILED **
+
+Testing started

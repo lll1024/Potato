@@ -514,11 +514,45 @@ final class ReadingNavigationTests: XCTestCase {
         }
     }
 
+    func testRemoteStopDuringQueryFreezesProgressBeforeRealResult() async throws {
+        let app = connectedApp(address: "https://localhost:18497")
+        defer { app.terminate() }
+        try await streamControl("arm?mode=query-progress")
+        app.buttons["new-conversation"].tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        input.tap(); input.typeText("跨设备停止查询进展")
+        app.buttons["send-input"].tap()
+        try await streamControl("entered", method: "GET")
+        try await streamControl("step")
+        XCTAssertTrue(app.staticTexts["准备查找西湖"].waitForExistence(timeout: 5))
+        let (data, _) = try await URLSession.shared.data(from: URL(string: "https://localhost:18497/api/snapshot")!)
+        let state = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let target = try XCTUnwrap(state["active_turn_id"] as? String)
+        var request = URLRequest(url: URL(string: "https://localhost:18497/api/turns/" + target + "/stop")!)
+        request.httpMethod = "POST"
+        let (_, response) = try await URLSession.shared.data(for: request)
+        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
+        let stopping = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label CONTAINS %@", "正在停止"), object: app.staticTexts["execution-message"])
+        await fulfillment(of: [stopping], timeout: 5)
+        try await streamControl("step")
+        XCTAssertTrue(app.staticTexts["准备查找西湖"].isHittable)
+        XCTAssertFalse(app.staticTexts["准备查找西湖的地点资料。"].exists)
+        XCTAssertFalse(app.buttons["send-input"].isEnabled)
+        attach(app, "远端停止后冻结查询阶段的当前进展")
+        try await streamControl("step")
+        let ended = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "本轮已停止。"), object: app.staticTexts["answer-status"])
+        await fulfillment(of: [ended], timeout: 10)
+        if !app.staticTexts["准备查找西湖的地点资料。"].isHittable { app.buttons["query-progress"].tap() }
+        XCTAssertTrue(app.staticTexts["准备查找西湖的地点资料。"].isHittable)
+        XCTAssertTrue(app.staticTexts["未执行"].exists)
+        attach(app, "真实查询响应保存后说明保留且工具未执行")
+    }
+
     func testStoppedStreamFreezesThenShowsSavedOrUnsavedCopy() async throws {
         for port in [18497, 18498] {
             let unsaved = port == 18498
             let app = connectedApp(address: "https://localhost:\(port)")
-            try await streamControl("arm", port: port)
+            try await streamControl(unsaved ? "arm?mode=query-progress" : "arm", port: port)
             app.buttons["new-conversation"].tap()
             let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
             XCTAssertTrue(input.waitForExistence(timeout: 5))
@@ -526,8 +560,16 @@ final class ReadingNavigationTests: XCTestCase {
             input.typeText("停止及保存验收")
             app.buttons["send-input"].tap()
             try await streamControl("entered", method: "GET", port: port)
+            if unsaved {
+                for _ in 0..<3 { try await streamControl("step", port: port) }
+            }
             try await streamControl("step", port: port)
             XCTAssertTrue(app.staticTexts["实时杭州旅行"].waitForExistence(timeout: 5))
+            if unsaved {
+                app.buttons["query-progress"].tap()
+                XCTAssertTrue(app.staticTexts["准备查找西湖的地点资料。"].isHittable)
+                XCTAssertTrue(app.staticTexts["已取得资料"].exists)
+            }
             app.buttons["stop-turn"].tap()
             XCTAssertTrue(app.staticTexts["正在停止 · 正文已暂停追加"].waitForExistence(timeout: 5))
             try await streamControl("step", port: port)
@@ -548,6 +590,24 @@ final class ReadingNavigationTests: XCTestCase {
             copy.tap()
             XCTAssertEqual(copy.label, unsaved ? "已复制未保存正文" : "已复制完整回答")
             attach(app, unsaved ? "保存失败保留正文与复制入口" : "停止后真实完成并保存")
+            if unsaved {
+                let (stateData, _) = try await URLSession.shared.data(from: URL(string: "https://localhost:\(port)/api/snapshot")!)
+                let state = try XCTUnwrap(JSONSerialization.jsonObject(with: stateData) as? [String: Any])
+                let preview = try XCTUnwrap(state["answer_preview"] as? [String: Any])
+                let session = try XCTUnwrap(preview["session_id"] as? String)
+                let (historyData, _) = try await URLSession.shared.data(from: URL(string: "https://localhost:\(port)/api/sessions/" + session)!)
+                let history = try XCTUnwrap(JSONSerialization.jsonObject(with: historyData) as? [String: Any])
+                let turns = try XCTUnwrap(history["turns"] as? [[String: Any]])
+                XCTAssertTrue(turns[0]["answer"] is NSNull)
+                let progress = try XCTUnwrap(turns[0]["query_progress"] as? [[String: Any]])
+                XCTAssertEqual(progress.compactMap { $0["status"] as? String }, ["generated", "completed"])
+                input.tap(); input.press(forDuration: 1.2)
+                let paste = app.menuItems.matching(NSPredicate(format: "label IN %@", ["粘贴", "Paste"])).firstMatch
+                XCTAssertTrue(paste.waitForExistence(timeout: 5)); paste.tap()
+                let expected = "## 实时杭州旅行\n\n上午游览西湖。\n\n下午参观博物馆。\n"
+                XCTAssertTrue((input.value as? String) == expected, "复制未保存正文应保留本轮Markdown全文且不混入进展。")
+                attach(app, "可靠进展仍保存且未保存Markdown全文可复制")
+            }
             app.terminate()
         }
     }

@@ -483,6 +483,48 @@ struct AnswerStreamingTests {
         await clock.advance()
     }
 
+    @Test func queryOnlyRemoteStopFreezesBeforeAdoptingLateSnapshotProgress() async throws {
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file)
+        sessions.watchConversation(sessionID: "existing")
+        func progressSnapshot(_ revision: Int, stopping: Bool, active: Bool = true) throws -> String {
+            var value = try JSONSerialization.jsonObject(with: Data(snapshot(active: active).utf8)) as! [String: Any]
+            value["stopping"] = stopping
+            let entries: [[String: Any]] = revision == 1
+                ? [["id":"query", "attempt_id":"request", "kind":"model", "text":"准备查找地点资料。", "status":"generating"]]
+                : [["id":"query", "attempt_id":"request", "kind":"model", "text":"准备查找地点资料并比较交通。", "status":"generated"],
+                   ["id":"tool", "attempt_id":"request", "kind":"tool", "text":"查找地点资料", "status":active ? "running" : "completed"]]
+            value["progress_revision"] = revision
+            value["progress_preview"] = ["instance_id":"process", "stream_id":"dataset", "session_id":"existing",
+                "turn_id":"turn", "revision":revision, "entries":entries]
+            if !active {
+                value["accepting"] = false; value["storage_error"] = "完成事实未保存"
+                value["unsaved_fact"] = ["turn_id":"turn", "kind":"turn.finished"]
+            }
+            return String(decoding: try JSONSerialization.data(withJSONObject: value), as: UTF8.self)
+        }
+        let initial = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: try progressSnapshot(1, stopping: false))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        _ = try await initial.value
+        #expect(sessions.answerPreview == nil)
+        let before = sessions.progressPreview
+        let stopped = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: try progressSnapshot(2, stopping: true))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        _ = try await stopped.value
+        #expect(sessions.service?.stopping == true)
+        #expect(sessions.progressPreview == before)
+        #expect(!sessions.canSubmit)
+        let released = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: try progressSnapshot(3, stopping: false, active: false))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        _ = try await released.value
+        #expect(sessions.progressPreview?.entries.last?.status == "completed")
+        #expect(sessions.service?.storageError != nil)
+        #expect(!sessions.canSubmit)
+    }
+
     @Test func receivesBatchesBeforeSavedHistoryThroughOneForegroundSubscription() async throws {
         let clock = PollClock()
         let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
@@ -853,14 +895,24 @@ struct AnswerStreamingTests {
         _ = await clock.nextInterval()
         let stream = await fixture.next()
         stream.beginStream()
+        func progress(_ text: String, revision: Int) throws -> Data {
+            let value: [String: Any] = ["schema_version":1, "kind":"progress.preview", "instance_id":"process", "revision":revision,
+                "preview":["instance_id":"process", "stream_id":"dataset", "session_id":"existing", "turn_id":"turn", "revision":revision,
+                    "entries":[["id":"query", "attempt_id":"query", "kind":"model", "text":text, "status":"generated"]]]]
+            return Data("event: progress.preview\ndata: ".utf8) + (try JSONSerialization.data(withJSONObject: value)) + Data("\n\n".utf8)
+        }
+        stream.send(try progress("停止前的进展说明。", revision: 1))
+        try await observed { sessions.progressPreview?.entries.first?.text == "停止前的进展说明。" }
         let target = try #require(sessions.stopTarget)
         let stop = Task { try await sessions.stop(target: target) }
         let response = await fixture.next()
         stream.send(event(text: "停止后的全文", revision: 2, status: "generated"))
+        stream.send(try progress("停止后实际返回的进展说明。", revision: 2))
         // 等同一订阅处理完后续状态，避免用固定睡眠推测冻结。
         stream.fail()
         try await observed { sessions.answerFailure != nil }
         #expect(sessions.answerPreview?.text == "停止前正文")
+        #expect(sessions.progressPreview?.entries.first?.text == "停止前的进展说明。")
         let fault = Task { try await sessions.refresh() }
         await fixture.next().reply(body: snapshot(revision: 2, text: "停止后的全文")
             .replacingOccurrences(of: "\"accepting\":true", with: "\"accepting\":false,\"storage_error\":\"改名未保存\",\"unsaved_fact\":{\"kind\":\"session.rename\"}"))
@@ -880,6 +932,7 @@ struct AnswerStreamingTests {
         await fixture.next().reply(body: page(answer: unsaved ? nil : "停止后的全文"))
         _ = await clock.nextInterval()
         #expect(sessions.answerPreview?.text == (unsaved ? "停止后的全文" : nil))
+        #expect(sessions.progressPreview?.entries.first?.text == (unsaved ? "停止后实际返回的进展说明。" : nil))
         #expect(sessions.service?.storageError == (unsaved ? "未保存" : nil))
         #expect(sessions.conversation?.turns.first?.answer == (unsaved ? nil : "停止后的全文"))
         #expect(sessions.canSubmit == !unsaved)

@@ -1,0 +1,53 @@
+
+> travel-local-ui@0.1.0 test:ui
+> playwright test --config /tmp/potato116-playwright.config.mjs tests/ui/conversation.spec.ts
+
+[WebServer] (node:72221) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 40 tests using 1 worker
+
+(node:72223) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/ui/conversation.spec.ts:59:1 › 异常紧贴用户消息显示短提示和图标重试，不插入助手说明或资料空态 (856ms)
+  ✓   2 tests/ui/conversation.spec.ts:77:1 › 模型失败按最终原因显示短提示，旧错误或供应商文字不会冒充当前原因 (677ms)
+  ✓   3 tests/ui/conversation.spec.ts:97:1 › 模型等待重试有真实次数、延迟及可用停止入口，停止不会误记为新请求 (645ms)
+  ✓   4 tests/ui/conversation.spec.ts:125:1 › 轨迹保留每次尝试和重试等待，耗尽后最终失败不会被重试历史遮蔽 (582ms)
+  ✓   5 tests/ui/conversation.spec.ts:149:1 › 预订入口点击时只访问官网，不包含后续中文说明 (510ms)
+  ✓   6 tests/ui/conversation.spec.ts:163:1 › Enter 发送、Shift+Enter 换行，中文候选确认和空白输入不会发送 (473ms)
+  ✓   7 tests/ui/conversation.spec.ts:188:1 › 只显示真实阶段和耗时，移除停止入口与处理过程日志 (534ms)
+  ✓   8 tests/ui/conversation.spec.ts:224:1 › 后台完成仅显示静态小点，刷新保留，查看后清除 (642ms)
+  ✓   9 tests/ui/conversation.spec.ts:248:1 › 断线不冒充处理失败，恢复后显示真实终态并保留下一条草稿 (2.5s)
+  ✓  10 tests/ui/conversation.spec.ts:274:1 › 已打开会话的旧快照不能清除新结果的小点 (526ms)
+  ✓  11 tests/ui/conversation.spec.ts:295:1 › 新事件不会打断滚动回看，工具失败仍等待整轮结束 (515ms)
+  ✓  12 tests/ui/conversation.spec.ts:319:1 › 提交尚未返回时立即反馈，重复提交不重复发送，编辑的新草稿不会被清空 (440ms)
+  ✓  13 tests/ui/conversation.spec.ts:351:1 › 并发查询乱序完成时状态及时更新，工具列表保持提出顺序 (615ms)
+  ✓  14 tests/ui/conversation.spec.ts:390:1 › 最终回答在保存之前分批展示 Markdown，保存后使用历史正文 (628ms)
+  ✓  15 tests/ui/conversation.spec.ts:429:34 › 流式中文 Markdown 重排、同轮跟随、上翻和当前全文复制 1440 (1.2s)
+  ✓  16 tests/ui/conversation.spec.ts:429:34 › 流式中文 Markdown 重排、同轮跟随、上翻和当前全文复制 390 (1.2s)
+  ✓  17 tests/ui/conversation.spec.ts:485:1 › 恢复正文采用累计快照，重复、迟到与失效尝试不会回滚当前回答 (541ms)
+  ✓  18 tests/ui/conversation.spec.ts:524:61 › 断线先核对累计正文并隔离旧连接：running (3.4s)
+  ✓  19 tests/ui/conversation.spec.ts:524:61 › 断线先核对累计正文并隔离旧连接：retrying (3.5s)
+  ✓  20 tests/ui/conversation.spec.ts:524:61 › 断线先核对累计正文并隔离旧连接：restarted (3.5s)
+  ✓  21 tests/ui/conversation.spec.ts:587:1 › 状态通知与新轮正文交错时，核对归属后仍能读到暂停中的当前正文 (475ms)
+  ✓  22 tests/ui/conversation.spec.ts:606:1 › 快照与订阅之间服务重启时，发现进程变化立即清除旧预览 (480ms)
+  ✓  23 tests/ui/conversation.spec.ts:623:1 › 失败正文清空并提示重试，降级后保留完整回答与原因 (606ms)
+  ✓  24 tests/ui/conversation.spec.ts:661:1 › 点击停止立即冻结正文，保存故障后保留可复制的未保存全文 (759ms)
+  ✓  25 tests/ui/conversation.spec.ts:702:1 › 远端停止冻结当前预览，真实保存结果与截断状态优先于迟到正文 (629ms)
+  ✓  26 tests/ui/conversation.spec.ts:735:1 › 查询说明与工具真实状态持续更新，正文保持独立且停止立即冻结 (465ms)
+  ✓  27 tests/ui/conversation.spec.ts:767:1 › 无换行中文与未闭合引号按连续小片段展示并保留最终原文 (535ms)
+  ✓  28 tests/ui/conversation.spec.ts:795:1 › 正文大块追加在200毫秒内赶上并且持续追加不延长截止时间 (475ms)
+  ✓  29 tests/ui/conversation.spec.ts:832:1 › 平滑期间停止冻结可见原文，终态不等待显示队列 (642ms)
+  ✓  30 tests/ui/conversation.spec.ts:864:1 › 生成完成立即展示全文，减少动态效果直接呈现并保留安全Markdown (532ms)
+  ✓  31 tests/ui/conversation.spec.ts:885:1 › 正文出现自动折叠查询进展，手动展开和刷新历史回看保持真实顺序 (1.0s)
+  ✓  32 tests/ui/conversation.spec.ts:927:1 › 查询进展大块追加有界展开，失效尝试和切换会话清除待展示内容 (853ms)
+  ✓  33 tests/ui/conversation.spec.ts:960:1 › 断线累计快照直接恢复全文而不重新播放 (488ms)
+  ✓  34 tests/ui/conversation.spec.ts:975:34 › 进展折叠保持上翻阅读锚点并能回到最新 1440 (772ms)
+  ✓  35 tests/ui/conversation.spec.ts:975:34 › 进展折叠保持上翻阅读锚点并能回到最新 390 (767ms)
+  ✓  36 tests/ui/conversation.spec.ts:1006:1 › 首次停止快照不冻结上一轮的进展归属 (516ms)
+  ✓  37 tests/ui/conversation.spec.ts:1035:68 › 跨端停止冻结两类可见队列并采用真实结果 saved (807ms)
+  ✓  38 tests/ui/conversation.spec.ts:1035:68 › 跨端停止冻结两类可见队列并采用真实结果 unsaved (753ms)
+  ✓  39 tests/ui/conversation.spec.ts:1035:68 › 跨端停止冻结两类可见队列并采用真实结果 truncated (745ms)
+  ✓  40 tests/ui/conversation.spec.ts:1035:68 › 跨端停止冻结两类可见队列并采用真实结果 failed (813ms)
+
+  40 passed (42.9s)
