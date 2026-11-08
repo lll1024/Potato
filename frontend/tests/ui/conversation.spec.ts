@@ -303,7 +303,9 @@ test('新事件不会打断滚动回看，工具失败仍等待整轮结束', as
   const progress = page.getByRole('region', {name: '第 1 轮处理进展'});
   await expect(progress.getByRole('status')).toHaveText('正在准备请求');
   const messages = page.locator('.messages');
-  await messages.evaluate(element => {element.scrollTop = 50; element.dispatchEvent(new Event('scroll'));});
+  // 真实滚轮同时表达阅读意图，避免人工 scroll 在初次布局保护期间被忽略。
+  await messages.hover();
+  await page.mouse.wheel(0, -500);
   await expect(page.getByRole('button', {name: '回到最新', exact: true})).toBeVisible();
   const position = await messages.evaluate(element => element.scrollTop);
   app.activity.events.push({event_id: 'tool-error', turn_id: 'turn', sequence: 2, kind: 'tool.failed', tool_call_id: 'place'});
@@ -311,6 +313,7 @@ test('新事件不会打断滚动回看，工具失败仍等待整轮结束', as
   await expect(page.getByText('有新内容', {exact: true})).toBeVisible();
   expect(await messages.evaluate(element => element.scrollTop)).toBe(position);
   await page.getByRole('button', {name: '回到最新', exact: true}).click();
+  await expect.poll(() => messages.evaluate(element => element.scrollHeight - element.scrollTop - element.clientHeight)).toBeLessThan(8);
   await expect(progress.getByRole('status')).toHaveText('正在准备请求');
   await expect(progress.locator('.activity-spinner')).toHaveCount(1);
   expect(app.writes).toEqual([]);

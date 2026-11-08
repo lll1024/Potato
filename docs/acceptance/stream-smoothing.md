@@ -47,6 +47,14 @@ Web 与 iOS 的共享接收入口增加本地只读 `contentRecoveryRevision`，
 - [原生首次最终组合](stream-smoothing/ios-first-failure.log.gz)：13 项能力及 4 项界面通过，折叠保位用例最后“回到最新”按钮消失。原因是 Markdown 临时重排触底误开启跟随；修复后完整 18 项重新通过。
 - [新增严格 Web 保位用例](stream-smoothing/web-unsettled-frame-failure.log.gz)：34／35 通过。人工 `scrollTop` 后立即程序收合，尚未提交可见帧与滚动事件；用例改为先提交两个界面帧，再以同一 **3px** 阈值检查折叠，不放宽阈值。桌面／移动各连续三次、共 [6 项通过](stream-smoothing/web-fold-stability.log.gz)。初期滚轮脚本参数错误不作为产品通过或失败证据。
 
+### 2026-11-08 集成回归：旧回看夹具
+
+合入 #114／#116 后，既有“新事件不会打断滚动回看”用例偶发在新事件注入前找不到“回到最新”。独立端口重现 **6 次中 5 次失败**，均为原按钮断言，见[原场景红灯](stream-smoothing/web-scroll-fixture-red.log.gz)。最小公开界面探针删除工具失败等无关前置后仍复现：人工 `scrollTop=50` 和合成 `scroll` 撞上初次布局保护，随后位置从 50 被恢复到底部 1172，页面没有收到用户阅读意图。
+
+[单变量对照](stream-smoothing/web-scroll-fixture-probe.log.gz)中，原操作 3 次有 2 次失败；只等待两个界面帧仍有 1 次失败，不能据此认定初次布局已稳定；真实滚轮 3 次全部通过。进一步保持同一次脚本及相同 `scrollTop=50`，仅先增加公开 `wheel` 意图事件，[3 次全部通过](stream-smoothing/web-scroll-fixture-intent.log.gz)，确认原因是旧夹具缺少用户手势，而非后续新事件、工具失败或阅读锚点计算。
+
+旧用例因此改用真实浏览器滚轮；新事件后位置仍使用原来的**完全相等**断言，同时补验“回到最新”后的底部距离小于 8px。没有修改产品滚动实现、添加固定等待或放宽折叠用例的 3px 阈值。修正后[定向 6 次全部通过](stream-smoothing/web-scroll-fixture-green.log.gz)，原场景仍覆盖新内容提示、保位、工具失败未结束和恢复跟随。随后[完整会话回归 44 项全部通过，39.5 秒](stream-smoothing/web-scroll-fixture-full.log.gz)；模块归属、公开文档链接和差异检查通过。
+
 当前真实模型的完整 Web／iOS 查询进展联合验收由 #117 在后续全部实施后运行；本票可控分片与录屏不冒充真实上游输出。真机、iOS 17、TestFlight 和私网／蜂窝没有在本票实跑。
 
 ## 覆盖与复现
