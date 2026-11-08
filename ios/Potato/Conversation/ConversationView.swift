@@ -258,6 +258,7 @@ private struct QueryProgressView: View {
         } label: {
             Text("查询进展").font(.subheadline.weight(.semibold))
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("query-progress")
         .onChange(of: hasAnswerStarted) { _, started in
             if started && !answerSeen { isExpanded = false; answerSeen = true }

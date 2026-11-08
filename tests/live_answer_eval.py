@@ -10,9 +10,11 @@ import platform
 import subprocess
 import sys
 import tempfile
+from typing import cast
 from urllib.parse import urlsplit
 from uuid import uuid4
 
+from anthropic import AsyncAnthropic
 import httpx
 import uvicorn
 from dotenv import load_dotenv
@@ -60,7 +62,7 @@ def main():
         async with configured_planning() as ready:
             recorder.redact = ready.tools.redact
             try:
-                yield Runtime(ObservedClient(ready.client, recorder), ready.tools, ready.model)
+                yield Runtime(cast(AsyncAnthropic, ObservedClient(ready.client, recorder)), ready.tools, ready.model)
             finally:
                 write("server-timeline.json", recorder.events)
 

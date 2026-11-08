@@ -111,24 +111,34 @@ final class ReadingNavigationTests: XCTestCase {
         input.tap(); input.press(forDuration: 1.2)
         let paste = app.menuItems.matching(NSPredicate(format: "label IN %@", ["粘贴", "Paste"])).firstMatch
         XCTAssertTrue(paste.waitForExistence(timeout: 5)); paste.tap()
-        XCTAssertEqual(input.value as? String, finalAnswer)
+        let copyEqual = input.value as? String == finalAnswer
+        XCTAssertTrue(copyEqual)
         attach(app, "真实最终Markdown复制全文一致")
-        input.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: finalAnswer.count))
+        input.press(forDuration: 1.2)
+        let selectAll = app.menuItems.matching(NSPredicate(format: "label IN %@", ["全选", "Select All"])).firstMatch
+        if selectAll.waitForExistence(timeout: 2) {
+            selectAll.tap(); input.typeText(XCUIKeyboardKey.delete.rawValue)
+        } else {
+            input.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: finalAnswer.count))
+        }
         app.terminate(); app.launch()
         let reopen = app.buttons.matching(identifier: "open-session").firstMatch
         XCTAssertTrue(reopen.waitForExistence(timeout: 15)); reopen.tap()
         let history = try await liveGet("/api/sessions/" + sessionID + "?summary=false&include_messages=false")
         let reopenedTurns = try XCTUnwrap(history["turns"] as? [[String: Any]])
         XCTAssertEqual(reopenedTurns[1]["answer"] as? String, finalAnswer)
-        XCTAssertEqual(try JSONSerialization.data(withJSONObject: reopenedTurns[1]["query_progress"] ?? [], options: .sortedKeys),
-                       try JSONSerialization.data(withJSONObject: finalProgress, options: .sortedKeys))
+        let progressEqual = try JSONSerialization.data(withJSONObject: reopenedTurns[1]["query_progress"] ?? [], options: .sortedKeys)
+            == JSONSerialization.data(withJSONObject: finalProgress, options: .sortedKeys)
+        XCTAssertTrue(progressEqual)
         let reopenedRegion = app.descendants(matching: .any).matching(identifier: "conversation-turn-" + target).firstMatch
+        var expandedObserved = finalProgress.isEmpty
         if !finalProgress.isEmpty {
             XCTAssertEqual(reopenedRegion.staticTexts.matching(identifier: "query-progress-text").count, 0)
-            let disclosure = reopenedRegion.buttons["query-progress"]
+            let disclosure = reopenedRegion.otherElements["query-progress"].buttons.firstMatch
             for _ in 0..<12 { if disclosure.isHittable { break }; app.swipeDown(velocity: .fast) }
             XCTAssertTrue(disclosure.isHittable); disclosure.tap()
-            XCTAssertGreaterThan(reopenedRegion.staticTexts.matching(identifier: "query-progress-text").count, 0)
+            expandedObserved = reopenedRegion.staticTexts.matching(identifier: "query-progress-text").count > 0
+            XCTAssertTrue(expandedObserved)
             attach(app, "重开App展开已保存查询进展")
         }
         input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
@@ -137,7 +147,9 @@ final class ReadingNavigationTests: XCTestCase {
         let toolsAfter = history["tool_calls"] as? [[String: Any]] ?? []
         XCTAssertEqual(toolsBefore.count, toolsAfter.count)
         var finalEvidence = outcome
-        finalEvidence["copy_markdown_equal"] = true; finalEvidence["reopened_progress_equal"] = true
+        finalEvidence["copy_markdown_equal"] = copyEqual; finalEvidence["reopened_progress_equal"] = progressEqual
+        finalEvidence["reopened_expanded_text_observed"] = expandedObserved
+        finalEvidence["query_text_observed_during_target"] = queryImage
         finalEvidence["tools_before_reopen"] = toolsBefore.count; finalEvidence["tools_after_reopen"] = toolsAfter.count
         try await livePost("/__acceptance__/ios-evidence", finalEvidence)
         try await livePost("/__acceptance__/coordination/ios_finished", ["turn_id": target])
@@ -343,7 +355,7 @@ final class ReadingNavigationTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["已取得资料"].waitForExistence(timeout: 5))
         try await streamControl("step")
         XCTAssertTrue(app.staticTexts["实时杭州旅行"].waitForExistence(timeout: 5))
-        let toggle = app.buttons["query-progress"]
+        let toggle = app.otherElements["query-progress"].buttons.firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["准备查找西湖的地点资料。"].isHittable)
         attach(app, "正文出现后自动折叠查询进展")
@@ -363,7 +375,7 @@ final class ReadingNavigationTests: XCTestCase {
         session.tap()
         XCTAssertTrue(app.buttons["copy-answer"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["准备查找西湖的地点资料。"].isHittable)
-        app.buttons["query-progress"].tap()
+        app.otherElements["query-progress"].buttons.firstMatch.tap()
         XCTAssertTrue(app.staticTexts["准备查找西湖的地点资料。"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["已取得资料"].exists)
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format:"label CONTAINS %@", "已保存的查询进展")).firstMatch.exists)
@@ -382,7 +394,7 @@ final class ReadingNavigationTests: XCTestCase {
         for _ in 0..<4 { try await streamControl("step") }
         XCTAssertTrue(app.buttons["copy-answer"].waitForExistence(timeout: 10))
         app.buttons["earlier-history"].tap()
-        let toggle = app.buttons["query-progress"]
+        let toggle = app.otherElements["query-progress"].buttons.firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: 5))
         await fulfillment(of: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: toggle)], timeout: 5)
         toggle.tap()
@@ -456,7 +468,7 @@ final class ReadingNavigationTests: XCTestCase {
         app.activate()
         XCTAssertTrue(app.staticTexts["实时杭州旅行"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.buttons["copy-answer"].label, "复制当前正文")
-        app.buttons["query-progress"].tap()
+        app.otherElements["query-progress"].buttons.firstMatch.tap()
         XCTAssertTrue(app.staticTexts["已取得资料"].waitForExistence(timeout: 5))
         attach(app, "恢复正文并展开同轮可靠查询状态")
         XCUIDevice.shared.press(.home)
@@ -640,7 +652,7 @@ final class ReadingNavigationTests: XCTestCase {
         try await streamControl("step")
         let ended = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "本轮已停止。"), object: app.staticTexts["answer-status"])
         await fulfillment(of: [ended], timeout: 10)
-        if !app.staticTexts["准备查找西湖的地点资料。"].isHittable { app.buttons["query-progress"].tap() }
+        if !app.staticTexts["准备查找西湖的地点资料。"].isHittable { app.otherElements["query-progress"].buttons.firstMatch.tap() }
         XCTAssertTrue(app.staticTexts["准备查找西湖的地点资料。"].isHittable)
         XCTAssertTrue(app.staticTexts["未执行"].exists)
         attach(app, "真实查询响应保存后说明保留且工具未执行")
@@ -664,7 +676,7 @@ final class ReadingNavigationTests: XCTestCase {
             try await streamControl("step", port: port)
             XCTAssertTrue(app.staticTexts["实时杭州旅行"].waitForExistence(timeout: 5))
             if unsaved {
-                app.buttons["query-progress"].tap()
+                app.otherElements["query-progress"].buttons.firstMatch.tap()
                 XCTAssertTrue(app.staticTexts["准备查找西湖的地点资料。"].isHittable)
                 XCTAssertTrue(app.staticTexts["已取得资料"].exists)
             }

@@ -163,12 +163,12 @@ class StreamingModel:
                 yield QueryStream()
             else:
                 reply = await self.create(**parameters)
-                class QueryStream:
+                class CompleteQueryStream:
                     async def __aiter__(self):
                         for block in reply.content:
                             yield SimpleNamespace(type="content_block_start", content_block=block)
                     async def get_final_message(self): return reply
-                yield QueryStream()
+                yield CompleteQueryStream()
             return
         self.attempts += 1
         fail = self.mode in {"retry", "fallback"} and self.attempts == 1

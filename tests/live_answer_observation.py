@@ -6,6 +6,7 @@ import hmac
 import json
 import secrets
 import time
+from typing import Callable
 
 __all__ = ["Recorder", "ObservedClient", "ObservedSSE"]
 
@@ -14,7 +15,7 @@ class Recorder:
     def __init__(self):
         self.events = []
         self.key = secrets.token_bytes(32)
-        self.redact = lambda value: value
+        self.redact: Callable[[str], str] = lambda value: value
         self.sequence = 0
 
     def record(self, layer, kind, **fields):
