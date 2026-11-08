@@ -1,0 +1,295 @@
+{
+  "300": {
+    "background_repeat": 300,
+    "context_events": [
+      {
+        "event_id": "33c103146f174c028dc2e2d18336a1bd",
+        "session_id": "1f1e905f22b246c6968b2d85705872ae",
+        "turn_id": "69b38e515c9e46439345202486fa667d",
+        "sequence": 2,
+        "kind": "context.date",
+        "timestamp": "2026-11-08T10:21:50.045600+00:00",
+        "request_id": null,
+        "tool_call_id": null,
+        "data": {
+          "date_context": {
+            "timezone": "Asia/Shanghai",
+            "now": "2026-11-08T18:21:50.042628+08:00",
+            "today": "2026-11-08",
+            "weekday": "星期日",
+            "travel_dates": {
+              "status": "resolved",
+              "start_date": "2026-10-18",
+              "end_date": "2026-10-18",
+              "source": "explicit",
+              "explanation": "显式日期优先；省略年份时采用本轮北京时间的年份，起始日期与天数推导结束日期。",
+              "reference_time": "2026-11-08T18:21:50.042628+08:00"
+            }
+          }
+        },
+        "cursor": 2
+      },
+      {
+        "event_id": "a371945b175d4abf915324e668e6f1a4",
+        "session_id": "1f1e905f22b246c6968b2d85705872ae",
+        "turn_id": "69b38e515c9e46439345202486fa667d",
+        "sequence": 3,
+        "kind": "context.organized",
+        "timestamp": "2026-11-08T10:21:50.054013+00:00",
+        "request_id": null,
+        "tool_call_id": null,
+        "data": {
+          "before_tokens": 28131,
+          "after_tokens": 28131,
+          "changed_result_count": 0,
+          "pressure_remaining": true,
+          "original_watermark": 1,
+          "version": 0,
+          "record_ids": [
+            "message:1"
+          ],
+          "step": 1,
+          "attempt": 1,
+          "pressure_threshold": 22400
+        },
+        "cursor": 3
+      },
+      {
+        "event_id": "b086587fdd4a4a259fff4eab755c4b78",
+        "session_id": "1f1e905f22b246c6968b2d85705872ae",
+        "turn_id": "69b38e515c9e46439345202486fa667d",
+        "sequence": 4,
+        "kind": "context.checked",
+        "timestamp": "2026-11-08T10:21:50.059155+00:00",
+        "request_id": null,
+        "tool_call_id": null,
+        "data": {
+          "estimated_tokens": 28131,
+          "raw_estimated_tokens": 28131,
+          "method": "conservative_unicode",
+          "approximate": true,
+          "calibration_factor": 1.0,
+          "window": 40000,
+          "input_budget": 28000,
+          "allowed": false,
+          "original_watermark": 1,
+          "version": 0,
+          "record_ids": [
+            "message:1"
+          ],
+          "step": 1,
+          "attempt": 1
+        },
+        "cursor": 4
+      },
+      {
+        "event_id": "d6d0516b28114ed095ca8b8d2ac31d23",
+        "session_id": "1f1e905f22b246c6968b2d85705872ae",
+        "turn_id": "69b38e515c9e46439345202486fa667d",
+        "sequence": 5,
+        "kind": "turn.finished",
+        "timestamp": "2026-11-08T10:21:50.060448+00:00",
+        "request_id": null,
+        "tool_call_id": null,
+        "data": {
+          "status": "terminated",
+          "reason": "context_budget",
+          "answer_source": "application",
+          "tool_error_count": 0,
+          "answer_summary": "完整模型输入超过安全预算，已停止本轮查询；请缩小需求范围或核对 MODEL_CONTEXT_WINDOW。\n这次请求未能完成，旅行行程尚未完成。\n本次尚无成功的查询结果。\n未完成的信息仍待核实。"
+        },
+        "cursor": 5
+      }
+    ],
+    "requests": [],
+    "turns": [
+      {
+        "status": "terminated",
+        "reason": "context_budget",
+        "answer": "完整模型输入超过安全预算，已停止本轮查询；请缩小需求范围或核对 MODEL_CONTEXT_WINDOW。\n这次请求未能完成，旅行行程尚未完成。\n本次尚无成功的查询结果。\n未完成的信息仍待核实。"
+      }
+    ]
+  },
+  "290": {
+    "background_repeat": 290,
+    "context_events": [
+      {
+        "event_id": "0badae9f9673460ba7d2b291075f131f",
+        "session_id": "b73c260df2144982a2b52131a3222920",
+        "turn_id": "1f48f8ec06524c78a0d51c5ed354c22b",
+        "sequence": 2,
+        "kind": "context.date",
+        "timestamp": "2026-11-08T10:21:50.045568+00:00",
+        "request_id": null,
+        "tool_call_id": null,
+        "data": {
+          "date_context": {
+            "timezone": "Asia/Shanghai",
+            "now": "2026-11-08T18:21:50.042672+08:00",
+            "today": "2026-11-08",
+            "weekday": "星期日",
+            "travel_dates": {
+              "status": "resolved",
+              "start_date": "2026-10-18",
+              "end_date": "2026-10-18",
+              "source": "explicit",
+              "explanation": "显式日期优先；省略年份时采用本轮北京时间的年份，起始日期与天数推导结束日期。",
+              "reference_time": "2026-11-08T18:21:50.042672+08:00"
+            }
+          }
+        },
+        "cursor": 2
+      },
+      {
+        "event_id": "7a55f4c4d39e430c930ae3b51178617b",
+        "session_id": "b73c260df2144982a2b52131a3222920",
+        "turn_id": "1f48f8ec06524c78a0d51c5ed354c22b",
+        "sequence": 3,
+        "kind": "context.organized",
+        "timestamp": "2026-11-08T10:21:50.053760+00:00",
+        "request_id": null,
+        "tool_call_id": null,
+        "data": {
+          "before_tokens": 27851,
+          "after_tokens": 27851,
+          "changed_result_count": 0,
+          "pressure_remaining": true,
+          "original_watermark": 1,
+          "version": 0,
+          "record_ids": [
+            "message:1"
+          ],
+          "step": 1,
+          "attempt": 1,
+          "pressure_threshold": 22400
+        },
+        "cursor": 3
+      },
+      {
+        "event_id": "d36ea596bfe3450ca51379387821ddb4",
+        "session_id": "b73c260df2144982a2b52131a3222920",
+        "turn_id": "1f48f8ec06524c78a0d51c5ed354c22b",
+        "sequence": 4,
+        "kind": "context.checked",
+        "timestamp": "2026-11-08T10:21:50.058791+00:00",
+        "request_id": null,
+        "tool_call_id": null,
+        "data": {
+          "estimated_tokens": 27851,
+          "raw_estimated_tokens": 27851,
+          "method": "conservative_unicode",
+          "approximate": true,
+          "calibration_factor": 1.0,
+          "window": 40000,
+          "input_budget": 28000,
+          "allowed": true,
+          "original_watermark": 1,
+          "version": 0,
+          "record_ids": [
+            "message:1"
+          ],
+          "step": 1,
+          "attempt": 1
+        },
+        "cursor": 4
+      },
+      {
+        "event_id": "71f368896f3e461e9beb092b4ee2e018",
+        "session_id": "b73c260df2144982a2b52131a3222920",
+        "turn_id": "1f48f8ec06524c78a0d51c5ed354c22b",
+        "sequence": 6,
+        "kind": "context.usage",
+        "timestamp": "2026-11-08T10:21:50.067673+00:00",
+        "request_id": "2b95b851192144f9bb7c5becdd64acaa",
+        "tool_call_id": null,
+        "data": {
+          "request_id": "2b95b851192144f9bb7c5becdd64acaa",
+          "input_tokens_for_calibration": 1,
+          "input_usage_semantics": "input_tokens_returned_cache_unknown",
+          "calibration_factor": 1.0
+        },
+        "cursor": 6
+      },
+      {
+        "event_id": "8540b5df15144326bab833b2418fec89",
+        "session_id": "b73c260df2144982a2b52131a3222920",
+        "turn_id": "1f48f8ec06524c78a0d51c5ed354c22b",
+        "sequence": 8,
+        "kind": "context.checked",
+        "timestamp": "2026-11-08T10:21:50.072143+00:00",
+        "request_id": null,
+        "tool_call_id": null,
+        "data": {
+          "estimated_tokens": 26998,
+          "raw_estimated_tokens": 26998,
+          "method": "conservative_unicode",
+          "approximate": true,
+          "calibration_factor": 1.0,
+          "window": 40000,
+          "input_budget": 28000,
+          "allowed": true,
+          "original_watermark": 1,
+          "version": 0,
+          "record_ids": [
+            "message:1"
+          ],
+          "step": 2,
+          "attempt": 1
+        },
+        "cursor": 8
+      },
+      {
+        "event_id": "e751c2777ecb482dba0da29890f9e333",
+        "session_id": "b73c260df2144982a2b52131a3222920",
+        "turn_id": "1f48f8ec06524c78a0d51c5ed354c22b",
+        "sequence": 10,
+        "kind": "context.usage",
+        "timestamp": "2026-11-08T10:21:50.074430+00:00",
+        "request_id": "4fc36d61b0c9433b833659f083922a80",
+        "tool_call_id": null,
+        "data": {
+          "request_id": "4fc36d61b0c9433b833659f083922a80",
+          "input_tokens_for_calibration": 1,
+          "input_usage_semantics": "input_tokens_returned_cache_unknown",
+          "calibration_factor": 1.0
+        },
+        "cursor": 10
+      },
+      {
+        "event_id": "202796670a1149b9a5d572d249748838",
+        "session_id": "b73c260df2144982a2b52131a3222920",
+        "turn_id": "1f48f8ec06524c78a0d51c5ed354c22b",
+        "sequence": 12,
+        "kind": "turn.finished",
+        "timestamp": "2026-11-08T10:21:50.076170+00:00",
+        "request_id": null,
+        "tool_call_id": null,
+        "data": {
+          "status": "completed",
+          "reason": null,
+          "answer_source": "model",
+          "tool_error_count": 0,
+          "answer_summary": "酒店未预订，预算3000元人民币。"
+        },
+        "cursor": 12
+      }
+    ],
+    "requests": [
+      {
+        "purpose": "travel",
+        "status": "completed"
+      },
+      {
+        "purpose": "travel_answer",
+        "status": "completed"
+      }
+    ],
+    "turns": [
+      {
+        "status": "completed",
+        "reason": null,
+        "answer": "酒店未预订，预算3000元人民币。"
+      }
+    ]
+  }
+}
