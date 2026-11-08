@@ -243,7 +243,7 @@ private struct QueryProgressView: View {
                 ForEach(entries.filter { !$0.text.isEmpty }) { entry in
                     VStack(alignment: .leading, spacing: 4) {
                         ReadingTransition(text: entry.text, identity: "\(identity):\(entry.id):\(entry.attemptID)",
-                                          live: isCurrent && entry.status == "generating", stopped: stopped, recovery: recovery) {
+                                          live: isCurrent && entry.status == "generating" && entry.delivery != "complete", stopped: stopped, recovery: recovery) {
                             Text($0).textSelection(.enabled)
                         }
                         Text(entry.statusText).font(.caption).foregroundStyle(.secondary)

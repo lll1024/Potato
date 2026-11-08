@@ -5,7 +5,7 @@ export type AnswerPreview = {
   attempt_id: string; revision: number; text: string; status: 'generating' | 'generated' | 'invalidated' | 'retrying';
   delivery?: 'stream' | 'complete';
 };
-export type ProgressEntry = {id: string; attempt_id: string; kind: 'model' | 'tool'; text: string; status: string};
+export type ProgressEntry = {id: string; attempt_id: string; kind: 'model' | 'tool'; text: string; status: string; delivery?: 'stream' | 'complete'};
 export type ProgressPreview = {instance_id: string; stream_id: string; session_id: string; turn_id: string;
   revision: number; entries: ProgressEntry[]};
 export type ServiceState = {

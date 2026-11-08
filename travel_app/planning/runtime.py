@@ -409,6 +409,8 @@ async def _execute_plan(
         request_id = ""
         duration_ms: float | None = None
         finished_at: str | None = None
+        querying = False
+        query_entry: dict[str, Any] = {}
         while True:
             if stop_requested and stop_requested.is_set():
                 stopped = "已停止本轮查询，尚未完成的信息待核实。"
@@ -468,8 +470,9 @@ async def _execute_plan(
 
             querying = progress_observer is not None and not answering and not finalizing
             async def query_update(state, text):
+                assert progress_observer is not None
                 entry = {"id": request_id, "attempt_id": request_id, "kind": "model",
-                    "text": text[:240], "status": state}
+                    "text": text[:240], "status": state, **delivery}
                 await progress_observer(entry)
                 return entry
             async def receive_progress(text):

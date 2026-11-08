@@ -213,7 +213,8 @@ public struct ProgressEntry: Decodable, Equatable, Sendable, Identifiable {
     public let kind: String
     public let text: String
     public let status: String
-    enum CodingKeys: String, CodingKey { case id, attemptID = "attemptId", kind, text, status }
+    public let delivery: String?
+    enum CodingKeys: String, CodingKey { case id, attemptID = "attemptId", kind, text, status, delivery }
     public var statusText: String {
         if kind == "model" {
             switch status {

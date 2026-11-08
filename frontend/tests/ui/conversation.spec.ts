@@ -1002,3 +1002,37 @@ for (const width of [1440, 390]) test(`进展折叠保持上翻阅读锚点并�
   await page.getByRole('button', {name: '回到最新', exact: true}).click();
   await expect.poll(() => messages.evaluate(element => element.scrollHeight - element.scrollTop - element.clientHeight)).toBeLessThan(8);
 });
+
+for (const width of [1440, 390]) test(`查询重试清除平滑旧说明，保留可靠事实并解释完整等待 ${width}`, async ({page}) => {
+  const app = await conversation(page);
+  app.sessions[0].status = 'running'; app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip';
+  await app.notify(); await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  await page.setViewportSize({width, height: 844});
+  if (width < 760) await page.getByRole('button', {name: '收起会话导航'}).first().click();
+  async function progress(text: string, revision: number, status: string, attempt: string, delivery = 'stream') {
+    await page.evaluate(({text, revision, status, attempt, delivery}) => {
+      (window as unknown as {source: EventTarget}).source.dispatchEvent(new MessageEvent('progress.preview', {data: JSON.stringify({
+        schema_version: 1, kind: 'progress.preview', instance_id: 'process', revision,
+        preview: {instance_id: 'process', stream_id: 'conversation-test', session_id: 'trip', turn_id: 'turn', revision,
+          entries: [{id: 'saved-tool', attempt_id: 'earlier-query', kind: 'tool', text: '查找地点资料', status: 'completed'},
+            {id: attempt, attempt_id: attempt, kind: 'model', text, status, delivery}]},
+      })}));
+    }, {text, revision, status, attempt, delivery});
+  }
+  await progress('失败旧说明。', 1, 'generating', 'failed-query');
+  await expect(page.locator('.query-progress')).toContainText('失败旧说明。');
+  await page.clock.install(); await page.clock.pauseAt(new Date(Date.now() + 1000));
+  await progress('失败旧说明。' + '还未完成的查询说明。'.repeat(100), 2, 'generating', 'failed-query');
+  await progress('', 3, 'retrying', 'failed-query');
+  await expect(page.getByText('查询进展正在重试，新尝试将重新生成。', {exact: true})).toBeVisible();
+  await page.clock.runFor(500);
+  await expect(page.locator('.query-progress')).not.toContainText('失败旧说明');
+  await expect(page.locator('.query-progress')).toContainText('已取得资料');
+  await progress('重新查找交通资料。', 4, 'generating', 'new-query');
+  await expect(page.locator('.query-progress')).toContainText('重新查找交通资料。');
+  await expect(page.getByText('查询进展正在重试，新尝试将重新生成。', {exact: true})).toHaveCount(0);
+  await progress('', 5, 'generating', 'complete-query', 'complete');
+  await expect(page.getByText('模型服务不支持流式，改为生成完整回答。', {exact: true})).toBeVisible();
+  await expect(page.locator('.query-progress')).not.toContainText('重新查找交通资料');
+  await page.screenshot({path: test.info().outputPath('query-complete-wait.png')});
+});

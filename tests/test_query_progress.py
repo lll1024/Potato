@@ -1,15 +1,19 @@
 """公开 HTTP/SSE 中的查询进展与真实工具生命周期。"""
 import asyncio
+import copy
 import json
 import tempfile
 import unittest
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
 
+import httpx2
+from anthropic import APITimeoutError
+
 from http_fixtures import serving, wait_finished
 from service_fixtures import MapService, ModelService, response
 from record_faults import fail_event
-from model_fixtures import status_error
+from model_fixtures import connection_error, status_error
 
 
 class QueryModel:
@@ -60,6 +64,72 @@ class QueryModel:
         return response([{"type":"text", "text":"资料齐全。"}])
 
 
+class QueryFailureModel(ModelService):
+    """仅在可控外部模型流控制查询尝试；完整返回和重试仍由真实规划执行。"""
+    def __init__(self, failures, *, hold_complete=False, prefix_queries=0):
+        super().__init__([
+            response([{"type": "text", "text": "进展：重新查找地点资料。"},
+                      {"type": "tool_use", "id": "lake", "name": "maps_text_search",
+                       "input": {"keywords": "西湖", "city": "杭州"}}], "tool_use"),
+            response([{"type": "text", "text": "无需查询"}]),
+            response([{"type": "text", "text": "新的完整回答。"}]),
+        ])
+        self.failures = list(failures)
+        self.in_stream = False
+        self.query_successes = 0
+        self.prefix_queries = prefix_queries
+        self.final_failure = None
+        self.hold_failures = False
+        self.failure_entered = asyncio.Queue()
+        self.failure_release = asyncio.Queue()
+        self.hold_complete = hold_complete
+        self.complete_entered = asyncio.Event()
+        self.complete_release = asyncio.Event()
+
+    async def create(self, **parameters):
+        if not self.in_stream and self.hold_complete:
+            self.complete_entered.set()
+            await self.complete_release.wait()
+        reply = await super().create(**parameters)
+        if "tools" in parameters:
+            self.query_successes += 1
+        return reply
+
+    @asynccontextmanager
+    async def stream(self, **parameters):
+        if ("tools" in parameters and self.failures and self.query_successes >= self.prefix_queries) or ("tools" not in parameters and self.final_failure):
+            self.requests.append(copy.deepcopy(parameters))
+            failure = self.final_failure if "tools" not in parameters else self.failures.pop(0)
+            self.final_failure = None
+            model = self
+            class Stream:
+                async def __aiter__(self):
+                    if failure is None:
+                        return
+                    yield SimpleNamespace(type="content_block_start", content_block=SimpleNamespace(type="text", text=""))
+                    yield SimpleNamespace(type="content_block_delta", delta=SimpleNamespace(type="text_delta", text="进展：失败旧说明"))
+                    model.failure_entered.put_nowait(None)
+                    if model.hold_failures:
+                        await model.failure_release.get()
+                    raise failure
+                async def get_final_message(self):
+                    return None
+            yield Stream()
+        else:
+            self.in_stream = True
+            try:
+                reply = await self.create(**parameters)
+            finally:
+                self.in_stream = False
+            class Stream:
+                async def __aiter__(self):
+                    for block in reply.content:
+                        yield SimpleNamespace(type="content_block_start", content_block=block)
+                async def get_final_message(self):
+                    return reply
+            yield Stream()
+
+
 class GatedMap(MapService):
     def __init__(self):
         self.entered = asyncio.Event()
@@ -74,6 +144,155 @@ class GatedMap(MapService):
 
 
 class QueryProgressTests(unittest.IsolatedAsyncioTestCase):
+    async def test_query_stream_rejection_explains_complete_wait_before_answer_and_counts_every_call(self):
+        model = QueryFailureModel([status_error(400, {"error": {"code": "streaming_not_supported"}})], hold_complete=True)
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory, model) as client:
+                accepted = (await client.post("/api/turns", json={"input": "查询资料"})).json()
+                try:
+                    await asyncio.wait_for(model.complete_entered.wait(), 2)
+                    snapshot = (await client.get("/api/snapshot")).json()
+                    self.assertIsNone(snapshot["answer_preview"])
+                    entry = snapshot["progress_preview"]["entries"][-1]
+                    self.assertEqual((entry["status"], entry["text"], entry.get("delivery")), ("generating", "", "complete"))
+                    model.complete_release.set()
+                    history = await asyncio.wait_for(wait_finished(client, accepted["session_id"]), 3)
+                    self.assertEqual(history["turns"][0]["answer"], "新的完整回答。")
+                    self.assertEqual(history["turns"][0]["answer_delivery"], "complete")
+                    self.assertEqual(len(history["requests"]), 4)
+                    self.assertEqual(len(history["tool_calls"]), 1)
+                    self.assertEqual([entry["status"] for entry in history["turns"][0]["query_progress"]], ["generated", "completed"])
+                    self.assertNotIn("失败旧说明", str(history["turns"][0]["messages"]))
+                finally:
+                    model.complete_release.set()
+
+    async def test_query_retry_replaces_failed_attempt_but_keeps_prior_saved_tool_once(self):
+        model = QueryFailureModel([status_error(429, headers={"Retry-After": "0.1"})], prefix_queries=1)
+        model.hold_failures = True
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory, model) as client:
+                accepted = (await client.post("/api/turns", json={"input": "先查地点再整理"})).json()
+                try:
+                    await asyncio.wait_for(model.failure_entered.get(), 2)
+                    before = (await client.get("/api/snapshot")).json()["progress_preview"]["entries"]
+                    self.assertEqual([entry["status"] for entry in before], ["generated", "completed", "generating"])
+                    self.assertEqual(before[-1]["text"], "失败旧说明")
+                    async with client.stream("GET", "/api/events") as stream:
+                        model.failure_release.put_nowait(None)
+                        async with asyncio.timeout(3):
+                            async for line in stream.aiter_lines():
+                                if not line.startswith("data:"): continue
+                                notice = json.loads(line[5:])
+                                if notice.get("kind") != "progress.preview" or not notice.get("preview"): continue
+                                entries = notice["preview"]["entries"]
+                                if entries[-1]["status"] == "retrying":
+                                    self.assertEqual(entries[-1]["text"], "")
+                                    self.assertEqual(entries[1], before[1])
+                                    self.assertEqual(entries[-1]["delivery"], "stream")
+                                    break
+                    history = await asyncio.wait_for(wait_finished(client, accepted["session_id"]), 3)
+                    self.assertEqual(len(history["requests"]), 4)
+                    self.assertEqual(len(history["tool_calls"]), 1)
+                    self.assertEqual(model.requests[1], model.requests[2])
+                    self.assertEqual(history["turns"][0]["answer"], "新的完整回答。")
+                    self.assertNotIn("失败旧说明", str(history["turns"][0]["messages"]))
+                    self.assertEqual(history["turns"][0]["query_progress"], before[:2])
+                finally:
+                    model.failure_release.put_nowait(None)
+
+    async def test_query_errors_keep_existing_classification_and_never_accidentally_fall_back(self):
+        cases = [(connection_error(), "TRANSPORT", True),
+                 (APITimeoutError(request=httpx2.Request("POST", "https://model.example.test")), "TIMEOUT", True),
+                 (None, "EMPTY_RESPONSE", True),
+                 (status_error(429, headers={"Retry-After": "0.01"}), "RATE_LIMIT", True),
+                 (status_error(503), "SERVER", True), (status_error(401), "AUTH", False),
+                 (status_error(402), "QUOTA", False), (status_error(400), "INVALID_REQUEST", False)]
+        for failure, code, retried in cases:
+            with self.subTest(code=code), tempfile.TemporaryDirectory() as directory:
+                model = QueryFailureModel([failure], hold_complete=True)
+                async with serving(directory, model) as client:
+                    accepted = (await client.post("/api/turns", json={"input": "查询资料"})).json()
+                    history = await asyncio.wait_for(wait_finished(client, accepted["session_id"]), 5)
+                    self.assertEqual(history["requests"][0]["status"], "failed")
+                    error = (await client.get("/api/payloads/" + history["requests"][0]["error_payload_id"])).json()["content"]
+                    self.assertEqual(error["code"], code)
+                    self.assertEqual(history["turns"][0]["status"], "completed" if retried else "failed")
+                    self.assertEqual(len(history["requests"]), 4 if retried else 1)
+                    self.assertFalse(model.complete_entered.is_set())
+                    self.assertNotIn("失败旧说明", str(history["turns"][0]["messages"]))
+                    self.assertNotIn("失败旧说明", str(history["turns"][0]["query_progress"]))
+                    state = (await client.get("/api/snapshot")).json()
+                    self.assertIsNone(state["active_turn_id"])
+                    self.assertTrue(state["accepting"])
+
+    async def test_query_retry_exhaustion_and_stop_during_backoff_release_without_more_attempts(self):
+        for stop in (False, True):
+            with self.subTest(stop=stop), tempfile.TemporaryDirectory() as directory:
+                failure = status_error(429, headers={"Retry-After": "3" if stop else "0.01"})
+                model = QueryFailureModel([failure] * 6)
+                async with serving(directory, model) as client:
+                    accepted = (await client.post("/api/turns", json={"input": "持续查询失败"})).json()
+                    if stop:
+                        async with asyncio.timeout(3):
+                            while True:
+                                state = (await client.get("/api/snapshot")).json()
+                                if state["progress_preview"] and state["progress_preview"]["entries"][-1]["status"] == "retrying": break
+                                await asyncio.sleep(.01)
+                        self.assertEqual((await client.post(f'/api/turns/{accepted["turn_id"]}/stop')).status_code, 200)
+                    history = await asyncio.wait_for(wait_finished(client, accepted["session_id"]), 3)
+                    self.assertEqual(history["turns"][0]["reason"], "user_stop" if stop else "model_error")
+                    self.assertEqual(len(history["requests"]), 1 if stop else 6)
+                    self.assertEqual(history["turns"][0]["query_progress"], [])
+                    self.assertEqual(history["tool_calls"], [])
+                    self.assertIsNone((await client.get("/api/snapshot")).json()["active_turn_id"])
+                    self.assertTrue((await client.get("/api/snapshot")).json()["accepting"])
+                    self.assertNotIn("失败旧说明", str(history["turns"][0]["messages"]))
+
+    async def test_query_rejection_at_63_uses_final_reserve_and_final_stream_failure_never_retries(self):
+        for prefix in (62, 63):
+            with self.subTest(prefix=prefix), tempfile.TemporaryDirectory() as directory:
+                rejection = status_error(400, {"error": {"code": "streaming_not_supported"}})
+                model = QueryFailureModel([rejection], prefix_queries=prefix)
+                model.final_failure = rejection if prefix == 63 else None
+                model.replies = iter([response([{"type": "tool_use", "id": f"read-{index}",
+                    "name": "session_history_search", "input": {"query": "旅行"}}], "tool_use") for index in range(prefix)]
+                    + [response([{"type": "text", "text": "预算内的最终回答。"}])])
+                async with serving(directory, model) as client:
+                    accepted = (await client.post("/api/turns", json={"input": "查询到预算边界"})).json()
+                    history = await asyncio.wait_for(wait_finished(client, accepted["session_id"]), 8)
+                    self.assertEqual(len(history["requests"]), 64)
+                    self.assertEqual(len(model.requests), 64)
+                    self.assertEqual(history["turns"][0]["reason"], "budget")
+                    self.assertEqual(history["requests"][-1]["purpose"], "travel_final")
+                    self.assertEqual(history["requests"][-1]["status"], "completed" if prefix == 62 else "failed")
+                    self.assertNotIn("tools", model.requests[-1])
+                    self.assertEqual(len(history["tool_calls"]), prefix)
+                    self.assertEqual(sum(tool["call_started"] for tool in history["tool_calls"]), 8)
+                    self.assertEqual(len([event for event in history["events"] if event["kind"].startswith("request.retry_")]), 0)
+
+    async def test_failed_query_response_text_is_excluded_from_followup_history_read(self):
+        from anthropic.types import TextBlock
+        malformed = response([{"type": "text", "text": "进展：失败旧说明"}])
+        malformed.content.append(TextBlock.model_construct(type="text", text=123))
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory, ModelService([malformed])) as client:
+                accepted = (await client.post("/api/turns", json={"input": "失败查询"})).json()
+                history = await wait_finished(client, accepted["session_id"])
+                self.assertEqual(history["turns"][0]["status"], "failed")
+                payload = history["requests"][0]["response_payload_id"]
+                self.assertIsNotNone(payload)
+                self.assertEqual(history["turns"][0]["query_progress"], [])
+            recall = ModelService([response([
+                {"type": "tool_use", "id": "search-failed", "name": "session_history_search", "input": {"query": "失败旧说明"}},
+                {"type": "tool_use", "id": "read-failed", "name": "session_history_read", "input": {"record_id": f"payload:{payload}:text:0"}},
+            ], "tool_use"), response([{"type": "text", "text": "失败说明未作为事实采用。"}])])
+            async with serving(directory, recall) as client:
+                accepted = (await client.post("/api/turns", json={"input": "回看历史", "session_id": accepted["session_id"]})).json()
+                await wait_finished(client, accepted["session_id"], accepted["turn_id"])
+                results = recall.requests[1]["messages"][-1]["content"]
+                self.assertEqual(json.loads(results[0]["content"])["matches"], [])
+                self.assertTrue(results[1]["is_error"])
+
     async def test_query_text_arrives_before_tools_and_real_outcomes_remain_separate_from_answer(self):
         model = QueryModel()
         maps = GatedMap()

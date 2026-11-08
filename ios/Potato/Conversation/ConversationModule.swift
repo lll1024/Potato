@@ -147,6 +147,7 @@ final class ConversationPresenter {
         return .loaded(ConversationPresentation(title: page.session.title, turns: page.turns.map { turn in
             let preview = interactor.answerPreview.flatMap { $0.turnID == turn.id && turn.status == "running" ? $0 : nil }
             let execution = interactor.execution
+            let progress = interactor.progressPreview.flatMap { $0.turnID == turn.id && turn.status == "running" ? $0 : nil }
             let isUnsaved = preview != nil && execution.service?.activeTurnID != turn.id
                 && execution.service?.unsavedFact?["turn_id"] == turn.id && execution.service?.storageError != nil
             let requestedStop: Bool
@@ -165,7 +166,12 @@ final class ConversationPresenter {
                 else if preview.status == "retrying" { message = "正在重试，新尝试将从头作答。" }
                 else { message = preview.status == "generated" ? "正在保存回答。" : "正在生成 · 尚未保存" }
             } else { message = statusText(turn) }
-            if preview?.delivery == "complete" || turn.answerDelivery == "complete" {
+            if preview == nil && !requestedStop && execution.service?.stopping != true && execution.service?.storageError == nil,
+               progress?.entries.contains(where: { $0.kind == "model" && $0.status == "retrying" }) == true {
+                message = "查询进展正在重试，新尝试将重新生成。"
+            }
+            if preview?.delivery == "complete" || turn.answerDelivery == "complete"
+                || progress?.entries.contains(where: { $0.kind == "model" && $0.delivery == "complete" }) == true {
                 message = [message, "模型服务不支持流式，改为生成完整回答。"].compactMap { $0 }.joined(separator: "\n")
             }
             return ConversationPresentation.Turn(id: turn.id, input: turn.input,
