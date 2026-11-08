@@ -4,7 +4,8 @@ import {mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 
-const original = '2026-10-18杭州，预算3000元人民币，保留湖滨酒店，未预订。' + '阅读背景资料，不是新要求。'.repeat(300);
+// 保持首轮高于压力阈值且低于硬输入预算；为固定查询进展提示保留余量。
+const original = '2026-10-18杭州，预算3000元人民币，保留湖滨酒店，未预订。' + '阅读背景资料，不是新要求。'.repeat(290);
 async function start(directory: string, mode: string) {
   const server = spawn('../.venv/bin/python', ['../tests/context_browser_server.py', '--data-dir', directory, '--mode', mode], {cwd: process.cwd()});
   let output = '';
