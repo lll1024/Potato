@@ -5,6 +5,7 @@
 | 行为范围 | 结论入口 | 证据与适用范围 |
 | --- | --- | --- |
 | 查询进展／正文重试与降级、预算交叉 | [#115 验收](query-retries.md) | 公开HTTP／SSE、真实SQLite、SessionAccess与两端显示过渡；当前模型联合验收另见#117 |
+| 查询进展与正文停止收束 | [#116 验收](query-progress-stop.md) | 双客户端、真实 SQLite 保存故障、两类队列冻结与原 Markdown 复制；原生最终证据见正文 |
 | 查询进展折叠与持久回看 | [#112 验收](query-progress-history.md) | 可靠事实／回滚与同库重启、SessionAccess、模拟器重开及同轮Web第二客户端；固定兼容投影待关联修复复验 |
 | 当前查询进展与独立最终正文 | [#111 验收](query-progress.md) | 公开 HTTP／SSE、真实 SQLite、SessionAccess 同订阅与模拟器／Web 页面；持久回看和平滑及当前实际模型联合验收由后续任务完成 |
 | 两端短暂平滑与阅读保位 | [#113 验收](stream-smoothing.md) | 200ms绝对逻辑窗口、小块即时、恢复直达、停止清队列、字素／复制及真实折叠保位；可控界面与原生连续帧分别解释 |

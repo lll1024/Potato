@@ -5,6 +5,8 @@ import json
 import tempfile
 import unittest
 from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator
+from typing import Any
 from types import SimpleNamespace
 
 import httpx2
@@ -12,7 +14,7 @@ from anthropic import APITimeoutError
 
 from http_fixtures import serving, wait_finished
 from service_fixtures import MapService, ModelService, response
-from record_faults import fail_event
+from record_faults import fail_event, clear_event_fault
 from model_fixtures import connection_error, status_error
 from process_fixtures import ExternalServices, process
 
@@ -30,7 +32,7 @@ class QueryModel:
         self.query_failure = None
 
     @asynccontextmanager
-    async def stream(self, **parameters):
+    async def stream(self, **parameters) -> AsyncIterator[Any]:
         self.requests.append(parameters)
         query = "tools" in parameters
         first = query and len(self.requests) == 1
@@ -142,6 +144,39 @@ class GatedMap(MapService):
         if self.fail:
             return SimpleNamespace(content=[SimpleNamespace(type="text", text="查询暂不可用")], structured_content=None, is_error=True)
         return await super().call_tool(name, arguments)
+
+
+class GatedAnswerQueryModel(QueryModel):
+    """只在外部模型连接控制正文、完整返回与故障。"""
+    def __init__(self):
+        super().__init__()
+        self.answer_steps = asyncio.Queue()
+        self.answer_delivered = asyncio.Queue()
+        self.answer_parts = ["# 西湖旅行\n\n", "停止前可读的中文正文🙂。", "收束后的真实旅行安排。"]
+        self.answer_stop_reason = "end_turn"
+        self.answer_failure: Exception | None = None
+
+    @asynccontextmanager
+    async def stream(self, **parameters) -> AsyncIterator[Any]:
+        if "tools" in parameters:
+            async with super().stream(**parameters) as stream:
+                yield stream
+            return
+        self.requests.append(parameters)
+        model = self
+        class Stream:
+            async def __aiter__(self):
+                model.answer_entered.set()
+                yield SimpleNamespace(type="content_block_start", content_block=SimpleNamespace(type="text", text=""))
+                for part in model.answer_parts:
+                    await model.answer_steps.get()
+                    yield SimpleNamespace(type="content_block_delta", delta=SimpleNamespace(type="text_delta", text=part))
+                    model.answer_delivered.put_nowait(part)
+                await model.answer_steps.get()
+                if model.answer_failure: raise model.answer_failure
+            async def get_final_message(self):
+                return response([{"type":"text", "text":"".join(model.answer_parts)}], model.answer_stop_reason)
+        yield Stream()
 
 
 class QueryProgressTests(unittest.IsolatedAsyncioTestCase):
@@ -617,3 +652,114 @@ class QueryProgressTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(history['query_progress'], saved)
                     self.assertEqual((len(external.model_calls), len(external.map_calls)), calls)
                 release.put_nowait(None)
+
+
+    async def test_remote_stop_answer_keeps_real_outcome_and_reliable_progress(self):
+        import httpx
+        for mode in ("complete", "truncated", "model_failure", "save_failure"):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                model = GatedAnswerQueryModel()
+                if mode == "truncated": model.answer_stop_reason = "max_tokens"
+                if mode == "model_failure": model.answer_failure = status_error(401)
+                async with serving(directory, model) as first, httpx.AsyncClient(base_url=first.base_url) as other:
+                    accepted = (await first.post("/api/turns", json={"input":"双端停止与真实终态"})).json()
+                    try:
+                        for _ in range(len(model.parts) + 1): model.release.put_nowait(None)
+                        await asyncio.wait_for(model.answer_entered.wait(), 3)
+                        model.answer_steps.put_nowait(None)
+                        await asyncio.wait_for(model.answer_delivered.get(), 2)
+                        before = (await first.get("/api/snapshot")).json()
+                        self.assertEqual(before["answer_preview"]["text"], model.answer_parts[0])
+                        path = f'/api/events?after={before["cursor"]}&stream_id={before["stream_id"]}'
+                        async with first.stream("GET", path) as events:
+                            self.assertTrue((await other.post("/api/turns/" + accepted["turn_id"] + "/stop")).json()["stopping"])
+                            async with asyncio.timeout(3):
+                                async for line in events.aiter_lines():
+                                    if line.startswith("data:"):
+                                        notice = json.loads(line[5:])
+                                        if notice.get("kind") == "service.state" and notice["state"]["stopping"]: break
+                            self.assertEqual((await other.post("/api/turns", json={"input":"不能提前启动下一轮"})).status_code, 409)
+                            for _ in model.answer_parts[1:]:
+                                model.answer_steps.put_nowait(None)
+                                await asyncio.wait_for(model.answer_delivered.get(), 2)
+                            waiting = (await other.get("/api/snapshot")).json()
+                            self.assertEqual(waiting["active_turn_id"], accepted["turn_id"])
+                            self.assertTrue(waiting["stopping"])
+                            self.assertEqual(waiting["answer_preview"]["text"], "".join(model.answer_parts))
+                            if mode == "save_failure": fail_event(directory, "turn.finished")
+                            model.answer_steps.put_nowait(None)
+                        if mode == "save_failure":
+                            async with asyncio.timeout(3):
+                                while (state := (await first.get("/api/snapshot")).json())["active_turn_id"]:
+                                    await asyncio.sleep(.01)
+                            self.assertFalse(state["accepting"])
+                            self.assertEqual(state["answer_preview"]["text"], "".join(model.answer_parts))
+                            self.assertEqual(state["unsaved_fact"]["kind"], "turn.finished")
+                            self.assertEqual((await other.post("/api/turns", json={"input":"故障期间仍禁止输入"})).status_code, 503)
+                            history = (await other.get("/api/sessions/" + accepted["session_id"])).json()
+                            self.assertEqual(history["turns"][0]["status"], "running")
+                            self.assertIsNone(history["turns"][0]["answer"])
+                        else:
+                            history = await asyncio.wait_for(wait_finished(other, accepted["session_id"]), 3)
+                            turn = history["turns"][0]
+                            expected = {"complete":("completed", None), "truncated":("terminated", "output_limit"), "model_failure":("failed", "model_error")}
+                            self.assertEqual((turn["status"], turn["reason"]), expected[mode])
+                            if mode != "model_failure": self.assertEqual(turn["answer"], "".join(model.answer_parts))
+                        self.assertEqual([entry["status"] for entry in history["turns"][0]["query_progress"]], ["generated", "completed"])
+                        self.assertEqual(len(history["tool_calls"]), 1)
+                        self.assertEqual(len(model.requests), 3)
+                    finally:
+                        model.answer_release.set()
+                        for _ in range(10):
+                            model.release.put_nowait(None)
+                            model.answer_steps.put_nowait(None)
+                if mode == "save_failure":
+                    # 先修复本次注入的写入故障，再验证正常重启续聊的上下文。
+                    clear_event_fault(directory)
+                    resumed = ModelService([response([{"type":"text", "text":"重启后只读可靠事实。"}])])
+                    async with serving(directory, resumed) as reopened:
+                        prior = (await reopened.get("/api/sessions/" + accepted["session_id"])).json()["turns"][0]
+                        self.assertEqual(prior["reason"], "service_interrupted")
+                        self.assertIsNone(prior["answer"])
+                        self.assertEqual([entry["status"] for entry in prior["query_progress"]], ["generated", "completed"])
+                        self.assertIsNone((await reopened.get("/api/snapshot")).json()["answer_preview"])
+                        later = (await reopened.post("/api/turns", json={"input":"继续读取", "session_id":accepted["session_id"]})).json()
+                        await wait_finished(reopened, accepted["session_id"], later["turn_id"])
+                        self.assertNotIn("收束后的真实旅行安排", json.dumps(resumed.requests, ensure_ascii=False))
+
+    async def test_stopped_query_preserves_real_tool_result_and_failed_save_boundary(self):
+        for fail_save in (False, True):
+            with self.subTest(fail_save=fail_save), tempfile.TemporaryDirectory() as directory:
+                model, maps = QueryModel(), GatedMap()
+                async with serving(directory, model, maps=maps) as client:
+                    accepted = (await client.post("/api/turns", json={"input":"在途工具停止与保存竞争"})).json()
+                    try:
+                        for _ in range(len(model.parts) + 1): model.release.put_nowait(None)
+                        await asyncio.wait_for(maps.entered.wait(), 3)
+                        self.assertEqual((await client.get("/api/snapshot")).json()["progress_preview"]["entries"][-1]["status"], "running")
+                        await client.post("/api/turns/" + accepted["turn_id"] + "/stop")
+                        self.assertEqual((await client.post("/api/turns", json={"input":"仍在等待真实返回"})).status_code, 409)
+                        if fail_save: fail_event(directory, "tool.completed")
+                        maps.release.set()
+                        if fail_save:
+                            async with asyncio.timeout(3):
+                                while (state := (await client.get("/api/snapshot")).json())["active_turn_id"]:
+                                    await asyncio.sleep(.01)
+                            self.assertFalse(state["accepting"])
+                            history = (await client.get("/api/sessions/" + accepted["session_id"])).json()
+                            self.assertIsNone(history["turns"][0]["answer"])
+                            self.assertEqual(history["turns"][0]["query_progress"][-1]["status"], "running")
+                        else:
+                            history = await asyncio.wait_for(wait_finished(client, accepted["session_id"]), 3)
+                            self.assertEqual(history["turns"][0]["reason"], "user_stop")
+                            self.assertEqual(history["turns"][0]["query_progress"][-1]["status"], "completed")
+                            self.assertEqual(history["tool_calls"][0]["status"], "completed")
+                        self.assertEqual(len(model.requests), 1)
+                    finally:
+                        maps.release.set()
+                        model.answer_release.set()
+                        for _ in range(10): model.release.put_nowait(None)
+                async with serving(directory, ModelService([])) as reopened:
+                    prior = (await reopened.get("/api/sessions/" + accepted["session_id"])).json()["turns"][0]
+                    self.assertEqual(prior["query_progress"][-1]["status"], "interrupted" if fail_save else "completed")
+                    if fail_save: self.assertEqual(prior["reason"], "service_interrupted")

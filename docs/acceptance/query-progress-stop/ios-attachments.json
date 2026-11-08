@@ -1,0 +1,77 @@
+[
+  {
+    "attachments": [
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName": "iPhone 17 Pro",
+        "exportedFileName": "68CFCEAE-D9AD-4BF3-9D76-8380B58D7582.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "真实查询响应保存后说明保留且工具未执行_0_D3F2F59B-CE05-4EC8-A393-449D41ED91B6.png",
+        "timestamp": 1794132096.255
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName": "iPhone 17 Pro",
+        "exportedFileName": "9AFDB0CE-3831-4503-933E-034314287496.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "远端停止后冻结查询阶段的当前进展_0_FDBBCF7F-810B-4953-B3CC-870D72580DD4.png",
+        "timestamp": 1794132092.53
+      }
+    ],
+    "testIdentifier": "ReadingNavigationTests/testRemoteStopDuringQueryFreezesProgressBeforeRealResult()",
+    "testIdentifierURL": "test://com.apple.xcode/Potato/PotatoUITests/ReadingNavigationTests/testRemoteStopDuringQueryFreezesProgressBeforeRealResult"
+  },
+  {
+    "attachments": [
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName": "iPhone 17 Pro",
+        "exportedFileName": "9B143CFE-7381-4B4E-A829-460348ADDA6F.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "可靠进展仍保存且未保存Markdown全文可复制_0_19ABE895-7BC0-46C5-AFA7-E4DF8579821F.png",
+        "timestamp": 1794132140.711
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName": "iPhone 17 Pro",
+        "exportedFileName": "3F1F7D70-0985-47E7-8F02-0BCF8041B913.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "保存失败保留正文与复制入口_0_C24C2D41-7BCF-4230-9139-01BDEE61EAAC.png",
+        "timestamp": 1794132136.05
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName": "iPhone 17 Pro",
+        "exportedFileName": "49004038-713F-4B63-B122-F9D8E1BD1AD0.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "停止后冻结当前正文_0_42A7BCEB-5BBE-4475-90A4-8FA888E2D693.png",
+        "timestamp": 1794132134.437
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName": "iPhone 17 Pro",
+        "exportedFileName": "FDF01CB7-A25E-450A-83D4-DE5DB93737C3.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "停止后真实完成并保存_0_61B19E28-FB33-4ADE-BC9D-6BC06F35CEC9.png",
+        "timestamp": 1794132116.008
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName": "iPhone 17 Pro",
+        "exportedFileName": "7C7A94AE-C288-479D-BE07-662973E611A0.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "停止后冻结当前正文_0_3E6A090F-9A97-4AFF-83D9-0C3B213D6F41.png",
+        "timestamp": 1794132114.456
+      }
+    ],
+    "testIdentifier": "ReadingNavigationTests/testStoppedStreamFreezesThenShowsSavedOrUnsavedCopy()",
+    "testIdentifierURL": "test://com.apple.xcode/Potato/PotatoUITests/ReadingNavigationTests/testStoppedStreamFreezesThenShowsSavedOrUnsavedCopy"
+  }
+]

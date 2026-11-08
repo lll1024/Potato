@@ -1,0 +1,41 @@
+
+> travel-local-ui@0.1.0 test:ui
+> playwright test --config /tmp/potato116-playwright.config.mjs -g 首次停止快照
+
+[WebServer] (node:67750) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:67753) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/ui/conversation.spec.ts:1006:1 › 首次停止快照不冻结上一轮的进展归属 (5.9s)
+
+
+  1) tests/ui/conversation.spec.ts:1006:1 › 首次停止快照不冻结上一轮的进展归属 ──────────────────────────────────────
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('region', { name: '第 2 轮对话', exact: true }).getByRole('region', { name: '查询进展', exact: true })
+    Expected substring: "本轮停止前已经收到的资料说明。"
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toContainText" getByRole('region', { name: '第 2 轮对话', exact: true }).getByRole('region', { name: '查询进展', exact: true }) with timeout 5000ms
+      - waiting for getByRole('region', { name: '第 2 轮对话', exact: true }).getByRole('region', { name: '查询进展', exact: true })
+
+
+      1029 |   await page.evaluate(() => (window as unknown as {source:{onerror:()=>void}}).source.onerror());
+      1030 |   await page.clock.runFor(2000);
+    > 1031 |   await expect(current.getByRole('region', {name:'查询进展', exact:true})).toContainText('本轮停止前已经收到的资料说明。');
+           |                                                                        ^
+      1032 |   await expect(current.getByRole('region', {name:'查询进展', exact:true})).not.toContainText('上一轮的查询行动。');
+      1033 | });
+      1034 |
+        at /Users/jarviliu/.codex/worktrees/progress-stop-116/travel/frontend/tests/ui/conversation.spec.ts:1031:72
+
+    Error Context: ../../../../../../../tmp/potato116-web-results/conversation-首次停止快照不冻结上一轮的进展归属/error-context.md
+
+  1 failed
+    tests/ui/conversation.spec.ts:1006:1 › 首次停止快照不冻结上一轮的进展归属 ───────────────────────────────────────

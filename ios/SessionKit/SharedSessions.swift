@@ -653,7 +653,8 @@ public final class SharedSessions: SessionAccess {
                     frozenTurnID = nil
                 }
                 if snapshot.stopping, let turnID = snapshot.activeTurnId,
-                   currentAnswer?.instanceID == snapshot.instanceId, currentAnswer?.turnID == turnID {
+                   (currentAnswer?.instanceID == snapshot.instanceId && currentAnswer?.turnID == turnID)
+                    || (currentProgress?.instanceID == snapshot.instanceId && currentProgress?.turnID == turnID) {
                     freezeAnswer(turnID: turnID)
                 }
                 service = snapshot.entity

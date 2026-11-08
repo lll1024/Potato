@@ -1,0 +1,551 @@
+test_failed_model_attempt_partial_progress_is_not_saved_as_history (test_query_progress.QueryProgressTests.test_failed_model_attempt_partial_progress_is_not_saved_as_history) ... ok
+test_old_records_without_progress_metadata_remain_readable_and_can_continue (test_query_progress.QueryProgressTests.test_old_records_without_progress_metadata_remain_readable_and_can_continue) ... ok
+test_progress_fact_rollback_and_restart_never_promote_unsaved_text_or_tool_success (test_query_progress.QueryProgressTests.test_progress_fact_rollback_and_restart_never_promote_unsaved_text_or_tool_success) ... ok
+test_progress_marker_and_credentials_split_across_chunks_stay_safe_and_short (test_query_progress.QueryProgressTests.test_progress_marker_and_credentials_split_across_chunks_stay_safe_and_short) ... ok
+test_query_text_arrives_before_tools_and_real_outcomes_remain_separate_from_answer (test_query_progress.QueryProgressTests.test_query_text_arrives_before_tools_and_real_outcomes_remain_separate_from_answer) ... ok
+test_remote_stop_answer_keeps_real_outcome_and_reliable_progress (test_query_progress.QueryProgressTests.test_remote_stop_answer_keeps_real_outcome_and_reliable_progress) ... ok
+test_saved_progress_survives_second_client_and_same_database_restart (test_query_progress.QueryProgressTests.test_saved_progress_survives_second_client_and_same_database_restart) ... ok
+test_stopped_query_preserves_real_tool_result_and_failed_save_boundary (test_query_progress.QueryProgressTests.test_stopped_query_preserves_real_tool_result_and_failed_save_boundary) ... ok
+test_tool_failure_is_reported_as_failure_while_answer_can_continue (test_query_progress.QueryProgressTests.test_tool_failure_is_reported_as_failure_while_answer_can_continue) ... ok
+test_unmarked_long_no_query_answer_never_becomes_progress (test_query_progress.QueryProgressTests.test_unmarked_long_no_query_answer_never_becomes_progress) ... ok
+test_answer_accepts_reasoning_blocks_without_exposing_them_as_body (test_answer_streaming.AnswerStreamingTests.test_answer_accepts_reasoning_blocks_without_exposing_them_as_body) ... ok
+test_every_preview_redacts_credentials_split_across_external_chunks (test_answer_streaming.AnswerStreamingTests.test_every_preview_redacts_credentials_split_across_external_chunks) ... ok
+test_explicit_parameter_rejection_and_structured_codes_allow_fallback (test_answer_streaming.AnswerStreamingTests.test_explicit_parameter_rejection_and_structured_codes_allow_fallback) ... ok
+test_explicit_stream_unsupported_falls_back_to_counted_complete_answer (test_answer_streaming.AnswerStreamingTests.test_explicit_stream_unsupported_falls_back_to_counted_complete_answer) ... ok
+test_fallback_at_63_uses_final_reserve_but_final_stream_never_retries (test_answer_streaming.AnswerStreamingTests.test_fallback_at_63_uses_final_reserve_but_final_stream_never_retries) ... Executing <Task finished name='Task-730' coro=<TurnRuntime._run_turn() done, defined at /Users/jarviliu/.codex/worktrees/progress-stop-116/travel/travel_app/sessions/runtime.py:90> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.506 seconds
+Executing <Task finished name='Task-752' coro=<TurnRuntime._run_turn() done, defined at /Users/jarviliu/.codex/worktrees/progress-stop-116/travel/travel_app/sessions/runtime.py:90> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.458 seconds
+ok
+test_midstream_disconnect_retries_with_empty_preview_and_unchanged_input (test_answer_streaming.AnswerStreamingTests.test_midstream_disconnect_retries_with_empty_preview_and_unchanged_input) ... ok
+test_plain_chinese_batches_are_visible_without_line_breaks (test_answer_streaming.AnswerStreamingTests.test_plain_chinese_batches_are_visible_without_line_breaks) ... ok
+test_preview_preserves_text_block_boundaries_for_multiline_secrets (test_answer_streaming.AnswerStreamingTests.test_preview_preserves_text_block_boundaries_for_multiline_secrets) ... ok
+test_process_restart_discards_preview_preserves_dataset_and_never_replays_execution (test_answer_streaming.AnswerStreamingTests.test_process_restart_discards_preview_preserves_dataset_and_never_replays_execution) ... StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 49553)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=70899 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:49554/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:49554/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49554/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49554/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49554/api/snapshot "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=70899 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=70905 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:49583/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49583/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49583/api/sessions/3a65bf5a0ce74cd99e46f387e22301fc "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=70905 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+StreamableHTTP session manager shutting down
+ok
+test_query_commentary_is_not_recalled_as_an_assistant_answer (test_answer_streaming.AnswerStreamingTests.test_query_commentary_is_not_recalled_as_an_assistant_answer) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49601)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49601/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49601/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49601/api/sessions/d706405aa8f244bfaa3eb151e3ff9b52 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49608)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49608/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49608/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49608/api/sessions/d706405aa8f244bfaa3eb151e3ff9b52 "HTTP/1.1 200 OK"
+ok
+test_reasoning_without_answer_text_retries_instead_of_saving_empty_completion (test_answer_streaming.AnswerStreamingTests.test_reasoning_without_answer_text_retries_instead_of_saving_empty_completion) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49615)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49615/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49615/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49615/api/sessions/19fb97def4ec42828c3518ac527469ab "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49615/api/payloads/d9e0c18d984548119b72dd69e189cc9d "HTTP/1.1 200 OK"
+ok
+test_reconnect_during_retry_then_stop_and_failed_save_preserves_real_body (test_answer_streaming.AnswerStreamingTests.test_reconnect_during_retry_then_stop_and_failed_save_preserves_real_body) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49624)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49624/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49624/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49624/api/events "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49624/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49624/api/events?stream_id=ef1c2db045a84258a35cefdf975b4548&after=11 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:49624/api/turns/36b0a71f6e23430c8b03c175b5d8301a/stop "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:49624/api/turns "HTTP/1.1 409 Conflict"
+HTTP Request: GET http://127.0.0.1:49624/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49624/api/sessions/81bf8744237740188521cd4a888c0ecc "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:49624/api/turns "HTTP/1.1 503 Service Unavailable"
+ok
+test_retry_exhaustion_and_stop_during_backoff_release_the_turn (test_answer_streaming.AnswerStreamingTests.test_retry_exhaustion_and_stop_during_backoff_release_the_turn) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49646)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49646/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49646/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49646/api/sessions/f9c0362262a54766a812a5a704c4a6e6 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49653)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49653/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49653/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:49653/api/turns/952cd4bc117e44219de927ea9127456b/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49653/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49653/api/sessions/df2078dd271944f6b9c9974e7eae14c9 "HTTP/1.1 200 OK"
+ok
+test_sdk_stream_ending_without_stop_reason_is_retried_instead_of_saved (test_answer_streaming.AnswerStreamingTests.test_sdk_stream_ending_without_stop_reason_is_retried_instead_of_saved) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49664)>,)> is serving
+HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:49664/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49664/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49664/api/sessions/565b0ad4c5424dfc83a00cbaae6c44b1 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49673)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49673/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49673/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49673/api/sessions/565b0ad4c5424dfc83a00cbaae6c44b1 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49673/api/payloads/1022b89f277a4411a599978ddd64430e "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49682)>,)> is serving
+HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:49682/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49682/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49682/api/sessions/626de24b91344f4ab29a0c03e4646ba2 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49689)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49689/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49689/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49689/api/sessions/626de24b91344f4ab29a0c03e4646ba2 "HTTP/1.1 200 OK"
+ok
+test_snapshot_subscription_handoff_and_two_clients_resume_cumulative_text (test_answer_streaming.AnswerStreamingTests.test_snapshot_subscription_handoff_and_two_clients_resume_cumulative_text) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49696)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49696/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49696/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49696/api/events?after=9&stream_id=1e2472c11f544f4fbf10d64d5a97fc67 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49696/api/events?after=9&stream_id=1e2472c11f544f4fbf10d64d5a97fc67 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49696/api/events?after=9&stream_id=1e2472c11f544f4fbf10d64d5a97fc67 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49696/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49696/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49696/api/sessions/d4016bad5637455a866cff049c306d37 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49696/api/events?after=9&stream_id=1e2472c11f544f4fbf10d64d5a97fc67 "HTTP/1.1 200 OK"
+ok
+test_stop_before_inflight_failure_takes_priority_over_retry_and_fallback (test_answer_streaming.AnswerStreamingTests.test_stop_before_inflight_failure_takes_priority_over_retry_and_fallback) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49715)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49715/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://127.0.0.1:49715/api/turns/d471a314ea5a4eedbf2dff8452631a6a/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49715/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49715/api/sessions/e41ef6d2455741a3a82a78f2285a3075 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49724)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49724/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://127.0.0.1:49724/api/turns/a27d82a17ce84ec68e58013c26bfea80/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49724/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49724/api/sessions/a471f2dc518e4a8c9a126341018f5069 "HTTP/1.1 200 OK"
+ok
+test_stop_waits_for_stream_and_saves_real_normal_or_budget_outcome (test_answer_streaming.AnswerStreamingTests.test_stop_waits_for_stream_and_saves_real_normal_or_budget_outcome) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49733)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49733/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://127.0.0.1:49733/api/turns/2a31ef400f774f46a605e98aa3dd89d9/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49733/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:49733/api/turns "HTTP/1.1 409 Conflict"
+HTTP Request: GET http://127.0.0.1:49733/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49733/api/sessions/9154e6bba646438fa7a628b43e1dfef8 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49733/api/snapshot "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49748)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49748/api/turns "HTTP/1.1 202 Accepted"
+Executing <Task pending name='Task-1341' coro=<TurnRuntime._run_turn() running at /Users/jarviliu/.codex/worktrees/progress-stop-116/travel/travel_app/sessions/runtime.py:92> wait_for=<Future pending cb=[Task.task_wakeup()] created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py:460> created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.491 seconds
+HTTP Request: POST http://127.0.0.1:49748/api/turns/2c5f6ef7828f4b4c8b3f145f166b5db5/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49748/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:49748/api/turns "HTTP/1.1 409 Conflict"
+HTTP Request: GET http://127.0.0.1:49748/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49748/api/sessions/ff72cde99ad14cbaaaf6b8064dff1522 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49748/api/snapshot "HTTP/1.1 200 OK"
+ok
+test_stream_errors_keep_classification_without_accidental_fallback (test_answer_streaming.AnswerStreamingTests.test_stream_errors_keep_classification_without_accidental_fallback) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49764)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49764/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49764/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49764/api/sessions/048f2f20d6b24fcfae1b9880f17c37a4 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49764/api/payloads/3b9ac3d0d6dc4eefbe12f1563414edf2 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49764/api/snapshot "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49777)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49777/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49777/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49777/api/sessions/597500fcf9d040f798c588e86e30dae7 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49777/api/payloads/fcc50e9ebee044229e069c069366e752 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49777/api/snapshot "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49811)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49811/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49811/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49811/api/sessions/0237353b6f78478c9755f4dd3f876468 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49811/api/payloads/23449339953644669e7650f670650d5d "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49811/api/snapshot "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49823)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49823/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49823/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49823/api/sessions/f681f15547d7469fb8d841e173c472e1 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49823/api/payloads/28d36072679943fba0e93b616cc63cd6 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49823/api/snapshot "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49835)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49835/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49835/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49835/api/sessions/27a29ec5a0f641b483e01ed92553d37d "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49835/api/payloads/61e70dcaa7054aa59501bc8a4702dc55 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49835/api/snapshot "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49847)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49847/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49847/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49847/api/sessions/b240ab3fd03240e881450b0c5633b5d5 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49847/api/payloads/de423aa29e5b4de2b2d89c50560c4a71 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49847/api/snapshot "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49859)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49859/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49859/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49859/api/sessions/4715fa4d7e2640ffbb1fc94461352947 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49859/api/payloads/0b8c48a77a794c9aa301341d4c393bb7 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49859/api/snapshot "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49870)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49870/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49870/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49870/api/sessions/5c22b432973441e9bd51f43cb398f1a4 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49870/api/payloads/7f6e884cd103491a971e8ea4e5883893 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49870/api/snapshot "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49881)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49881/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49881/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49881/api/sessions/fb0a63fbe85e4933a917c733dd659a29 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49881/api/payloads/21e55c5cb2204ff3aa5038e7ec677334 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49881/api/snapshot "HTTP/1.1 200 OK"
+ok
+test_stream_result_and_fact_storage_failures_keep_unsaved_body_without_history (test_answer_streaming.AnswerStreamingTests.test_stream_result_and_fact_storage_failures_keep_unsaved_body_without_history) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49892)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49892/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49892/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:49892/api/turns "HTTP/1.1 503 Service Unavailable"
+HTTP Request: GET http://127.0.0.1:49892/api/sessions/31916e1f45df4fb79ec90d6caf7a9114 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49901)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49901/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49901/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:49901/api/turns "HTTP/1.1 503 Service Unavailable"
+HTTP Request: GET http://127.0.0.1:49901/api/sessions/d0af201468aa411081c4b2440bd8f91e "HTTP/1.1 200 OK"
+ok
+test_truncated_stream_keeps_incomplete_normal_and_budget_outcomes (test_answer_streaming.AnswerStreamingTests.test_truncated_stream_keeps_incomplete_normal_and_budget_outcomes) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49910)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49910/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49910/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49910/api/sessions/bbcf76689d9a4974b508aa9892999e52 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49917)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49917/api/turns "HTTP/1.1 202 Accepted"
+Executing <Task finished name='Task-1674' coro=<TurnRuntime._run_turn() done, defined at /Users/jarviliu/.codex/worktrees/progress-stop-116/travel/travel_app/sessions/runtime.py:90> result=None created at /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:395> took 0.450 seconds
+HTTP Request: GET http://127.0.0.1:49917/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49917/api/sessions/6cbfd9a102644f8f93c1249c011471b6 "HTTP/1.1 200 OK"
+ok
+test_unclosed_reading_punctuation_does_not_buffer_safe_chinese (test_answer_streaming.AnswerStreamingTests.test_unclosed_reading_punctuation_does_not_buffer_safe_chinese) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49931)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49931/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49931/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49931/api/sessions/775f84ae4a0047429886bce0859e673e "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49931/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49931/api/sessions/775f84ae4a0047429886bce0859e673e "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49931/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49931/api/sessions/775f84ae4a0047429886bce0859e673e "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49931/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49931/api/sessions/775f84ae4a0047429886bce0859e673e "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49931/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49931/api/sessions/775f84ae4a0047429886bce0859e673e "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49954)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49954/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49954/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49954/api/sessions/6255a3e11ae34644bc729be27503694a "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49954/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49954/api/sessions/6255a3e11ae34644bc729be27503694a "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49954/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49954/api/sessions/6255a3e11ae34644bc729be27503694a "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49954/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49954/api/sessions/6255a3e11ae34644bc729be27503694a "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49954/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49954/api/sessions/6255a3e11ae34644bc729be27503694a "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 49978)>,)> is serving
+HTTP Request: POST http://127.0.0.1:49978/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:49978/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49978/api/sessions/b1dfe822a78b487ea881a8587b89878c "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49978/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49978/api/sessions/b1dfe822a78b487ea881a8587b89878c "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49978/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49978/api/sessions/b1dfe822a78b487ea881a8587b89878c "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49978/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49978/api/sessions/b1dfe822a78b487ea881a8587b89878c "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49978/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:49978/api/sessions/b1dfe822a78b487ea881a8587b89878c "HTTP/1.1 200 OK"
+ok
+test_web_receives_real_batches_before_response_and_atomic_history (test_answer_streaming.AnswerStreamingTests.test_web_receives_real_batches_before_response_and_atomic_history) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50001)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50001/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50001/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50001/api/events?after=9 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50001/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50001/api/sessions/2ef8cc5070a64c0ea875bcb85b18f02a "HTTP/1.1 200 OK"
+socket.send() raised exception.
+HTTP Request: GET http://127.0.0.1:50001/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50001/api/sessions/2ef8cc5070a64c0ea875bcb85b18f02a "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50001/api/snapshot "HTTP/1.1 200 OK"
+ok
+test_late_stop_old_turn_does_not_stop_new_active_turn (test_stop.StopTests.test_late_stop_old_turn_does_not_stop_new_active_turn) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50018)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50018/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50018/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50018/api/sessions/e35eb15224f4482c93763b6ccd5f8d51 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:50018/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://127.0.0.1:50018/api/turns/d2e4e6665fb3498f82888d5a2bc4dfe1/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50018/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50018/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50018/api/sessions/e35eb15224f4482c93763b6ccd5f8d51 "HTTP/1.1 200 OK"
+ok
+test_map_pause_survives_stop_and_real_failure_remains_recorded (test_stop.StopTests.test_map_pause_survives_stop_and_real_failure_remains_recorded) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50035)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50035/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://127.0.0.1:50035/api/turns/65a50f50c757441598735916f13a8cc4/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50035/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50035/api/sessions/598c845af061474fba975c94f0888e19 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50035/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50035/api/state "HTTP/1.1 200 OK"
+ok
+test_natural_model_final_output_limit_and_real_failure_win_stop_race (test_stop.StopTests.test_natural_model_final_output_limit_and_real_failure_win_stop_race) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50048)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50048/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://127.0.0.1:50048/api/turns/a3ff918031e143c48fc36a0111a3e12f/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50048/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50048/api/sessions/839b1f7507b74fdca1a025a8c88c1662 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:50048/api/turns/a3ff918031e143c48fc36a0111a3e12f/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50048/api/sessions/839b1f7507b74fdca1a025a8c88c1662 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50061)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50061/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://127.0.0.1:50061/api/turns/8d1a07cb53a943bf8c6abf8fba566e56/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50061/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50061/api/sessions/539af4004cb14191a7a9fe3f465f1790 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:50061/api/turns/8d1a07cb53a943bf8c6abf8fba566e56/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50061/api/sessions/539af4004cb14191a7a9fe3f465f1790 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50074)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50074/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://127.0.0.1:50074/api/turns/7d7b50c77a5b4123864ad7bf275c0495/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50074/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50074/api/sessions/5a5c9db513464715b6eae16da17df219 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:50074/api/turns/7d7b50c77a5b4123864ad7bf275c0495/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50074/api/sessions/5a5c9db513464715b6eae16da17df219 "HTTP/1.1 200 OK"
+ok
+test_rate_limit_wait_can_stop_without_second_sdk_call (test_stop.StopTests.test_rate_limit_wait_can_stop_without_second_sdk_call) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50087)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50087/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50087/api/events "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:50087/api/turns/78b87580e0284d5f9221ef07c621a823/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50087/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50087/api/sessions/7e5ef04ada874a678a804b1e40af6ae4 "HTTP/1.1 200 OK"
+ok
+test_stop_before_background_call_prevents_sdk_and_unknown_target_is_safe (test_stop.StopTests.test_stop_before_background_call_prevents_sdk_and_unknown_target_is_safe) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://test/api/turns/absent/stop "HTTP/1.1 404 Not Found"
+HTTP Request: POST http://test/api/turns/33aebb7027a84efdaf98350938aefc5e/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions/c0cff85b4f444707929bf0943d27fd05 "HTTP/1.1 200 OK"
+ok
+test_stop_entered_map_preserves_real_result_and_skips_remaining_batch (test_stop.StopTests.test_stop_entered_map_preserves_real_result_and_skips_remaining_batch) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50098)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50098/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://127.0.0.1:50098/api/turns/3821c96ea89447d9a311b303365917d2/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50098/api/events "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50098/api/sessions/817eebde2b7b4e6587190d308101c455 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50098/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50098/api/sessions/817eebde2b7b4e6587190d308101c455 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50098/api/payloads/927aa60c6ddb4d65bd5453a56d3b1308 "HTTP/1.1 200 OK"
+ok
+test_stop_entered_model_waits_keeps_slot_and_skips_all_proposed_tools (test_stop.StopTests.test_stop_entered_model_waits_keeps_slot_and_skips_all_proposed_tools) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50113)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50113/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://127.0.0.1:50113/api/turns/ebe8276b9e494829a1c556edfb9c4481/stop "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:50113/api/turns/ebe8276b9e494829a1c556edfb9c4481/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50113/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:50113/api/turns "HTTP/1.1 409 Conflict"
+HTTP Request: DELETE http://127.0.0.1:50113/api/sessions/ba8cdc8d6874487f8390b4f1502eca54 "HTTP/1.1 409 Conflict"
+HTTP Request: GET http://127.0.0.1:50113/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50113/api/sessions/ba8cdc8d6874487f8390b4f1502eca54 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50113/api/payloads/099ed496a6a94579aee4f538c2b61468 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50113/api/payloads/69bbe78476aa48639935091678d57372 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50113/api/payloads/28495469054a4a05ab5a7b6434937bf0 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:50113/api/turns/ebe8276b9e494829a1c556edfb9c4481/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50113/api/sessions/ba8cdc8d6874487f8390b4f1502eca54 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:50113/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50113/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50113/api/sessions/e880161cacc1470ca6090c3c5d4500f4 "HTTP/1.1 200 OK"
+ok
+test_acceptance_failure_is_atomic_and_submission_read_failure_stops_service (test_storage.StorageTests.test_acceptance_failure_is_atomic_and_submission_read_failure_stops_service) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50146)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50146/api/turns "HTTP/1.1 503 Service Unavailable"
+HTTP Request: GET http://127.0.0.1:50146/api/sessions "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50146/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50146/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50146/api/submissions/once "HTTP/1.1 404 Not Found"
+HTTP Request: POST http://127.0.0.1:50146/api/turns "HTTP/1.1 503 Service Unavailable"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50159)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50159/api/turns "HTTP/1.1 503 Service Unavailable"
+HTTP Request: GET http://127.0.0.1:50159/api/sessions "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50159/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50159/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50159/api/submissions/once "HTTP/1.1 404 Not Found"
+HTTP Request: POST http://127.0.0.1:50159/api/turns "HTTP/1.1 503 Service Unavailable"
+ok
+test_failure_while_model_entered_keeps_slot_and_waits_for_real_return (test_storage.StorageTests.test_failure_while_model_entered_keeps_slot_and_waits_for_real_return) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50173)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50173/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: PATCH http://127.0.0.1:50173/api/sessions/02200d46e1874fdf84dc89725e49e1bc "HTTP/1.1 503 Service Unavailable"
+HTTP Request: GET http://127.0.0.1:50173/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:50173/api/turns "HTTP/1.1 503 Service Unavailable"
+HTTP Request: GET http://127.0.0.1:50173/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50173/api/sessions/02200d46e1874fdf84dc89725e49e1bc "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50173/api/state "HTTP/1.1 200 OK"
+ok
+test_finished_transaction_failure_keeps_request_result_but_excludes_whole_turn_after_restart (test_storage.StorageTests.test_finished_transaction_failure_keeps_request_result_but_excludes_whole_turn_after_restart) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50188)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50188/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50188/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50188/api/sessions/2c7e0f2b30224512861d7b1a9ad980f9 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50188/api/payloads/1a3cf1a7503d4a30825a754b7ecd52f6 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50197)>,)> is serving
+HTTP Request: GET http://127.0.0.1:50197/api/sessions/2c7e0f2b30224512861d7b1a9ad980f9 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50197/api/state "HTTP/1.1 200 OK"
+ok
+test_model_result_or_error_rollback_restarts_as_unknown_without_replay (test_storage.StorageTests.test_model_result_or_error_rollback_restarts_as_unknown_without_replay) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50202)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50202/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50202/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50202/api/sessions/2f7cd36e567f43cb808c0581e62fd971 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:50202/api/turns "HTTP/1.1 503 Service Unavailable"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50211)>,)> is serving
+HTTP Request: GET http://127.0.0.1:50211/api/sessions/2f7cd36e567f43cb808c0581e62fd971 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:50211/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50211/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50211/api/sessions/2f7cd36e567f43cb808c0581e62fd971 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50220)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50220/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50220/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50220/api/sessions/941762db4a9347b99656c3cdff42f6d2 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:50220/api/turns "HTTP/1.1 503 Service Unavailable"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50229)>,)> is serving
+HTTP Request: GET http://127.0.0.1:50229/api/sessions/941762db4a9347b99656c3cdff42f6d2 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:50229/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50229/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50229/api/sessions/941762db4a9347b99656c3cdff42f6d2 "HTTP/1.1 200 OK"
+ok
+test_model_start_failure_never_enters_sdk_and_only_transient_notice_reports_fault (test_storage.StorageTests.test_model_start_failure_never_enters_sdk_and_only_transient_notice_reports_fault) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50238)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50238/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50238/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50238/api/sessions/da21a4064fc94b839353556a02822ff4 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50238/api/events?after=0 "HTTP/1.1 200 OK"
+ok
+test_notification_read_failure_reports_safe_transient_fault_without_fake_cursor (test_storage.StorageTests.test_notification_read_failure_reports_safe_transient_fault_without_fake_cursor) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50247)>,)> is serving
+HTTP Request: GET http://127.0.0.1:50247/api/events?after=0 "HTTP/1.1 200 OK"
+ok
+test_real_sdk_process_restart_preserves_only_committed_tool_facts_and_complete_context (test_storage.StorageTests.test_real_sdk_process_restart_preserves_only_committed_tool_facts_and_complete_context) ... StreamableHTTP session manager started
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=6, laddr=('127.0.0.1', 50250)>,)> is serving
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=71071 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:50251/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:50251/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50251/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50251/api/sessions/26496b99a9d84847989cda70e9085df3 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:50251/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50251/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50251/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50251/api/sessions/26496b99a9d84847989cda70e9085df3 "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=71071 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -15
+execute program '/Users/jarviliu/projects/travel/.venv/bin/python': <_UnixSubprocessTransport pid=71079 running stdout=<_UnixReadPipeTransport fd=7 polling>>
+HTTP Request: GET http://127.0.0.1:50315/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50315/api/sessions/26496b99a9d84847989cda70e9085df3 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:50315/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50315/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50315/api/sessions/26496b99a9d84847989cda70e9085df3 "HTTP/1.1 200 OK"
+<_UnixReadPipeTransport fd=7 polling> was closed by peer
+<_UnixSubprocessTransport pid=71079 running stdout=<_UnixReadPipeTransport closing fd=7 idle>> exited with return code -9
+StreamableHTTP session manager shutting down
+ok
+test_storage_failure_keeps_all_sources_and_transient_notice_redacted (test_storage.StorageTests.test_storage_failure_keeps_all_sources_and_transient_notice_redacted) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50342)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50342/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50342/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50342/api/sessions/73ef50ba98f24b5b888215e0a2af03b5 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50342/api/payloads/5cf7ecd2b2074dc6ace28a889bdece51 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50342/api/payloads/f3ccf05c66d14b1ca2ed78fe86851d86 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50342/api/payloads/8289efcf289a48ce917ff4bd1d1798ed "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50342/api/payloads/675f21f66f5645468624793d289380d6 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50342/api/payloads/a5c201229c1a4175b1c4715d369ea17f "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50342/api/payloads/38b570c7ba174148a59f184b3eead4d8 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50342/api/payloads/0349e07e21914aee89e9c956faae5297 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50342/api/payloads/2b6327b5ac5741e58e2678ec5d887e67 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50342/api/payloads/f1d3353244bf42fdbdc474da65b059ba "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50342/api/payloads/c4491f2171c649c3925d8046d0e73a4a "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50342/api/events?after=0 "HTTP/1.1 200 OK"
+ok
+test_tool_boundaries_rollback_and_stop_following_calls (test_storage.StorageTests.test_tool_boundaries_rollback_and_stop_following_calls) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50371)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50371/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50371/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50371/api/sessions/f6f96d5f8965406ab1b3c24b004e40b3 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50378)>,)> is serving
+HTTP Request: GET http://127.0.0.1:50378/api/sessions/f6f96d5f8965406ab1b3c24b004e40b3 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50382)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50382/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50382/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50382/api/sessions/17e919646c15495883da3dd928c59e25 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50389)>,)> is serving
+HTTP Request: GET http://127.0.0.1:50389/api/sessions/17e919646c15495883da3dd928c59e25 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50392)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50392/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50392/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50392/api/sessions/ea4e2d1e9f8d426b9af2fe157826ad28 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50400)>,)> is serving
+HTTP Request: GET http://127.0.0.1:50400/api/sessions/ea4e2d1e9f8d426b9af2fe157826ad28 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50404)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50404/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50404/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50404/api/sessions/b32efd7ed93045f7bdef007f2d8f1042 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50413)>,)> is serving
+HTTP Request: GET http://127.0.0.1:50413/api/sessions/b32efd7ed93045f7bdef007f2d8f1042 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50416)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50416/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50416/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50416/api/sessions/ffa9e016abb34fc8acd84d6bdbfe70d9 "HTTP/1.1 200 OK"
+<Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50423)>,)> is serving
+HTTP Request: GET http://127.0.0.1:50423/api/sessions/ffa9e016abb34fc8acd84d6bdbfe70d9 "HTTP/1.1 200 OK"
+ok
+test_unexecuted_backfill_failure_keeps_pending_fact_and_no_followup_query (test_storage.StorageTests.test_unexecuted_backfill_failure_keeps_pending_fact_and_no_followup_query) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50428)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50428/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://127.0.0.1:50428/api/turns/15fa8dd48a384bb0a684b476588a7315/stop "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50428/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50428/api/sessions/ca04265f625c43c2a5d3620208f12770 "HTTP/1.1 200 OK"
+ok
+test_completed_submission_stays_queryable_and_is_not_replayed_after_restart (test_submissions.SubmissionTests.test_completed_submission_stays_queryable_and_is_not_replayed_after_restart) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/submissions/finished-question "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/submissions/never-accepted "HTTP/1.1 404 Not Found"
+HTTP Request: GET http://test/api/sessions "HTTP/1.1 200 OK"
+ok
+test_deleted_submission_is_only_a_processed_identity_and_never_recreates_history (test_submissions.SubmissionTests.test_deleted_submission_is_only_a_processed_identity_and_never_recreates_history) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: DELETE http://test/api/sessions/2c659ebfaaa04de3ab640fdcdce7f84f "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/submissions/deleted-question "HTTP/1.1 410 Gone"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 410 Gone"
+HTTP Request: GET http://test/api/sessions "HTTP/1.1 200 OK"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 410 Gone"
+HTTP Request: GET http://test/api/sessions "HTTP/1.1 200 OK"
+ok
+test_failed_acceptance_is_atomic_and_has_safe_storage_error (test_submissions.SubmissionTests.test_failed_acceptance_is_atomic_and_has_safe_storage_error) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 503 Service Unavailable"
+HTTP Request: GET http://test/api/submissions/uncommitted-question "HTTP/1.1 404 Not Found"
+HTTP Request: GET http://test/api/sessions "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+ok
+test_invalid_history_title_and_target_do_not_echo_original_payload (test_submissions.SubmissionTests.test_invalid_history_title_and_target_do_not_echo_original_payload) ... HTTP Request: PATCH http://test/api/sessions/unknown "HTTP/1.1 422 Unprocessable Entity"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 422 Unprocessable Entity"
+ok
+test_invalid_submission_reports_safe_validation_error (test_submissions.SubmissionTests.test_invalid_submission_reports_safe_validation_error) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 422 Unprocessable Entity"
+ok
+test_lost_response_can_retry_and_query_original_acceptance_while_busy (test_submissions.SubmissionTests.test_lost_response_can_retry_and_query_original_acceptance_while_busy) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://test/api/submissions/lost-response "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions "HTTP/1.1 200 OK"
+ok
+test_other_page_receives_unavailable_state_when_acceptance_cannot_be_saved (test_submissions.SubmissionTests.test_other_page_receives_unavailable_state_when_acceptance_cannot_be_saved) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50437)>,)> is serving
+HTTP Request: GET http://127.0.0.1:50437/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:50437/api/turns "HTTP/1.1 503 Service Unavailable"
+ok
+test_same_identity_with_different_input_or_target_is_explicit_conflict (test_submissions.SubmissionTests.test_same_identity_with_different_input_or_target_is_explicit_conflict) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 409 Conflict"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 409 Conflict"
+ok
+test_two_pages_compete_for_one_global_turn_without_queueing (test_submissions.SubmissionTests.test_two_pages_compete_for_one_global_turn_without_queueing) ... HTTP Request: POST http://test/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: POST http://test/api/turns "HTTP/1.1 409 Conflict"
+HTTP Request: GET http://test/api/state "HTTP/1.1 200 OK"
+HTTP Request: GET http://test/api/sessions "HTTP/1.1 200 OK"
+ok
+test_unified_stream_updates_both_pages_without_changing_running_ownership (test_submissions.SubmissionTests.test_unified_stream_updates_both_pages_without_changing_running_ownership) ... <Server sockets=(<asyncio.TransportSocket fd=6, family=2, type=1, proto=0, laddr=('127.0.0.1', 50442)>,)> is serving
+HTTP Request: POST http://127.0.0.1:50442/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50442/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50442/api/sessions/299584af1d8a449ba23ef56e6be7cf06 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50442/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50442/api/events?after=6&stream_id=cb3e4a8499864f8c9cdc1f94c16d7a48 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50442/api/events?after=6&stream_id=cb3e4a8499864f8c9cdc1f94c16d7a48 "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:50442/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50442/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50442/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50442/api/sessions/299584af1d8a449ba23ef56e6be7cf06 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50442/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50442/api/snapshot "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:50442/api/turns "HTTP/1.1 202 Accepted"
+HTTP Request: GET http://127.0.0.1:50442/api/events?after=0 "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:50442/api/sessions/299584af1d8a449ba23ef56e6be7cf06 "HTTP/1.1 200 OK"
+ok
+
+----------------------------------------------------------------------
+Ran 59 tests in 37.330s
+
+OK

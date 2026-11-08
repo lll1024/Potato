@@ -36,10 +36,15 @@ export function useServiceEvents() {
       && frozen.current?.turn === next.active_turn_id;
     if (!matches) frozen.current = null;
     if (!frozen.current && next.stopping && next.active_turn_id) {
+      const belongsToTarget = (value: AnswerPreview | ProgressPreview) => value.instance_id === next.instance_id
+        && value.stream_id === next.stream_id && value.session_id === next.active_session_id && value.turn_id === next.active_turn_id;
       const previous = displayed.current.answer_preview;
+      const progress = displayed.current.progress_preview;
       frozen.current = {instance: next.instance_id, stream: next.stream_id, turn: next.active_turn_id,
-        progress: displayed.current.progress_preview ?? next.progress_preview ?? null,
-        preview: previous && previous.instance_id === next.instance_id && previous.turn_id === next.active_turn_id ? previous : next.answer_preview ?? null};
+        progress: progress && belongsToTarget(progress) ? progress
+          : next.progress_preview && belongsToTarget(next.progress_preview) ? next.progress_preview : null,
+        preview: previous && belongsToTarget(previous) ? previous
+          : next.answer_preview && belongsToTarget(next.answer_preview) ? next.answer_preview : null};
     }
     const value = frozen.current
       ? {...next, stopping: true, answer_preview: frozen.current.preview, progress_preview: frozen.current.progress} : next;

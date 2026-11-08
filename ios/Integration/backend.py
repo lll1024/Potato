@@ -319,8 +319,8 @@ async def main():
                                  static_dir=Path(directory) / "no-static")
 
                 @app.post("/__test__/arm")
-                async def arm_unsaved():
-                    unsaved_model.reset()
+                async def arm_unsaved(mode: str = "normal"):
+                    unsaved_model.reset(mode)
                     return {"armed": True}
 
                 @app.get("/__test__/entered")
