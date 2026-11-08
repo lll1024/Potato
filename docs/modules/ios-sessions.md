@@ -141,6 +141,10 @@ App 的 scene phase 在活跃时启用唯一共享轮询、离开活跃态时取
 
 进展折叠仍根据原始非空回答触发。iOS 17 阅读页面在现有 SwiftUI 结构内通过原生滚动容器保留可见锚点，布局重排不模拟用户滚动；真实滚动到底部或“回到最新”恢复跟随。实现与调度／设备范围见 [#113 验收](../acceptance/stream-smoothing.md)。
 
+## 查询尝试与完整等待（#115）
+
+`ProgressEntry.delivery` 是可选真实交付方式，旧服务缺少时为 `nil`。SessionAccess仍通过同一快照／订阅读取累计条目；Presenter在没有正文的查询阶段也解释空 `retrying` 和 `generating / complete`。可靠工具条目不随失败模型尝试清空，页面按条目和尝试身份取消旧平滑任务；完整交付不进入流式平滑。停止和保存故障保持其原优先级，手机不自行重试模型或重发输入。公开SessionAccess及真实HTTPS界面验证见[查询重试验收](../acceptance/query-retries.md)。
+
 ## 两类内容与即时服务状态交接（#114）
 
 共享会话在现有唯一 SSE 连接中同时读取 `service.state`、`answer.preview` 和 `progress.preview`，不新建独立轮询。即时状态按两类内容已采用次序拒绝过期值；停止状态在采用后续内容前调用既有冻结入口。状态确认活动轮次改变时，通过原有历史入口立即核对当前观察会话，使新轮或已保存终态无需等待下一次普通前台轮询。

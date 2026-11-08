@@ -298,6 +298,54 @@ struct AnswerStreamingTests {
         #expect(try await old.value.turns.first?.queryProgress == nil)
     }
 
+    @Test func queryRetryAndCompleteDeliveryReplaceOnlyTransientModelEntry() async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        defer { sessions.setForeground(false) }
+        await fixture.next().reply(body: snapshot())
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let stream = await fixture.next()
+        stream.beginStream()
+        func progress(_ revision: Int, _ text: String, _ status: String, attempt: String, delivery: String) -> Data {
+            let entries: [[String: Any]] = [
+                ["id":"saved-tool", "attempt_id":"first-query", "kind":"tool", "text":"查找地点资料", "status":"completed"],
+                ["id":attempt, "attempt_id":attempt, "kind":"model", "text":text, "status":status, "delivery":delivery],
+            ]
+            let preview: [String: Any] = ["instance_id":"process", "stream_id":"dataset", "session_id":"existing",
+                "turn_id":"turn", "revision":revision, "entries":entries]
+            let body = try! JSONSerialization.data(withJSONObject: ["schema_version":1, "kind":"progress.preview",
+                "instance_id":"process", "revision":revision, "preview":preview])
+            return Data("event: progress.preview\ndata: ".utf8) + body + Data("\n\n".utf8)
+        }
+        stream.send(progress(1, "失败旧说明", "generating", attempt: "old", delivery: "stream"))
+        try await observed { sessions.progressPreview?.revision == 1 }
+        let saved = try #require(sessions.progressPreview?.entries.first)
+        stream.send(progress(2, "", "retrying", attempt: "old", delivery: "stream"))
+        try await observed { sessions.progressPreview?.entries.last?.status == "retrying" }
+        #expect(sessions.progressPreview?.entries.last?.text == "")
+        #expect(sessions.progressPreview?.entries.first == saved)
+        stream.send(progress(3, "", "generating", attempt: "complete", delivery: "complete"))
+        try await observed { sessions.progressPreview?.revision == 3 }
+        #expect(sessions.progressPreview?.entries.last?.delivery == "complete")
+        #expect(sessions.progressPreview?.entries.last?.attemptID == "complete")
+        #expect(sessions.answerPreview == nil)
+        let complete = "重新查找地点资料。" + String(repeating: "安全中文🙂", count: 100)
+        stream.send(progress(4, complete, "generated", attempt: "complete", delivery: "complete"))
+        try await observed { sessions.progressPreview?.entries.last?.text == complete }
+        #expect(sessions.progressPreview?.entries.first == saved)
+        stream.send(event(text: "真实完整正文", revision: 1, attempt: "answer", status: "generated", delivery: "complete"))
+        try await observed { sessions.answerPreview?.text == "真实完整正文" }
+        #expect(sessions.answerPreview?.delivery == "complete")
+        #expect(await fixture.receivedCount == 4)
+        sessions.setForeground(false)
+        await clock.advance()
+    }
+
     @Test func queryProgressUsesExistingSubscriptionAndKeepsAnswerSeparate() async throws {
         let clock = PollClock()
         let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")

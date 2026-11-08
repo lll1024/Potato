@@ -169,6 +169,64 @@ final class ReadingNavigationTests: XCTestCase {
         attach(app, "横向表格末列")
     }
 
+    func testQueryRetryAndCompleteFallbackReplaceFailedExplanationBeforeAnswer() async throws {
+        for mode in ["query-retry", "query-fallback"] {
+            let app = connectedApp(address: "https://localhost:18497")
+            try await streamControl("arm?mode=" + mode)
+            app.buttons["new-conversation"].tap()
+            let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+            XCTAssertTrue(input.waitForExistence(timeout: 5))
+            input.tap()
+            input.typeText(mode == "query-retry" ? "查询重试验收" : "查询降级验收")
+            app.buttons["send-input"].tap()
+            try await streamControl("entered", method: "GET")
+            try await streamControl("step")
+            let failed = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "失败旧说明")).firstMatch
+            XCTAssertTrue(failed.waitForExistence(timeout: 10))
+            try await streamControl("step")
+            try await streamControl("step")
+            let notice = mode == "query-retry" ? "查询进展正在重试，新尝试将重新生成。" : "模型服务不支持流式，改为生成完整回答。"
+            let explained = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", notice)).firstMatch
+            XCTAssertTrue(explained.waitForExistence(timeout: 5))
+            XCTAssertFalse(failed.exists)
+            XCTAssertFalse(app.buttons["copy-answer"].exists)
+            attach(app, mode + "失败说明失效，查询等待真实解释")
+            if mode == "query-retry" {
+                try await streamControl("step")
+                XCTAssertTrue(app.staticTexts["重新查找西湖"].waitForExistence(timeout: 10))
+                XCTAssertFalse(failed.exists)
+                try await streamControl("step")
+                try await streamControl("step")
+                XCTAssertTrue(app.staticTexts["已取得资料"].waitForExistence(timeout: 5))
+                for _ in 0..<4 { try await streamControl("step") }
+            } else {
+                try await streamControl("step")
+                XCTAssertTrue(app.staticTexts["已取得资料"].waitForExistence(timeout: 5))
+                XCTAssertFalse(app.buttons["copy-answer"].exists)
+                try await streamControl("step")
+            }
+            let copy = app.buttons["copy-answer"]
+            let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "复制完整回答"), object: copy)
+            await fulfillment(of: [saved], timeout: 10)
+            let (stateData, _) = try await URLSession.shared.data(from: URL(string: "https://localhost:18497/api/sessions")!)
+            let list = try XCTUnwrap(JSONSerialization.jsonObject(with: stateData) as? [String: Any])
+            let rows = try XCTUnwrap(list["sessions"] as? [[String: Any]])
+            let id = try XCTUnwrap(rows.first?["session_id"] as? String)
+            let (data, _) = try await URLSession.shared.data(from: URL(string: "https://localhost:18497/api/sessions/" + id)!)
+            let history = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+            let requests = try XCTUnwrap(history["requests"] as? [[String: Any]])
+            let tools = try XCTUnwrap(history["tool_calls"] as? [[String: Any]])
+            let turns = try XCTUnwrap(history["turns"] as? [[String: Any]])
+            XCTAssertEqual(requests.count, 4)
+            XCTAssertEqual(tools.count, 1)
+            XCTAssertEqual(turns.first?["status"] as? String, "completed")
+            XCTAssertFalse(String(describing: turns.first?["query_progress"]).contains("失败旧说明"))
+            if mode == "query-fallback" { XCTAssertEqual(turns.first?["answer_delivery"] as? String, "complete") }
+            attach(app, mode + "真实查询仅执行一次，采用保存结果")
+            app.terminate()
+        }
+    }
+
     func testQueryProgressFoldsAndRemainsReadableAfterRelaunch() async throws {
         let app = connectedApp(address: "https://localhost:18497")
         try await streamControl("arm?mode=query-progress")

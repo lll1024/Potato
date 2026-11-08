@@ -113,10 +113,17 @@ class StreamingModel:
                 "- 步行路线按体力调整。\n- 午后留出休息时间。\n\n" + "最新一批旅行建议。\n\n" * 12,
             ]
         self.attempts = 0
+        self.query_attempts = 0
         self.query_done = False
 
     async def create(self, **parameters):
-        if self.query_done and self.mode == "fallback":
+        if self.mode == "query-fallback" and "tools" in parameters and not self.query_done:
+            await self.release.get()
+            self.query_done = True
+            self.delivered.put_nowait("query-complete")
+            return response([{"type": "text", "text": "进展：改用完整响应查找地点资料。"},
+                {"type": "tool_use", "id": "lake", "name": "maps_text_search", "input": {"keywords": "西湖", "city": "杭州"}}], "tool_use")
+        if self.query_done and self.mode in {"fallback", "query-fallback"} and "tools" not in parameters:
             await self.release.get()
             self.returned = True
             self.delivered.put_nowait("returned")
@@ -128,20 +135,30 @@ class StreamingModel:
     async def stream(self, **parameters):
         model = self
         if "tools" in parameters:
-            if self.mode in {"query-progress", "query-reading"} and not self.query_done:
-                self.query_done = True
+            if self.mode in {"query-progress", "query-reading", "query-retry", "query-fallback"} and not self.query_done:
+                self.query_attempts += 1
+                query_fails = self.mode in {"query-retry", "query-fallback"} and self.query_attempts == 1
+                query_parts = (("进展：失败旧说明", "暂时还未完成的查询。" * 30) if query_fails else
+                               ("进展：重新查找西湖", "的地点资料。") if self.mode == "query-retry" else
+                               ("进展：准备查找西湖", "的地点资料。"))
                 class QueryStream:
                     async def __aiter__(self):
                         model.entered.set()
                         yield SimpleNamespace(type="content_block_start", content_block=SimpleNamespace(type="text", text=""))
-                        for part in ("进展：准备查找西湖", "的地点资料。"):
+                        for part in query_parts:
                             await model.release.get()
                             yield SimpleNamespace(type="content_block_delta", delta=SimpleNamespace(type="text_delta", text=part))
                             model.delivered.put_nowait(part)
                         await model.release.get()
+                        if query_fails:
+                            model.delivered.put_nowait("query-failed")
+                            if model.mode == "query-fallback":
+                                raise status_error(400, {"error": {"code": "streaming_not_supported"}})
+                            raise status_error(429, headers={"Retry-After": "3"})
                     async def get_final_message(self):
+                        model.query_done = True
                         model.delivered.put_nowait("query-returned")
-                        return response([{"type": "text", "text": "进展：准备查找西湖的地点资料。"},
+                        return response([{"type": "text", "text": "".join(query_parts)},
                             {"type": "tool_use", "id": "lake", "name": "maps_text_search", "input": {"keywords": "西湖", "city": "杭州"}}], "tool_use")
                 yield QueryStream()
             else:

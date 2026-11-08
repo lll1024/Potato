@@ -1,0 +1,188 @@
+[
+  {
+    "mode": "query-retry",
+    "identity": {
+      "schema_version": 1,
+      "session_id": "0cb0d515f0de4ca4a9801b3d1a22a52f",
+      "turn_id": "07a7fb0676854caa962a238bd9c50940",
+      "submission_id": "05224207-d6c7-48d3-899a-746639014406"
+    },
+    "at": "2026-11-08T09:57:01.168Z",
+    "waiting": {
+      "answer": null,
+      "entries": [
+        {
+          "id": "4698cccb2bc34b07b057308da3e96638",
+          "attempt_id": "4698cccb2bc34b07b057308da3e96638",
+          "kind": "model",
+          "text": "",
+          "status": "retrying",
+          "delivery": "stream"
+        }
+      ]
+    },
+    "requests": 4,
+    "tools": 1,
+    "outcome": {
+      "turn_id": "07a7fb0676854caa962a238bd9c50940",
+      "session_id": "0cb0d515f0de4ca4a9801b3d1a22a52f",
+      "ordinal": 1,
+      "input": "Web查询验收 query-retry",
+      "status": "completed",
+      "reason": null,
+      "answer": "## 实时杭州旅行\n\n上午游览西湖。\n\n下午参观博物馆。\n",
+      "answer_source": "model",
+      "tool_error_count": 0,
+      "created_at": "2026-11-08T09:56:58.007727+00:00",
+      "finished_at": "2026-11-08T09:57:01.090129+00:00",
+      "duration_ms": 3081.067541614175,
+      "input_payload_id": "c3bec91d42a146e888bac9057e39bbf8",
+      "answer_payload_id": "b9fa3f7426164ceea3792ca44f05ad82",
+      "query_progress": [
+        {
+          "id": "7b26d6755b8547cea325b5aeefb527c8",
+          "attempt_id": "7b26d6755b8547cea325b5aeefb527c8",
+          "kind": "model",
+          "text": "重新查找西湖的地点资料。",
+          "status": "generated",
+          "delivery": "stream"
+        },
+        {
+          "id": "074bc0a468fd468883b912929923c952",
+          "attempt_id": "7b26d6755b8547cea325b5aeefb527c8",
+          "kind": "tool",
+          "text": "查找地点资料",
+          "status": "completed"
+        }
+      ],
+      "answer_delivery": "stream",
+      "model_error_code": null,
+      "travel_date_context": {
+        "timezone": "Asia/Shanghai",
+        "now": "2026-11-08T17:56:58.009365+08:00",
+        "today": "2026-11-08",
+        "weekday": "星期日",
+        "travel_dates": {
+          "status": "unspecified"
+        }
+      },
+      "query_materials": [],
+      "unreadable_query_count": 0,
+      "usage_summary": {
+        "cache_creation_input_tokens": {
+          "value": null,
+          "known_count": 0,
+          "request_count": 4
+        },
+        "cache_read_input_tokens": {
+          "value": null,
+          "known_count": 0,
+          "request_count": 4
+        },
+        "input_tokens": {
+          "value": 3,
+          "known_count": 3,
+          "request_count": 4
+        },
+        "output_tokens": {
+          "value": 3,
+          "known_count": 3,
+          "request_count": 4
+        }
+      }
+    }
+  },
+  {
+    "mode": "query-fallback",
+    "identity": {
+      "schema_version": 1,
+      "session_id": "b1a66b0af16c4cf881b874f3eccbb706",
+      "turn_id": "ba892f413f5045c4b6307989b26eb29e",
+      "submission_id": "3fbefabc-4065-4873-8648-194bd5e902c9"
+    },
+    "at": "2026-11-08T09:57:01.694Z",
+    "waiting": {
+      "answer": null,
+      "entries": [
+        {
+          "id": "81e9d30622934d8987c0c177482b9b96",
+          "attempt_id": "81e9d30622934d8987c0c177482b9b96",
+          "kind": "model",
+          "text": "",
+          "status": "generating",
+          "delivery": "complete"
+        }
+      ]
+    },
+    "requests": 4,
+    "tools": 1,
+    "outcome": {
+      "turn_id": "ba892f413f5045c4b6307989b26eb29e",
+      "session_id": "b1a66b0af16c4cf881b874f3eccbb706",
+      "ordinal": 1,
+      "input": "Web查询验收 query-fallback",
+      "status": "completed",
+      "reason": null,
+      "answer": "完整的杭州安排。",
+      "answer_source": "model",
+      "tool_error_count": 0,
+      "created_at": "2026-11-08T09:57:01.436742+00:00",
+      "finished_at": "2026-11-08T09:57:01.620380+00:00",
+      "duration_ms": 181.8073345348239,
+      "input_payload_id": "b415ba66e0a74b45a7bb169f9bf2e09e",
+      "answer_payload_id": "ceca36b4576044699c86e83c2e76c20b",
+      "query_progress": [
+        {
+          "id": "81e9d30622934d8987c0c177482b9b96",
+          "attempt_id": "81e9d30622934d8987c0c177482b9b96",
+          "kind": "model",
+          "text": "改用完整响应查找地点资料。",
+          "status": "generated",
+          "delivery": "complete"
+        },
+        {
+          "id": "c4909e009cbb4ed3822cba3213b8f11b",
+          "attempt_id": "81e9d30622934d8987c0c177482b9b96",
+          "kind": "tool",
+          "text": "查找地点资料",
+          "status": "completed"
+        }
+      ],
+      "answer_delivery": "complete",
+      "model_error_code": null,
+      "travel_date_context": {
+        "timezone": "Asia/Shanghai",
+        "now": "2026-11-08T17:57:01.438818+08:00",
+        "today": "2026-11-08",
+        "weekday": "星期日",
+        "travel_dates": {
+          "status": "unspecified"
+        }
+      },
+      "query_materials": [],
+      "unreadable_query_count": 0,
+      "usage_summary": {
+        "cache_creation_input_tokens": {
+          "value": null,
+          "known_count": 0,
+          "request_count": 4
+        },
+        "cache_read_input_tokens": {
+          "value": null,
+          "known_count": 0,
+          "request_count": 4
+        },
+        "input_tokens": {
+          "value": 3,
+          "known_count": 3,
+          "request_count": 4
+        },
+        "output_tokens": {
+          "value": 3,
+          "known_count": 3,
+          "request_count": 4
+        }
+      }
+    }
+  }
+]

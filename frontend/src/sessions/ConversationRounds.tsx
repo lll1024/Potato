@@ -42,7 +42,7 @@ function QueryProgress({entries, turnID, hasAnswerStarted, isCurrent, identity, 
     <p className="hint">{isCurrent ? '当前进展 · 尚未全部保存' : '已保存的查询进展'}，取得资料不代表已完成核实</p>
     <ol>{visible.map(entry => <li key={entry.id}>
       <StreamingText text={entry.text} identity={`${identity}:${entry.id}:${entry.attempt_id}`}
-        live={isCurrent && entry.status === 'generating'} stopped={stopped} recovery={recovery}>
+        live={isCurrent && entry.status === 'generating' && entry.delivery !== 'complete'} stopped={stopped} recovery={recovery}>
         {text => <span>{text}</span>}
       </StreamingText> <small>{entry.kind === 'model'
         ? ({generating: '正在说明', generated: '行动说明', invalidated: '说明已失效', retrying: '正在重试'}[entry.status] ?? '行动说明')
@@ -64,6 +64,7 @@ export function ConversationRounds({turns, statusText, onTrace, activity, stoppi
 }) {
   return <>{turns.map(turn => {
     const current = turn.status === 'running' && preview?.turn_id === turn.turn_id ? preview : null;
+    const currentProgress = turn.status === 'running' && progress?.turn_id === turn.turn_id ? progress : null;
     return <section key={turn.turn_id} aria-label={`第 ${turn.ordinal} 轮对话`}>
     <div className="round-heading"><p className="round-status">第 {turn.ordinal} 轮 · {turn.turn_id === storageTurnId ? '存储故障，结果未完整保存' : statusText(turn)}</p>{onTrace && <button type="button" onClick={() => onTrace(turn)}>查看本轮轨迹</button>}</div>
     <article className="message user" data-reading-anchor={`input:${turn.turn_id}`}><h3>你的输入</h3><p>{turn.input}</p></article>
@@ -77,8 +78,9 @@ export function ConversationRounds({turns, statusText, onTrace, activity, stoppi
       isCurrent={turn.status === 'running' && progress?.turn_id === turn.turn_id} />
     {(current || progress?.turn_id === turn.turn_id) && current?.status !== 'retrying' && turn.turn_id !== storageTurnId && onStop && <button type="button"
       disabled={stoppingTurnId === turn.turn_id || disconnected} onClick={() => onStop(turn)}>停止生成</button>}
+    {stoppingTurnId !== turn.turn_id && storageTurnId !== turn.turn_id && currentProgress?.entries.some(entry => entry.kind === 'model' && entry.status === 'retrying') && <p className="hint" role="status">查询进展正在重试，新尝试将重新生成。</p>}
     {current?.status === 'retrying' && <p className="hint" role="status">正在重试，新尝试将从头作答。</p>}
-    {(current?.delivery === 'complete' || turn.answer_delivery === 'complete') && <p className="hint">模型服务不支持流式，改为生成完整回答。</p>}
+    {(current?.delivery === 'complete' || turn.answer_delivery === 'complete' || currentProgress?.entries.some(entry => entry.kind === 'model' && entry.delivery === 'complete')) && <p className="hint">模型服务不支持流式，改为生成完整回答。</p>}
     {current?.text.trim() && <article className="message answer" data-reading-anchor={`answer:${turn.turn_id}`}>
       <div className="answer-heading"><h3>旅行助手</h3><span>{turn.turn_id === storageTurnId ? '未保存 · 请复制保留，刷新后可能丢失'
         : stoppingTurnId === turn.turn_id ? '正在停止 · 正文已暂停追加' : current.status === 'generated' ? '正在保存 · 尚未保存' : '正在生成 · 尚未保存'}</span></div>
