@@ -277,6 +277,41 @@ final class ReadingNavigationTests: XCTestCase {
         attach(app, "真实回答保存完成")
     }
 
+    func testForegroundRestoresQueryProgressThenSavedAnswerWithoutReplay() async throws {
+        let app = connectedApp(address: "https://localhost:18497")
+        try await streamControl("arm?mode=query-progress")
+        app.buttons["new-conversation"].tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        input.tap(); input.typeText("进展与正文前后台恢复")
+        app.buttons["send-input"].tap()
+        try await streamControl("entered", method: "GET")
+        try await streamControl("step")
+        XCTAssertTrue(app.staticTexts["准备查找西湖"].waitForExistence(timeout: 10))
+        XCUIDevice.shared.press(.home)
+        try await streamControl("step")
+        app.activate()
+        XCTAssertTrue(app.staticTexts["准备查找西湖的地点资料。"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["copy-answer"].exists)
+        attach(app, "前台恢复查询阶段完整累计进展")
+        XCUIDevice.shared.press(.home)
+        try await streamControl("step")
+        try await streamControl("step")
+        app.activate()
+        XCTAssertTrue(app.staticTexts["实时杭州旅行"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["copy-answer"].label, "复制当前正文")
+        app.buttons["query-progress"].tap()
+        XCTAssertTrue(app.staticTexts["已取得资料"].waitForExistence(timeout: 5))
+        attach(app, "恢复正文并展开同轮可靠查询状态")
+        XCUIDevice.shared.press(.home)
+        for _ in 0..<3 { try await streamControl("step") }
+        app.activate()
+        let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "复制完整回答"), object: app.buttons["copy-answer"])
+        await fulfillment(of: [saved], timeout: 10)
+        XCTAssertTrue(app.staticTexts["下午参观博物馆。"].waitForExistence(timeout: 5))
+        attach(app, "后台完成后直接采用真实保存回答")
+    }
+
     func testAnswerReallyGrowsBeforeCompletionAndThenBecomesSavedHistory() async throws {
         let app = connectedApp(address: "https://localhost:18497")
         try await streamControl("arm")

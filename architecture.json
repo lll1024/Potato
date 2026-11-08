@@ -49,6 +49,10 @@
       "owner": "integration",
       "role": "caller-test"
     },
+    "frontend/tests/ui/progress-recovery-live.spec.ts": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
     "frontend/tests/ui/answer-model-live.spec.ts": {
       "owner": "integration",
       "role": "caller-test"

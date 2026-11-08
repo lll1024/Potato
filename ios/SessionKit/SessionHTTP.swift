@@ -218,7 +218,7 @@ struct SessionEventParser {
             guard let line = String(data: bytes, encoding: .utf8) else { throw SessionFailure.invalidResponse }
             pending.removeSubrange(...end)
             if line.isEmpty {
-                if ["answer.preview", "progress.preview"].contains(kind), !lines.isEmpty {
+                if ["answer.preview", "progress.preview", "service.state"].contains(kind), !lines.isEmpty {
                     let decoder = JSONDecoder()
                     decoder.keyDecodingStrategy = .convertFromSnakeCase
                     events.append(try decoder.decode(WireAnswerEvent.self, from: Data(lines.joined(separator: "\n").utf8)))
@@ -242,14 +242,25 @@ struct WireAnswerEvent: Decodable, Sendable {
     let revision: Int
     let preview: AnswerPreview?
     let progress: ProgressPreview?
+    let state: WireLiveState?
     let kind: String
-    enum CodingKeys: String, CodingKey { case schemaVersion, instanceId, revision, preview, kind }
+    enum CodingKeys: String, CodingKey { case schemaVersion, instanceId, revision, preview, kind, state }
     init(from decoder: any Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         schemaVersion = try values.decode(Int.self, forKey: .schemaVersion)
+        kind = try values.decodeIfPresent(String.self, forKey: .kind) ?? "answer.preview"
+        if kind == "service.state" {
+            let live = try values.decode(WireLiveState.self, forKey: .state)
+            state = live
+            instanceId = live.instanceId
+            revision = 0
+            preview = nil
+            progress = nil
+            return
+        }
+        state = nil
         instanceId = try values.decode(String.self, forKey: .instanceId)
         revision = try values.decode(Int.self, forKey: .revision)
-        kind = try values.decodeIfPresent(String.self, forKey: .kind) ?? "answer.preview"
         if kind == "progress.preview" {
             progress = try values.decodeIfPresent(ProgressPreview.self, forKey: .preview)
             preview = nil
@@ -257,5 +268,24 @@ struct WireAnswerEvent: Decodable, Sendable {
             preview = try values.decodeIfPresent(AnswerPreview.self, forKey: .preview)
             progress = nil
         }
+    }
+}
+
+/// 服务状态与内容共享同一订阅；不把状态通知计为持久事件游标。
+struct WireLiveState: Decodable, Sendable {
+    let schemaVersion: Int
+    let instanceId: String
+    let activeSessionId: String?
+    let activeTurnId: String?
+    let accepting: Bool
+    let stopping: Bool
+    let storageError: String?
+    let unsavedFact: [String: String]?
+    let answerRevision: Int?
+    let progressRevision: Int?
+
+    func entity(streamID: String) -> ServiceState {
+        ServiceState(streamID: streamID, activeSessionID: activeSessionId, activeTurnID: activeTurnId,
+                     accepting: accepting, stopping: stopping, storageError: storageError, unsavedFact: unsavedFact)
     }
 }
