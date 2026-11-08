@@ -21,6 +21,12 @@ type ServiceSnapshot = ServiceState & { schema_version: number; state?: ServiceS
 export function useServiceEvents() {
   const [state, setState] = useState<ServiceState>({active_turn_id:null,active_session_id:null,
     accepting:false,stopping:false,map_paused:false,map_pause_reason:null,service_status:'unavailable'});
+  // 仅持久完成通知授权的短暂显示交接；不回填规范 answer_preview。
+  const [answerHandoff, setAnswerHandoff] = useState<AnswerPreview | null>(null);
+  const [progressHandoff, setProgressHandoff] = useState<ProgressPreview | null>(null);
+  const handoffProgressRevision = useRef(-1);
+  const handoff = useRef<AnswerPreview | null>(null);
+  const clearAnswerHandoff = useCallback(() => {handoff.current = null; setAnswerHandoff(null); setProgressHandoff(null);}, []);
   const [revision, setRevision] = useState(0);
   const [contentRecoveryRevision, setContentRecoveryRevision] = useState(0);
   const [datasetRevision, setDatasetRevision] = useState(0);
@@ -32,6 +38,15 @@ export function useServiceEvents() {
   const displayed = useRef<ServiceState>(state);
   const frozen = useRef<{instance: string | undefined; stream: string; turn: string; preview: AnswerPreview | null; progress: ProgressPreview | null} | null>(null);
   const publish = useCallback((next: ServiceSnapshot) => {
+    const held = handoff.current;
+    const incoming = next.answer_preview;
+    const incomingProgress = next.progress_preview;
+    if (held && (held.instance_id !== next.instance_id || held.stream_id !== next.stream_id
+      || (next.active_turn_id && (next.active_turn_id !== held.turn_id || next.active_session_id !== held.session_id))
+      || next.storage_error || (incomingProgress && (incomingProgress.turn_id !== held.turn_id || incomingProgress.session_id !== held.session_id
+        || (incomingProgress.revision > handoffProgressRevision.current && incomingProgress.entries.some(entry => ['invalidated', 'retrying'].includes(entry.status)))))
+      || (incoming && (incoming.attempt_id !== held.attempt_id || incoming.turn_id !== held.turn_id
+        || incoming.session_id !== held.session_id || ['invalidated', 'retrying'].includes(incoming.status))))) clearAnswerHandoff();
     const matches = frozen.current?.instance === next.instance_id && frozen.current?.stream === next.stream_id
       && frozen.current?.turn === next.active_turn_id;
     if (!matches) frozen.current = null;
@@ -50,7 +65,7 @@ export function useServiceEvents() {
       ? {...next, stopping: true, answer_preview: frozen.current.preview, progress_preview: frozen.current.progress} : next;
     displayed.current = value;
     setState(value);
-  }, []);
+  }, [clearAnswerHandoff]);
   const beginStop = useCallback((turnId: string) => {
     const current = currentSnapshot.current;
     if (current?.active_turn_id === turnId) publish({...current, stopping: true});
@@ -95,6 +110,7 @@ export function useServiceEvents() {
       const current = currentSnapshot.current;
       if (!current || instance !== current.instance_id) {
         ++stateRead.current;
+        clearAnswerHandoff();
         if (current) {
           frozen.current = null;
           currentSnapshot.current = {...current, answer_preview: null, progress_preview: null, stopping: false};
@@ -144,6 +160,18 @@ export function useServiceEvents() {
             cursor = notice.cursor;
             if (processed.has(notice.event_id)) return;
             processed.add(notice.event_id);
+            const preview = displayed.current.answer_preview;
+            if (notice.kind === 'turn.finished' && notice.data?.answer_source === 'model'
+              && (notice.data.status === 'completed' || ['output_limit', 'budget'].includes(notice.data.reason))
+              && preview?.text.trim() && !['invalidated', 'retrying'].includes(preview.status)
+              && preview.session_id === notice.session_id && preview.turn_id === notice.turn_id) {
+              handoff.current = {...preview, status: 'generated'};
+              setAnswerHandoff(handoff.current);
+              const progress = displayed.current.progress_preview;
+              handoffProgressRevision.current = progress?.revision ?? -1;
+              setProgressHandoff(progress && progress.instance_id === preview.instance_id && progress.stream_id === preview.stream_id
+                && progress.session_id === preview.session_id && progress.turn_id === preview.turn_id ? progress : null);
+            }
             if (notice.kind === 'session.deleted') setDeletedSession(notice.session_id);
             setRevision(current => current + 1);
           } catch { reconnect(); }
@@ -201,7 +229,7 @@ export function useServiceEvents() {
     }
     void connect();
     return () => {cancelled = true; ++stateRead.current; stream?.close(); window.clearTimeout(reconnectTimer);};
-  }, [refresh, publish]);
+  }, [refresh, publish, clearAnswerHandoff]);
 
-  return {state,setState,revision,contentRecoveryRevision,datasetRevision,deletedSession,connectionError,recoveryNotice,refresh,beginStop};
+  return {state,setState,answerHandoff,progressHandoff,clearAnswerHandoff,revision,contentRecoveryRevision,datasetRevision,deletedSession,connectionError,recoveryNotice,refresh,beginStop};
 }

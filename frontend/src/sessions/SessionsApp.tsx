@@ -45,7 +45,7 @@ export function SessionsApp({PreferencesView}: {PreferencesView: ComponentType<{
   const [traceLocation,setTraceLocation]=useState<TraceLocation | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const {draft, setDraft, removeDraft, clearSubmittedDraft, clearDrafts} = useConversationDraft(sessionId);
-  const {state, revision: serviceRevision, datasetRevision, deletedSession, connectionError, recoveryNotice, refresh: refreshService, beginStop, contentRecoveryRevision} = useServiceEvents();
+  const {state, answerHandoff, progressHandoff, clearAnswerHandoff, revision: serviceRevision, datasetRevision, deletedSession, connectionError, recoveryNotice, refresh: refreshService, beginStop, contentRecoveryRevision} = useServiceEvents();
   const {snapshot, error, setError, loadingEarlier, loadEarlier: readEarlier, invalidate} = useSessionPage<Snapshot>(sessionId, serviceRevision, 'include_messages=false', datasetRevision, true);
 
   const submission = useSubmission((accepted, submitted) => {
@@ -111,13 +111,19 @@ export function SessionsApp({PreferencesView}: {PreferencesView: ComponentType<{
     setError('');
     await submission.send(failed.input, sessionId, true);
   }
+  useEffect(() => clearAnswerHandoff(), [sessionId, view, clearAnswerHandoff]);
+  useEffect(() => {
+    if (answerHandoff && turns.some(item => item.turn_id === answerHandoff.turn_id && item.status !== 'running')) clearAnswerHandoff();
+  }, [turns, answerHandoff, clearAnswerHandoff]);
   const rawPreview = state.answer_preview?.session_id === sessionId ? state.answer_preview : null;
-  const visibleText = useStreamingText({text: rawPreview?.text ?? '',
-    identity: JSON.stringify([sessionId, view, rawPreview?.instance_id, rawPreview?.turn_id, rawPreview?.attempt_id]),
-    live: rawPreview?.status === 'generating' && rawPreview.delivery !== 'complete' && !storageTurnId,
+  const presentationPreview = rawPreview ?? (answerHandoff?.session_id === sessionId ? answerHandoff : null);
+  const visibleText = useStreamingText({text: presentationPreview?.text ?? '',
+    identity: JSON.stringify([sessionId, view, presentationPreview?.instance_id, presentationPreview?.turn_id, presentationPreview?.attempt_id]),
+    live: presentationPreview?.status === 'generating' && presentationPreview.delivery !== 'complete' && !storageTurnId,
     stopped: state.stopping, recovery: contentRecoveryRevision});
-  const preview = rawPreview ? {...rawPreview, text: visibleText} : null;
-  const progress = state.progress_preview?.session_id === sessionId ? state.progress_preview : null;
+  const preview = presentationPreview ? {...presentationPreview, text: visibleText} : null;
+  const progress = state.progress_preview?.session_id === sessionId ? state.progress_preview
+    : progressHandoff?.session_id === sessionId ? progressHandoff : null;
   const conversationFollow=useReadingFollow(sessionId, turn ? JSON.stringify([turn.turn_id,turn.status,turn.answer,preview?.revision,progress?.revision,snapshot?.events?.at(-1)?.event_id]) : '');
   const activity: RoundActivity = snapshot ?? {};
   function showTurnTrace(turn: Turn) {
@@ -152,7 +158,7 @@ export function SessionsApp({PreferencesView}: {PreferencesView: ComponentType<{
           <ReadingScroll className="messages" identity={sessionId} paused={conversationFollow.paused} scrollRef={conversationFollow.ref} onScroll={conversationFollow.onScroll}>
           {sessionId && !snapshot ? <div className="empty" role="status"><h3>正在读取会话…</h3><p>正在恢复已保存的对话与执行记录。</p></div> : turn ? <>
             {canLoadEarlier && <button className="load-earlier" disabled={loadingEarlier} onClick={() => void loadEarlier()}>加载更早对话</button>}
-            <ConversationRounds progress={progress} preview={preview} rawPreview={rawPreview} contentRecoveryRevision={contentRecoveryRevision} turns={turns} statusText={statusText} onTrace={showTurnTrace} activity={activity} onStop={stopTurn}
+            <ConversationRounds progress={progress} preview={preview} rawPreview={rawPreview} contentRecoveryRevision={contentRecoveryRevision} turns={turns} statusText={statusText} onTrace={showTurnTrace} activity={activity} onStop={state.active_turn_id ? stopTurn : undefined}
               onRetry={failed => void retryTurn(failed)} retryTurnId={turn && (isExceptional(turn) || turn.turn_id === storageTurnId) ? turn.turn_id : undefined}
               storageTurnId={storageTurnId}
               retryBlocked={retryBlocked}
