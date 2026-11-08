@@ -48,6 +48,8 @@ struct AnswerView: View {
                 }
                 .markdownTheme(.basic)
                 .textSelection(.enabled)
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("answer-body")
             Button((copied ? "已复制" : "复制") + copyLabel, systemImage: copied ? "checkmark" : "doc.on.doc") {
                 UIPasteboard.general.string = displayed
                 copied = true

@@ -11,55 +11,153 @@ final class ReadingNavigationTests: XCTestCase {
         }
         let environment = try XCTUnwrap(JSONSerialization.jsonObject(with: metadata) as? [String: Any])
         XCTAssertEqual(environment["kind"] as? String, "configured-model-answer-acceptance")
+        let prompt = try XCTUnwrap(environment["prompt"] as? String)
+        let preparation = try XCTUnwrap(environment["preparation_prompt"] as? String)
         let app = connectedApp(address: base)
         app.buttons["new-conversation"].tap()
-        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        var input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
         XCTAssertTrue(input.waitForExistence(timeout: 5))
-        input.tap()
-        input.typeText("联合验收：只依据我给定的信息，用中文详细写一份居家旅行行前准备清单，不查询外部资料，不需要实时价格、天气或开放信息。请以标题‘联合验收旅行’开头，分成十个主题，每个主题至少写五条具体建议，最后附一张十行的检查表。全文约两千字，直接给出完整正文。")
-        app.buttons["send-input"].tap()
-        let copy = app.buttons["copy-answer"]
-        XCTAssertTrue(copy.waitForExistence(timeout: 120))
-        var observations: [[String: Any]] = []
-        var previous = ""
-        let deadline = Date().addingTimeInterval(90)
-        while observations.count < 2 && Date() < deadline {
-            let displayed = app.scrollViews.firstMatch.staticTexts.allElementsBoundByIndex.map(\.label).joined(separator: "\n")
-            if displayed.count > previous.count + 50 && copy.label == "复制当前正文" {
-                let (data, _) = try await URLSession.shared.data(from: URL(string: base + "/api/snapshot")!)
-                let snapshot = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
-                let preview = try XCTUnwrap(snapshot["answer_preview"] as? [String: Any])
-                let id = try XCTUnwrap(snapshot["active_session_id"] as? String)
-                let (history, _) = try await URLSession.shared.data(from: URL(string: base + "/api/sessions/" + id)!)
-                let page = try XCTUnwrap(JSONSerialization.jsonObject(with: history) as? [String: Any])
-                let turns = try XCTUnwrap(page["turns"] as? [[String: Any]])
-                let requests = try XCTUnwrap(page["requests"] as? [[String: Any]])
-                XCTAssertEqual(preview["status"] as? String, "generating")
-                XCTAssertEqual(preview["delivery"] as? String, "stream")
-                XCTAssertEqual(turns.first?["status"] as? String, "running")
-                XCTAssertTrue(turns.first?["answer"] is NSNull)
-                XCTAssertEqual(requests.filter { $0["status"] as? String == "running" }.count, 1)
-                observations.append(["at": ISO8601DateFormatter().string(from: Date()),
-                    "session_id": id, "turn_id": snapshot["active_turn_id"]!,
-                    "revision": preview["revision"]!, "displayed": displayed,
-                    "preview_chars": (preview["text"] as? String)?.count ?? 0,
-                    "history_status": "running", "history_answer": NSNull()])
-                attach(app, "真实模型第\(observations.count)批，响应与保存尚未完成")
-                previous = displayed
+        input.tap(); input.typeText(preparation); app.buttons["send-input"].tap()
+        // 真实准备轮单独计账；两端进入已有会话后才发目标输入，不暂停任何模型流。
+        var sessionID = ""
+        var prepared = false
+        let preparationDeadline = Date().addingTimeInterval(180)
+        while Date() < preparationDeadline {
+            let list = try await liveGet("/api/sessions")
+            if let sessions = list["sessions"] as? [[String: Any]], let id = sessions.first?["session_id"] as? String {
+                sessionID = id
+                let history = try await liveGet("/api/sessions/" + id + "?summary=false&include_messages=false")
+                if let turns = history["turns"] as? [[String: Any]], turns.first?["status"] as? String == "completed" { prepared = true; break }
             }
-            // 只轮询观察界面，不控制或延迟模型、服务与客户端输出。
-            if observations.count < 2 { try await Task.sleep(for: .milliseconds(300)) }
+            try await Task.sleep(for: .milliseconds(300))
         }
-        XCTAssertEqual(observations.count, 2)
-        let evidence = try JSONSerialization.data(withJSONObject: ["environment": environment, "observations": observations], options: [.prettyPrinted, .sortedKeys])
-        let attachment = XCTAttachment(data: evidence, uniformTypeIdentifier: "public.json")
-        attachment.name = "真实模型与 iOS 多批正文证据"
-        attachment.lifetime = .keepAlways
-        add(attachment)
-        let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "复制完整回答"), object: copy)
-        await fulfillment(of: [saved], timeout: 120)
-        XCTAssertFalse(app.staticTexts["正在生成 · 尚未保存"].exists)
+        XCTAssertTrue(prepared)
+        try await livePost("/__acceptance__/coordination/ios_session", ["session_id": sessionID])
+        var webReady = false
+        let readyDeadline = Date().addingTimeInterval(180)
+        while Date() < readyDeadline {
+            let readiness = try await liveGet("/__acceptance__/coordination")
+            if readiness["web_ready"] != nil { webReady = true; break }
+            try await Task.sleep(for: .milliseconds(300))
+        }
+        XCTAssertTrue(webReady)
+        var observations: [[String: Any]] = []
+        let began = Date()
+        observations.append(["epoch_ms": began.timeIntervalSince1970 * 1000, "phase": "before_target_input", "rendered_document_chars": 0, "rendered_progress_chars": 0])
+        input.tap(); input.typeText(prompt); app.buttons["send-input"].tap()
+        var target = ""
+        var saved: [String: Any] = [:]
+        var savedHistory: [String: Any] = [:]
+        var queryImage = false
+        var answerImage = false
+        var stableSaved = 0
+        let deadline = Date().addingTimeInterval(600)
+        while Date() < deadline {
+            let operationBegan = Date()
+            let snapshot = try await liveGet("/api/snapshot")
+            let history = try await liveGet("/api/sessions/" + sessionID + "?summary=false&include_messages=false")
+            let turns = history["turns"] as? [[String: Any]] ?? []
+            if turns.count > 1 { target = turns[1]["turn_id"] as? String ?? ""; saved = turns[1]; savedHistory = history }
+            let region = app.descendants(matching: .any).matching(identifier: "conversation-turn-" + target).firstMatch
+            let body = region.descendants(matching: .any).matching(identifier: "answer-body").firstMatch
+            let displayed = body.exists ? body.staticTexts.allElementsBoundByIndex.map(\.label).joined(separator: "\n") : ""
+            let progress = region.staticTexts.matching(identifier: "query-progress-text").allElementsBoundByIndex.map(\.label)
+            let statuses = region.staticTexts.matching(identifier: "query-progress-status").allElementsBoundByIndex.map(\.label)
+            let preview = snapshot["answer_preview"] as? [String: Any]
+            let queryPreview = snapshot["progress_preview"] as? [String: Any]
+            let entries = queryPreview?["entries"] as? [[String: Any]] ?? []
+            observations.append(["epoch_ms": Date().timeIntervalSince1970 * 1000,
+                "elapsed_seconds": Date().timeIntervalSince(began), "session_id": sessionID, "turn_id": target,
+                "rendered_document_chars": displayed.count, "rendered_progress_chars": progress.joined(separator: "\n").count,
+                "progress_labels": progress, "progress_statuses": statuses,
+                "copy_label": region.buttons["copy-answer"].exists ? region.buttons["copy-answer"].label : "",
+                "runner_snapshot_answer_chars": (preview?["text"] as? String)?.count ?? 0,
+                "runner_snapshot_answer_revision": preview?["revision"] ?? NSNull(),
+                "runner_snapshot_progress_revision": queryPreview?["revision"] ?? NSNull(),
+                "runner_snapshot_progress_chars": entries.reduce(0) { $0 + (($1["text"] as? String)?.count ?? 0) },
+                "history_status": saved["status"] ?? "not_accepted", "observation_duration_ms": Date().timeIntervalSince(operationBegan) * 1000])
+            if !queryImage && !progress.isEmpty { attach(app, "真实查询进展初现"); queryImage = true }
+            if !answerImage && !displayed.isEmpty { attach(app, "真实正文初现且查询自动折叠"); answerImage = true }
+            if saved["status"] as? String == "completed" { stableSaved += 1 } else { stableSaved = 0 }
+            if stableSaved >= 2 { break }
+            try await Task.sleep(for: .milliseconds(150))
+        }
+        XCTAssertEqual(saved["status"] as? String, "completed")
+        XCTAssertTrue(answerImage)
+        let finalAnswer = try XCTUnwrap(saved["answer"] as? String)
+        let finalProgress = saved["query_progress"] as? [[String: Any]] ?? []
+        if environment["scenario"] as? String == "query" { XCTAssertTrue(queryImage); XCTAssertFalse(finalProgress.isEmpty) }
+        else { XCTAssertTrue(finalProgress.isEmpty); XCTAssertFalse(queryImage) }
         attach(app, "真实模型回答已保存")
+        let outcome: [String: Any] = ["environment": environment, "session_id": sessionID, "turn_id": target,
+            "observations": observations, "outcome": saved,
+            "measurement": "UI可访问性排版字符；runner快照为旁路公开核对，不是App收到SSE时间"]
+        try await livePost("/__acceptance__/ios-evidence", outcome)
+        try await livePost("/__acceptance__/coordination/ios_saved", ["turn_id": target])
+        // Web先复制，再交手机使用共享系统剪贴板。
+        var webCopied = false
+        let copyDeadline = Date().addingTimeInterval(120)
+        while Date() < copyDeadline {
+            if (try await liveGet("/__acceptance__/coordination"))["web_copied"] != nil { webCopied = true; break }
+            try await Task.sleep(for: .milliseconds(300))
+        }
+        XCTAssertTrue(webCopied)
+        let copies = app.buttons.matching(identifier: "copy-answer")
+        let copy = copies.element(boundBy: copies.count - 1)
+        for _ in 0..<8 { if copy.isHittable { break }; app.swipeUp(velocity: .fast) }
+        XCTAssertTrue(copy.isHittable)
+        XCTAssertEqual(copy.label, "复制完整回答")
+        copy.tap()
+        input.tap(); input.press(forDuration: 1.2)
+        let paste = app.menuItems.matching(NSPredicate(format: "label IN %@", ["粘贴", "Paste"])).firstMatch
+        XCTAssertTrue(paste.waitForExistence(timeout: 5)); paste.tap()
+        XCTAssertEqual(input.value as? String, finalAnswer)
+        attach(app, "真实最终Markdown复制全文一致")
+        input.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: finalAnswer.count))
+        app.terminate(); app.launch()
+        let reopen = app.buttons.matching(identifier: "open-session").firstMatch
+        XCTAssertTrue(reopen.waitForExistence(timeout: 15)); reopen.tap()
+        let history = try await liveGet("/api/sessions/" + sessionID + "?summary=false&include_messages=false")
+        let reopenedTurns = try XCTUnwrap(history["turns"] as? [[String: Any]])
+        XCTAssertEqual(reopenedTurns[1]["answer"] as? String, finalAnswer)
+        XCTAssertEqual(try JSONSerialization.data(withJSONObject: reopenedTurns[1]["query_progress"] ?? [], options: .sortedKeys),
+                       try JSONSerialization.data(withJSONObject: finalProgress, options: .sortedKeys))
+        let reopenedRegion = app.descendants(matching: .any).matching(identifier: "conversation-turn-" + target).firstMatch
+        if !finalProgress.isEmpty {
+            XCTAssertEqual(reopenedRegion.staticTexts.matching(identifier: "query-progress-text").count, 0)
+            let disclosure = reopenedRegion.buttons["query-progress"]
+            for _ in 0..<12 { if disclosure.isHittable { break }; app.swipeDown(velocity: .fast) }
+            XCTAssertTrue(disclosure.isHittable); disclosure.tap()
+            XCTAssertGreaterThan(reopenedRegion.staticTexts.matching(identifier: "query-progress-text").count, 0)
+            attach(app, "重开App展开已保存查询进展")
+        }
+        input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        XCTAssertTrue(input.exists)
+        let toolsBefore = savedHistory["tool_calls"] as? [[String: Any]] ?? []
+        let toolsAfter = history["tool_calls"] as? [[String: Any]] ?? []
+        XCTAssertEqual(toolsBefore.count, toolsAfter.count)
+        var finalEvidence = outcome
+        finalEvidence["copy_markdown_equal"] = true; finalEvidence["reopened_progress_equal"] = true
+        finalEvidence["tools_before_reopen"] = toolsBefore.count; finalEvidence["tools_after_reopen"] = toolsAfter.count
+        try await livePost("/__acceptance__/ios-evidence", finalEvidence)
+        try await livePost("/__acceptance__/coordination/ios_finished", ["turn_id": target])
+        let evidence = try JSONSerialization.data(withJSONObject: finalEvidence, options: [.prettyPrinted, .sortedKeys])
+        let attachment = XCTAttachment(data: evidence, uniformTypeIdentifier: "public.json")
+        attachment.name = "真实模型与iOS全程证据"; attachment.lifetime = .keepAlways; add(attachment)
+    }
+
+    private func liveGet(_ path: String) async throws -> [String: Any] {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "https://localhost:18499" + path)!)
+        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
+        return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    }
+
+    private func livePost(_ path: String, _ value: [String: Any]) async throws {
+        var request = URLRequest(url: URL(string: "https://localhost:18499" + path)!)
+        request.httpMethod = "POST"; request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: value)
+        let (_, response) = try await URLSession.shared.data(for: request)
+        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
     }
 
     func testPaginationExternalLinkAndFullCopy() async throws {
