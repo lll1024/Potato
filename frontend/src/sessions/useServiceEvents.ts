@@ -59,16 +59,21 @@ export function useServiceEvents() {
     if (reading === stateRead.current) {
       const previous = currentSnapshot.current;
       let next = {...result, ...result.state};
-      if (previous?.instance_id === next.instance_id && previous?.stream_id === next.stream_id
-        && (previous.progress_revision ?? -1) > (next.progress_revision ?? -1)) {
-        next = {...next, progress_revision: previous.progress_revision, progress_preview: previous.progress_preview};
+      if (previous && previous.instance_id === next.instance_id && previous.stream_id === next.stream_id) {
+        const oldAnswer = (previous.answer_revision ?? -1) > (next.answer_revision ?? -1);
+        const oldProgress = (previous.progress_revision ?? -1) > (next.progress_revision ?? -1);
+        if (oldAnswer || oldProgress) {
+          // 两类内容独立交接；旧状态不能释放名额，但另一类较新累计内容仍可采用。
+          next = {...previous,
+            answer_revision: oldAnswer ? previous.answer_revision : next.answer_revision,
+            answer_preview: oldAnswer ? previous.answer_preview : next.answer_preview,
+            progress_revision: oldProgress ? previous.progress_revision : next.progress_revision,
+            progress_preview: oldProgress ? previous.progress_preview : next.progress_preview};
+        }
       }
-      if (!previous || previous.stream_id !== next.stream_id || previous.instance_id !== next.instance_id
-        || (next.answer_revision ?? -1) >= (previous.answer_revision ?? -1)) {
-        currentSnapshot.current = next;
-        setContentRecoveryRevision(value => value + 1);
-        publish(next);
-      }
+      currentSnapshot.current = next;
+      setContentRecoveryRevision(value => value + 1);
+      publish(next);
     }
     return result;
   }, [publish]);
@@ -149,7 +154,6 @@ export function useServiceEvents() {
             const preview: AnswerPreview | null = notice.preview;
             if (preview && (preview.instance_id !== current.instance_id || preview.stream_id !== current.stream_id
               || preview.revision !== notice.revision)) return;
-            ++stateRead.current;
             currentSnapshot.current = {...current, answer_revision: notice.revision, answer_preview: preview};
             publish(currentSnapshot.current);
           } catch { reconnect(); }
@@ -165,7 +169,6 @@ export function useServiceEvents() {
             const preview: ProgressPreview | null = notice.preview;
             if (preview && (preview.instance_id !== current.instance_id || preview.stream_id !== current.stream_id
               || preview.revision !== notice.revision)) return;
-            ++stateRead.current;
             currentSnapshot.current = {...current, progress_revision: notice.revision, progress_preview: preview};
             publish(currentSnapshot.current);
           } catch { reconnect(); }
@@ -176,8 +179,8 @@ export function useServiceEvents() {
             const notice = JSON.parse((event as MessageEvent).data);
             if (notice.schema_version !== 1 || !notice.state) throw new Error('服务状态无法识别。');
             const current = requireInstance(notice.state.instance_id);
-            if (notice.state.answer_revision !== undefined && notice.state.answer_revision < (current.answer_revision ?? -1)) return;
-            ++stateRead.current;
+            if ((notice.state.answer_revision !== undefined && notice.state.answer_revision < (current.answer_revision ?? -1))
+              || (notice.state.progress_revision !== undefined && notice.state.progress_revision < (current.progress_revision ?? -1))) return;
             // 状态与正文在网络中可以交错，正文按自己的次序保留，由会话及轮次投影决定是否展示。
             const next = {...current, ...notice.state, answer_revision: current.answer_revision, answer_preview: current.answer_preview,
               progress_revision: current.progress_revision, progress_preview: current.progress_preview};

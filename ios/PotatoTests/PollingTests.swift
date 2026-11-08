@@ -388,6 +388,101 @@ struct AnswerStreamingTests {
         await clock.advance()
     }
 
+    @Test func liveStateReconcilesAheadProgressWithoutWaitingForPolling() async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        defer { sessions.setForeground(false) }
+        await fixture.next().reply(body: snapshot())
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let stream = await fixture.next()
+        stream.beginStream()
+        stream.send(progressEvent(revision: 8, text: "新轮已经准备查找资料", turn: "next-turn"))
+        stream.send(stateEvent(progressRevision: 8, turn: "next-turn"))
+        try await observed { sessions.service?.activeTurnID == "next-turn" && sessions.progressPreview?.revision == 8 }
+        #expect(sessions.progressPreview?.entries.first?.text == "新轮已经准备查找资料")
+        let history = await fixture.next()
+        #expect(history.protocolRequest.request.url?.path == "/api/sessions/existing")
+        history.reply(body: page().replacingOccurrences(of: "\"turn\"", with: "\"next-turn\"").replacingOccurrences(of: "\"ordinal\":1", with: "\"ordinal\":2"))
+        try await observed { sessions.conversation?.turns.contains(where: { $0.id == "next-turn" }) == true }
+        let checking = Task { try await sessions.refresh() }
+        await fixture.next().reply(body: snapshot(active: false).replacingOccurrences(of: "\"answer_revision\":0", with: "\"answer_revision\":0,\"progress_revision\":7"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        _ = try await checking.value
+        #expect(sessions.service?.activeTurnID == "next-turn")
+        stream.send(stateEvent(progressRevision: 7, turn: nil))
+        stream.send(progressEvent(revision: 9, text: nil, turn: "next-turn"))
+        try await observed { sessions.progressPreview == nil }
+        stream.send(progressEvent(revision: 8, text: "旧内容不能复活", turn: "next-turn"))
+        stream.fail()
+        try await observed { sessions.answerFailure != nil }
+        #expect(sessions.service?.activeTurnID == "next-turn")
+        #expect(sessions.progressPreview == nil)
+        #expect(await fixture.receivedCount == 7)
+        await clock.advance()
+    }
+
+    @Test(arguments: ["running", "completed", "restarted"])
+    func queryProgressRecoveryUsesSnapshotAndReliableHistory(result: String) async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        defer { sessions.setForeground(false) }
+        await fixture.next().reply(body: progressSnapshot(revision: 1, text: "断线前说明"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let old = await fixture.next()
+        old.beginStream(); old.fail()
+        try await observed { sessions.answerFailure != nil }
+        let recovery = sessions.contentRecoveryRevision
+        await clock.advance()
+        let current = String(repeating: "离开期间已取得的累计行动说明🙂", count: 50)
+        let body = result == "running" ? progressSnapshot(revision: 4, text: current)
+            : result == "completed" ? progressSnapshot(revision: 4, text: nil, active: false)
+            : progressSnapshot(revision: 0, text: nil, active: false).replacingOccurrences(of: "process", with: "new-process")
+        await fixture.next().reply(body: body)
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        let saved = page(answer: "已保存回答").replacingOccurrences(of: "\"status\":\"completed\"", with:
+            "\"status\":\"completed\",\"query_progress\":[{\"id\":\"tool\",\"attempt_id\":\"query\",\"kind\":\"tool\",\"text\":\"查找地点资料\",\"status\":\"completed\"}]")
+        var interruptedPage = try JSONSerialization.jsonObject(with: Data(saved.utf8)) as! [String: Any]
+        var interruptedTurns = interruptedPage["turns"] as! [[String: Any]]
+        interruptedTurns[0]["status"] = "terminated"
+        interruptedTurns[0]["reason"] = "service_interrupted"
+        interruptedPage["turns"] = interruptedTurns
+        let interrupted = String(decoding: try JSONSerialization.data(withJSONObject: interruptedPage), as: UTF8.self)
+        await fixture.next().reply(body: result == "running" ? page() : result == "completed" ? saved : interrupted)
+        _ = await clock.nextInterval()
+        let resumed = await fixture.next()
+        resumed.beginStream()
+        #expect(sessions.contentRecoveryRevision > recovery)
+        old.send(progressEvent(revision: 99, text: "旧连接不应复活的说明"))
+        if result == "running" {
+            #expect(sessions.progressPreview?.entries.first?.text == current)
+            resumed.send(progressEvent(revision: 5, text: "恢复后继续说明"))
+            try await observed { sessions.progressPreview?.revision == 5 }
+            resumed.send(progressEvent(revision: 6, text: nil))
+            try await observed { sessions.progressPreview == nil }
+            resumed.send(progressEvent(revision: 5, text: "旧次序不应复活"))
+        } else {
+            #expect(sessions.progressPreview == nil)
+            #expect(sessions.conversation?.turns.first?.queryProgress?.first?.status == "completed")
+            if result == "restarted" { #expect(sessions.conversation?.turns.first?.reason == "service_interrupted") }
+        }
+        resumed.fail()
+        try await observed { sessions.answerFailure != nil }
+        #expect(sessions.progressPreview == nil)
+        #expect(await fixture.receivedCount == 8)
+        sessions.setForeground(false)
+        await clock.advance()
+    }
+
     @Test func receivesBatchesBeforeSavedHistoryThroughOneForegroundSubscription() async throws {
         let clock = PollClock()
         let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
@@ -790,6 +885,34 @@ struct AnswerStreamingTests {
         #expect(sessions.canSubmit == !unsaved)
         sessions.setForeground(false)
         await clock.advance()
+    }
+
+    private func progressEvent(revision: Int, text: String?, turn: String = "turn") -> Data {
+        let preview: Any = text.map { ["instance_id":"process", "stream_id":"dataset", "session_id":"existing",
+            "turn_id":turn, "revision":revision, "entries":[["id":"query", "attempt_id":"request", "kind":"model", "status":"generating", "text":$0]]] as [String: Any] } ?? NSNull()
+        let body = try! JSONSerialization.data(withJSONObject: ["schema_version":1,"kind":"progress.preview",
+            "instance_id":"process","revision":revision,"preview":preview])
+        return Data("event: progress.preview\ndata: ".utf8) + body + Data("\n\n".utf8)
+    }
+
+    private func progressSnapshot(revision: Int, text: String?, active: Bool = true) -> String {
+        let preview: Any
+        if let text {
+            preview = ["instance_id":"process","stream_id":"dataset","session_id":"existing","turn_id":"turn","revision":revision,
+                       "entries":[["id":"query","attempt_id":"request","kind":"model","status":"generating","text":text]]] as [String: Any]
+        } else { preview = NSNull() }
+        let data = try! JSONSerialization.data(withJSONObject: ["schema_version":1,"stream_id":"dataset","instance_id":"process",
+            "answer_revision":0,"answer_preview":NSNull(),"progress_revision":revision,"progress_preview":preview,
+            "active_session_id":"existing","active_turn_id":active ? "turn" : NSNull(),"accepting":true,"stopping":false])
+        return String(decoding: data, as: UTF8.self)
+    }
+
+    private func stateEvent(progressRevision: Int, turn: String?) -> Data {
+        let state: [String: Any] = ["schema_version":1,"instance_id":"process","answer_revision":0,
+            "progress_revision":progressRevision,"active_session_id":"existing","active_turn_id":turn as Any? ?? NSNull(),
+            "accepting":true,"stopping":false]
+        let body = try! JSONSerialization.data(withJSONObject: ["schema_version":1,"kind":"service.state","state":state])
+        return Data("event: service.state\ndata: ".utf8) + body + Data("\n\n".utf8)
     }
 
     private func snapshot(revision: Int = 0, text: String? = nil, active: Bool = true) -> String {

@@ -14,6 +14,7 @@ from http_fixtures import serving, wait_finished
 from service_fixtures import MapService, ModelService, response
 from record_faults import fail_event
 from model_fixtures import connection_error, status_error
+from process_fixtures import ExternalServices, process
 
 
 class QueryModel:
@@ -522,3 +523,97 @@ class QueryProgressTests(unittest.IsolatedAsyncioTestCase):
                 finally:
                     model.answer_release.set()
                     for _ in range(10): model.release.put_nowait(None)
+
+    async def test_two_clients_reconnect_progress_and_answer_without_replaying_queries(self):
+        model, maps = QueryModel(), GatedMap()
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory, model, maps=maps) as client:
+                identity = (await client.post('/api/turns', json={'input':'双客户端恢复进展'})).json()
+                async def notice(lines, kind):
+                    async with asyncio.timeout(3):
+                        async for line in lines:
+                            if line.startswith('data:'):
+                                event = json.loads(line[5:])
+                                if event.get('kind') == kind: return event
+                    self.fail('未收到当前累计内容')
+                try:
+                    model.release.put_nowait(None)
+                    await asyncio.wait_for(model.delivered.get(), 2)
+                    before = (await client.get('/api/snapshot')).json()
+                    model.release.put_nowait(None)
+                    await asyncio.wait_for(model.delivered.get(), 2)
+                    path = f'/api/events?after={before["cursor"]}&stream_id={before["stream_id"]}'
+                    async with client.stream('GET', path) as first, client.stream('GET', path) as second:
+                        a, b = await asyncio.gather(notice(first.aiter_lines(), 'progress.preview'),
+                                                    notice(second.aiter_lines(), 'progress.preview'))
+                        self.assertEqual(a, b)
+                        self.assertEqual(a['preview']['entries'][0]['text'], '准备查找西湖的地点资料。')
+                        self.assertGreater(a['revision'], before['progress_revision'])
+                        self.assertNotIn('cursor', a)
+                        await first.aclose()
+                        model.release.put_nowait(None)
+                        await asyncio.wait_for(maps.entered.wait(), 2)
+                        self.assertEqual(len(model.requests), 1)
+                        self.assertFalse(model.answer_entered.is_set())
+                    # 离开一个页面或断开全部订阅都不停止已接受轮次。
+                    maps.release.set()
+                    await asyncio.wait_for(model.answer_entered.wait(), 2)
+                    active = (await client.get('/api/snapshot')).json()
+                    self.assertEqual(active['active_turn_id'], identity['turn_id'])
+                    self.assertEqual(next(entry['status'] for entry in active['progress_preview']['entries'] if entry['kind'] == 'tool'), 'completed')
+                    self.assertEqual(active['answer_preview']['text'], '')
+                    async with client.stream('GET', path) as resumed:
+                        lines = resumed.aiter_lines()
+                        answer = await notice(lines, 'answer.preview')
+                        progress = await notice(lines, 'progress.preview')
+                        self.assertEqual(answer['preview'], active['answer_preview'])
+                        self.assertEqual(progress['preview'], active['progress_preview'])
+                    model.answer_release.set()
+                    saved = await asyncio.wait_for(wait_finished(client, identity['session_id']), 3)
+                    self.assertEqual(saved['turns'][0]['answer'], '西湖旅行安排。')
+                    self.assertEqual(saved['turns'][0]['query_progress'][-1]['status'], 'completed')
+                    self.assertEqual(len(saved['tool_calls']), 1)
+                    self.assertEqual(len(model.requests), 3)
+                finally:
+                    maps.release.set(); model.answer_release.set()
+                    for _ in range(10): model.release.put_nowait(None)
+
+    async def test_process_restart_keeps_reliable_progress_and_discards_both_live_channels(self):
+        release = asyncio.Queue()
+        async def reply(parameters):
+            last = parameters['messages'][-1]['content']
+            querying = 'tools' in parameters and isinstance(last, str)
+            content = ([{'type':'text','text':'进展：准备查找西湖地点资料。'},
+                        {'type':'tool_use','id':'lake','name':'maps_text_search','input':{'keywords':'西湖','city':'杭州'}}]
+                       if querying else [{'type':'text','text':'资料齐全。' if 'tools' in parameters else '正在形成的旅行正文'}])
+            return {'id':'restart-response','type':'message','role':'assistant','model':'test-model','content':content,
+                    'stop_reason':'tool_use' if querying else 'end_turn','usage':{'input_tokens':3,'output_tokens':2}}
+        external = ExternalServices(model_handler=reply, stream_wait=release.get)
+        with tempfile.TemporaryDirectory() as directory:
+            async with external.serving() as address:
+                async with process(directory, address) as (child, client, _):
+                    accepted = (await client.post('/api/turns', json={'input':'调用地图取得可靠资料后形成回答'})).json()
+                    release.put_nowait(None)
+                    async with asyncio.timeout(8):
+                        while True:
+                            before = (await client.get('/api/snapshot')).json()
+                            if before['answer_preview'] and before['answer_preview']['text']: break
+                            await asyncio.sleep(.01)
+                    saved = (await client.get('/api/sessions/' + accepted['session_id'])).json()['turns'][0]['query_progress']
+                    self.assertEqual([entry['kind'] for entry in saved], ['model', 'tool'])
+                    self.assertEqual(saved[-1]['status'], 'completed')
+                    self.assertIsNotNone(before['progress_preview'])
+                    child.kill(); await child.wait()
+                calls = len(external.model_calls), len(external.map_calls)
+                async with process(directory, address) as (_, client, _):
+                    after = (await client.get('/api/snapshot')).json()
+                    self.assertEqual(after['stream_id'], before['stream_id'])
+                    self.assertNotEqual(after['instance_id'], before['instance_id'])
+                    self.assertIsNone(after['answer_preview'])
+                    self.assertIsNone(after['progress_preview'])
+                    history = (await client.get('/api/sessions/' + accepted['session_id'])).json()['turns'][0]
+                    self.assertEqual(history['reason'], 'service_interrupted')
+                    self.assertIsNone(history['answer'])
+                    self.assertEqual(history['query_progress'], saved)
+                    self.assertEqual((len(external.model_calls), len(external.map_calls)), calls)
+                release.put_nowait(None)

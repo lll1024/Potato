@@ -9,6 +9,7 @@
 | 当前查询进展与独立最终正文 | [#111 验收](query-progress.md) | 公开 HTTP／SSE、真实 SQLite、SessionAccess 同订阅与模拟器／Web 页面；持久回看和平滑及当前实际模型联合验收由后续任务完成 |
 | 两端短暂平滑与阅读保位 | [#113 验收](stream-smoothing.md) | 200ms绝对逻辑窗口、小块即时、恢复直达、停止清队列、字素／复制及真实折叠保位；可控界面与原生连续帧分别解释 |
 | 安全小片段正文连续显示 | [#110 验收](continuous-body.md) | 普通未闭合阅读标点积压红绿、公开 HTTP／SSE、两端九批中文及当前模型时序；完整查询进展联合验收由 #117 交付 |
+| 查询进展与正文的断线／前后台恢复 | [#114 恢复验收](progress-recovery.md) | 双通道次序、即时状态、真实子进程、单订阅与两端恢复页面；当前模型另见后续联合验收 |
 | 当前真实模型与 Web／iOS 最终联合验收 | [#104 联合验收](streaming-final.md)、[58 条故事映射](streaming-final-mapping.md) | DeepSeek 当前配置实连、同轮保存前多批正文、恢复／重试／停止／保存失败交叉与兼容；模拟器与真机范围分别记录 |
 | Web／iOS 流式 Markdown 与阅读跟随 | [#103 验收](stream-reading.md) | 半成型代码／表格／链接、长中文、同轮增长、上翻保位、回到最新及当前 Markdown 全文复制 |
 | Web／iOS 停止、未保存正文与未完成结果 | [#102 验收](answer-outcomes.md) | 公开 HTTP／SSE、SessionAccess、停止完成竞争、SQLite 故障、截断、63／64 预算与两端复制界面 |

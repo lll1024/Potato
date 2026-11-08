@@ -1036,3 +1036,56 @@ for (const width of [1440, 390]) test(`查询重试清除平滑旧说明，保�
   await expect(page.locator('.query-progress')).not.toContainText('重新查找交通资料');
   await page.screenshot({path: test.info().outputPath('query-complete-wait.png')});
 });
+
+test('查询进展次序阻止旧状态提前释放名额', async ({page}) => {
+  const app = await conversation(page);
+  app.sessions[0].status = 'running'; app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip';
+  await app.notify();
+  await page.getByRole('button', {name: /杭州行程.*正在执行/}).click();
+  await page.getByRole('textbox').fill('保留下一条草稿');
+  await page.evaluate(state => {
+    const source = (window as unknown as {source: EventTarget}).source;
+    source.dispatchEvent(new MessageEvent('progress.preview', {data: JSON.stringify({schema_version:1, kind:'progress.preview',
+      instance_id:'process', revision:8, preview:{instance_id:'process', stream_id:'conversation-test', session_id:'trip',
+        turn_id:'turn', revision:8, entries:[{id:'query',attempt_id:'request',kind:'model',status:'generating',text:'准备查找西湖资料'}]}})}));
+    source.dispatchEvent(new MessageEvent('service.state', {data: JSON.stringify({schema_version:1,
+      state:{...state, progress_revision:7, active_turn_id:null, active_session_id:null}})}));
+  }, app.state);
+  await expect(page.getByRole('region', {name:'查询进展',exact:true})).toContainText('准备查找西湖资料');
+  await expect(page.getByRole('button', {name:'发送旅行需求',exact:true})).toBeDisabled();
+  expect(app.writes).toEqual([]);
+});
+
+test('同一快照独立交接进展和正文，不丢弃另一通道的新内容', async ({page}) => {
+  const app = await conversation(page);
+  app.sessions[0].status = 'running';
+  await page.locator('.history-select').filter({hasText:'杭州行程'}).click();
+  await page.getByRole('textbox').fill('开始查询');
+  let release!: () => void, entered!: () => void;
+  const waiting = new Promise<void>(resolve => { release = resolve; });
+  const requested = new Promise<void>(resolve => { entered = resolve; });
+  await page.route('**/api/snapshot', async route => {
+    entered(); await waiting;
+    await route.fulfill({json:{schema_version:1, cursor:0, stream_id:'conversation-test', state:{...app.state,
+      answer_revision:5, answer_preview:{instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',
+        attempt_id:'answer',revision:5,text:'较旧正文',status:'generating'},
+      progress_revision:10, progress_preview:{instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',revision:10,
+        entries:[{id:'query',attempt_id:'query',kind:'model',status:'generated',text:'快照中已经完成的查询说明'}]}}}});
+  });
+  await page.getByRole('button', {name:'发送旅行需求',exact:true}).click();
+  await requested;
+  await app.notify();
+  await page.evaluate(() => (window as unknown as {source:EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview', {
+    data:JSON.stringify({schema_version:1,kind:'answer.preview',instance_id:'process',revision:6,
+      preview:{instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',attempt_id:'answer',revision:6,
+        text:'实时连接中更新的正文',status:'generating'}})})));
+  await expect(page.getByText('实时连接中更新的正文',{exact:true})).toBeVisible();
+  release();
+  const progress = page.getByRole('region',{name:'查询进展',exact:true});
+  await expect(progress).toBeVisible();
+  await progress.locator('summary').click();
+  await expect(progress).toContainText('快照中已经完成的查询说明');
+  await expect(page.getByText('实时连接中更新的正文',{exact:true})).toBeVisible();
+  await expect(page.getByText('较旧正文',{exact:true})).toHaveCount(0);
+  expect(app.writes).toEqual(['开始查询']);
+});

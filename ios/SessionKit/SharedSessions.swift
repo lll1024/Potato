@@ -14,6 +14,8 @@ public final class SharedSessions: SessionAccess {
     public private(set) var conversationFailure: SessionFailure?
     public private(set) var contentRecoveryRevision = 0
     public private(set) var answerFailure: SessionFailure?
+    private var pendingProgress: ProgressPreview?
+    private var pendingAnswer: AnswerPreview?
     private var currentProgress: ProgressPreview?
     private var frozenProgress: ProgressPreview?
     private var progressRevision = -1
@@ -151,7 +153,9 @@ public final class SharedSessions: SessionAccess {
                 conversation = nil
                 conversationFailure = .http(404)
                 currentAnswer = nil
+                pendingAnswer = nil
                 currentProgress = nil
+                pendingProgress = nil
                 progressRevision = -1
                 cancelAnswerSubscription()
             } else if !(error is CancellationError), error as? SessionFailure != .obsolete {
@@ -469,7 +473,9 @@ public final class SharedSessions: SessionAccess {
         guard watchedSessionID != sessionID else { return }
         cancelAnswerSubscription()
         currentAnswer = nil
+        pendingAnswer = nil
         currentProgress = nil
+        pendingProgress = nil
         progressRevision = -1
         answerRevision = -1
         watchedSessionID = sessionID
@@ -637,20 +643,27 @@ public final class SharedSessions: SessionAccess {
             }
             datasetID = snapshot.streamId
             dataset = datasetGeneration
-            if snapshot.instanceId != answerInstance || snapshot.activeTurnId != frozenTurnID {
-                frozenAnswer = nil
-                frozenProgress = nil
-                frozenTurnID = nil
+            let currentState = answerInstance != snapshot.instanceId
+                || ((snapshot.answerRevision ?? answerRevision) >= answerRevision
+                    && (snapshot.progressRevision ?? progressRevision) >= progressRevision)
+            if currentState {
+                if snapshot.instanceId != answerInstance || snapshot.activeTurnId != frozenTurnID {
+                    frozenAnswer = nil
+                    frozenProgress = nil
+                    frozenTurnID = nil
+                }
+                if snapshot.stopping, let turnID = snapshot.activeTurnId,
+                   currentAnswer?.instanceID == snapshot.instanceId, currentAnswer?.turnID == turnID {
+                    freezeAnswer(turnID: turnID)
+                }
+                service = snapshot.entity
             }
-            if snapshot.stopping, let turnID = snapshot.activeTurnId,
-               currentAnswer?.instanceID == snapshot.instanceId, currentAnswer?.turnID == turnID {
-                freezeAnswer(turnID: turnID)
-            }
-            service = snapshot.entity
             if answerInstance != snapshot.instanceId {
                 cancelAnswerSubscription()
                 currentAnswer = nil
+                pendingAnswer = nil
                 currentProgress = nil
+                pendingProgress = nil
                 progressRevision = -1
                 answerRevision = -1
                 answerInstance = snapshot.instanceId
@@ -661,9 +674,10 @@ public final class SharedSessions: SessionAccess {
             if let instance = snapshot.instanceId, let revision = snapshot.progressRevision {
                 try adoptProgress(instance: instance, revision: revision, preview: snapshot.progressPreview)
             }
+            if let instance = snapshot.instanceId { try adoptPendingContent(instance: instance) }
             contentRecoveryRevision += 1
-            if snapshot.stopping, let turnID = snapshot.activeTurnId { freezeAnswer(turnID: turnID) }
-            if stopOperation == nil {
+            if currentState, snapshot.stopping, let turnID = snapshot.activeTurnId { freezeAnswer(turnID: turnID) }
+            if currentState, stopOperation == nil {
                 switch stopState {
                 case .requesting(let target), .waiting(let target), .uncertain(let target):
                     if snapshot.activeTurnId != target.turnID { stopState = .idle }
@@ -777,7 +791,9 @@ public final class SharedSessions: SessionAccess {
                 if watchedSessionID == sessionID {
                     conversation = nil
                     currentAnswer = nil
+                    pendingAnswer = nil
                     currentProgress = nil
+                    pendingProgress = nil
                     progressRevision = -1
                     cancelAnswerSubscription()
                     invalidateEarlierTurns()
@@ -802,7 +818,9 @@ public final class SharedSessions: SessionAccess {
         frozenTurnID = nil
         cancelAnswerSubscription()
         currentAnswer = nil
+        pendingAnswer = nil
         currentProgress = nil
+        pendingProgress = nil
         progressRevision = -1
         answerInstance = nil
         answerRevision = -1
@@ -822,11 +840,15 @@ public final class SharedSessions: SessionAccess {
                   ["generating", "generated", "invalidated", "retrying"].contains(preview.status) else {
                 throw SessionFailure.invalidResponse
             }
-            // 全局状态尚未核对到新轮次时，等下一次累计快照，不能混入原轮次。
+            // 全局状态尚未核对到新轮次时，暂存候选，不能混入原轮次。
             let active = preview.turnID == service?.activeTurnID && preview.sessionID == service?.activeSessionID
             let unsaved = service?.storageError != nil && service?.unsavedFact?["turn_id"] == preview.turnID
-            guard active || unsaved else { return }
+            guard active || unsaved else {
+                if preview.sessionID == watchedSessionID, revision > (pendingAnswer?.revision ?? -1) { pendingAnswer = preview }
+                return
+            }
         }
+        if (pendingAnswer?.revision ?? -1) <= revision { pendingAnswer = nil }
         answerRevision = revision
         currentAnswer = preview
     }
@@ -839,10 +861,50 @@ public final class SharedSessions: SessionAccess {
             }
             let active = preview.turnID == service?.activeTurnID && preview.sessionID == service?.activeSessionID
             let unsaved = service?.storageError != nil && service?.unsavedFact?["turn_id"] == preview.turnID
-            guard active || unsaved else { return }
+            guard active || unsaved else {
+                if preview.sessionID == watchedSessionID, revision > (pendingProgress?.revision ?? -1) { pendingProgress = preview }
+                return
+            }
         }
+        if (pendingProgress?.revision ?? -1) <= revision { pendingProgress = nil }
         progressRevision = revision
         currentProgress = preview
+    }
+
+    private func adoptPendingContent(instance: String) throws {
+        if let pendingAnswer { try adoptAnswer(instance: instance, revision: pendingAnswer.revision, preview: pendingAnswer) }
+        if let pendingProgress { try adoptProgress(instance: instance, revision: pendingProgress.revision, preview: pendingProgress) }
+    }
+
+    private func adoptLiveState(_ state: WireLiveState, streamID: String) throws {
+        guard state.schemaVersion == 1 else { throw SessionFailure.invalidResponse }
+        guard (state.answerRevision ?? answerRevision) >= answerRevision,
+              (state.progressRevision ?? progressRevision) >= progressRevision else { return }
+        let previous = service
+        if state.stopping, let turnID = state.activeTurnId { freezeAnswer(turnID: turnID) }
+        service = state.entity(streamID: streamID)
+        if frozenTurnID != state.activeTurnId {
+            frozenTurnID = nil
+            frozenAnswer = nil
+            frozenProgress = nil
+        }
+        // 内容可能先于状态抵达；只在新状态确认其轮次后采用，不等待下一次普通轮询。
+        try adoptPendingContent(instance: state.instanceId)
+        if stopOperation == nil {
+            switch stopState {
+            case .requesting(let target), .waiting(let target), .uncertain(let target):
+                if state.activeTurnId != target.turnID { stopState = .idle }
+                else if state.stopping { stopState = .waiting(target) }
+            case .idle: break
+            }
+        }
+        if previous?.activeTurnID != state.activeTurnId, let sessionID = watchedSessionID,
+           previous?.activeSessionID == sessionID || state.activeSessionId == sessionID {
+            Task { [weak self] in
+                guard let self, self.watchedSessionID == sessionID else { return }
+                _ = try? await self.history(sessionID: sessionID)
+            }
+        }
     }
 
     private func updateAnswerSubscription() {
@@ -865,14 +927,18 @@ public final class SharedSessions: SessionAccess {
                         // 同库重启也必须重新读取快照；旧进程消息不能作为新状态。
                         guard event.instanceId == instance else {
                             self.currentAnswer = nil
+                            self.pendingAnswer = nil
                             self.currentProgress = nil
+                            self.pendingProgress = nil
                             self.progressRevision = -1
                             self.answerInstance = nil
                             self.answerRevision = -1
                             self.refreshGeneration += 1
                             throw SessionFailure.obsolete
                         }
-                        if event.kind == "progress.preview" {
+                        if let state = event.state {
+                            try self.adoptLiveState(state, streamID: streamID)
+                        } else if event.kind == "progress.preview" {
                             if firstProgress {firstProgress = false; self.contentRecoveryRevision += 1}
                             try self.adoptProgress(instance: event.instanceId, revision: event.revision, preview: event.progress)
                         } else {
