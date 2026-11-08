@@ -161,6 +161,8 @@ final class ConversationPresenter {
                     message = "未保存 · 请复制保留，刷新后可能丢失"
                 } else if (execution.service?.stopping == true && execution.service?.activeTurnID == turn.id) || requestedStop {
                     message = "正在停止 · 正文已暂停追加"
+                } else if execution.service?.activeTurnID != turn.id {
+                    message = "正在核对本轮结果 · 当前正文尚未确认保存"
                 } else if interactor.answerFailure != nil { message = "实时正文连接中断，正在重新连接。当前正文尚未保存。" }
                 else if preview.status == "invalidated" { message = "本次正文已失效，等待后端处理。" }
                 else if preview.status == "retrying" { message = "正在重试，新尝试将从头作答。" }
@@ -182,8 +184,9 @@ final class ConversationPresenter {
                 isCurrentProgress: interactor.progressPreview?.turnID == turn.id,
                 answerIdentity: preview.map { "\($0.instanceID):\($0.streamID):\($0.sessionID):\($0.turnID):\($0.attemptID)" },
                 progressIdentity: interactor.progressPreview.map { "\($0.instanceID):\($0.streamID):\($0.sessionID):\($0.turnID)" } ?? "saved:\(turn.id)",
-                isGenerating: preview?.status == "generating" && preview?.delivery != "complete" && !isUnsaved,
-                isStopped: (execution.service?.stopping == true && execution.service?.activeTurnID == turn.id) || requestedStop,
+                isGenerating: preview?.status == "generating" && preview?.delivery != "complete" && !isUnsaved && execution.service?.activeTurnID == turn.id,
+                isStopped: (execution.service?.stopping == true && execution.service?.activeTurnID == turn.id) || requestedStop
+                    || (preview != nil && execution.service?.activeTurnID != turn.id && !isUnsaved),
                 contentRecoveryRevision: interactor.sessions.contentRecoveryRevision)
         }, hasEarlierTurns: page.nextBefore != nil))
     }

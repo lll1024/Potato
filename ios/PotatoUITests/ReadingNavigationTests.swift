@@ -51,6 +51,7 @@ final class ReadingNavigationTests: XCTestCase {
         var queryImage = false
         var answerImage = false
         var stableSaved = 0
+        var lastSavedDisplay: String?
         let deadline = Date().addingTimeInterval(600)
         while Date() < deadline {
             let operationBegan = Date()
@@ -84,7 +85,10 @@ final class ReadingNavigationTests: XCTestCase {
                 "history_status": saved["status"] ?? "not_accepted", "observation_duration_ms": Date().timeIntervalSince(operationBegan) * 1000])
             if !queryImage && !progress.isEmpty { attach(app, "真实查询进展初现"); queryImage = true }
             if !answerImage && !displayed.isEmpty { attach(app, "真实正文初现且查询自动折叠"); answerImage = true }
-            if saved["status"] as? String == "completed" { stableSaved += 1 } else { stableSaved = 0 }
+            if saved["status"] as? String == "completed", copyLabel == "复制完整回答", !displayed.isEmpty {
+                if lastSavedDisplay == displayed { stableSaved += 1 } else { stableSaved = 0 }
+                lastSavedDisplay = displayed
+            } else { stableSaved = 0; lastSavedDisplay = nil }
             if stableSaved >= 2 { break }
             try await Task.sleep(for: .milliseconds(150))
         }
@@ -353,6 +357,41 @@ final class ReadingNavigationTests: XCTestCase {
         XCTAssertTrue(table.frame.contains(headingPoint))
         XCTAssertTrue(app.frame.contains(headingPoint))
         attach(app, "横向表格末列")
+    }
+
+    func testSavedHistoryHandoffKeepsBodyAndPositionWhileHistoryIsDelayed() async throws {
+        let app = connectedApp(address: "https://localhost:18497")
+        try await streamControl("arm?mode=query-progress")
+        app.buttons["new-conversation"].tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        input.tap(); input.typeText("终态历史交接保位验收")
+        app.buttons["send-input"].tap()
+        try await streamControl("entered", method: "GET")
+        for _ in 0..<6 { try await streamControl("step") }
+        let heading = app.staticTexts["实时杭州旅行"]
+        XCTAssertTrue(heading.waitForExistence(timeout: 10))
+        let before = heading.frame.minY
+        XCTAssertEqual(app.buttons["copy-answer"].label, "复制当前正文")
+        try await streamControl("delay-history")
+        try await streamControl("step")
+        try await streamControl("history-entered", method: "GET")
+        for _ in 0..<3 {
+            let tree = try app.snapshot()
+            let body = liveFind(tree, identifier: "answer-body")
+            XCTAssertNotNil(body, "终态已经通知、历史尚未返回时不得撤掉正在阅读的正文")
+            XCTAssertTrue(body.map(liveTextLabels)?.joined().contains("上午游览西湖") ?? false)
+            XCTAssertEqual(liveFind(tree, identifier: "copy-answer")?.label, "复制当前正文")
+            XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label == %@", "复制完整回答")).firstMatch.exists)
+            if heading.exists { XCTAssertLessThan(abs(heading.frame.minY - before), 3) }
+            try await Task.sleep(for: .milliseconds(250))
+        }
+        attach(app, "历史延迟期间正文连续保留且仍是未确认保存的当前正文")
+        try await streamControl("release-history")
+        let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "复制完整回答"), object: app.buttons["copy-answer"])
+        await fulfillment(of: [saved], timeout: 10)
+        XCTAssertTrue(heading.exists)
+        XCTAssertLessThan(abs(heading.frame.minY - before), 3)
+        attach(app, "可靠历史采用后正文未撤空且阅读锚点保持")
     }
 
     func testQueryRetryAndCompleteFallbackReplaceFailedExplanationBeforeAnswer() async throws {

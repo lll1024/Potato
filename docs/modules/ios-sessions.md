@@ -154,3 +154,11 @@ App 的 scene phase 在活跃时启用唯一共享轮询、离开活跃态时取
 ## 查询阶段停止收束（#116）
 
 共享能力在采用远端停止快照前，同时检查已有正文或已有进展；即使尚未开始回答，也先冻结此前可见进展，阻止同一快照的迟到内容扩展阅读区域。停止时展示任务立即清空，实际接收与持久收束继续；原轮次释放后采用真实完整／未完成／失败结果。保存失败的全文仅作为当前未保存正文复制，可靠已提交进展仍可独立回看。验证见 [#116 停止收束](../acceptance/query-progress-stop.md)。
+
+## 完成通知与历史响应的阅读交接（#117）
+
+同一前台 SSE 连接还读取可靠 `turn.finished` 的会话、轮次、游标和结果分类。只有当前已经读到的非空模型正文，以及同轮已有进展，才可在 `answer_source=model` 且结果为 `completed` 或 `budget`／`output_limit` 时暂存为内存阅读交接；事实游标必须晚于当前已读历史。它不从完成事件重建正文，不新增订阅、轮询、模型执行或手机历史副本。
+
+后续 `null` 仍清除当前原始预览并推进两类独立次序；公开可读投影在同进程、数据集、会话、轮次的可靠历史响应返回前，暂留已读前缀与进展，避免正文区撤空、折叠控件消失及阅读位置跳动。界面显示“正在核对本轮结果 · 当前正文尚未确认保存”，复制仍为“当前正文”；交接内容不是完整或已保存历史。可靠历史采用后立即以其真实终态、全文和进展接管，不延迟终态，也不播放历史文字。
+
+更高次序的新正文／进展、失效或重试候选会撤销旧交接；切换轮次、会话、配置、数据集或进程、历史 404、离开观察及前后台重建同样撤销。没有可靠完成事实的空预览继续立即失效。模型失败、应用说明及保存失败不因界面交接冒充成功；未保存正文仍沿原 `storageError`／`unsavedFact` 契约处理。公开 SessionAccess 的历史 HTTP 屏障红绿与真实界面保位回归见 `PollingTests.finishedStateKeepsReadableContentUntilReliableHistoryArrives`、`newAttemptCancelsCompletionReadingHandoff` 和 `ReadingNavigationTests.testSavedHistoryHandoffKeepsBodyAndPositionWhileHistoryIsDelayed`。

@@ -309,6 +309,39 @@ async def main():
                         await streaming_model.delivered.get()
                     return {"returned": streaming_model.returned}
 
+                history_gate = asyncio.Event()
+                history_gate.set()
+                history_entered = asyncio.Event()
+
+                @app.post("/__test__/delay-history")
+                async def hold_stream_history():
+                    history_entered.clear()
+                    history_gate.clear()
+                    return {"delaying": True}
+
+                @app.get("/__test__/history-entered")
+                async def held_stream_history():
+                    async with asyncio.timeout(10):
+                        await history_entered.wait()
+                    return {"entered": True}
+
+                @app.post("/__test__/release-history")
+                async def release_stream_history():
+                    history_gate.set()
+                    return {"released": True}
+
+                @app.middleware("http")
+                async def delayed_stream_history(request, call_next):
+                    if not history_gate.is_set() and request.method == "GET" and request.url.path.startswith("/api/sessions/"):
+                        history_entered.set()
+                        # 仅延迟公开历史HTTP，不暂停SSE、模型、事务或后端事实。
+                        try:
+                            async with asyncio.timeout(20):
+                                await history_gate.wait()
+                        except TimeoutError:
+                            history_gate.set()
+                    return await call_next(request)
+
                 # 控制路由先注册，Web 与 iOS 可读取同一隔离会话。
                 dist = ROOT / "frontend" / "dist"
                 if dist.is_dir():

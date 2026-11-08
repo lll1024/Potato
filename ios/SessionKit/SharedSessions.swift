@@ -20,6 +20,8 @@ public final class SharedSessions: SessionAccess {
     private var frozenProgress: ProgressPreview?
     private var progressRevision = -1
     private var currentAnswer: AnswerPreview?
+    private var handoffAnswer: AnswerPreview?
+    private var handoffProgress: ProgressPreview?
     private var frozenAnswer: AnswerPreview?
     private var frozenTurnID: String?
     private var answerInstance: String?
@@ -30,7 +32,7 @@ public final class SharedSessions: SessionAccess {
 
     public var answerPreview: AnswerPreview? {
         let frozen = frozenTurnID != nil && frozenTurnID == service?.activeTurnID
-        guard let preview = frozen ? frozenAnswer : currentAnswer, preview.sessionID == watchedSessionID,
+        guard let preview = frozen ? frozenAnswer : (readingHandoff ?? currentAnswer), preview.sessionID == watchedSessionID,
               preview.streamID == datasetID, preview.instanceID == answerInstance else { return nil }
         if let turn = conversation?.turns.first(where: { $0.id == preview.turnID }), turn.status != "running" { return nil }
         return preview
@@ -38,10 +40,39 @@ public final class SharedSessions: SessionAccess {
 
     public var progressPreview: ProgressPreview? {
         let frozen = frozenTurnID != nil && frozenTurnID == service?.activeTurnID
-        guard let preview = frozen ? frozenProgress : currentProgress, preview.sessionID == watchedSessionID,
+        guard let preview = frozen ? frozenProgress : (readingHandoff != nil ? handoffProgress ?? currentProgress : currentProgress), preview.sessionID == watchedSessionID,
               preview.streamID == datasetID, preview.instanceID == answerInstance else { return nil }
         if let turn = conversation?.turns.first(where: { $0.id == preview.turnID }), turn.status != "running" { return nil }
         return preview
+    }
+
+    private var readingHandoff: AnswerPreview? {
+        guard let held = handoffAnswer, held.sessionID == watchedSessionID,
+              held.streamID == datasetID, held.instanceID == answerInstance,
+              service?.activeTurnID == nil || service?.activeTurnID == held.turnID,
+              conversation?.turns.first(where: { $0.id == held.turnID })?.status == "running" else { return nil }
+        return held
+    }
+
+    private func clearReadingHandoff() {
+        handoffAnswer = nil
+        handoffProgress = nil
+    }
+
+    private func retainReadingHandoff(_ fact: WireTurnFinished) {
+        guard fact.data.answerSource == "model",
+              fact.data.status == "completed" || ["budget", "output_limit"].contains(fact.data.reason ?? ""),
+              fact.cursor > (conversation?.cursor ?? 0),
+              let preview = answerPreview, preview.sessionID == fact.sessionId, preview.turnID == fact.turnId,
+              !preview.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !["invalidated", "retrying"].contains(preview.status) else { return }
+        let progress = progressPreview
+        handoffAnswer = preview
+        handoffProgress = progress?.turnID == fact.turnId ? progress : nil
+    }
+
+    private func pruneReadingHandoff() {
+        if handoffAnswer != nil && readingHandoff == nil { clearReadingHandoff() }
     }
 
     public private(set) var stopState = StopState.idle
@@ -143,6 +174,7 @@ public final class SharedSessions: SessionAccess {
             guard let latest = conversation else { throw SessionFailure.obsolete }
             let result = latest.merging(page.entity, earlier: true)
             conversation = result
+            pruneReadingHandoff()
             return result
         } catch {
             guard configuration == configurationGeneration, dataset == datasetGeneration,
@@ -658,6 +690,7 @@ public final class SharedSessions: SessionAccess {
                     freezeAnswer(turnID: turnID)
                 }
                 service = snapshot.entity
+                pruneReadingHandoff()
             }
             if answerInstance != snapshot.instanceId {
                 cancelAnswerSubscription()
@@ -778,6 +811,7 @@ public final class SharedSessions: SessionAccess {
             if connectionRead == connectionGeneration { connection = .connected }
             if watchedSessionID == sessionID {
                 conversation = conversation?.merging(page.entity) ?? page.entity
+                pruneReadingHandoff()
                 conversationFailure = nil
                 updateAnswerSubscription()
             }
@@ -828,6 +862,7 @@ public final class SharedSessions: SessionAccess {
     }
 
     private func cancelAnswerSubscription() {
+        clearReadingHandoff()
         answerOperation = UUID()
         answerSubscription?.cancel()
         answerSubscription = nil
@@ -841,6 +876,7 @@ public final class SharedSessions: SessionAccess {
                   ["generating", "generated", "invalidated", "retrying"].contains(preview.status) else {
                 throw SessionFailure.invalidResponse
             }
+            if preview.sessionID == handoffAnswer?.sessionID, preview.turnID == handoffAnswer?.turnID { clearReadingHandoff() }
             // 全局状态尚未核对到新轮次时，暂存候选，不能混入原轮次。
             let active = preview.turnID == service?.activeTurnID && preview.sessionID == service?.activeSessionID
             let unsaved = service?.storageError != nil && service?.unsavedFact?["turn_id"] == preview.turnID
@@ -860,6 +896,7 @@ public final class SharedSessions: SessionAccess {
             guard preview.instanceID == instance, preview.streamID == datasetID, preview.revision == revision else {
                 throw SessionFailure.invalidResponse
             }
+            if preview.sessionID == handoffAnswer?.sessionID, preview.turnID == handoffAnswer?.turnID { clearReadingHandoff() }
             let active = preview.turnID == service?.activeTurnID && preview.sessionID == service?.activeSessionID
             let unsaved = service?.storageError != nil && service?.unsavedFact?["turn_id"] == preview.turnID
             guard active || unsaved else {
@@ -884,6 +921,7 @@ public final class SharedSessions: SessionAccess {
         let previous = service
         if state.stopping, let turnID = state.activeTurnId { freezeAnswer(turnID: turnID) }
         service = state.entity(streamID: streamID)
+        pruneReadingHandoff()
         if frozenTurnID != state.activeTurnId {
             frozenTurnID = nil
             frozenAnswer = nil
@@ -925,8 +963,14 @@ public final class SharedSessions: SessionAccess {
                     guard let self, self.answerOperation == operation else { return }
                     for event in try parser.append(data) {
                         guard event.schemaVersion == 1 else { throw SessionFailure.invalidResponse }
+                        if let completion = event.completion {
+                            guard self.answerInstance == instance else { continue }
+                            self.retainReadingHandoff(completion)
+                            continue
+                        }
                         // 同库重启也必须重新读取快照；旧进程消息不能作为新状态。
                         guard event.instanceId == instance else {
+                            self.clearReadingHandoff()
                             self.currentAnswer = nil
                             self.pendingAnswer = nil
                             self.currentProgress = nil

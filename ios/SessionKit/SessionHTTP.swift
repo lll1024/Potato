@@ -218,10 +218,14 @@ struct SessionEventParser {
             guard let line = String(data: bytes, encoding: .utf8) else { throw SessionFailure.invalidResponse }
             pending.removeSubrange(...end)
             if line.isEmpty {
-                if ["answer.preview", "progress.preview", "service.state"].contains(kind), !lines.isEmpty {
+                if ["answer.preview", "progress.preview", "service.state", "trace"].contains(kind), !lines.isEmpty {
                     let decoder = JSONDecoder()
                     decoder.keyDecodingStrategy = .convertFromSnakeCase
-                    events.append(try decoder.decode(WireAnswerEvent.self, from: Data(lines.joined(separator: "\n").utf8)))
+                    let data = Data(lines.joined(separator: "\n").utf8)
+                    let relevant: Bool
+                    if kind == "trace" { relevant = try decoder.decode(WireTraceKind.self, from: data).kind == "turn.finished" }
+                    else { relevant = true }
+                    if relevant { events.append(try decoder.decode(WireAnswerEvent.self, from: data)) }
                 }
                 kind = ""
                 lines = []
@@ -243,12 +247,19 @@ struct WireAnswerEvent: Decodable, Sendable {
     let preview: AnswerPreview?
     let progress: ProgressPreview?
     let state: WireLiveState?
+    let completion: WireTurnFinished?
     let kind: String
     enum CodingKeys: String, CodingKey { case schemaVersion, instanceId, revision, preview, kind, state }
     init(from decoder: any Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         schemaVersion = try values.decode(Int.self, forKey: .schemaVersion)
         kind = try values.decodeIfPresent(String.self, forKey: .kind) ?? "answer.preview"
+        if kind == "turn.finished" {
+            completion = try WireTurnFinished(from: decoder)
+            instanceId = ""; revision = 0; preview = nil; progress = nil; state = nil
+            return
+        }
+        completion = nil
         if kind == "service.state" {
             let live = try values.decode(WireLiveState.self, forKey: .state)
             state = live
@@ -269,6 +280,21 @@ struct WireAnswerEvent: Decodable, Sendable {
             progress = nil
         }
     }
+}
+
+private struct WireTraceKind: Decodable { let kind: String }
+
+/// 完成事实只授权同一订阅中已有内容的短暂阅读交接，不携带或伪造历史正文。
+struct WireTurnFinished: Decodable, Sendable {
+    struct Outcome: Decodable, Sendable {
+        let status: String
+        let reason: String?
+        let answerSource: String?
+    }
+    let sessionId: String
+    let turnId: String
+    let cursor: Int
+    let data: Outcome
 }
 
 /// 服务状态与内容共享同一订阅；不把状态通知计为持久事件游标。
