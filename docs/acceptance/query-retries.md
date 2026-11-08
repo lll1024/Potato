@@ -22,6 +22,18 @@ Web完整会话首跑36项通过、1项新窄屏测试因导航前置错误超�
 
 同一查询投影原有四项类型错误（可选回调及查询状态可能未绑定）也在本票以显式初始化和回调断言收敛，行为不变。指定Python3.14和当前venv的pyright由[4项错误](query-retries/types-red.log.gz)转为[0错误](query-retries/types-green.log.gz)，原公开查询专项[14项通过，9.513秒](query-retries/query-typed.log.gz)，未增加镜像测试。
 
-## 环境及尚待补齐
+## 合入 #114 后的最终交叉验证
 
-iOS首次独立测试编译因磁盘空间耗尽失败（[日志](query-retries/ios-build-space-failure.log.gz)）；该次没有执行能力或界面用例，不能报告通过。后端与Web不以该环境故障替代产品行为判定。iOS公开SessionAccess及真实HTTPS／SQLite界面用例已编写，正式执行结果将追加后再交付本票。没有调用当前生产模型，没有读取或改写日常数据库，真机／TestFlight不在本次证据范围。
+最终分支先合入 `1b3fa44`（#114），合并点 `eacef67` 保留两票新增用例与契约；未改 #114 状态防旧或恢复规则。随后在相同代码上完成：
+
+- 公开HTTP／SSE查询专项 **16项通过，13.675秒**（[日志](query-retries/query-merged.log.gz)）；Web查询重试桌面／窄屏及进展次序防旧 **3项通过，7.4秒**（[日志](query-retries/web-merged.log.gz)），前端[构建通过](query-retries/web-build-merged.log.gz)。同范围pyright仍为[0错误](query-retries/types-merged.log.gz)。
+- iPhone 17 Pro／iOS 26.5模拟器增量[编译成功](query-retries/ios-build-merged.log.gz)后，`AnswerStreamingTests` **16项通过**；真实HTTPS／SQLite界面方法 **1项通过，41.500秒**，该方法实际执行查询重试和明确拒绝流式两场景。总计17个测试标识，0失败、0跳过（[日志](query-retries/ios-merged.log.gz)、[xcresult摘要](query-retries/ios-results.json)）。屏幕核对失败说明及待显示队列清空、新尝试独立、空查询等待有准确提示、仅一次真实工具、保存结果可读；[重试](query-retries/ios-retry.png)、[完整等待](query-retries/ios-fallback.png)、[保存后](query-retries/ios-saved.png)。
+- 同一独立HTTPS夹具的真实Web页面，通过界面接受输入后仅在外部模型边界控制失败和返回，分别执行查询重试／完整降级；两场景均核对4次真实模型请求、1次工具、失败说明不进入可靠历史、复制全文等于SQLite保存正文（[日志](query-retries/web-https.log.gz)、[公开记录](query-retries/web-https-observations.json)）。[桌面重试](query-retries/web-https-retry-desktop.png)和[窄屏完整等待](query-retries/web-https-fallback-mobile.png)均经画面检查，没有提示溢出或控件遮挡。这是实际页面与后端、可控外部模型的集成证据；当前生产模型持续时序仍属于 #117。
+
+原生复验入口是 `xcodebuild test-without-building`，唯一目的地 `platform=iOS Simulator,id=AB9010DF-6F36-4079-8492-3CE8B5393EF7`，过滤 `PotatoTests/AnswerStreamingTests` 与 `PotatoUITests/ReadingNavigationTests/testQueryRetryAndCompleteFallbackReplaceFailedExplanationBeforeAnswer()`，`-parallel-testing-enabled NO`。夹具使用既有 `ios/Integration/backend.py --cert … --key …`，全程独立临时SQLite；两场景不与另一界面并发控制夹具。测试结束已正常停止自有夹具，确认18489–18498无监听并释放共享模拟器。
+
+## 环境与适用范围
+
+iOS首次独立测试编译因磁盘空间耗尽失败（[日志](query-retries/ios-build-space-failure.log.gz)）；该次没有执行能力或界面用例。释放旧编译缓存后，[首次编译成功](query-retries/ios-build-first-success.log.gz)，首次独立能力14项及界面1项均通过（[能力](query-retries/ios-capability-first.log.gz)、[界面](query-retries/ios-ui-first.log.gz)）；上述最终证据另在合入 #114 后重新执行。一次最终查询复验申请曾因自动审批服务额度失败而未执行，用户继续后实际重试通过，不将未执行批次计作测试结果。
+
+模块依赖、当前文档链接与 `git diff --check` 均通过。没有调用当前生产模型，没有读取或改写日常数据库，真机／TestFlight不在本次证据范围。
