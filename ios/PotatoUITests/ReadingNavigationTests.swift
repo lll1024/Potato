@@ -58,11 +58,14 @@ final class ReadingNavigationTests: XCTestCase {
             let history = try await liveGet("/api/sessions/" + sessionID + "?summary=false&include_messages=false")
             let turns = history["turns"] as? [[String: Any]] ?? []
             if turns.count > 1 { target = turns[1]["turn_id"] as? String ?? ""; saved = turns[1]; savedHistory = history }
-            let region = app.descendants(matching: .any).matching(identifier: "conversation-turn-" + target).firstMatch
-            let body = region.descendants(matching: .any).matching(identifier: "answer-body").firstMatch
-            let displayed = body.exists ? body.staticTexts.allElementsBoundByIndex.map(\.label).joined(separator: "\n") : ""
-            let progress = region.staticTexts.matching(identifier: "query-progress-text").allElementsBoundByIndex.map(\.label)
-            let statuses = region.staticTexts.matching(identifier: "query-progress-status").allElementsBoundByIndex.map(\.label)
+            // 公共XCTest快照一次取得不可变可访问性树，避免自动折叠时逐个元素引用失效。
+            let tree = try app.snapshot()
+            let region = liveFind(tree, identifier: "conversation-turn-" + target)
+            let body = region.flatMap { liveFind($0, identifier: "answer-body") }
+            let displayed = body.map(liveTextLabels)?.joined(separator: "\n") ?? ""
+            let progress = region.map { liveMatchingLabels($0, identifier: "query-progress-text") } ?? []
+            let statuses = region.map { liveMatchingLabels($0, identifier: "query-progress-status") } ?? []
+            let copyLabel = region.flatMap { liveFind($0, identifier: "copy-answer") }?.label ?? ""
             let preview = snapshot["answer_preview"] as? [String: Any]
             let queryPreview = snapshot["progress_preview"] as? [String: Any]
             let entries = queryPreview?["entries"] as? [[String: Any]] ?? []
@@ -70,7 +73,10 @@ final class ReadingNavigationTests: XCTestCase {
                 "elapsed_seconds": Date().timeIntervalSince(began), "session_id": sessionID, "turn_id": target,
                 "rendered_document_chars": displayed.count, "rendered_progress_chars": progress.joined(separator: "\n").count,
                 "progress_labels": progress, "progress_statuses": statuses,
-                "copy_label": region.buttons["copy-answer"].exists ? region.buttons["copy-answer"].label : "",
+                "copy_label": copyLabel,
+                "body_frame_y": body.map { Double($0.frame.minY) } ?? NSNull(),
+                "body_frame_height": body.map { Double($0.frame.height) } ?? NSNull(),
+                "app_viewport_height": Double(tree.frame.height),
                 "runner_snapshot_answer_chars": (preview?["text"] as? String)?.count ?? 0,
                 "runner_snapshot_answer_revision": preview?["revision"] ?? NSNull(),
                 "runner_snapshot_progress_revision": queryPreview?["revision"] ?? NSNull(),
@@ -156,6 +162,76 @@ final class ReadingNavigationTests: XCTestCase {
         let evidence = try JSONSerialization.data(withJSONObject: finalEvidence, options: [.prettyPrinted, .sortedKeys])
         let attachment = XCTAttachment(data: evidence, uniformTypeIdentifier: "public.json")
         attachment.name = "真实模型与iOS全程证据"; attachment.lifetime = .keepAlways; add(attachment)
+    }
+
+    func testConfiguredModelSavedHistorySamplingAcrossDisclosureChanges() async throws {
+        guard let environment = try? await liveGet("/__acceptance__/environment"),
+              environment["scenario"] as? String == "query" else {
+            throw XCTSkip("仅对已保存的真实查询会话核验公开UI采样器，不调用模型")
+        }
+        let list = try await liveGet("/api/sessions")
+        let rows = try XCTUnwrap(list["sessions"] as? [[String: Any]])
+        let id = try XCTUnwrap(rows.first?["session_id"] as? String)
+        let history = try await liveGet("/api/sessions/" + id + "?summary=false&include_messages=false")
+        let turns = try XCTUnwrap(history["turns"] as? [[String: Any]])
+        let saved = try XCTUnwrap(turns.last)
+        XCTAssertEqual(saved["status"] as? String, "completed")
+        let target = try XCTUnwrap(saved["turn_id"] as? String)
+        let progress = try XCTUnwrap(saved["query_progress"] as? [[String: Any]])
+        let expected = progress.compactMap { $0["text"] as? String }.filter { !$0.isEmpty }
+        XCTAssertFalse(expected.isEmpty)
+        let app = connectedApp(address: "https://localhost:18499")
+        let open = app.buttons.matching(identifier: "open-session").firstMatch
+        XCTAssertTrue(open.waitForExistence(timeout: 10)); open.tap()
+        let toggle = app.otherElements["query-progress"].buttons.firstMatch
+        for _ in 0..<15 { if toggle.isHittable { break }; app.swipeDown(velocity: .fast) }
+        XCTAssertTrue(toggle.isHittable)
+        var observations: [[String: Any]] = []
+        for _ in 0..<3 {
+            toggle.tap()
+            let began = Date()
+            let expandedTree = try app.snapshot()
+            let expanded = try XCTUnwrap(liveFind(expandedTree, identifier: "conversation-turn-" + target))
+            let labels = liveMatchingLabels(expanded, identifier: "query-progress-text")
+            XCTAssertEqual(labels, expected)
+            let statuses = liveMatchingLabels(expanded, identifier: "query-progress-status")
+            XCTAssertEqual(statuses.count, expected.count)
+            // 已取得的快照在随后折叠时保持不可变，不引用会失效的XCUIElement。
+            toggle.tap()
+            XCTAssertEqual(liveMatchingLabels(expanded, identifier: "query-progress-text"), expected)
+            let collapsedTree = try app.snapshot()
+            let collapsed = try XCTUnwrap(liveFind(collapsedTree, identifier: "conversation-turn-" + target))
+            XCTAssertTrue(liveMatchingLabels(collapsed, identifier: "query-progress-text").isEmpty)
+            XCTAssertFalse(liveTextLabels(try XCTUnwrap(liveFind(collapsed, identifier: "answer-body"))).isEmpty)
+            observations.append(["epoch_ms": Date().timeIntervalSince1970 * 1000,
+                "expanded_entries": labels.count, "status_entries": statuses.count,
+                "duration_ms": Date().timeIntervalSince(began) * 1000])
+        }
+        let after = try await liveGet("/api/sessions/" + id + "?summary=false&include_messages=false")
+        XCTAssertEqual((history["requests"] as? [[String: Any]])?.count, (after["requests"] as? [[String: Any]])?.count)
+        XCTAssertEqual((history["tool_calls"] as? [[String: Any]])?.count, (after["tool_calls"] as? [[String: Any]])?.count)
+        let evidence = try JSONSerialization.data(withJSONObject: ["session_id": id, "turn_id": target,
+            "model_and_tool_counts_unchanged": true, "observations": observations], options: [.prettyPrinted, .sortedKeys])
+        let attachment = XCTAttachment(data: evidence, uniformTypeIdentifier: "public.json")
+        attachment.name = "公开UI不可变快照与折叠展开核验"; attachment.lifetime = .keepAlways; add(attachment)
+    }
+
+    private func liveFind(_ root: any XCUIElementSnapshot, identifier: String) -> (any XCUIElementSnapshot)? {
+        if root.identifier == identifier { return root }
+        for child in root.children {
+            if let found = liveFind(child, identifier: identifier) { return found }
+        }
+        return nil
+    }
+
+    private func liveTextLabels(_ root: any XCUIElementSnapshot) -> [String] {
+        if root.elementType == .staticText { return [root.label] }
+        return root.children.flatMap(liveTextLabels)
+    }
+
+    private func liveMatchingLabels(_ root: any XCUIElementSnapshot, identifier: String) -> [String] {
+        if root.identifier == identifier { return liveTextLabels(root) }
+        return root.children.flatMap { liveMatchingLabels($0, identifier: identifier) }
     }
 
     private func liveGet(_ path: String) async throws -> [String: Any] {
