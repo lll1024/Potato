@@ -1201,3 +1201,82 @@ for (const outcome of ['saved', 'unsaved', 'truncated', 'failed']) test(`跨端�
     }
   }
 });
+
+for (const width of [1440, 390]) test(`可靠完成到历史迟到期间正文连续且上翻保位 ${width}`, async ({page}) => {
+  const app = await conversation(page);
+  app.sessions[0].status = 'running'; app.state.active_turn_id = 'turn'; app.state.active_session_id = 'trip';
+  const text = '## 西湖安排\n\n' + '沿湖慢行，按体力安排休息。\n\n'.repeat(45);
+  Object.assign(app.state,{progress_revision:1,progress_preview:{instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',revision:1,
+    entries:[{id:'query',attempt_id:'query',kind:'model',text:'正在查找西湖交通资料',status:'generated'}]}});
+  app.state.answer_revision = 1;
+  app.state.answer_preview = {instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',
+    attempt_id:'answer',revision:1,text,status:'generated'};
+  await page.reload();
+  await page.getByRole('button', {name:/杭州行程.*正在执行/}).click();
+  await page.setViewportSize({width,height:844});
+  if (width < 760) await page.getByRole('button', {name:'收起会话导航'}).first().click();
+  const messages = page.locator('.messages');
+  await expect(page.getByRole('region',{name:'查询进展',exact:true})).toBeVisible();
+  await expect(messages.locator('.answer-body')).toContainText('西湖安排');
+  await messages.evaluate(element => {element.dispatchEvent(new WheelEvent('wheel',{deltaY:-450,bubbles:true})); element.scrollTop = 450; element.dispatchEvent(new Event('scroll'));});
+  await expect(page.getByRole('button',{name:'回到最新',exact:true})).toBeVisible();
+  const offset = () => messages.locator('[data-reading-anchor="answer:turn"]').evaluate(element => element.getBoundingClientRect().top);
+  const before = await offset();
+  let release!: () => void;
+  const barrier = new Promise<void>(resolve => {release=resolve;});
+  let requested!: () => void;
+  const request = new Promise<void>(resolve => {requested=resolve;});
+  await page.route('**/api/sessions/trip?*', async route => {requested(); await barrier; await route.fallback();});
+  app.turn.status='completed'; app.turn.answer=text+'\n历史完整结尾。'; app.sessions[0].status='completed';
+  app.state.active_turn_id=null; app.state.active_session_id=null; app.state.answer_revision=2; app.state.answer_preview=null;
+  await page.evaluate(state => {
+    const source=(window as unknown as {source:EventTarget}).source;
+    source.dispatchEvent(new MessageEvent('trace',{data:JSON.stringify({schema_version:1,cursor:10,event_id:'finished',kind:'turn.finished',session_id:'trip',turn_id:'turn',data:{status:'completed',reason:null,answer_source:'model'}})}));
+    source.dispatchEvent(new MessageEvent('service.state',{data:JSON.stringify({schema_version:1,state})}));
+    source.dispatchEvent(new MessageEvent('answer.preview',{data:JSON.stringify({schema_version:1,kind:'answer.preview',instance_id:'process',revision:2,preview:null})}));
+    source.dispatchEvent(new MessageEvent('progress.preview',{data:JSON.stringify({schema_version:1,kind:'progress.preview',instance_id:'process',revision:2,preview:null})}));
+  },app.state);
+  await request;
+  await expect(page.getByRole('region',{name:'查询进展',exact:true})).toBeVisible();
+  await expect(messages.locator('.answer-body')).toContainText('西湖安排');
+  await expect(page.getByRole('button',{name:'复制当前正文',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'复制完整回答',exact:true})).toHaveCount(0);
+  expect(await offset()).toBeCloseTo(before,0);
+  release();
+  await expect(messages.locator('.answer-body')).toContainText('历史完整结尾。');
+  await expect(page.getByRole('button',{name:'复制完整回答',exact:true})).toBeVisible();
+  expect(await offset()).toBeCloseTo(before,0);
+});
+
+for (const change of ['invalidated', 'retrying', 'attempt', 'turn', 'process', 'page', 'null-without-finish']) test(`完成交接显示不跨失效边界复活：${change}`, async ({page}) => {
+  const app = await conversation(page);
+  app.sessions[0].status='running'; app.state.active_turn_id='turn'; app.state.active_session_id='trip';
+  app.state.answer_revision=1;
+  app.state.answer_preview={instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',
+    attempt_id:'answer',revision:1,text:'只属于本次作答的正文',status:'generated'};
+  await page.reload();
+  await page.getByRole('button',{name:/杭州行程.*正在执行/}).click();
+  await expect(page.locator('.answer-body')).toContainText('只属于本次作答的正文');
+  await page.evaluate(change => {
+    const source=(window as unknown as {source:EventTarget}).source;
+    if (change!=='null-without-finish') source.dispatchEvent(new MessageEvent('trace',{data:JSON.stringify({schema_version:1,cursor:10,event_id:'finished',kind:'turn.finished',session_id:'trip',turn_id:'turn',data:{status:'completed',answer_source:'model'}})}));
+    source.dispatchEvent(new MessageEvent('answer.preview',{data:JSON.stringify({schema_version:1,kind:'answer.preview',instance_id:'process',revision:2,preview:null})}));
+  },change);
+  if (change!=='null-without-finish') await expect(page.locator('.answer-body')).toContainText('只属于本次作答的正文');
+  if (change==='page') {
+    await page.getByRole('button',{name:'轨迹',exact:true}).click();
+    await page.getByRole('button',{name:'对话',exact:true}).click();
+  } else if (change==='turn') {
+    app.state.active_turn_id='next'; app.state.answer_revision=2; app.state.answer_preview=null;
+    await app.notify();
+  } else if (change!=='null-without-finish') {
+    await page.evaluate(change => {
+      (window as unknown as {source:EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview',{data:JSON.stringify({schema_version:1,kind:'answer.preview',instance_id:change==='process'?'new-process':'process',revision:3,
+        preview:change==='process'?null:{instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',attempt_id:change==='attempt'?'next':'answer',revision:3,text:'',status:change==='attempt'?'generating':change}})}));
+    },change);
+  }
+  await expect(page.getByText('只属于本次作答的正文',{exact:true})).toHaveCount(0);
+  await page.evaluate(() => (window as unknown as {source:EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview',{data:JSON.stringify({schema_version:1,kind:'answer.preview',instance_id:'process',revision:1,
+    preview:{instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',attempt_id:'answer',revision:1,text:'重复旧正文不得复活',status:'generated'}})})));
+  await expect(page.getByText('重复旧正文不得复活',{exact:true})).toHaveCount(0);
+});
