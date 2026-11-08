@@ -132,7 +132,8 @@ class ObservedSSE:
                         value = json.loads(data)
                         if kind in ("answer.preview", "progress.preview", "service.state"):
                             self.recorder.record("backend_sse_send", kind, connection_id=connection,
-                                                 client=client, content=content_metadata(value))
+                                                 client=client, revision=value.get("revision"),
+                                                 content=content_metadata(value.get("state") if kind == "service.state" else value.get("preview")))
                         elif kind == "trace":
                             self.recorder.record("backend_sse_send", kind, connection_id=connection, client=client,
                                 content={key: value[key] for key in ("kind", "cursor", "session_id", "turn_id", "request_id", "created_at") if key in value})

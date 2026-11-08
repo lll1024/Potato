@@ -42,7 +42,7 @@ class LiveObservationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_sse_original_chunks_and_disconnect_are_unchanged(self):
         value = {"turn_id": "turn", "revision": 3, "text": "不能落盘的原始片段", "status": "generating"}
-        body = ("event: answer.preview\ndata: " + json.dumps(value) + "\n\n").encode()
+        body = ("event: answer.preview\ndata: " + json.dumps({"kind": "answer.preview", "revision": 3, "preview": value}) + "\n\n").encode()
         messages = [{"type": "http.response.start", "status": 200, "headers": []},
                     {"type": "http.response.body", "body": body[:24], "more_body": True},
                     {"type": "http.response.body", "body": body[24:], "more_body": False}]

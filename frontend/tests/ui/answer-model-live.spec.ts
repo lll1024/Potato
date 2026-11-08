@@ -21,7 +21,8 @@ test('当前配置模型在 Web 与 iOS 联合验收中真实分批显示', asyn
         super(address, options);
         for (const kind of ['answer.preview', 'progress.preview', 'service.state']) {
           this.addEventListener(kind, event => {
-            const value = JSON.parse((event as MessageEvent).data);
+            const notice = JSON.parse((event as MessageEvent).data);
+            const value = kind === 'service.state' ? notice.state : notice.preview;
             evidence.receipts.push({epoch_ms: Date.now(), monotonic_ms: performance.now(), kind,
               content: value == null ? null : {
                 instance_id: value.instance_id, stream_id: value.stream_id, session_id: value.session_id,
@@ -44,7 +45,7 @@ test('当前配置模型在 Web 与 iOS 联合验收中真实分批显示', asyn
       const text = body?.innerText ?? '';
       const query = progress?.open ? Array.from(progress.querySelectorAll<HTMLElement>('li > span')).map(item => item.innerText).join('\n') : '';
       const status = progress?.open ? Array.from(progress.querySelectorAll<HTMLElement>('li > small')).map(item => item.innerText) : [];
-      const scroll = document.querySelector('.conversation-scroll') ?? body?.closest('[class*=scroll]');
+      const scroll = document.querySelector('.messages');
       const state = {rendered_document_chars: text.length, rendered_progress_chars: query.length,
         progress_open: progress?.open ?? null, progress_statuses: status,
         copy_label: turn?.querySelector('.message.answer button')?.textContent ?? null,
