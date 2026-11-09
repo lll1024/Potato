@@ -185,8 +185,7 @@ final class ConversationPresenter {
                 answerIdentity: preview.map { "\($0.instanceID):\($0.streamID):\($0.sessionID):\($0.turnID):\($0.attemptID)" },
                 progressIdentity: interactor.progressPreview.map { "\($0.instanceID):\($0.streamID):\($0.sessionID):\($0.turnID)" } ?? "saved:\(turn.id)",
                 isGenerating: preview?.status == "generating" && preview?.delivery != "complete" && !isUnsaved && execution.service?.activeTurnID == turn.id,
-                isStopped: (execution.service?.stopping == true && execution.service?.activeTurnID == turn.id) || requestedStop
-                    || (preview != nil && execution.service?.activeTurnID != turn.id && !isUnsaved),
+                isStopped: (execution.service?.stopping == true && execution.service?.activeTurnID == turn.id) || requestedStop,
                 contentRecoveryRevision: interactor.sessions.contentRecoveryRevision)
         }, hasEarlierTurns: page.nextBefore != nil))
     }
