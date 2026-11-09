@@ -16,6 +16,10 @@ export type ServiceState = {
   service_status: 'available' | 'unavailable'; storage_error?: string | null;
   unsaved_fact?: {turn_id: string; kind: string; message: string} | null;
 };
+function answerScope(instance: string | undefined, stream: string, session: string, turn: string) {
+  return JSON.stringify([instance, stream, session, turn]);
+}
+
 type ServiceSnapshot = ServiceState & { schema_version: number; state?: ServiceState; cursor: number; stream_id: string };
 
 export function useServiceEvents() {
@@ -27,6 +31,12 @@ export function useServiceEvents() {
   const handoffProgressRevision = useRef(-1);
   const handoff = useRef<AnswerPreview | null>(null);
   const clearAnswerHandoff = useCallback(() => {handoff.current = null; setAnswerHandoff(null); setProgressHandoff(null);}, []);
+  const answerRequests = useRef(new Map<string, {latest?: string; latestCursor?: number; failed: Set<string>}>());
+  const snapshotFacts = useRef<{instance?: string; stream: string; cursor: number} | null>(null);
+  const eligibleAnswer = useCallback((preview: AnswerPreview) => {
+    const facts = answerRequests.current.get(answerScope(preview.instance_id, preview.stream_id, preview.session_id, preview.turn_id));
+    return !facts?.failed.has(preview.attempt_id) && (!facts?.latest || facts.latest === preview.attempt_id);
+  }, []);
   const [revision, setRevision] = useState(0);
   const [contentRecoveryRevision, setContentRecoveryRevision] = useState(0);
   const [datasetRevision, setDatasetRevision] = useState(0);
@@ -48,10 +58,10 @@ export function useServiceEvents() {
   const frozen = useRef<{instance: string | undefined; stream: string; turn: string; preview: AnswerPreview | null; progress: ProgressPreview | null} | null>(null);
   const publish = useCallback((next: ServiceSnapshot) => {
     const held = handoff.current;
-    const incoming = next.answer_preview;
+    const incoming = next.answer_preview && eligibleAnswer(next.answer_preview) ? next.answer_preview : null;
     const incomingProgress = next.progress_preview;
     // 查询条目失效只更新进展投影；不能撤销可靠完成事实授权的正文交接。
-    if (held && (held.instance_id !== next.instance_id || held.stream_id !== next.stream_id
+    if (held && (!eligibleAnswer(held) || held.instance_id !== next.instance_id || held.stream_id !== next.stream_id
       || (next.active_turn_id && (next.active_turn_id !== held.turn_id || next.active_session_id !== held.session_id))
       || next.storage_error || (incomingProgress && (incomingProgress.turn_id !== held.turn_id || incomingProgress.session_id !== held.session_id))
       || (incoming && (incoming.attempt_id !== held.attempt_id || incoming.turn_id !== held.turn_id
@@ -79,13 +89,13 @@ export function useServiceEvents() {
         progress: progress && belongsToTarget(progress) ? progress
           : next.progress_preview && belongsToTarget(next.progress_preview) ? next.progress_preview : null,
         preview: previous && belongsToTarget(previous) ? previous
-          : next.answer_preview && belongsToTarget(next.answer_preview) ? next.answer_preview : null};
+          : incoming && belongsToTarget(incoming) ? incoming : null};
     }
     const value = frozen.current
-      ? {...next, stopping: true, answer_preview: frozen.current.preview, progress_preview: frozen.current.progress} : next;
+      ? {...next, stopping: true, answer_preview: frozen.current.preview, progress_preview: frozen.current.progress} : {...next, answer_preview: incoming};
     displayed.current = value;
     setState(value);
-  }, [clearAnswerHandoff]);
+  }, [clearAnswerHandoff, eligibleAnswer]);
   const beginStop = useCallback((turnId: string) => {
     const current = currentSnapshot.current;
     if (current?.active_turn_id === turnId) publish({...current, stopping: true});
@@ -98,7 +108,8 @@ export function useServiceEvents() {
     if (result.schema_version !== 1) throw new Error('数据版本不兼容，请更新页面和服务。');
     if (reading === stateRead.current) {
       const previous = currentSnapshot.current;
-      let next = {...result, ...result.state};
+      const received = {...result, ...result.state};
+      let next = received;
       if (previous && previous.instance_id === next.instance_id && previous.stream_id === next.stream_id) {
         const oldAnswer = (previous.answer_revision ?? -1) > (next.answer_revision ?? -1);
         const oldProgress = (previous.progress_revision ?? -1) > (next.progress_revision ?? -1);
@@ -112,6 +123,17 @@ export function useServiceEvents() {
             answer_preview: oldAnswer ? previous.answer_preview : next.answer_preview,
             progress_revision: oldProgress ? previous.progress_revision : next.progress_revision,
             progress_preview: oldProgress ? previous.progress_preview : next.progress_preview};
+        }
+      }
+      const position = snapshotFacts.current;
+      snapshotFacts.current = {instance: received.instance_id, stream: received.stream_id,
+        cursor: Math.max(received.cursor, position?.instance === received.instance_id && position?.stream === received.stream_id ? position.cursor : -1)};
+      const preview = next.answer_preview;
+      if (preview && preview === received.answer_preview) {
+        const facts = answerRequests.current.get(answerScope(preview.instance_id, preview.stream_id, preview.session_id, preview.turn_id));
+        // 较新一致快照可以先交付新尝试；旧通知身份不能把它反清。
+        if (facts?.latest && facts.latest !== preview.attempt_id && (facts.latestCursor ?? -1) <= received.cursor) {
+          facts.latest = undefined; facts.latestCursor = undefined;
         }
       }
       rememberState(next);
@@ -184,10 +206,25 @@ export function useServiceEvents() {
             cursor = notice.cursor;
             if (processed.has(notice.event_id)) return;
             processed.add(notice.event_id);
+            const current = currentSnapshot.current;
+            const requestId = notice.request_id ?? notice.data?.request_id;
+            if (current && requestId && notice.session_id && notice.turn_id
+              && ((notice.kind === 'request.started' && notice.data?.answer_phase === 'answer') || notice.kind === 'request.failed')) {
+              const scope = answerScope(current.instance_id, current.stream_id, notice.session_id, notice.turn_id);
+              const facts = answerRequests.current.get(scope) ?? {failed: new Set<string>()};
+              if (notice.kind === 'request.started') {
+                const snapshot = snapshotFacts.current;
+                const covered = snapshot?.instance === current.instance_id && snapshot?.stream === current.stream_id && notice.cursor <= snapshot.cursor;
+                if (!covered) {facts.latest = requestId; facts.latestCursor = notice.cursor;}
+              }
+              else facts.failed.add(requestId);
+              answerRequests.current.set(scope, facts);
+              publish(current);
+            }
             const preview = displayed.current.answer_preview;
             if (notice.kind === 'turn.finished' && notice.data?.answer_source === 'model'
               && (notice.data.status === 'completed' || ['output_limit', 'budget'].includes(notice.data.reason))
-              && preview?.text.trim() && !['invalidated', 'retrying'].includes(preview.status)
+              && preview?.text.trim() && eligibleAnswer(preview) && !['invalidated', 'retrying'].includes(preview.status)
               && preview.session_id === notice.session_id && preview.turn_id === notice.turn_id) {
               handoff.current = {...preview, status: 'generated'};
               setAnswerHandoff(handoff.current);
@@ -255,7 +292,7 @@ export function useServiceEvents() {
     }
     void connect();
     return () => {cancelled = true; ++stateRead.current; stream?.close(); window.clearTimeout(reconnectTimer);};
-  }, [refresh, publish, clearAnswerHandoff, rememberState]);
+  }, [refresh, publish, clearAnswerHandoff, rememberState, eligibleAnswer]);
 
   return {state,setState,answerHandoff,progressHandoff,clearAnswerHandoff,revision,contentRecoveryRevision,datasetRevision,deletedSession,connectionError,recoveryNotice,refresh,beginStop};
 }
