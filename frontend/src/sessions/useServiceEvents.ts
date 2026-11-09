@@ -22,7 +22,7 @@ function answerScope(instance: string | undefined, stream: string, session: stri
 
 type ServiceSnapshot = ServiceState & { schema_version: number; state?: ServiceState; cursor: number; stream_id: string };
 
-export function useServiceEvents() {
+export function useServiceEvents(reconcileSnapshot: (session: string, turn: string, stillCurrent: () => boolean) => Promise<boolean>) {
   const [state, setState] = useState<ServiceState>({active_turn_id:null,active_session_id:null,
     accepting:false,stopping:false,map_paused:false,map_pause_reason:null,service_status:'unavailable'});
   // 仅持久完成通知授权的短暂显示交接；不回填规范 answer_preview。
@@ -106,9 +106,21 @@ export function useServiceEvents() {
     if (!response.ok) throw new Error('服务状态暂时无法核对。');
     const result: ServiceSnapshot = await response.json();
     if (result.schema_version !== 1) throw new Error('数据版本不兼容，请更新页面和服务。');
+    const received = {...result, ...result.state};
+    const before = currentSnapshot.current;
+    const readable = before?.answer_preview;
+    if (reading === stateRead.current && !handoff.current && before && readable?.text.trim() && eligibleAnswer(readable)
+      && before.instance_id === received.instance_id && before.stream_id === received.stream_id
+      && before.active_turn_id === readable.turn_id && before.active_session_id === readable.session_id
+      && !received.active_turn_id && received.answer_preview === null && !received.storage_error
+      && (received.answer_revision ?? -1) >= (before.answer_revision ?? -1)) {
+      // 空快照不授权保存；先采用同轮可靠历史，避免公布半个复合读取。
+      const stillCurrent = () => reading === stateRead.current && currentSnapshot.current === before;
+      const reconciled = await reconcileSnapshot(readable.session_id, readable.turn_id, stillCurrent);
+      if (!reconciled || !stillCurrent()) return result;
+    }
     if (reading === stateRead.current) {
       const previous = currentSnapshot.current;
-      const received = {...result, ...result.state};
       let next = received;
       if (previous && previous.instance_id === next.instance_id && previous.stream_id === next.stream_id) {
         const oldAnswer = (previous.answer_revision ?? -1) > (next.answer_revision ?? -1);
@@ -142,7 +154,7 @@ export function useServiceEvents() {
       publish(next);
     }
     return result;
-  }, [publish, rememberState]);
+  }, [publish, rememberState, reconcileSnapshot, eligibleAnswer]);
 
   useEffect(() => {
     let cancelled = false;

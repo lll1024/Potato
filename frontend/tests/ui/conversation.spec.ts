@@ -1473,3 +1473,81 @@ test('续接先采用B累计快照，重放快照之前的A请求事实不撤正
   await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve())));
   await expect(page.locator('.answer-body')).toContainText('续接时B已经可读的累计正文');
 });
+
+for(const reading of ['bottom','paused','history-only']) test(`HTTP结束空快照先于完成通知时与历史一致采用 ${reading}`,async({page})=>{
+  const app=await conversation(page);
+  app.sessions[0].status='running';app.state.active_turn_id='turn';app.state.active_session_id='trip';app.state.answer_revision=1;
+  const text='## 西湖安排\n\n'+'沿湖慢行，按体力安排休息。\n\n'.repeat(40);
+  app.state.answer_preview={instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',attempt_id:'answer',revision:1,text,status:'generated'};
+  await page.reload();await page.getByRole('button',{name:/杭州行程.*正在执行/}).click();
+  const messages=page.locator('.messages');
+  await expect(messages.locator('.answer-body')).toContainText('西湖安排');
+  const gap=()=>messages.evaluate(element=>element.scrollHeight-element.scrollTop-element.clientHeight);
+  const offset=()=>messages.locator('[data-reading-anchor="answer:turn"]').evaluate(element=>element.getBoundingClientRect().top);
+  let release!:()=>void;
+  const barrier=new Promise<void>(resolve=>{release=resolve;});
+  await page.route('**/api/sessions/trip?*',async route=>{await barrier;await route.fallback();});
+  app.turn.status='completed';app.turn.answer=text+'\n可靠历史的完整结尾';app.sessions[0].status='completed';
+  let releaseSnapshot!:()=>void;
+  const snapshotBarrier=new Promise<void>(resolve=>{releaseSnapshot=resolve;});
+  await page.route('**/api/snapshot',async route=>{await snapshotBarrier;await route.fulfill({json:{schema_version:1,cursor:20,stream_id:'conversation-test',state:{...app.state,active_turn_id:null,active_session_id:null,stopping:false,answer_revision:2,answer_preview:null}}});});
+  const response=page.waitForResponse('**/api/snapshot');
+  await page.getByRole('button',{name:'停止生成',exact:true}).click();
+  if(reading==='paused') {
+    await messages.evaluate(element=>{element.dispatchEvent(new WheelEvent('wheel',{deltaY:-450,bubbles:true}));element.scrollTop=450;element.dispatchEvent(new Event('scroll'));});
+    await expect(page.getByRole('button',{name:'回到最新',exact:true})).toBeVisible();
+  } else {
+    const resume=page.getByRole('button',{name:'回到最新',exact:true});
+    if(await resume.isVisible()) await resume.click();
+    await expect.poll(gap).toBeLessThan(8);
+  }
+  const before=await offset();
+  releaseSnapshot();
+  await response;
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve())));
+  await expect(messages.locator('.answer-body')).toContainText('西湖安排');
+  await expect(page.getByRole('button',{name:'复制当前正文',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'复制完整回答',exact:true})).toHaveCount(0);
+  if(reading==='paused') expect(await offset()).toBeCloseTo(before,0);
+  else await expect.poll(gap).toBeLessThan(8);
+  if(reading!=='history-only') {
+  await page.evaluate(()=>(window as unknown as {source:EventTarget}).source.dispatchEvent(new MessageEvent('trace',{data:JSON.stringify({schema_version:1,cursor:20,event_id:'late-finish',kind:'turn.finished',session_id:'trip',turn_id:'turn',data:{status:'completed',answer_source:'model'}})})));
+  }
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve())));
+  await expect(messages.locator('.answer-body')).toContainText('西湖安排');
+  release();
+  await expect(messages.locator('.answer-body')).toContainText('可靠历史的完整结尾');
+  await expect(page.getByRole('button',{name:'复制完整回答',exact:true})).toBeVisible();
+  if(reading==='paused') expect(await offset()).toBeCloseTo(before,0);
+  else await expect.poll(gap).toBeLessThan(8);
+});
+
+for(const outcome of ['history-error','new-state']) test(`HTTP结束快照核对历史期间保留错误与较新状态语义 ${outcome}`,async({page})=>{
+  const app=await conversation(page);
+  app.sessions[0].status='running';app.state.active_turn_id='turn';app.state.active_session_id='trip';app.state.answer_revision=1;
+  app.state.answer_preview={instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',attempt_id:'answer',revision:1,text:'核对前已经可读的正文',status:'generated'};
+  await page.reload();await page.getByRole('button',{name:/杭州行程.*正在执行/}).click();
+  await expect(page.locator('.answer-body')).toContainText('核对前已经可读的正文');
+  let release!:()=>void;
+  const barrier=new Promise<void>(resolve=>{release=resolve;});
+  await page.route('**/api/sessions/trip?*',async route=>{await barrier;if(outcome==='history-error')await route.fulfill({status:503,json:{detail:'历史暂时无法核对'}});else await route.fallback();});
+  await page.route('**/api/snapshot',route=>route.fulfill({json:{schema_version:1,cursor:20,stream_id:'conversation-test',state:{...app.state,active_turn_id:null,active_session_id:null,stopping:false,answer_revision:2,answer_preview:null}}}));
+  const response=page.waitForResponse('**/api/snapshot');
+  await page.getByRole('button',{name:'停止生成',exact:true}).click();await response;
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve())));
+  if(outcome==='new-state') {
+    await page.evaluate(state=>(window as unknown as {source:EventTarget}).source.dispatchEvent(new MessageEvent('service.state',{data:JSON.stringify({schema_version:1,state:{...state,active_turn_id:'next',active_session_id:'trip',stopping:false,answer_revision:2}})})),app.state);
+    await page.locator('textarea').fill('下一轮草稿');
+    await expect(page.getByRole('button',{name:'发送旅行需求',exact:true})).toBeDisabled();
+    app.turn.status='completed';app.turn.answer='真实历史接管的回答';app.sessions[0].status='completed';
+  }
+  release();
+  if(outcome==='history-error') {
+    await expect(page.getByRole('alert').filter({hasText:'历史暂时无法核对'})).toBeVisible();
+    await expect(page.locator('.answer-body')).toContainText('核对前已经可读的正文');
+    await expect(page.getByRole('button',{name:'复制完整回答',exact:true})).toHaveCount(0);
+  } else {
+    await expect(page.locator('.answer-body')).toContainText('真实历史接管的回答');
+    await expect(page.getByRole('button',{name:'发送旅行需求',exact:true})).toBeDisabled();
+  }
+});
