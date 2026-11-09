@@ -1280,3 +1280,141 @@ for (const change of ['invalidated', 'retrying', 'attempt', 'turn', 'process', '
     preview:{instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',attempt_id:'answer',revision:1,text:'重复旧正文不得复活',status:'generated'}})})));
   await expect(page.getByText('重复旧正文不得复活',{exact:true})).toHaveCount(0);
 });
+
+for (const status of ['generating', 'generated']) test(`完成通知后的同尝试迟到累计正文与查询进展不回退 ${status}`, async ({page}) => {
+  const app = await conversation(page);
+  app.sessions[0].status='running'; app.state.active_turn_id='turn'; app.state.active_session_id='trip';
+  app.state.answer_revision=1;
+  app.state.answer_preview={instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',attempt_id:'answer',revision:1,text:'## 已经读到的回答。\n\n'+'沿湖慢行，按体力安排休息。\n\n'.repeat(35),status:'generating'};
+  const progress={instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',revision:1,
+    entries:[{id:'query',attempt_id:'query',kind:'tool',text:'核对西湖开放资料',status:'running'}]};
+  Object.assign(app.state,{progress_revision:1,progress_preview:progress});
+  await page.reload();
+  await page.getByRole('button',{name:/杭州行程.*正在执行/}).click();
+  await expect(page.locator('.answer-body')).toContainText('已经读到的回答。');
+  await page.getByRole('region',{name:'查询进展',exact:true}).locator('summary').click();
+  const messages=page.locator('.messages');
+  await messages.evaluate(element=>{element.dispatchEvent(new WheelEvent('wheel',{deltaY:-450,bubbles:true}));element.scrollTop=450;element.dispatchEvent(new Event('scroll'));});
+  await expect(page.getByRole('button',{name:'回到最新',exact:true})).toBeVisible();
+  const offset=()=>messages.locator('[data-reading-anchor="answer:turn"]').evaluate(element=>element.getBoundingClientRect().top);
+  const before=await offset();
+  let release!: () => void;
+  const barrier=new Promise<void>(resolve=>{release=resolve;});
+  await page.route('**/api/sessions/trip?*',async route=>{await barrier; await route.fallback();});
+  await page.evaluate(({state,progress,status})=>{
+    const source=(window as unknown as {source:EventTarget}).source;
+    source.dispatchEvent(new MessageEvent('trace',{data:JSON.stringify({schema_version:1,cursor:10,event_id:'finished',kind:'turn.finished',session_id:'trip',turn_id:'turn',data:{status:'completed',answer_source:'model'}})}));
+    source.dispatchEvent(new MessageEvent('service.state',{data:JSON.stringify({schema_version:1,state:{...state,answer_revision:3,progress_revision:3,active_turn_id:null,active_session_id:null}})}));
+    source.dispatchEvent(new MessageEvent('answer.preview',{data:JSON.stringify({schema_version:1,kind:'answer.preview',instance_id:'process',revision:2,
+      preview:{...state.answer_preview,revision:2,text:state.answer_preview!.text+'迟到的真实累计结尾。',status}})}));
+    source.dispatchEvent(new MessageEvent('progress.preview',{data:JSON.stringify({schema_version:1,kind:'progress.preview',instance_id:'process',revision:2,
+      preview:{...progress,revision:2,entries:[{...progress.entries[0],status:'completed'}]}})}));
+  },{state:app.state,progress,status});
+  await expect(page.locator('.answer-body')).toContainText('迟到的真实累计结尾。');
+  await expect(page.getByRole('region',{name:'查询进展',exact:true})).toContainText('已取得资料');
+  await page.evaluate(()=>{
+    const source=(window as unknown as {source:EventTarget}).source;
+    for (const kind of ['answer.preview','progress.preview']) source.dispatchEvent(new MessageEvent(kind,{data:JSON.stringify({schema_version:1,kind,instance_id:'process',revision:3,preview:null})}));
+  });
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve())));
+  await expect(page.locator('.answer-body')).toContainText('迟到的真实累计结尾。');
+  await expect(page.getByRole('region',{name:'查询进展',exact:true})).toContainText('已取得资料');
+  expect(await offset()).toBeCloseTo(before,0);
+  release();
+});
+
+for (const channel of ['answer', 'progress', 'both']) test(`结束状态宣布的内容次序阻止旧状态重新开放停止入口 ${channel}`, async ({page})=>{
+  const app=await conversation(page);
+  app.sessions[0].status='running'; app.state.active_turn_id='turn'; app.state.active_session_id='trip';
+  app.state.answer_revision=1;
+  app.state.answer_preview={instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',attempt_id:'answer',revision:1,text:'当前已读回答',status:'generated'};
+  await page.reload();
+  await page.getByRole('button',{name:/杭州行程.*正在执行/}).click();
+  await expect(page.getByRole('button',{name:'停止生成',exact:true})).toBeVisible();
+  await page.evaluate(state=>{
+    const source=(window as unknown as {source:EventTarget}).source;
+    source.dispatchEvent(new MessageEvent('service.state',{data:JSON.stringify({schema_version:1,state:{...state,answer_revision:3,progress_revision:3,active_turn_id:null,active_session_id:null}})}));
+  },app.state);
+  await expect(page.getByRole('button',{name:'停止生成',exact:true})).toHaveCount(0);
+  await page.evaluate(({state,channel})=>(window as unknown as {source:EventTarget}).source.dispatchEvent(new MessageEvent('service.state',{data:JSON.stringify({schema_version:1,state:{...state,answer_revision:channel==='progress'?3:2,progress_revision:channel==='answer'?3:2}})})),{state:app.state,channel});
+  await expect(page.getByRole('button',{name:'停止生成',exact:true})).toHaveCount(0);
+  await page.evaluate(()=>{
+    const source=(window as unknown as {source:EventTarget}).source;
+    for (const kind of ['answer.preview','progress.preview']) source.dispatchEvent(new MessageEvent(kind,{data:JSON.stringify({schema_version:1,kind,instance_id:'process',revision:3,preview:null})}));
+  });
+  await expect(page.locator('.answer-body')).toHaveCount(0);
+});
+
+for (const newer of ['answer','progress']) test(`较旧HTTP快照不能重开结束状态但可独立采用较新${newer}内容`,async ({page})=>{
+  const app=await conversation(page);
+  app.sessions[0].status='running'; app.state.active_turn_id='turn'; app.state.active_session_id='trip'; app.state.answer_revision=1;
+  app.state.answer_preview={instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',attempt_id:'answer',revision:1,text:'已读正文',status:'generated'};
+  await page.reload();
+  await page.getByRole('button',{name:/杭州行程.*正在执行/}).click();
+  let release!:()=>void, requested!:()=>void;
+  const barrier=new Promise<void>(resolve=>{release=resolve;});
+  const request=new Promise<void>(resolve=>{requested=resolve;});
+  await page.route('**/api/snapshot',async route=>{
+    requested(); await barrier;
+    const answerRevision=newer==='answer'?4:2, progressRevision=newer==='progress'?4:2;
+    await route.fulfill({json:{schema_version:1,cursor:0,stream_id:'conversation-test',state:{...app.state,
+      answer_revision:answerRevision,answer_preview:{...app.state.answer_preview,revision:answerRevision,text:'HTTP迟到的真实累计正文'},
+      progress_revision:progressRevision,progress_preview:{instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',revision:progressRevision,
+        entries:[{id:'query',attempt_id:'query',kind:'tool',text:'HTTP迟到的真实查询进展',status:'completed'}]}}}});
+  });
+  await page.getByRole('button',{name:'停止生成',exact:true}).click();
+  await request;
+  await page.evaluate(state=>(window as unknown as {source:EventTarget}).source.dispatchEvent(new MessageEvent('service.state',{data:JSON.stringify({schema_version:1,state:{...state,answer_revision:3,progress_revision:3,active_turn_id:null,active_session_id:null,stopping:false}})})),app.state);
+  await expect(page.getByRole('button',{name:'停止生成',exact:true})).toHaveCount(0);
+  const response=page.waitForResponse('**/api/snapshot');
+  release(); await response;
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve())));
+  await expect(page.getByRole('button',{name:'停止生成',exact:true})).toHaveCount(0);
+  await expect(page.locator('.answer-body')).toContainText('HTTP迟到的真实累计正文');
+  await page.getByRole('region',{name:'查询进展',exact:true}).locator('summary').click();
+  await expect(page.getByRole('region',{name:'查询进展',exact:true})).toContainText('HTTP迟到的真实查询进展');
+  await expect(page.getByRole('button',{name:'停止生成',exact:true})).toHaveCount(0);
+});
+
+for (const historical of ['invalidated','retrying']) for (const exposure of ['known','first-late']) test(`累计进展保留旧${historical}条目时可靠完成交接不撤销 ${exposure}`,async ({page})=>{
+  const app=await conversation(page);
+  app.sessions[0].status='running'; app.state.active_turn_id='turn'; app.state.active_session_id='trip'; app.state.answer_revision=1;
+  app.state.answer_preview={instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',attempt_id:'answer',revision:1,text:'可靠完成后仍须连续可读的回答',status:'generated'};
+  const progress={instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',revision:1,
+    entries:[{id:'old',attempt_id:'old',kind:'model',text:'',status:historical},
+      {id:'current',attempt_id:'current',kind:'model',text:'正在核对开放资料',status:'generated'},
+      {id:'tool',attempt_id:'tool',kind:'tool',text:'核对西湖开放资料',status:'running'}]};
+  Object.assign(app.state,{progress_revision:1,progress_preview:{...progress,entries:exposure==='first-late'?progress.entries.slice(1):progress.entries}});
+  await page.reload();
+  await page.getByRole('button',{name:/杭州行程.*正在执行/}).click();
+  await expect(page.locator('.answer-body')).toContainText('可靠完成后仍须连续可读的回答');
+  let release!:()=>void;
+  const barrier=new Promise<void>(resolve=>{release=resolve;});
+  await page.route('**/api/sessions/trip?*',async route=>{await barrier;await route.fallback();});
+  await page.evaluate(({state,progress})=>{
+    const source=(window as unknown as {source:EventTarget}).source;
+    source.dispatchEvent(new MessageEvent('trace',{data:JSON.stringify({schema_version:1,cursor:10,event_id:'finished',kind:'turn.finished',session_id:'trip',turn_id:'turn',data:{status:'completed',answer_source:'model'}})}));
+    source.dispatchEvent(new MessageEvent('service.state',{data:JSON.stringify({schema_version:1,state:{...state,answer_revision:2,progress_revision:3,active_turn_id:null,active_session_id:null}})}));
+    source.dispatchEvent(new MessageEvent('answer.preview',{data:JSON.stringify({schema_version:1,kind:'answer.preview',instance_id:'process',revision:2,preview:null})}));
+    source.dispatchEvent(new MessageEvent('progress.preview',{data:JSON.stringify({schema_version:1,kind:'progress.preview',instance_id:'process',revision:2,
+      preview:{...progress,revision:2,entries:progress.entries.map(entry=>entry.id==='tool'?{...entry,status:'completed'}:entry)}})}));
+    source.dispatchEvent(new MessageEvent('progress.preview',{data:JSON.stringify({schema_version:1,kind:'progress.preview',instance_id:'process',revision:3,preview:null})}));
+  },{state:app.state,progress});
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve())));
+  await expect(page.locator('.answer-body')).toContainText('可靠完成后仍须连续可读的回答');
+  await page.getByRole('region',{name:'查询进展',exact:true}).locator('summary').click();
+  await expect(page.getByRole('region',{name:'查询进展',exact:true})).toContainText('已取得资料');
+  await page.evaluate(({progress,historical})=>{
+    (window as unknown as {source:EventTarget}).source.dispatchEvent(new MessageEvent('progress.preview',{data:JSON.stringify({schema_version:1,kind:'progress.preview',instance_id:'process',revision:4,
+      preview:{...progress,revision:4,entries:progress.entries.map(entry=>entry.id==='current'?{...entry,text:'',status:historical}:entry.id==='tool'?{...entry,status:'completed'}:entry)}})}));
+  },{progress,historical});
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve())));
+  await expect(page.locator('.answer-body')).toContainText('可靠完成后仍须连续可读的回答');
+  await expect(page.getByRole('region',{name:'查询进展',exact:true})).not.toContainText('正在核对开放资料');
+  await page.evaluate(()=>(window as unknown as {source:EventTarget}).source.dispatchEvent(new MessageEvent('progress.preview',{data:JSON.stringify({schema_version:1,kind:'progress.preview',instance_id:'process',revision:5,preview:null})})));
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve())));
+  await expect(page.locator('.answer-body')).toContainText('可靠完成后仍须连续可读的回答');
+  await expect(page.getByRole('region',{name:'查询进展',exact:true})).not.toContainText('正在核对开放资料');
+  await expect(page.getByRole('region',{name:'查询进展',exact:true})).toContainText('已取得资料');
+  release();
+});

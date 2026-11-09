@@ -35,18 +35,38 @@ export function useServiceEvents() {
   const [recoveryNotice, setRecoveryNotice] = useState('');
   const stateRead = useRef(0);
   const currentSnapshot = useRef<ServiceSnapshot | null>(null);
+  // 状态可先宣布下一内容次序；此水位只防状态回退，不代表收到正文／进展。
+  const announcedState = useRef<{instance_id?: string; stream_id: string; answer: number; progress: number} | null>(null);
+  const rememberState = useCallback((value: ServiceSnapshot) => {
+    const old = announcedState.current;
+    const same = old?.instance_id === value.instance_id && old?.stream_id === value.stream_id;
+    announcedState.current = {instance_id: value.instance_id, stream_id: value.stream_id,
+      answer: Math.max(value.answer_revision ?? -1, same ? old!.answer : -1),
+      progress: Math.max(value.progress_revision ?? -1, same ? old!.progress : -1)};
+  }, []);
   const displayed = useRef<ServiceState>(state);
   const frozen = useRef<{instance: string | undefined; stream: string; turn: string; preview: AnswerPreview | null; progress: ProgressPreview | null} | null>(null);
   const publish = useCallback((next: ServiceSnapshot) => {
     const held = handoff.current;
     const incoming = next.answer_preview;
     const incomingProgress = next.progress_preview;
+    // 查询条目失效只更新进展投影；不能撤销可靠完成事实授权的正文交接。
     if (held && (held.instance_id !== next.instance_id || held.stream_id !== next.stream_id
       || (next.active_turn_id && (next.active_turn_id !== held.turn_id || next.active_session_id !== held.session_id))
-      || next.storage_error || (incomingProgress && (incomingProgress.turn_id !== held.turn_id || incomingProgress.session_id !== held.session_id
-        || (incomingProgress.revision > handoffProgressRevision.current && incomingProgress.entries.some(entry => ['invalidated', 'retrying'].includes(entry.status)))))
+      || next.storage_error || (incomingProgress && (incomingProgress.turn_id !== held.turn_id || incomingProgress.session_id !== held.session_id))
       || (incoming && (incoming.attempt_id !== held.attempt_id || incoming.turn_id !== held.turn_id
         || incoming.session_id !== held.session_id || ['invalidated', 'retrying'].includes(incoming.status))))) clearAnswerHandoff();
+    else if (held) {
+      // 完成通知后仍可能收到同次作答的较新累计内容；交接也必须前进。
+      if (incoming && incoming.revision > held.revision) {
+        handoff.current = {...incoming, status: 'generated'};
+        setAnswerHandoff(handoff.current);
+      }
+      if (incomingProgress && incomingProgress.revision > handoffProgressRevision.current) {
+        handoffProgressRevision.current = incomingProgress.revision;
+        setProgressHandoff(incomingProgress);
+      }
+    }
     const matches = frozen.current?.instance === next.instance_id && frozen.current?.stream === next.stream_id
       && frozen.current?.turn === next.active_turn_id;
     if (!matches) frozen.current = null;
@@ -82,7 +102,10 @@ export function useServiceEvents() {
       if (previous && previous.instance_id === next.instance_id && previous.stream_id === next.stream_id) {
         const oldAnswer = (previous.answer_revision ?? -1) > (next.answer_revision ?? -1);
         const oldProgress = (previous.progress_revision ?? -1) > (next.progress_revision ?? -1);
-        if (oldAnswer || oldProgress) {
+        const announced = announcedState.current;
+        const oldState = announced?.instance_id === next.instance_id && announced?.stream_id === next.stream_id
+          && (announced.answer > (next.answer_revision ?? -1) || announced.progress > (next.progress_revision ?? -1));
+        if (oldAnswer || oldProgress || oldState) {
           // 两类内容独立交接；旧状态不能释放名额，但另一类较新累计内容仍可采用。
           next = {...previous,
             answer_revision: oldAnswer ? previous.answer_revision : next.answer_revision,
@@ -91,12 +114,13 @@ export function useServiceEvents() {
             progress_preview: oldProgress ? previous.progress_preview : next.progress_preview};
         }
       }
+      rememberState(next);
       currentSnapshot.current = next;
       setContentRecoveryRevision(value => value + 1);
       publish(next);
     }
     return result;
-  }, [publish]);
+  }, [publish, rememberState]);
 
   useEffect(() => {
     let cancelled = false;
@@ -212,8 +236,10 @@ export function useServiceEvents() {
             const notice = JSON.parse((event as MessageEvent).data);
             if (notice.schema_version !== 1 || !notice.state) throw new Error('服务状态无法识别。');
             const current = requireInstance(notice.state.instance_id);
-            if ((notice.state.answer_revision !== undefined && notice.state.answer_revision < (current.answer_revision ?? -1))
-              || (notice.state.progress_revision !== undefined && notice.state.progress_revision < (current.progress_revision ?? -1))) return;
+            const announced = announcedState.current;
+            if ((notice.state.answer_revision !== undefined && notice.state.answer_revision < Math.max(current.answer_revision ?? -1, announced?.answer ?? -1))
+              || (notice.state.progress_revision !== undefined && notice.state.progress_revision < Math.max(current.progress_revision ?? -1, announced?.progress ?? -1))) return;
+            rememberState({...current, ...notice.state});
             // 状态与正文在网络中可以交错，正文按自己的次序保留，由会话及轮次投影决定是否展示。
             const next = {...current, ...notice.state, answer_revision: current.answer_revision, answer_preview: current.answer_preview,
               progress_revision: current.progress_revision, progress_preview: current.progress_preview};
@@ -229,7 +255,7 @@ export function useServiceEvents() {
     }
     void connect();
     return () => {cancelled = true; ++stateRead.current; stream?.close(); window.clearTimeout(reconnectTimer);};
-  }, [refresh, publish, clearAnswerHandoff]);
+  }, [refresh, publish, clearAnswerHandoff, rememberState]);
 
   return {state,setState,answerHandoff,progressHandoff,clearAnswerHandoff,revision,contentRecoveryRevision,datasetRevision,deletedSession,connectionError,recoveryNotice,refresh,beginStop};
 }
