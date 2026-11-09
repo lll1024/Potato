@@ -276,6 +276,102 @@ struct StopTests {
 
 @MainActor
 struct AnswerStreamingTests {
+    @Test(arguments: ["answer-failed", "answer-replaced", "query-failed", "summary-started", "answer-current", "snapshot-newer"], [false, true])
+    func persistentRequestFactsPreventFailedAttemptHandoff(change: String, httpSnapshot: Bool) async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        defer { sessions.setForeground(false) }
+        let currentB = change == "snapshot-newer"
+        let initial = snapshot(revision: 1, text: currentB ? "尝试B已读正文" : "尝试A已读正文")
+            .replacingOccurrences(of: "\"schema_version\":1,", with: "\"schema_version\":1,\"cursor\":\(currentB ? 15 : 12),")
+            .replacingOccurrences(of: "\"attempt_id\":\"attempt\"", with: "\"attempt_id\":\"\(currentB ? "replacement" : "attempt")\"")
+        await fixture.next().reply(body: initial)
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let stream = await fixture.next()
+        stream.beginStream()
+        // 持久事实先成批补齐，瞬时B的预览已被后端收束为null。
+        let request = change == "answer-failed" || currentB ? "attempt" : "replacement"
+        let started = change != "answer-failed" && change != "query-failed"
+        let phase = ["answer-replaced", "answer-current", "snapshot-newer"].contains(change) ? "answer" : change == "summary-started" ? "" : "query"
+        let data = started ? "{\"answer_phase\":\"\(phase)\",\"purpose\":\"\(change == "summary-started" ? "context_summary" : "travel")\"}" : "{\"status\":\"failed\"}"
+        stream.send(Data("""
+            id: 13
+            event: trace
+            data: {"schema_version":1,"kind":"request.\(started ? "started" : "failed")","session_id":"existing","turn_id":"turn","request_id":"\(request)","cursor":13,"data":\(data)}
+
+
+            id: 14
+            event: trace
+            data: {"schema_version":1,"kind":"request.completed","session_id":"existing","turn_id":"turn","request_id":"replacement","cursor":14,"data":{"status":"completed"}}
+
+
+            """.utf8))
+        // 公开状态作事件处理屏障，不能只在trace进入接收队列后就断言。
+        stream.send(Data("""
+            event: service.state
+            data: {"schema_version":1,"kind":"service.state","state":{"schema_version":1,"instance_id":"process","answer_revision":1,"progress_revision":0,"active_session_id":"existing","active_turn_id":"turn","accepting":false,"stopping":false}}
+
+
+            """.utf8))
+        try await observed { sessions.service?.accepting == false }
+        if currentB {
+            #expect(sessions.answerPreview?.text == "尝试B已读正文", "快照游标之前的请求不能撤销快照当前尝试")
+            stream.send(Data("""
+                id: 15
+                event: trace
+                data: {"schema_version":1,"kind":"request.started","session_id":"existing","turn_id":"turn","request_id":"replacement","cursor":15,"data":{"answer_phase":"answer"}}
+
+
+                """.utf8))
+        }
+        let matchingB = change == "answer-current" || currentB
+        let arrivingText = matchingB ? "尝试B迟到全文" : "尝试A迟到全文"
+        // 两个传输来源都可能较迟送来更高raw revision的A，已知尝试归属不能复活。
+        if httpSnapshot {
+            let checking = Task { try await sessions.refresh() }
+            await fixture.next().reply(body: snapshot(revision: 2, text: arrivingText)
+                .replacingOccurrences(of: "\"attempt_id\":\"attempt\"", with: "\"attempt_id\":\"\(matchingB ? "replacement" : "attempt")\""))
+            await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+            _ = try await checking.value
+        } else { stream.send(event(text: arrivingText, revision: 2, attempt: matchingB ? "replacement" : "attempt")) }
+        stream.send(Data("""
+            id: 16
+            event: trace
+            data: {"schema_version":1,"kind":"turn.finished","session_id":"existing","turn_id":"turn","cursor":16,"data":{"status":"completed","reason":null,"answer_source":"model"}}
+
+
+            event: service.state
+            data: {"schema_version":1,"kind":"service.state","state":{"schema_version":1,"instance_id":"process","answer_revision":3,"progress_revision":0,"active_session_id":null,"active_turn_id":null,"accepting":true,"stopping":false}}
+
+
+            """.utf8))
+        let delayedHistory = await fixture.next()
+        #expect(delayedHistory.protocolRequest.request.url?.path == "/api/sessions/existing")
+        stream.send(Data("""
+            event: answer.preview
+            data: {"schema_version":1,"kind":"answer.preview","instance_id":"process","revision":3,"preview":null}
+
+
+            event: service.state
+            data: {"schema_version":1,"kind":"service.state","state":{"schema_version":1,"instance_id":"process","answer_revision":3,"progress_revision":0,"active_session_id":null,"active_turn_id":null,"accepting":false,"stopping":false}}
+
+
+            """.utf8))
+        try await observed { sessions.service?.accepting == false }
+        let permitted = change == "query-failed" || change == "summary-started" || matchingB
+        #expect(sessions.answerPreview?.text == (permitted ? arrivingText : nil))
+        #expect(sessions.conversation?.turns.first?.status == "running")
+        delayedHistory.reply(body: page(answer: "真正完成并保存的正文").replacingOccurrences(of: "\"cursor\":12", with: "\"cursor\":16"))
+        try await observed { sessions.conversation?.turns.first?.answer == "真正完成并保存的正文" }
+        #expect(sessions.answerPreview == nil)
+        await clock.advance()
+    }
+
     @Test(arguments: [false, true])
     func finishedStateKeepsReadableContentUntilReliableHistoryArrives(newerEarlierPage: Bool) async throws {
         let clock = PollClock()

@@ -25,6 +25,9 @@ public final class SharedSessions: SessionAccess {
     private var handoffWasStopped = false
     private var stateAnswerRevision = -1
     private var stateProgressRevision = -1
+    private var latestAnswerRequest: [String: (id: String, cursor: Int)] = [:]
+    private var requestSnapshotCursor = 0
+    private var failedAnswerRequests: Set<String> = []
     private var frozenAnswer: AnswerPreview?
     private var frozenTurnID: String?
     private var answerInstance: String?
@@ -36,7 +39,8 @@ public final class SharedSessions: SessionAccess {
     public var answerPreview: AnswerPreview? {
         let frozen = frozenTurnID != nil && frozenTurnID == service?.activeTurnID
         guard let preview = frozen ? frozenAnswer : (readingHandoff ?? currentAnswer), preview.sessionID == watchedSessionID,
-              preview.streamID == datasetID, preview.instanceID == answerInstance else { return nil }
+              preview.streamID == datasetID, preview.instanceID == answerInstance,
+              frozen || isEligibleAnswerAttempt(preview) else { return nil }
         if let turn = conversation?.turns.first(where: { $0.id == preview.turnID }), turn.status != "running" { return nil }
         return preview
     }
@@ -63,10 +67,26 @@ public final class SharedSessions: SessionAccess {
         handoffWasStopped = false
     }
 
+    private func isEligibleAnswerAttempt(_ preview: AnswerPreview) -> Bool {
+        !failedAnswerRequests.contains(preview.attemptID)
+            && (latestAnswerRequest[preview.turnID].map { $0.cursor <= requestSnapshotCursor || $0.id == preview.attemptID } ?? true)
+    }
+
+    private func observeAnswerRequest(_ fact: WireAnswerRequestFact) {
+        guard fact.sessionId == watchedSessionID else { return }
+        if fact.kind == "request.started", fact.data.answerPhase == "answer", fact.cursor > requestSnapshotCursor {
+            latestAnswerRequest[fact.turnId] = (fact.requestId, fact.cursor)
+        } else if fact.kind == "request.failed" {
+            failedAnswerRequests.insert(fact.requestId)
+        }
+        if let held = handoffAnswer, !isEligibleAnswerAttempt(held) { clearReadingHandoff() }
+    }
+
     private func retainReadingHandoff(_ fact: WireTurnFinished) {
         guard fact.data.answerSource == "model",
               fact.data.status == "completed" || ["budget", "output_limit"].contains(fact.data.reason ?? ""),
-              let preview = answerPreview, preview.sessionID == fact.sessionId, preview.turnID == fact.turnId,
+              let preview = answerPreview, isEligibleAnswerAttempt(preview),
+              preview.sessionID == fact.sessionId, preview.turnID == fact.turnId,
               let turn = conversation?.turns.first(where: { $0.id == fact.turnId }),
               fact.cursor > (turn.observedAt ?? 0),
               !preview.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
@@ -712,6 +732,7 @@ public final class SharedSessions: SessionAccess {
                 answerRevision = -1
                 answerInstance = snapshot.instanceId
             }
+            requestSnapshotCursor = max(requestSnapshotCursor, snapshot.cursor ?? 0)
             if let instance = snapshot.instanceId, let revision = snapshot.answerRevision {
                 try adoptAnswer(instance: instance, revision: revision, preview: snapshot.answerPreview)
             }
@@ -875,6 +896,9 @@ public final class SharedSessions: SessionAccess {
 
     private func cancelAnswerSubscription() {
         clearReadingHandoff()
+        latestAnswerRequest = [:]
+        requestSnapshotCursor = 0
+        failedAnswerRequests = []
         answerOperation = UUID()
         answerSubscription?.cancel()
         answerSubscription = nil
@@ -986,6 +1010,11 @@ public final class SharedSessions: SessionAccess {
                     guard let self, self.answerOperation == operation else { return }
                     for event in try parser.append(data) {
                         guard event.schemaVersion == 1 else { throw SessionFailure.invalidResponse }
+                        if let request = event.requestFact {
+                            guard self.answerInstance == instance else { continue }
+                            self.observeAnswerRequest(request)
+                            continue
+                        }
                         if let completion = event.completion {
                             guard self.answerInstance == instance else { continue }
                             self.retainReadingHandoff(completion)

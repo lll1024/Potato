@@ -129,6 +129,7 @@ struct WireList: Decodable, Sendable {
 }
 
 struct WireSnapshot: Decodable, Sendable {
+    let cursor: Int?
     let schemaVersion: Int
     let streamId: String
     let activeSessionId: String?
@@ -223,7 +224,7 @@ struct SessionEventParser {
                     decoder.keyDecodingStrategy = .convertFromSnakeCase
                     let data = Data(lines.joined(separator: "\n").utf8)
                     let relevant: Bool
-                    if kind == "trace" { relevant = try decoder.decode(WireTraceKind.self, from: data).kind == "turn.finished" }
+                    if kind == "trace" { relevant = ["turn.finished", "request.started", "request.failed"].contains(try decoder.decode(WireTraceKind.self, from: data).kind) }
                     else { relevant = true }
                     if relevant { events.append(try decoder.decode(WireAnswerEvent.self, from: data)) }
                 }
@@ -248,12 +249,19 @@ struct WireAnswerEvent: Decodable, Sendable {
     let progress: ProgressPreview?
     let state: WireLiveState?
     let completion: WireTurnFinished?
+    let requestFact: WireAnswerRequestFact?
     let kind: String
     enum CodingKeys: String, CodingKey { case schemaVersion, instanceId, revision, preview, kind, state }
     init(from decoder: any Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         schemaVersion = try values.decode(Int.self, forKey: .schemaVersion)
         kind = try values.decodeIfPresent(String.self, forKey: .kind) ?? "answer.preview"
+        if ["request.started", "request.failed"].contains(kind) {
+            requestFact = try WireAnswerRequestFact(from: decoder)
+            completion = nil; instanceId = ""; revision = 0; preview = nil; progress = nil; state = nil
+            return
+        }
+        requestFact = nil
         if kind == "turn.finished" {
             completion = try WireTurnFinished(from: decoder)
             instanceId = ""; revision = 0; preview = nil; progress = nil; state = nil
@@ -283,6 +291,17 @@ struct WireAnswerEvent: Decodable, Sendable {
 }
 
 private struct WireTraceKind: Decodable { let kind: String }
+
+/// 请求摘要用于排除合批期间已失败或已被下一次作答取代的旧正文。
+struct WireAnswerRequestFact: Decodable, Sendable {
+    let cursor: Int
+    struct Details: Decodable, Sendable { let answerPhase: String? }
+    let kind: String
+    let sessionId: String
+    let turnId: String
+    let requestId: String
+    let data: Details
+}
 
 /// 完成事实只授权同一订阅中已有内容的短暂阅读交接，不携带或伪造历史正文。
 struct WireTurnFinished: Decodable, Sendable {
