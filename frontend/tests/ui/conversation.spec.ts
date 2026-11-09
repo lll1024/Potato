@@ -1375,3 +1375,46 @@ for (const newer of ['answer','progress']) test(`较旧HTTP快照不能重开结
   await expect(page.getByRole('region',{name:'查询进展',exact:true})).toContainText('HTTP迟到的真实查询进展');
   await expect(page.getByRole('button',{name:'停止生成',exact:true})).toHaveCount(0);
 });
+
+for (const historical of ['invalidated','retrying']) for (const exposure of ['known','first-late']) test(`累计进展保留旧${historical}条目时可靠完成交接不撤销 ${exposure}`,async ({page})=>{
+  const app=await conversation(page);
+  app.sessions[0].status='running'; app.state.active_turn_id='turn'; app.state.active_session_id='trip'; app.state.answer_revision=1;
+  app.state.answer_preview={instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',attempt_id:'answer',revision:1,text:'可靠完成后仍须连续可读的回答',status:'generated'};
+  const progress={instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',revision:1,
+    entries:[{id:'old',attempt_id:'old',kind:'model',text:'',status:historical},
+      {id:'current',attempt_id:'current',kind:'model',text:'正在核对开放资料',status:'generated'},
+      {id:'tool',attempt_id:'tool',kind:'tool',text:'核对西湖开放资料',status:'running'}]};
+  Object.assign(app.state,{progress_revision:1,progress_preview:{...progress,entries:exposure==='first-late'?progress.entries.slice(1):progress.entries}});
+  await page.reload();
+  await page.getByRole('button',{name:/杭州行程.*正在执行/}).click();
+  await expect(page.locator('.answer-body')).toContainText('可靠完成后仍须连续可读的回答');
+  let release!:()=>void;
+  const barrier=new Promise<void>(resolve=>{release=resolve;});
+  await page.route('**/api/sessions/trip?*',async route=>{await barrier;await route.fallback();});
+  await page.evaluate(({state,progress})=>{
+    const source=(window as unknown as {source:EventTarget}).source;
+    source.dispatchEvent(new MessageEvent('trace',{data:JSON.stringify({schema_version:1,cursor:10,event_id:'finished',kind:'turn.finished',session_id:'trip',turn_id:'turn',data:{status:'completed',answer_source:'model'}})}));
+    source.dispatchEvent(new MessageEvent('service.state',{data:JSON.stringify({schema_version:1,state:{...state,answer_revision:2,progress_revision:3,active_turn_id:null,active_session_id:null}})}));
+    source.dispatchEvent(new MessageEvent('answer.preview',{data:JSON.stringify({schema_version:1,kind:'answer.preview',instance_id:'process',revision:2,preview:null})}));
+    source.dispatchEvent(new MessageEvent('progress.preview',{data:JSON.stringify({schema_version:1,kind:'progress.preview',instance_id:'process',revision:2,
+      preview:{...progress,revision:2,entries:progress.entries.map(entry=>entry.id==='tool'?{...entry,status:'completed'}:entry)}})}));
+    source.dispatchEvent(new MessageEvent('progress.preview',{data:JSON.stringify({schema_version:1,kind:'progress.preview',instance_id:'process',revision:3,preview:null})}));
+  },{state:app.state,progress});
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve())));
+  await expect(page.locator('.answer-body')).toContainText('可靠完成后仍须连续可读的回答');
+  await page.getByRole('region',{name:'查询进展',exact:true}).locator('summary').click();
+  await expect(page.getByRole('region',{name:'查询进展',exact:true})).toContainText('已取得资料');
+  await page.evaluate(({progress,historical})=>{
+    (window as unknown as {source:EventTarget}).source.dispatchEvent(new MessageEvent('progress.preview',{data:JSON.stringify({schema_version:1,kind:'progress.preview',instance_id:'process',revision:4,
+      preview:{...progress,revision:4,entries:progress.entries.map(entry=>entry.id==='current'?{...entry,text:'',status:historical}:entry.id==='tool'?{...entry,status:'completed'}:entry)}})}));
+  },{progress,historical});
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve())));
+  await expect(page.locator('.answer-body')).toContainText('可靠完成后仍须连续可读的回答');
+  await expect(page.getByRole('region',{name:'查询进展',exact:true})).not.toContainText('正在核对开放资料');
+  await page.evaluate(()=>(window as unknown as {source:EventTarget}).source.dispatchEvent(new MessageEvent('progress.preview',{data:JSON.stringify({schema_version:1,kind:'progress.preview',instance_id:'process',revision:5,preview:null})})));
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve())));
+  await expect(page.locator('.answer-body')).toContainText('可靠完成后仍须连续可读的回答');
+  await expect(page.getByRole('region',{name:'查询进展',exact:true})).not.toContainText('正在核对开放资料');
+  await expect(page.getByRole('region',{name:'查询进展',exact:true})).toContainText('已取得资料');
+  release();
+});

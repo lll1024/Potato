@@ -50,10 +50,10 @@ export function useServiceEvents() {
     const held = handoff.current;
     const incoming = next.answer_preview;
     const incomingProgress = next.progress_preview;
+    // 查询条目失效只更新进展投影；不能撤销可靠完成事实授权的正文交接。
     if (held && (held.instance_id !== next.instance_id || held.stream_id !== next.stream_id
       || (next.active_turn_id && (next.active_turn_id !== held.turn_id || next.active_session_id !== held.session_id))
-      || next.storage_error || (incomingProgress && (incomingProgress.turn_id !== held.turn_id || incomingProgress.session_id !== held.session_id
-        || (incomingProgress.revision > handoffProgressRevision.current && incomingProgress.entries.some(entry => ['invalidated', 'retrying'].includes(entry.status)))))
+      || next.storage_error || (incomingProgress && (incomingProgress.turn_id !== held.turn_id || incomingProgress.session_id !== held.session_id))
       || (incoming && (incoming.attempt_id !== held.attempt_id || incoming.turn_id !== held.turn_id
         || incoming.session_id !== held.session_id || ['invalidated', 'retrying'].includes(incoming.status))))) clearAnswerHandoff();
     else if (held) {
