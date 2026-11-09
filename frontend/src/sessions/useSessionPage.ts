@@ -58,6 +58,14 @@ export function useSessionPage<T extends NonNullable<SessionPage>>(sessionId: st
     return () => {cancelled = true; window.clearInterval(interval);};
   }, [sessionId, revision, datasetRevision, query, poll, invalidation]);
 
+  async function reconcile(id: string, confirms: (page: T) => boolean) {
+    if (selected.current !== id) return false;
+    const epoch = generation.current;
+    const page = await read(id);
+    if (epoch !== generation.current || selected.current !== id || !confirms(page)) return false;
+    apply(id, page, 'refresh');
+    return true;
+  }
   async function loadEarlier() {
     if (!sessionId || !snapshot?.next_before || loadingEarlier) return;
     const id = sessionId, epoch = generation.current, before = snapshot.next_before;
@@ -85,5 +93,5 @@ export function useSessionPage<T extends NonNullable<SessionPage>>(sessionId: st
     if (!id || selected.current === id) setPageState({id: selected.current, page: null});
     setInvalidation(current => current + 1);
   }
-  return {snapshot, error, setError, loadingEarlier, loadEarlier, locate, invalidate};
+  return {snapshot, error, setError, loadingEarlier, loadEarlier, locate, invalidate, reconcile};
 }

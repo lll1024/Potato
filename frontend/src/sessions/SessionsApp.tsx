@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { TraceView, type TraceLocation } from './TraceView';
 import { useReadingFollow } from './useReadingFollow';
 import { ReadingScroll } from './ReadingScroll';
@@ -45,8 +45,11 @@ export function SessionsApp({PreferencesView}: {PreferencesView: ComponentType<{
   const [traceLocation,setTraceLocation]=useState<TraceLocation | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const {draft, setDraft, removeDraft, clearSubmittedDraft, clearDrafts} = useConversationDraft(sessionId);
-  const {state, answerHandoff, progressHandoff, clearAnswerHandoff, revision: serviceRevision, datasetRevision, deletedSession, connectionError, recoveryNotice, refresh: refreshService, beginStop, contentRecoveryRevision} = useServiceEvents();
-  const {snapshot, error, setError, loadingEarlier, loadEarlier: readEarlier, invalidate} = useSessionPage<Snapshot>(sessionId, serviceRevision, 'include_messages=false', datasetRevision, true);
+  const historyReconciliation = useRef<(id: string, turn: string, stillCurrent: () => boolean) => Promise<boolean>>(async () => false);
+  const reconcileSnapshot = useCallback((id: string, turn: string, stillCurrent: () => boolean) => historyReconciliation.current(id, turn, stillCurrent), []);
+  const {state, answerHandoff, progressHandoff, clearAnswerHandoff, revision: serviceRevision, datasetRevision, deletedSession, connectionError, recoveryNotice, refresh: refreshService, beginStop, contentRecoveryRevision} = useServiceEvents(reconcileSnapshot);
+  const {snapshot, error, setError, loadingEarlier, loadEarlier: readEarlier, invalidate, reconcile} = useSessionPage<Snapshot>(sessionId, serviceRevision, 'include_messages=false', datasetRevision, true);
+  historyReconciliation.current = (id, turn, stillCurrent) => reconcile(id, page => stillCurrent() && page.turns.some(item => item.turn_id === turn && item.status !== 'running'));
 
   const submission = useSubmission((accepted, submitted) => {
     if (!submitted.preserve_draft) clearSubmittedDraft(submitted.session_id, submitted.input);
