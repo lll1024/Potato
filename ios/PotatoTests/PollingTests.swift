@@ -276,6 +276,76 @@ struct StopTests {
 
 @MainActor
 struct AnswerStreamingTests {
+    @Test(arguments: ["saved", "unavailable", "deleted", "still-running"], [false, true])
+    func endingSnapshotWaitsForReliableHistoryBeforeClearingReadableContent(outcome: String, lateTrace: Bool) async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        defer { sessions.setForeground(false) }
+        await fixture.next().reply(body: snapshot(revision: 1, text: "结束快照之前已读到的正文"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let stream = await fixture.next(); stream.beginStream()
+        await clock.advance()
+        let ending = await fixture.next()
+        #expect(ending.protocolRequest.request.url?.path == "/api/snapshot")
+        ending.reply(body: snapshot(revision: 3, active: false)
+            .replacingOccurrences(of: "\"schema_version\":1,", with: "\"schema_version\":1,\"cursor\":13,"))
+        let pending = await fixture.next()
+        // 完成SSE尚未抵达，正在核对的一致读取不能先公布null、撤空已读正文。
+        #expect(sessions.answerPreview?.text == "结束快照之前已读到的正文")
+        #expect(sessions.conversation?.turns.first?.status == "running")
+        #expect(sessions.conversation?.turns.first?.answer == nil)
+        let historyFirst = pending.protocolRequest.request.url?.path == "/api/sessions/existing"
+        let reading: ControlledRequest
+        if historyFirst { reading = pending }
+        else {
+            #expect(pending.protocolRequest.request.url?.path == "/api/sessions")
+            pending.reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+            reading = await fixture.next()
+        }
+        if lateTrace {
+            stream.send(Data("""
+                id: 13
+                event: trace
+                data: {"schema_version":1,"kind":"turn.finished","session_id":"existing","turn_id":"turn","cursor":13,"data":{"status":"completed","reason":null,"answer_source":"model"}}
+
+
+                """.utf8))
+        }
+        switch outcome {
+        case "unavailable": reading.reply(status: 500, body: "{}")
+        case "deleted": reading.reply(status: 404, body: "{}")
+        case "still-running": reading.reply(body: page())
+        default: reading.reply(body: page(answer: "最终可靠历史的完整正文").replacingOccurrences(of: "\"cursor\":12", with: "\"cursor\":13"))
+        }
+        if historyFirst && outcome == "saved" { await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}") }
+        _ = await clock.nextInterval()
+        if outcome == "saved" {
+            #expect(sessions.conversation?.turns.first?.answer == "最终可靠历史的完整正文")
+            #expect(sessions.answerPreview == nil)
+            #expect(sessions.service?.activeTurnID == nil)
+            #expect(await fixture.receivedCount == 7, "沿现有一次历史读取完成交接，不追加重复轮询")
+        } else if outcome == "deleted" {
+            #expect(sessions.conversation == nil)
+            #expect(sessions.answerPreview == nil)
+            #expect(sessions.conversationFailure == .http(404))
+            #expect(sessions.connection == .connected, "会话404不伪装成服务连接失败")
+        } else {
+            #expect(sessions.answerPreview?.text == "结束快照之前已读到的正文")
+            #expect(sessions.conversation?.turns.first?.status == "running")
+            #expect(sessions.service?.activeTurnID == "turn", "无法核对终态时保留上一份一致状态，不从null宣布完成")
+            #expect(!sessions.canSubmit)
+            if outcome == "unavailable" {
+                #expect(sessions.conversationFailure == .http(500))
+                if case .unavailable = sessions.connection { } else { Issue.record("历史核对失败应显示原连接错误") }
+            }
+        }
+    }
+
     @Test(arguments: ["answer-failed", "answer-replaced", "query-failed", "summary-started", "answer-current", "snapshot-newer"], [false, true])
     func persistentRequestFactsPreventFailedAttemptHandoff(change: String, httpSnapshot: Bool) async throws {
         let clock = PollClock()
@@ -1222,7 +1292,14 @@ struct AnswerStreamingTests {
         let response = await fixture.next()
         stream.send(event(text: "停止后的全文", revision: 2, status: "generated"))
         stream.send(try progress("停止后实际返回的进展说明。", revision: 2))
-        // 等同一订阅处理完后续状态，避免用固定睡眠推测冻结。
+        // 合法后续状态作同一字节流的处理屏障；失败回调本身不能证明最后data已采用。
+        stream.send(Data("""
+            event: service.state
+            data: {"schema_version":1,"kind":"service.state","state":{"schema_version":1,"instance_id":"process","answer_revision":2,"progress_revision":2,"active_session_id":"existing","active_turn_id":"turn","accepting":false,"stopping":true}}
+
+
+            """.utf8))
+        try await observed { sessions.service?.accepting == false }
         stream.fail()
         try await observed { sessions.answerFailure != nil }
         #expect(sessions.answerPreview?.text == "停止前正文")

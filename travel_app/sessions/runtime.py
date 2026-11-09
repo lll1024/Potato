@@ -346,25 +346,35 @@ class TurnRuntime:
                         break
                     cursor = event["cursor"]
                     yield f"id: {cursor}\nevent: trace\ndata: {json.dumps({'schema_version':SCHEMA_VERSION,**event},ensure_ascii=False)}\n\n"
+                # 发送trace时可能完成了新事务；先补齐事实，再公布对应的瞬时状态。
+                if not read_failed:
+                    try:
+                        if self.store.cursor() > cursor: continue
+                    except sqlite3.Error:
+                        self.storage_failed("执行通知暂时无法读取；仅保留最后成功提交的事实。")
+                        read_failed = True
+                # 本轮三类通知在第一次yield前一并编码，不能在发送状态后读取更新的空预览。
+                notices: list[str] = []
                 current_state = self.snapshot()
                 if current_state != last_state:
                     last_state = current_state
                     notice = {"schema_version":SCHEMA_VERSION,"kind":"service.state","transient":True,
                               "state":{**current_state, "answer_revision": self._answer_revision, "progress_revision": self._progress_revision}}
                     # 实时运行状态不冒充已提交轨迹，不能推进持久化 cursor。
-                    yield f"event: service.state\ndata: {json.dumps(notice,ensure_ascii=False)}\n\n"
+                    notices.append(f"event: service.state\ndata: {json.dumps(notice,ensure_ascii=False)}\n\n")
                 preview = self._answer_preview
                 if preview != last_preview:
                     last_preview = preview
                     notice = {"schema_version": SCHEMA_VERSION, "kind": "answer.preview", "transient": True,
                               "instance_id": self._instance_id, "revision": self._answer_revision, "preview": preview}
-                    yield f"event: answer.preview\ndata: {json.dumps(notice, ensure_ascii=False)}\n\n"
+                    notices.append(f"event: answer.preview\ndata: {json.dumps(notice, ensure_ascii=False)}\n\n")
                 progress = self._progress_preview
                 if progress != last_progress:
                     last_progress = progress
                     notice = {"schema_version": SCHEMA_VERSION, "kind": "progress.preview", "transient": True,
                               "instance_id": self._instance_id, "revision": self._progress_revision, "preview": progress}
-                    yield f"event: progress.preview\ndata: {json.dumps(notice, ensure_ascii=False)}\n\n"
+                    notices.append(f"event: progress.preview\ndata: {json.dumps(notice, ensure_ascii=False)}\n\n")
+                for packet in notices: yield packet
                 # yield 期间可能又有提交；先重新补齐，避免另一个订阅清空唤醒后漏等。
                 if read_failed:
                     await asyncio.sleep(1)

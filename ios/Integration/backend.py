@@ -1,6 +1,7 @@
 """iOS 验收服务：真实 HTTP/SQLite，只替换外部模型与查询资源。"""
 import argparse
 import asyncio
+import json
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 import sys
@@ -112,6 +113,14 @@ class StreamingModel:
                 ")\n\n" + "继续阅读中文旅行安排，保留已经读到的位置。\n\n" * 12 + "第四批阅读标记。\n\n",
                 "- 步行路线按体力调整。\n- 午后留出休息时间。\n\n" + "最新一批旅行建议。\n\n" * 12,
             ]
+        if mode == "query-handoff-reading":
+            full = Path(__file__).with_name("handoff-answer.md").read_text()
+            self.parts = [full[:1600], full[1600:3300], full[3300:-180], full[-180:]]
+        if mode == "query-handoff-paced":
+            full = Path(__file__).with_name("handoff-answer.md").read_text().removesuffix("\n")
+            self.timing = json.loads(Path(__file__).with_name("handoff-answer-timing.json").read_text())["updates"]
+            positions = [0] + [item["chars"] for item in self.timing]
+            self.parts = [full[start:end] for start, end in zip(positions, positions[1:])]
         self.attempts = 0
         self.query_attempts = 0
         self.query_done = False
@@ -135,7 +144,7 @@ class StreamingModel:
     async def stream(self, **parameters):
         model = self
         if "tools" in parameters:
-            if self.mode in {"query-progress", "query-reading", "query-retry", "query-fallback"} and not self.query_done:
+            if self.mode in {"query-progress", "query-reading", "query-retry", "query-fallback", "query-handoff-reading", "query-handoff-paced"} and not self.query_done:
                 self.query_attempts += 1
                 query_fails = self.mode in {"query-retry", "query-fallback"} and self.query_attempts == 1
                 query_parts = (("进展：失败旧说明", "暂时还未完成的查询。" * 30) if query_fails else
@@ -186,16 +195,19 @@ class StreamingModel:
                     if model.mode == "fallback":
                         raise status_error(400, {"error": {"code": "streaming_not_supported"}})
                     raise status_error(429, headers={"Retry-After": "3"})
-                for part in model.parts:
-                    await model.release.get()
+                for index, part in enumerate(model.parts):
+                    if model.mode == "query-handoff-paced":
+                        await asyncio.sleep(model.timing[index]["delay_ms"] / 1000)
+                    else:
+                        await model.release.get()
                     yield SimpleNamespace(type="content_block_delta", delta=SimpleNamespace(type="text_delta", text=part))
                     model.delivered.put_nowait(part)
-                await model.release.get()
+                if model.mode != "query-handoff-paced": await model.release.get()
 
             async def get_final_message(self):
                 model.returned = True
                 model.delivered.put_nowait("returned")
-                return response([{"type": "text", "text": "".join(model.parts)}])
+                return response([{"type": "text", "text": "".join(model.parts)}], "max_tokens" if model.mode in {"query-handoff-reading", "query-handoff-paced"} else "end_turn")
 
         yield Stream()
 

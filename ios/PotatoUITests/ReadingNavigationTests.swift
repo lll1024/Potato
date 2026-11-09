@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 
 @MainActor
 final class ReadingNavigationTests: XCTestCase {
@@ -42,11 +43,18 @@ final class ReadingNavigationTests: XCTestCase {
         }
         XCTAssertTrue(webReady)
         var observations: [[String: Any]] = []
+        var target = ""
+        var saved: [String: Any] = [:]
+        defer {
+            if let data = try? JSONSerialization.data(withJSONObject: ["environment": environment, "session_id": sessionID,
+                "turn_id": target, "observations": observations, "outcome": saved], options: [.prettyPrinted, .sortedKeys]) {
+                let attachment = XCTAttachment(data: data, uniformTypeIdentifier: "public.json")
+                attachment.name = "真实模型原始观察全程（含失败）"; attachment.lifetime = .keepAlways; add(attachment)
+            }
+        }
         let began = Date()
         observations.append(["epoch_ms": began.timeIntervalSince1970 * 1000, "phase": "before_target_input", "rendered_document_chars": 0, "rendered_progress_chars": 0])
         input.tap(); input.typeText(prompt); app.buttons["send-input"].tap()
-        var target = ""
-        var saved: [String: Any] = [:]
         var savedHistory: [String: Any] = [:]
         var queryImage = false
         var answerImage = false
@@ -85,15 +93,20 @@ final class ReadingNavigationTests: XCTestCase {
                 "history_status": saved["status"] ?? "not_accepted", "observation_duration_ms": Date().timeIntervalSince(operationBegan) * 1000])
             if !queryImage && !progress.isEmpty { attach(app, "真实查询进展初现"); queryImage = true }
             if !answerImage && !displayed.isEmpty { attach(app, "真实正文初现且查询自动折叠"); answerImage = true }
-            if saved["status"] as? String == "completed", copyLabel == "复制完整回答", !displayed.isEmpty {
+            let status = saved["status"] as? String
+            let terminal = ["completed", "terminated", "failed"].contains(status ?? "")
+            if terminal && saved["answer_source"] as? String != "model" { break }
+            let savedCopyLabel = status == "completed" ? "复制完整回答" : "复制不完整回答"
+            if terminal, copyLabel == savedCopyLabel, !displayed.isEmpty {
                 if lastSavedDisplay == displayed { stableSaved += 1 } else { stableSaved = 0 }
                 lastSavedDisplay = displayed
             } else { stableSaved = 0; lastSavedDisplay = nil }
             if stableSaved >= 2 { break }
             try await Task.sleep(for: .milliseconds(150))
         }
-        XCTAssertEqual(saved["status"] as? String, "completed")
+        XCTAssertTrue(["completed", "terminated", "failed"].contains(saved["status"] as? String ?? ""))
         XCTAssertTrue(answerImage)
+        guard saved["answer_source"] as? String == "model" else { XCTFail("本轮没有可验收的模型正文，保留真实终态与观察证据"); return }
         let finalAnswer = try XCTUnwrap(saved["answer"] as? String)
         let finalProgress = saved["query_progress"] as? [[String: Any]] ?? []
         if environment["scenario"] as? String == "query" { XCTAssertTrue(queryImage); XCTAssertFalse(finalProgress.isEmpty) }
@@ -116,7 +129,7 @@ final class ReadingNavigationTests: XCTestCase {
         let copy = copies.element(boundBy: copies.count - 1)
         for _ in 0..<8 { if copy.isHittable { break }; app.swipeUp(velocity: .fast) }
         XCTAssertTrue(copy.isHittable)
-        XCTAssertEqual(copy.label, "复制完整回答")
+        XCTAssertEqual(copy.label, saved["status"] as? String == "completed" ? "复制完整回答" : "复制不完整回答")
         copy.tap()
         input.tap(); input.press(forDuration: 1.2)
         let paste = app.menuItems.matching(NSPredicate(format: "label IN %@", ["粘贴", "Paste"])).firstMatch
@@ -179,7 +192,7 @@ final class ReadingNavigationTests: XCTestCase {
         let history = try await liveGet("/api/sessions/" + id + "?summary=false&include_messages=false")
         let turns = try XCTUnwrap(history["turns"] as? [[String: Any]])
         let saved = try XCTUnwrap(turns.last)
-        XCTAssertEqual(saved["status"] as? String, "completed")
+        XCTAssertTrue(["completed", "terminated"].contains(saved["status"] as? String ?? ""))
         let target = try XCTUnwrap(saved["turn_id"] as? String)
         let progress = try XCTUnwrap(saved["query_progress"] as? [[String: Any]])
         let expected = progress.compactMap { $0["text"] as? String }.filter { !$0.isEmpty }
@@ -187,6 +200,7 @@ final class ReadingNavigationTests: XCTestCase {
         let app = connectedApp(address: "https://localhost:18499")
         let open = app.buttons.matching(identifier: "open-session").firstMatch
         XCTAssertTrue(open.waitForExistence(timeout: 10)); open.tap()
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier == %@ AND label == %@", "copy-answer", saved["status"] as? String == "completed" ? "复制完整回答" : "复制不完整回答")).firstMatch.exists)
         let toggle = app.otherElements["query-progress"].buttons.firstMatch
         for _ in 0..<15 { if toggle.isHittable { break }; app.swipeDown(velocity: .fast) }
         XCTAssertTrue(toggle.isHittable)
@@ -211,11 +225,28 @@ final class ReadingNavigationTests: XCTestCase {
                 "expanded_entries": labels.count, "status_entries": statuses.count,
                 "duration_ms": Date().timeIntervalSince(began) * 1000])
         }
+        let copy = app.buttons.matching(identifier: "copy-answer").element(boundBy: app.buttons.matching(identifier: "copy-answer").count - 1)
+        for _ in 0..<12 { if copy.isHittable { break }; app.swipeUp(velocity: .fast) }
+        XCTAssertTrue(copy.isHittable)
+        let expectedCopyLabel = saved["status"] as? String == "completed" ? "复制完整回答" : "复制不完整回答"
+        XCTAssertEqual(copy.label, expectedCopyLabel)
+        UIPasteboard.general.string = "potato117-independent-copy-sentinel"
+        copy.tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        input.tap(); input.press(forDuration: 1.2)
+        let paste = app.menuItems.matching(NSPredicate(format: "label IN %@", ["粘贴", "Paste"])).firstMatch
+        XCTAssertTrue(paste.waitForExistence(timeout: 5)); paste.tap()
+        let copyEqual = input.value as? String == saved["answer"] as? String
+        XCTAssertTrue(copyEqual)
+        attach(app, "只读已存不完整回答独立哨兵复制核对")
+        input.press(forDuration: 1.2)
+        let selectAll = app.menuItems.matching(NSPredicate(format: "label IN %@", ["全选", "Select All"])).firstMatch
+        XCTAssertTrue(selectAll.waitForExistence(timeout: 5)); selectAll.tap(); input.typeText(XCUIKeyboardKey.delete.rawValue)
         let after = try await liveGet("/api/sessions/" + id + "?summary=false&include_messages=false")
         XCTAssertEqual((history["requests"] as? [[String: Any]])?.count, (after["requests"] as? [[String: Any]])?.count)
         XCTAssertEqual((history["tool_calls"] as? [[String: Any]])?.count, (after["tool_calls"] as? [[String: Any]])?.count)
         let evidence = try JSONSerialization.data(withJSONObject: ["session_id": id, "turn_id": target,
-            "model_and_tool_counts_unchanged": true, "observations": observations], options: [.prettyPrinted, .sortedKeys])
+            "model_and_tool_counts_unchanged": true, "copy_sentinel_used": true, "copy_markdown_equal": copyEqual, "saved_copy_label": expectedCopyLabel, "observations": observations], options: [.prettyPrinted, .sortedKeys])
         let attachment = XCTAttachment(data: evidence, uniformTypeIdentifier: "public.json")
         attachment.name = "公开UI不可变快照与折叠展开核验"; attachment.lifetime = .keepAlways; add(attachment)
     }
@@ -357,6 +388,83 @@ final class ReadingNavigationTests: XCTestCase {
         XCTAssertTrue(table.frame.contains(headingPoint))
         XCTAssertTrue(app.frame.contains(headingPoint))
         attach(app, "横向表格末列")
+    }
+
+    func testLongMarkdownTerminalHandoffKeepsFollowingViewport() async throws {
+        let app = connectedApp(address: "https://localhost:18497")
+        try await streamControl("arm?mode=query-handoff-paced")
+        app.buttons["new-conversation"].tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        input.tap(); input.typeText("HANDOFF117 INPUT"); app.buttons["send-input"].tap()
+        try await streamControl("entered", method: "GET")
+        for _ in 0..<3 { try await streamControl("step") }
+        let deadline = Date().addingTimeInterval(30)
+        var raw = 0
+        var sessionID = ""
+        while raw < 3000 && Date() < deadline {
+            let (data, _) = try await URLSession.shared.data(from: URL(string: "https://localhost:18497/api/snapshot")!)
+            let snapshot = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+            let preview = snapshot["answer_preview"] as? [String: Any]
+            raw = (preview?["text"] as? String)?.count ?? 0
+            sessionID = preview?["session_id"] as? String ?? sessionID
+            try await Task.sleep(for: .milliseconds(30))
+        }
+        XCTAssertGreaterThanOrEqual(raw, 3000)
+        let copy = app.buttons["copy-answer"]
+        await fulfillment(of: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: copy)], timeout: 10)
+        let before = copy.frame.midY
+        XCTAssertEqual(copy.label, "复制当前正文")
+        var samples: [[String: Any]] = []
+        var copiedTerminal = false
+        var firstSavedChars = 0
+        var copyActionTime = 0.0
+        UIPasteboard.general.string = "potato117-first-terminal-copy-sentinel"
+        defer {
+            if let data = try? JSONSerialization.data(withJSONObject: samples, options: [.prettyPrinted, .sortedKeys]) {
+                let attachment = XCTAttachment(data: data, uniformTypeIdentifier: "public.json")
+                attachment.name = "长Markdown终态真实视口位置采样"; attachment.lifetime = .keepAlways; add(attachment)
+            }
+        }
+        for _ in 0..<50 {
+            let tree = try app.snapshot()
+            let button = liveFind(tree, identifier: "copy-answer")
+            let body = liveFind(tree, identifier: "answer-body")
+            let visible = button.map { $0.frame.intersects(tree.frame) && $0.frame.minY > 50 && $0.frame.maxY < tree.frame.maxY - 50 } ?? false
+            samples.append(["epoch_ms": Date().timeIntervalSince1970 * 1000, "phase": "automatic-paced-completion",
+                "copy_y": button.map { Double($0.frame.midY) } ?? NSNull(), "before_y": before, "copy_visible": visible,
+                "copy_label": button?.label ?? "missing", "body_chars": body.map { liveTextLabels($0).joined().count } ?? 0])
+            XCTAssertNotNil(button, "终态窗口不能撤空正文复制入口")
+            XCTAssertTrue(visible, "底部跟随时真实复制入口不能回退至视口之外")
+            // 中间AX布局可能先于实际合成帧，保留原始坐标；稳定终态再核底部位置。
+            // 全窗口原录屏另外检测输入标记，不能用这些稀疏样本替代物理连续性。
+            if !copiedTerminal, button?.label == "复制不完整回答" {
+                firstSavedChars = body.map { liveTextLabels($0).joined().count } ?? 0
+                copyActionTime = Date().timeIntervalSince1970 * 1000
+                copy.tap()
+                copiedTerminal = true
+            }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertTrue(copiedTerminal)
+        XCTAssertTrue(["复制不完整回答", "已复制不完整回答"].contains(copy.label))
+        XCTAssertLessThan(abs(copy.frame.midY - before), 80, "稳定终态仍须保持底部阅读位置")
+        attach(app, "长Markdown已存不完整结果仍跟随底部")
+        let (historyData, _) = try await URLSession.shared.data(from: URL(string: "https://localhost:18497/api/sessions/" + sessionID + "?summary=false&include_messages=false")!)
+        let history = try XCTUnwrap(JSONSerialization.jsonObject(with: historyData) as? [String: Any])
+        let turns = try XCTUnwrap(history["turns"] as? [[String: Any]])
+        let expected = try XCTUnwrap(turns.last?["answer"] as? String)
+        input.tap(); input.press(forDuration: 1.2)
+        let paste = app.menuItems.matching(NSPredicate(format: "label IN %@", ["粘贴", "Paste"])).firstMatch
+        XCTAssertTrue(paste.waitForExistence(timeout: 5)); paste.tap()
+        let exact = input.value as? String == expected
+        XCTAssertTrue(exact, "首次终态标签可操作时必须复制可靠全文，不能复制旧显示前缀或哨兵")
+        samples.append(["epoch_ms": Date().timeIntervalSince1970 * 1000, "phase": "terminal-copy-check",
+            "copy_sentinel_used": true, "copy_markdown_equal": exact, "expected_chars": expected.count,
+            "first_saved_snapshot_body_chars": firstSavedChars, "copy_action_epoch_ms": copyActionTime])
+        attach(app, "首次终态复制与可靠全文一致")
+        input.press(forDuration: 1.2)
+        let selectAll = app.menuItems.matching(NSPredicate(format: "label IN %@", ["全选", "Select All"])).firstMatch
+        XCTAssertTrue(selectAll.waitForExistence(timeout: 5)); selectAll.tap(); input.typeText(XCUIKeyboardKey.delete.rawValue)
     }
 
     func testSavedHistoryHandoffKeepsBodyAndPositionWhileHistoryIsDelayed() async throws {

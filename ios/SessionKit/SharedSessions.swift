@@ -235,6 +235,7 @@ public final class SharedSessions: SessionAccess {
     private var configurationGeneration = 0
     private var refreshGeneration = 0
     private var historyGeneration = 0
+    private var completedHistoryReads = 0
     private var connectionGeneration = 0
     private var datasetGeneration = 0
     private var datasetID: String?
@@ -629,8 +630,11 @@ public final class SharedSessions: SessionAccess {
             while !Task.isCancelled {
                 guard let self else { return }
                 do {
+                    let historyBefore = self.completedHistoryReads
+                    let targetBefore = self.watchedSessionID
                     _ = try await self.refresh()
-                    if let sessionID = self.watchedSessionID {
+                    if let sessionID = self.watchedSessionID,
+                       targetBefore != sessionID || historyBefore == self.completedHistoryReads {
                         _ = try await self.history(sessionID: sessionID)
                     }
                     self.updateAnswerSubscription()
@@ -683,6 +687,24 @@ public final class SharedSessions: SessionAccess {
             guard configuration == configurationGeneration, refresh == refreshGeneration,
                   dataset == datasetGeneration else { throw SessionFailure.obsolete }
             guard snapshot.schemaVersion == 1 else { throw SessionFailure.invalidResponse }
+            // 轮询快照可能先于同连接的完成trace抵达。先沿原历史入口取得一致终态，
+            // 再公布释放名额及空预览；此时仍是上一份已公布的当前正文，不由null授权保存。
+            if handoffAnswer == nil, snapshot.instanceId == answerInstance, snapshot.streamId == datasetID,
+               snapshot.activeTurnId == nil, !snapshot.stopping, snapshot.storageError == nil, snapshot.unsavedFact == nil,
+               snapshot.answerPreview == nil, let revision = snapshot.answerRevision,
+               revision > answerRevision, revision >= stateAnswerRevision,
+               (snapshot.progressRevision ?? progressRevision) >= max(progressRevision, stateProgressRevision),
+               let preview = answerPreview, !preview.text.isEmpty,
+               !["invalidated", "retrying"].contains(preview.status), service?.activeTurnID == preview.turnID,
+               snapshot.activeSessionId == nil || snapshot.activeSessionId == preview.sessionID,
+               let turn = conversation?.turns.first(where: { $0.id == preview.turnID }), turn.status == "running",
+               let cursor = snapshot.cursor, cursor > (turn.observedAt ?? 0) {
+                let page = try await history(sessionID: preview.sessionID)
+                guard configuration == configurationGeneration, refresh == refreshGeneration, dataset == datasetGeneration,
+                      watchedSessionID == preview.sessionID, answerInstance == snapshot.instanceId else { throw SessionFailure.obsolete }
+                guard let finished = page.turns.first(where: { $0.id == preview.turnID }),
+                      ["completed", "terminated", "failed"].contains(finished.status) else { throw SessionFailure.invalidResponse }
+            }
             try rememberDataset(snapshot.streamId)
             if let datasetID, datasetID != snapshot.streamId {
                 resetAnswer()
@@ -842,6 +864,7 @@ public final class SharedSessions: SessionAccess {
             if connectionRead == connectionGeneration { connection = .connected }
             if watchedSessionID == sessionID {
                 conversation = conversation?.merging(page.entity) ?? page.entity
+                completedHistoryReads += 1
                 pruneReadingHandoff()
                 conversationFailure = nil
                 updateAnswerSubscription()
