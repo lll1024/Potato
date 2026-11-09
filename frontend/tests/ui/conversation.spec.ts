@@ -1418,3 +1418,58 @@ for (const historical of ['invalidated','retrying']) for (const exposure of ['kn
   await expect(page.getByRole('region',{name:'查询进展',exact:true})).toContainText('已取得资料');
   release();
 });
+
+for (const outcome of ['failed-replaced','replaced','matching','query','query-failed','summary']) test(`持久请求事实约束完成交接的作答尝试 ${outcome}`,async ({page})=>{
+  const app=await conversation(page);
+  app.sessions[0].status='running'; app.state.active_turn_id='turn'; app.state.active_session_id='trip';app.state.answer_revision=1;
+  app.state.answer_preview={instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',attempt_id:'A',revision:1,text:'A尝试已经显示的部分正文',status:'generating'};
+  await page.reload();
+  await page.getByRole('button',{name:/杭州行程.*正在执行/}).click();
+  await expect(page.locator('.answer-body')).toContainText('A尝试已经显示的部分正文');
+  let release!:()=>void;
+  const barrier=new Promise<void>(resolve=>{release=resolve;});
+  await page.route('**/api/sessions/trip?*',async route=>{await barrier;await route.fallback();});
+  await page.evaluate(({state,outcome})=>{
+    const source=(window as unknown as {source:EventTarget}).source;
+    let cursor=10;
+    const fact=(kind:string,request_id:string,data:object={})=>source.dispatchEvent(new MessageEvent('trace',{data:JSON.stringify({schema_version:1,cursor:cursor++,event_id:`fact-${cursor}`,kind,request_id,session_id:'trip',turn_id:'turn',data})}));
+    fact('request.started','A',{answer_phase:'answer'});
+    if (outcome==='failed-replaced'||outcome==='matching') fact('request.failed','A');
+    fact('request.started','B',outcome==='summary'?{purpose:'context_summary'}:{answer_phase:outcome.startsWith('query')?'query':'answer'});
+    if (outcome==='matching') source.dispatchEvent(new MessageEvent('answer.preview',{data:JSON.stringify({schema_version:1,kind:'answer.preview',instance_id:'process',revision:2,
+      preview:{...state.answer_preview,attempt_id:'B',revision:2,text:'B尝试可靠完成的正文',status:'generated'}})}));
+    fact(outcome==='query-failed'?'request.failed':'request.completed','B');
+    fact('turn.finished','',{status:'completed',answer_source:'model'});
+    source.dispatchEvent(new MessageEvent('service.state',{data:JSON.stringify({schema_version:1,state:{...state,answer_revision:4,progress_revision:4,active_turn_id:null,active_session_id:null}})}));
+    for(const kind of ['answer.preview','progress.preview']) source.dispatchEvent(new MessageEvent(kind,{data:JSON.stringify({schema_version:1,kind,instance_id:'process',revision:4,preview:null})}));
+  },{state:app.state,outcome});
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve())));
+  if(outcome.startsWith('query')||outcome==='summary') await expect(page.locator('.answer-body')).toContainText('A尝试已经显示的部分正文');
+  else await expect(page.getByText('A尝试已经显示的部分正文',{exact:true})).toHaveCount(0);
+  if(outcome==='matching') {
+    await expect(page.locator('.answer-body')).toContainText('B尝试可靠完成的正文');
+    await page.evaluate(preview=>(window as unknown as {source:EventTarget}).source.dispatchEvent(new MessageEvent('answer.preview',{data:JSON.stringify({schema_version:1,kind:'answer.preview',instance_id:'process',revision:5,preview:{...preview,revision:5,text:'失败A迟到不得复活'}})})),app.state.answer_preview);
+    await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve())));
+    await expect(page.locator('.answer-body')).toContainText('B尝试可靠完成的正文');
+    await expect(page.getByText('失败A迟到不得复活',{exact:true})).toHaveCount(0);
+  }
+  app.turn.status='completed';app.turn.answer=(outcome.startsWith('query')||outcome==='summary')?'A真实保存的全文':'B真实保存的全文';app.sessions[0].status='completed';
+  release();
+  await expect(page.locator('.answer-body')).toContainText(app.turn.answer);
+});
+
+test('续接先采用B累计快照，重放快照之前的A请求事实不撤正文',async ({page})=>{
+  const app=await conversation(page);
+  app.sessions[0].status='running';app.state.active_turn_id='turn';app.state.active_session_id='trip';app.state.answer_revision=1;
+  app.state.answer_preview={instance_id:'process',stream_id:'conversation-test',session_id:'trip',turn_id:'turn',attempt_id:'A',revision:1,text:'断线前A正文',status:'generating'};
+  await page.reload();await page.getByRole('button',{name:/杭州行程.*正在执行/}).click();
+  await page.evaluate(()=>(window as unknown as {source:EventTarget}).source.dispatchEvent(new MessageEvent('trace',{data:JSON.stringify({schema_version:1,cursor:1,event_id:'start-A',kind:'request.started',session_id:'trip',turn_id:'turn',request_id:'A',data:{answer_phase:'answer'}})})));
+  app.state.answer_revision=3;app.state.answer_preview={...app.state.answer_preview,attempt_id:'B',revision:3,text:'续接时B已经可读的累计正文'};
+  await page.route('**/api/snapshot',route=>route.fulfill({json:{schema_version:1,state:app.state,cursor:20,stream_id:'conversation-test'}}));
+  await page.evaluate(()=>(window as unknown as {source:EventSource}).source.onerror?.(new Event('error')));
+  await expect.poll(()=>page.evaluate(()=>(window as unknown as {sources:EventTarget[]}).sources.length)).toBe(2);
+  await expect(page.locator('.answer-body')).toContainText('续接时B已经可读的累计正文');
+  await page.evaluate(()=>(window as unknown as {source:EventTarget}).source.dispatchEvent(new MessageEvent('trace',{data:JSON.stringify({schema_version:1,cursor:10,event_id:'replay-A',kind:'request.started',session_id:'trip',turn_id:'turn',request_id:'A',data:{answer_phase:'answer'}})})));
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve())));
+  await expect(page.locator('.answer-body')).toContainText('续接时B已经可读的累计正文');
+});
