@@ -1,0 +1,43 @@
+{
+  "base_commit": "8fe93f46fb71b0e117abe630cd96f936282091c1",
+  "production_changes": false,
+  "controlled_coordinate_diagnostic": {
+    "tests": 1,
+    "expected_failed_assertions": 1,
+    "seconds": 24.682,
+    "old_center": [
+      331.83333333333326,
+      664.8333333333333
+    ],
+    "before_button_y": 647.6666666666666,
+    "saved_button_y": 673.3333333333333,
+    "old_coordinate_action_count": 0,
+    "current_center_action_count": 1,
+    "current_center_restored_follow": true
+  },
+  "final_related_ui": {
+    "tests": 2,
+    "passed": 2,
+    "failed": 0,
+    "seconds": 51.791,
+    "generation_follow_seconds": 29.6,
+    "folding_saved_latest_seconds": 22.192,
+    "each_received_batch_observed_in_AX": true
+  },
+  "scope": "真实HTTP/SSE受控fixture，原有iOS26.5模拟器；无新实际模型请求、未使用新设备或用户8000。",
+  "not_rerun": [
+    "已通过的后端408",
+    "Web116+2skip",
+    "Native87+10snap",
+    "全11项UI",
+    "真实query/plain"
+  ],
+  "checks": {
+    "build": true,
+    "modules": true,
+    "docs_navigation": true,
+    "diff_whitespace": true,
+    "new_evidence_secret_patterns": 0,
+    "production_debug_remaining": 0
+  }
+}

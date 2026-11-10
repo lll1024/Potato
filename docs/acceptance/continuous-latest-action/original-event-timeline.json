@@ -1,0 +1,36 @@
+{
+  "source_xcresult": "/tmp/potato117-024-final-reading.xcresult",
+  "source_movie": "97185FC1-8167-4340-AF20-CBCCC98D4FB4.mp4",
+  "source_movie_sha256": "8e2cb288f0cc0f504f781b87bfed0dac10dad1955503f0a3770a436fed09fd1d",
+  "movie_attachment_epoch": 1794283290.814,
+  "synthesize_activity_start_epoch": 1794283339.41,
+  "event_attachment_epoch": 1794283339.723,
+  "events": [
+    {
+      "eventType": 1,
+      "offset": 0.0,
+      "coordinate.y": 664.8333333333333,
+      "coordinate.x": 331.83333333333326
+    },
+    {
+      "eventType": 3,
+      "offset": 0.05,
+      "coordinate.y": 664.8333333333333,
+      "coordinate.x": 331.83333333333326
+    }
+  ],
+  "frame_before_seconds": 48.531666666666666,
+  "frame_after_seconds": 48.595,
+  "failed_AX_latest_frame": {
+    "x": 273.6666666666667,
+    "y": 673.3333333333334,
+    "width": 116.3333333333333,
+    "height": 34.3333333333333
+  },
+  "baseline_five": {
+    "passed": 5,
+    "failed": 0,
+    "seconds": 373.833,
+    "source_commit": "8fe93f46fb71b0e117abe630cd96f936282091c1"
+  }
+}
