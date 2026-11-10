@@ -1,0 +1,9 @@
+{
+  "code_commit": "024b24bad05ca09cc7cb9b77377431d18cd4d753",
+  "original_ios_video": "/tmp/potato117-plain-final-current-ios.mp4",
+  "original_ios_result": "/tmp/potato117-plain-final-current.xcresult",
+  "original_web_output": "/tmp/potato117-plain-final-current-web",
+  "original_server_evidence": "/tmp/potato117-plain-final-current",
+  "original_ios_video_start": "/tmp/potato117-plain-final-current-video-start.txt",
+  "video_clock_note": "Mac UTC captured immediately before simctl recordVideo; inspect the complete terminal ±2s frame window, not a narrow AX-zero mapping"
+}

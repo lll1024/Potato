@@ -1,0 +1,217 @@
+{
+  "duration_seconds" : 738.40333333333331,
+  "frames" : [
+    {
+      "actual_seconds" : 303.69833333333332,
+      "file" : "frame-0303.7.jpg",
+      "requested_seconds" : 303.69999999999999
+    },
+    {
+      "actual_seconds" : 303.79166666666669,
+      "file" : "frame-0303.8.jpg",
+      "requested_seconds" : 303.80000000000001
+    },
+    {
+      "actual_seconds" : 303.89666666666665,
+      "file" : "frame-0303.9.jpg",
+      "requested_seconds" : 303.89999999999998
+    },
+    {
+      "actual_seconds" : 303.98666666666668,
+      "file" : "frame-0304.0.jpg",
+      "requested_seconds" : 304
+    },
+    {
+      "actual_seconds" : 304.09833333333336,
+      "file" : "frame-0304.1.jpg",
+      "requested_seconds" : 304.09999999999997
+    },
+    {
+      "actual_seconds" : 304.19833333333332,
+      "file" : "frame-0304.2.jpg",
+      "requested_seconds" : 304.19999999999999
+    },
+    {
+      "actual_seconds" : 304.29333333333335,
+      "file" : "frame-0304.3.jpg",
+      "requested_seconds" : 304.30000000000001
+    },
+    {
+      "actual_seconds" : 304.38499999999999,
+      "file" : "frame-0304.4.jpg",
+      "requested_seconds" : 304.39999999999998
+    },
+    {
+      "actual_seconds" : 304.48666666666668,
+      "file" : "frame-0304.5.jpg",
+      "requested_seconds" : 304.5
+    },
+    {
+      "actual_seconds" : 304.58999999999997,
+      "file" : "frame-0304.6.jpg",
+      "requested_seconds" : 304.59999999999997
+    },
+    {
+      "actual_seconds" : 304.68833333333333,
+      "file" : "frame-0304.7.jpg",
+      "requested_seconds" : 304.69999999999999
+    },
+    {
+      "actual_seconds" : 304.79000000000002,
+      "file" : "frame-0304.8.jpg",
+      "requested_seconds" : 304.80000000000001
+    },
+    {
+      "actual_seconds" : 304.89833333333331,
+      "file" : "frame-0304.9.jpg",
+      "requested_seconds" : 304.89999999999998
+    },
+    {
+      "actual_seconds" : 304.98833333333334,
+      "file" : "frame-0305.0.jpg",
+      "requested_seconds" : 305
+    },
+    {
+      "actual_seconds" : 305.08999999999997,
+      "file" : "frame-0305.1.jpg",
+      "requested_seconds" : 305.09999999999997
+    },
+    {
+      "actual_seconds" : 305.19833333333332,
+      "file" : "frame-0305.2.jpg",
+      "requested_seconds" : 305.19999999999999
+    },
+    {
+      "actual_seconds" : 305.28833333333336,
+      "file" : "frame-0305.3.jpg",
+      "requested_seconds" : 305.30000000000001
+    },
+    {
+      "actual_seconds" : 305.39666666666665,
+      "file" : "frame-0305.4.jpg",
+      "requested_seconds" : 305.39999999999998
+    },
+    {
+      "actual_seconds" : 305.48500000000001,
+      "file" : "frame-0305.5.jpg",
+      "requested_seconds" : 305.5
+    },
+    {
+      "actual_seconds" : 305.54500000000002,
+      "file" : "frame-0305.6.jpg",
+      "requested_seconds" : 305.59999999999997
+    },
+    {
+      "actual_seconds" : 305.69999999999999,
+      "file" : "frame-0305.7.jpg",
+      "requested_seconds" : 305.69999999999999
+    },
+    {
+      "actual_seconds" : 305.75166666666667,
+      "file" : "frame-0305.8.jpg",
+      "requested_seconds" : 305.80000000000001
+    },
+    {
+      "actual_seconds" : 305.88999999999999,
+      "file" : "frame-0305.9.jpg",
+      "requested_seconds" : 305.89999999999998
+    },
+    {
+      "actual_seconds" : 305.99000000000001,
+      "file" : "frame-0306.0.jpg",
+      "requested_seconds" : 306
+    },
+    {
+      "actual_seconds" : 306.08999999999997,
+      "file" : "frame-0306.1.jpg",
+      "requested_seconds" : 306.09999999999997
+    },
+    {
+      "actual_seconds" : 306.19,
+      "file" : "frame-0306.2.jpg",
+      "requested_seconds" : 306.19999999999999
+    },
+    {
+      "actual_seconds" : 306.29000000000002,
+      "file" : "frame-0306.3.jpg",
+      "requested_seconds" : 306.30000000000001
+    },
+    {
+      "actual_seconds" : 306.38999999999999,
+      "file" : "frame-0306.4.jpg",
+      "requested_seconds" : 306.39999999999998
+    },
+    {
+      "actual_seconds" : 306.49166666666667,
+      "file" : "frame-0306.5.jpg",
+      "requested_seconds" : 306.5
+    },
+    {
+      "actual_seconds" : 306.59500000000003,
+      "file" : "frame-0306.6.jpg",
+      "requested_seconds" : 306.59999999999997
+    },
+    {
+      "actual_seconds" : 306.67500000000001,
+      "file" : "frame-0306.7.jpg",
+      "requested_seconds" : 306.69999999999999
+    },
+    {
+      "actual_seconds" : 306.73666666666668,
+      "file" : "frame-0306.8.jpg",
+      "requested_seconds" : 306.80000000000001
+    },
+    {
+      "actual_seconds" : 306.73666666666668,
+      "file" : "frame-0306.9.jpg",
+      "requested_seconds" : 306.89999999999998
+    },
+    {
+      "actual_seconds" : 306.73666666666668,
+      "file" : "frame-0307.0.jpg",
+      "requested_seconds" : 307
+    },
+    {
+      "actual_seconds" : 306.73666666666668,
+      "file" : "frame-0307.1.jpg",
+      "requested_seconds" : 307.09999999999997
+    },
+    {
+      "actual_seconds" : 306.73666666666668,
+      "file" : "frame-0307.2.jpg",
+      "requested_seconds" : 307.19999999999999
+    },
+    {
+      "actual_seconds" : 306.73666666666668,
+      "file" : "frame-0307.3.jpg",
+      "requested_seconds" : 307.30000000000001
+    },
+    {
+      "actual_seconds" : 306.73666666666668,
+      "file" : "frame-0307.4.jpg",
+      "requested_seconds" : 307.39999999999998
+    },
+    {
+      "actual_seconds" : 306.73666666666668,
+      "file" : "frame-0307.5.jpg",
+      "requested_seconds" : 307.5
+    },
+    {
+      "actual_seconds" : 306.73666666666668,
+      "file" : "frame-0307.6.jpg",
+      "requested_seconds" : 307.59999999999997
+    },
+    {
+      "actual_seconds" : 306.73666666666668,
+      "file" : "frame-0307.7.jpg",
+      "requested_seconds" : 307.69999999999999
+    },
+    {
+      "actual_seconds" : 306.73666666666668,
+      "file" : "frame-0307.8.jpg",
+      "requested_seconds" : 307.80000000000001
+    }
+  ],
+  "interval_seconds" : 0.10000000000000001,
+  "original_video" : "\/tmp\/potato117-query-confirmed-87-ios.mp4"
+}

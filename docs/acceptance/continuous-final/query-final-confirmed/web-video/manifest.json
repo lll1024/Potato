@@ -1,0 +1,1125 @@
+{
+  "source_video": "/tmp/potato117-query-confirmed-87-web/answer-model-live-当前配置模型在-Web-与-iOS-联合验收中真实分批显示/video.webm",
+  "source_sha256": "3991b18d4fe7ab34b6a190ce7d7c8b19f40be6f71a9d5ee5c27f802150180e7e",
+  "creation_time_utc": "2026-11-09T06:22:52.883000Z",
+  "duration_seconds": 302.92,
+  "width": 800,
+  "height": 450,
+  "fps": 25,
+  "terminal_extraction": {
+    "start_seconds": 297,
+    "end_seconds": 302.92,
+    "method": "ffmpeg -copyts -ss 297 -i video -vsync 0 -c:v png -frame_pts 1; encoder timebase 1/25",
+    "frames": [
+      {
+        "file": "terminal-frames/frame-007425.png",
+        "actual_seconds": 297.0,
+        "pts_ticks": 7425,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007426.png",
+        "actual_seconds": 297.04,
+        "pts_ticks": 7426,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007427.png",
+        "actual_seconds": 297.08,
+        "pts_ticks": 7427,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007428.png",
+        "actual_seconds": 297.12,
+        "pts_ticks": 7428,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007429.png",
+        "actual_seconds": 297.16,
+        "pts_ticks": 7429,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007430.png",
+        "actual_seconds": 297.2,
+        "pts_ticks": 7430,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007431.png",
+        "actual_seconds": 297.24,
+        "pts_ticks": 7431,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007432.png",
+        "actual_seconds": 297.28,
+        "pts_ticks": 7432,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007433.png",
+        "actual_seconds": 297.32,
+        "pts_ticks": 7433,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007434.png",
+        "actual_seconds": 297.36,
+        "pts_ticks": 7434,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007435.png",
+        "actual_seconds": 297.4,
+        "pts_ticks": 7435,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007436.png",
+        "actual_seconds": 297.44,
+        "pts_ticks": 7436,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007437.png",
+        "actual_seconds": 297.48,
+        "pts_ticks": 7437,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007438.png",
+        "actual_seconds": 297.52,
+        "pts_ticks": 7438,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007439.png",
+        "actual_seconds": 297.56,
+        "pts_ticks": 7439,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007440.png",
+        "actual_seconds": 297.6,
+        "pts_ticks": 7440,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007441.png",
+        "actual_seconds": 297.64,
+        "pts_ticks": 7441,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007442.png",
+        "actual_seconds": 297.68,
+        "pts_ticks": 7442,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007443.png",
+        "actual_seconds": 297.72,
+        "pts_ticks": 7443,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007444.png",
+        "actual_seconds": 297.76,
+        "pts_ticks": 7444,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007445.png",
+        "actual_seconds": 297.8,
+        "pts_ticks": 7445,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007446.png",
+        "actual_seconds": 297.84,
+        "pts_ticks": 7446,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007447.png",
+        "actual_seconds": 297.88,
+        "pts_ticks": 7447,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007448.png",
+        "actual_seconds": 297.92,
+        "pts_ticks": 7448,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007449.png",
+        "actual_seconds": 297.96,
+        "pts_ticks": 7449,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007450.png",
+        "actual_seconds": 298.0,
+        "pts_ticks": 7450,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007451.png",
+        "actual_seconds": 298.04,
+        "pts_ticks": 7451,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007452.png",
+        "actual_seconds": 298.08,
+        "pts_ticks": 7452,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007453.png",
+        "actual_seconds": 298.12,
+        "pts_ticks": 7453,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007454.png",
+        "actual_seconds": 298.16,
+        "pts_ticks": 7454,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007455.png",
+        "actual_seconds": 298.2,
+        "pts_ticks": 7455,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007456.png",
+        "actual_seconds": 298.24,
+        "pts_ticks": 7456,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007457.png",
+        "actual_seconds": 298.28,
+        "pts_ticks": 7457,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007458.png",
+        "actual_seconds": 298.32,
+        "pts_ticks": 7458,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007459.png",
+        "actual_seconds": 298.36,
+        "pts_ticks": 7459,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007460.png",
+        "actual_seconds": 298.4,
+        "pts_ticks": 7460,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007461.png",
+        "actual_seconds": 298.44,
+        "pts_ticks": 7461,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007462.png",
+        "actual_seconds": 298.48,
+        "pts_ticks": 7462,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007463.png",
+        "actual_seconds": 298.52,
+        "pts_ticks": 7463,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007464.png",
+        "actual_seconds": 298.56,
+        "pts_ticks": 7464,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007465.png",
+        "actual_seconds": 298.6,
+        "pts_ticks": 7465,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007466.png",
+        "actual_seconds": 298.64,
+        "pts_ticks": 7466,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007467.png",
+        "actual_seconds": 298.68,
+        "pts_ticks": 7467,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007468.png",
+        "actual_seconds": 298.72,
+        "pts_ticks": 7468,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007469.png",
+        "actual_seconds": 298.76,
+        "pts_ticks": 7469,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007470.png",
+        "actual_seconds": 298.8,
+        "pts_ticks": 7470,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007471.png",
+        "actual_seconds": 298.84,
+        "pts_ticks": 7471,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007472.png",
+        "actual_seconds": 298.88,
+        "pts_ticks": 7472,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007473.png",
+        "actual_seconds": 298.92,
+        "pts_ticks": 7473,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007474.png",
+        "actual_seconds": 298.96,
+        "pts_ticks": 7474,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007475.png",
+        "actual_seconds": 299.0,
+        "pts_ticks": 7475,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007476.png",
+        "actual_seconds": 299.04,
+        "pts_ticks": 7476,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007477.png",
+        "actual_seconds": 299.08,
+        "pts_ticks": 7477,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007478.png",
+        "actual_seconds": 299.12,
+        "pts_ticks": 7478,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007479.png",
+        "actual_seconds": 299.16,
+        "pts_ticks": 7479,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007480.png",
+        "actual_seconds": 299.2,
+        "pts_ticks": 7480,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007481.png",
+        "actual_seconds": 299.24,
+        "pts_ticks": 7481,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007482.png",
+        "actual_seconds": 299.28,
+        "pts_ticks": 7482,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007483.png",
+        "actual_seconds": 299.32,
+        "pts_ticks": 7483,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007484.png",
+        "actual_seconds": 299.36,
+        "pts_ticks": 7484,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007485.png",
+        "actual_seconds": 299.4,
+        "pts_ticks": 7485,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007486.png",
+        "actual_seconds": 299.44,
+        "pts_ticks": 7486,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007487.png",
+        "actual_seconds": 299.48,
+        "pts_ticks": 7487,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007488.png",
+        "actual_seconds": 299.52,
+        "pts_ticks": 7488,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007489.png",
+        "actual_seconds": 299.56,
+        "pts_ticks": 7489,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007490.png",
+        "actual_seconds": 299.6,
+        "pts_ticks": 7490,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007491.png",
+        "actual_seconds": 299.64,
+        "pts_ticks": 7491,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007492.png",
+        "actual_seconds": 299.68,
+        "pts_ticks": 7492,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007493.png",
+        "actual_seconds": 299.72,
+        "pts_ticks": 7493,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007494.png",
+        "actual_seconds": 299.76,
+        "pts_ticks": 7494,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007495.png",
+        "actual_seconds": 299.8,
+        "pts_ticks": 7495,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007496.png",
+        "actual_seconds": 299.84,
+        "pts_ticks": 7496,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007497.png",
+        "actual_seconds": 299.88,
+        "pts_ticks": 7497,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007498.png",
+        "actual_seconds": 299.92,
+        "pts_ticks": 7498,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007499.png",
+        "actual_seconds": 299.96,
+        "pts_ticks": 7499,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007500.png",
+        "actual_seconds": 300.0,
+        "pts_ticks": 7500,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007501.png",
+        "actual_seconds": 300.04,
+        "pts_ticks": 7501,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007502.png",
+        "actual_seconds": 300.08,
+        "pts_ticks": 7502,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007503.png",
+        "actual_seconds": 300.12,
+        "pts_ticks": 7503,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007504.png",
+        "actual_seconds": 300.16,
+        "pts_ticks": 7504,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007505.png",
+        "actual_seconds": 300.2,
+        "pts_ticks": 7505,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007506.png",
+        "actual_seconds": 300.24,
+        "pts_ticks": 7506,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007507.png",
+        "actual_seconds": 300.28,
+        "pts_ticks": 7507,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007508.png",
+        "actual_seconds": 300.32,
+        "pts_ticks": 7508,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007509.png",
+        "actual_seconds": 300.36,
+        "pts_ticks": 7509,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007510.png",
+        "actual_seconds": 300.4,
+        "pts_ticks": 7510,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007511.png",
+        "actual_seconds": 300.44,
+        "pts_ticks": 7511,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007512.png",
+        "actual_seconds": 300.48,
+        "pts_ticks": 7512,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007513.png",
+        "actual_seconds": 300.52,
+        "pts_ticks": 7513,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007514.png",
+        "actual_seconds": 300.56,
+        "pts_ticks": 7514,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007515.png",
+        "actual_seconds": 300.6,
+        "pts_ticks": 7515,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007516.png",
+        "actual_seconds": 300.64,
+        "pts_ticks": 7516,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007517.png",
+        "actual_seconds": 300.68,
+        "pts_ticks": 7517,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007518.png",
+        "actual_seconds": 300.72,
+        "pts_ticks": 7518,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007519.png",
+        "actual_seconds": 300.76,
+        "pts_ticks": 7519,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007520.png",
+        "actual_seconds": 300.8,
+        "pts_ticks": 7520,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007521.png",
+        "actual_seconds": 300.84,
+        "pts_ticks": 7521,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007522.png",
+        "actual_seconds": 300.88,
+        "pts_ticks": 7522,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007523.png",
+        "actual_seconds": 300.92,
+        "pts_ticks": 7523,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007524.png",
+        "actual_seconds": 300.96,
+        "pts_ticks": 7524,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007525.png",
+        "actual_seconds": 301.0,
+        "pts_ticks": 7525,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007526.png",
+        "actual_seconds": 301.04,
+        "pts_ticks": 7526,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007527.png",
+        "actual_seconds": 301.08,
+        "pts_ticks": 7527,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007528.png",
+        "actual_seconds": 301.12,
+        "pts_ticks": 7528,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007529.png",
+        "actual_seconds": 301.16,
+        "pts_ticks": 7529,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007530.png",
+        "actual_seconds": 301.2,
+        "pts_ticks": 7530,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007531.png",
+        "actual_seconds": 301.24,
+        "pts_ticks": 7531,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007532.png",
+        "actual_seconds": 301.28,
+        "pts_ticks": 7532,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007533.png",
+        "actual_seconds": 301.32,
+        "pts_ticks": 7533,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007534.png",
+        "actual_seconds": 301.36,
+        "pts_ticks": 7534,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007535.png",
+        "actual_seconds": 301.4,
+        "pts_ticks": 7535,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007536.png",
+        "actual_seconds": 301.44,
+        "pts_ticks": 7536,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007537.png",
+        "actual_seconds": 301.48,
+        "pts_ticks": 7537,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007538.png",
+        "actual_seconds": 301.52,
+        "pts_ticks": 7538,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007539.png",
+        "actual_seconds": 301.56,
+        "pts_ticks": 7539,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007540.png",
+        "actual_seconds": 301.6,
+        "pts_ticks": 7540,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007541.png",
+        "actual_seconds": 301.64,
+        "pts_ticks": 7541,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007542.png",
+        "actual_seconds": 301.68,
+        "pts_ticks": 7542,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007543.png",
+        "actual_seconds": 301.72,
+        "pts_ticks": 7543,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007544.png",
+        "actual_seconds": 301.76,
+        "pts_ticks": 7544,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007545.png",
+        "actual_seconds": 301.8,
+        "pts_ticks": 7545,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007546.png",
+        "actual_seconds": 301.84,
+        "pts_ticks": 7546,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007547.png",
+        "actual_seconds": 301.88,
+        "pts_ticks": 7547,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007548.png",
+        "actual_seconds": 301.92,
+        "pts_ticks": 7548,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007549.png",
+        "actual_seconds": 301.96,
+        "pts_ticks": 7549,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007550.png",
+        "actual_seconds": 302.0,
+        "pts_ticks": 7550,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007551.png",
+        "actual_seconds": 302.04,
+        "pts_ticks": 7551,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007552.png",
+        "actual_seconds": 302.08,
+        "pts_ticks": 7552,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007553.png",
+        "actual_seconds": 302.12,
+        "pts_ticks": 7553,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007554.png",
+        "actual_seconds": 302.16,
+        "pts_ticks": 7554,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007555.png",
+        "actual_seconds": 302.2,
+        "pts_ticks": 7555,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007556.png",
+        "actual_seconds": 302.24,
+        "pts_ticks": 7556,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007557.png",
+        "actual_seconds": 302.28,
+        "pts_ticks": 7557,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007558.png",
+        "actual_seconds": 302.32,
+        "pts_ticks": 7558,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007559.png",
+        "actual_seconds": 302.36,
+        "pts_ticks": 7559,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007560.png",
+        "actual_seconds": 302.4,
+        "pts_ticks": 7560,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007561.png",
+        "actual_seconds": 302.44,
+        "pts_ticks": 7561,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007562.png",
+        "actual_seconds": 302.48,
+        "pts_ticks": 7562,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007563.png",
+        "actual_seconds": 302.52,
+        "pts_ticks": 7563,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007564.png",
+        "actual_seconds": 302.56,
+        "pts_ticks": 7564,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007565.png",
+        "actual_seconds": 302.6,
+        "pts_ticks": 7565,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007566.png",
+        "actual_seconds": 302.64,
+        "pts_ticks": 7566,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007567.png",
+        "actual_seconds": 302.68,
+        "pts_ticks": 7567,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007568.png",
+        "actual_seconds": 302.72,
+        "pts_ticks": 7568,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007569.png",
+        "actual_seconds": 302.76,
+        "pts_ticks": 7569,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007570.png",
+        "actual_seconds": 302.8,
+        "pts_ticks": 7570,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007571.png",
+        "actual_seconds": 302.84,
+        "pts_ticks": 7571,
+        "timebase": "1/25"
+      },
+      {
+        "file": "terminal-frames/frame-007572.png",
+        "actual_seconds": 302.88,
+        "pts_ticks": 7572,
+        "timebase": "1/25"
+      }
+    ]
+  },
+  "representative_frames": [
+    {
+      "file": "probe-000.png",
+      "requested_seconds": 0,
+      "actual_seconds": 0,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-030.png",
+      "requested_seconds": 30,
+      "actual_seconds": 30,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-060.png",
+      "requested_seconds": 60,
+      "actual_seconds": 60,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-120.png",
+      "requested_seconds": 120,
+      "actual_seconds": 120,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-180.png",
+      "requested_seconds": 180,
+      "actual_seconds": 180,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-240.png",
+      "requested_seconds": 240,
+      "actual_seconds": 240,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-255.png",
+      "requested_seconds": 255,
+      "actual_seconds": 255,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-265.png",
+      "requested_seconds": 265,
+      "actual_seconds": 265,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-270.png",
+      "requested_seconds": 270,
+      "actual_seconds": 270,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-275.png",
+      "requested_seconds": 275,
+      "actual_seconds": 275,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-280.png",
+      "requested_seconds": 280,
+      "actual_seconds": 280,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-285.png",
+      "requested_seconds": 285,
+      "actual_seconds": 285,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-286.png",
+      "requested_seconds": 286,
+      "actual_seconds": 286,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-287.png",
+      "requested_seconds": 287,
+      "actual_seconds": 287,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-288.png",
+      "requested_seconds": 288,
+      "actual_seconds": 288,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-289.png",
+      "requested_seconds": 289,
+      "actual_seconds": 289,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-290.png",
+      "requested_seconds": 290,
+      "actual_seconds": 290,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-291.png",
+      "requested_seconds": 291,
+      "actual_seconds": 291,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-292.png",
+      "requested_seconds": 292,
+      "actual_seconds": 292,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-293.png",
+      "requested_seconds": 293,
+      "actual_seconds": 293,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-294.png",
+      "requested_seconds": 294,
+      "actual_seconds": 294,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-295.png",
+      "requested_seconds": 295,
+      "actual_seconds": 295,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-296.png",
+      "requested_seconds": 296,
+      "actual_seconds": 296,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-297.png",
+      "requested_seconds": 297,
+      "actual_seconds": 297,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-298.png",
+      "requested_seconds": 298,
+      "actual_seconds": 298,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-299.png",
+      "requested_seconds": 299,
+      "actual_seconds": 299,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-300.png",
+      "requested_seconds": 300,
+      "actual_seconds": 300,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-301.png",
+      "requested_seconds": 301,
+      "actual_seconds": 301,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    },
+    {
+      "file": "probe-302.png",
+      "requested_seconds": 302,
+      "actual_seconds": 302,
+      "timing_note": "integer second aligns with 25fps grid; ffmpeg -ss output frame"
+    }
+  ],
+  "scope": "仅离线视频的页面可见内容；非DOM/EventSource/协议身份记录",
+  "timing_limit": "所有时间均为原Web录屏相对PTS；不凭creation_time映射服务UTC或原生视频时间。",
+  "key_frames": [
+    {
+      "file": "key-285.80.png",
+      "actual_seconds": 285.8,
+      "description": "标题前缀在执行/尚未保存状态出现"
+    },
+    {
+      "file": "terminal-frames/frame-007547.png",
+      "actual_seconds": 301.88,
+      "description": "餐饮尾；正在执行；复制当前正文"
+    },
+    {
+      "file": "terminal-frames/frame-007548.png",
+      "actual_seconds": 301.92,
+      "description": "餐饮尾保留；终止·输出达上限；复制不完整回答"
+    }
+  ],
+  "non_grid_probe_note": "key-285.50.png仅为requested_seconds=285.5的探索图，不作为精确PTS证据；不建议归档。",
+  "safe_archive_recommendation": {
+    "manifest": "manifest.json",
+    "brief": "简报.md",
+    "representatives": [
+      "probe-060.png",
+      "probe-120.png",
+      "probe-285.png",
+      "key-285.80.png",
+      "probe-286.png",
+      "probe-287.png",
+      "probe-288.png",
+      "probe-290.png",
+      "probe-291.png",
+      "probe-294.png",
+      "probe-298.png",
+      "probe-300.png"
+    ],
+    "terminal_frames": "terminal-frames/全部148张",
+    "contact_sheets": [
+      "terminal-contact-00.png",
+      "terminal-contact-01.png",
+      "terminal-contact-02.png",
+      "terminal-contact-03.png"
+    ]
+  }
+}

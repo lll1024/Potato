@@ -1,0 +1,94 @@
+{
+  "commit": "87a41417655ab4941341bc11c8fb32911f06bece",
+  "session_id": "24911f4905054492a1a7cbef4ed5bca6",
+  "turn_id": "ef54609b13ce46e391f87bf3b14f59d5",
+  "outcome_status": "terminated",
+  "outcome_reason": "output_limit",
+  "all_sdk_calls": 11,
+  "preparation_sdk_calls": 2,
+  "target_sdk_calls": 9,
+  "target_tools": 20,
+  "tool_status_counts": {
+    "completed": 20
+  },
+  "tool_is_error_counts": {
+    "None": 20
+  },
+  "reliable_progress_entries": 24,
+  "answer_markdown_code_points": 4203,
+  "target_answer_attempts": [
+    {
+      "request_id": "50940ef3eefd4fcbaa0cc9265d222179",
+      "call_sequence": 9,
+      "ordinal": 7,
+      "attempt": 1,
+      "status": "failed",
+      "sdk_text_events": 0
+    },
+    {
+      "request_id": "5e1a10fdbd124b378bc4e756359fc01e",
+      "call_sequence": 10,
+      "ordinal": 8,
+      "attempt": 2,
+      "status": "failed",
+      "sdk_text_events": 0
+    },
+    {
+      "request_id": "0e7f5d85b0ba41b8a3266665097b7cbe",
+      "call_sequence": 11,
+      "ordinal": 9,
+      "attempt": 3,
+      "status": "completed",
+      "sdk_text_events": 2647
+    }
+  ],
+  "raw_answer_scope": "successful final answer attempt; prior EMPTY_RESPONSE attempts each had zero text events",
+  "raw_answer_text_events": 2647,
+  "raw_answer_delta_chars_p50": 1,
+  "raw_answer_delta_chars_p95": 3,
+  "raw_answer_delta_chars_max": 12,
+  "sdk_first_text_epoch_ms": 1794205658645.7642,
+  "sdk_returned_epoch_ms": 1794205674698.4902,
+  "persistent_finished_first_sse_send_epoch_ms": 1794205674761.588,
+  "ios": {
+    "samples": 2001,
+    "growth_updates": 34,
+    "first_epoch_ms": 1794205658959.154,
+    "last_growth_epoch_ms": 1794205675191.4868,
+    "max_increase_chars": 623,
+    "growth_gap_ms_p50": 480.239990234375,
+    "growth_gap_ms_p95": 678.27783203125,
+    "growth_gap_ms_max": 700.85888671875
+  },
+  "ios_generating": {
+    "samples": 997,
+    "growth_updates": 32,
+    "first_epoch_ms": 1794205658959.154,
+    "last_growth_epoch_ms": 1794205674080.199,
+    "max_increase_chars": 623,
+    "growth_gap_ms_p50": 480.239990234375,
+    "growth_gap_ms_p95": 666.708984375,
+    "growth_gap_ms_max": 678.27783203125
+  },
+  "ios_progress": {
+    "samples": 2001,
+    "growth_updates": 11,
+    "first_epoch_ms": 1794205413171.4739,
+    "last_growth_epoch_ms": 1794205446691.592,
+    "max_increase_chars": 44,
+    "growth_gap_ms_p50": 1847.1004638671875,
+    "growth_gap_ms_p95": 9115.679931640625,
+    "growth_gap_ms_max": 9115.679931640625
+  },
+  "ios_terminal_zero_observations": [],
+  "ios_observation_duration_ms_p50": 147.63349294662476,
+  "ios_observation_duration_ms_p95": 196.63608074188232,
+  "web_dom_and_eventsource_available": false,
+  "web_first_eventsource_receipt_epoch_ms": null,
+  "web_generating": null,
+  "web_visual_evidence": "web-video/manifest.json",
+  "web_visual_result": "qualitative prefix/table/transport/source/meal-tail growth; output_limit terminal at relative video301.92s; no observed native-style clear in full148 frames",
+  "copy_and_reopen_equal": true,
+  "units": "SDK code points; iOS AX Swift graphemes; Web DOM/EventSource original arrays lost, not inferred from server send; no physical viewport character count",
+  "position_acceptance": "87 actual query still red in physical terminal frames; final fix separately validated by controlled paced replay, not charged query replay"
+}

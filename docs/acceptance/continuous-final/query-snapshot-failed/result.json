@@ -1,0 +1,10 @@
+{
+  "result": "failed",
+  "checkpoint": "537f212327d9ac7db0ef3cbe711b0e8e5b76f3d6",
+  "ios_test": "1 failed, 141.860s; automatic runner later discovered 0 tests, not a pass",
+  "failure": "query auto-collapsed between enumerating AX elements and reading a previously enumerated status label",
+  "web_test": "1 failed waiting ios_saved after native observer aborted",
+  "ios_timeline": "not exported because XCTest aborted; no missing timeline is claimed as available",
+  "original_ios_video": "/tmp/potato117-query-final-ios.mp4",
+  "original_xcresult": "/tmp/potato117-query-final.xcresult"
+}

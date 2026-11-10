@@ -1,0 +1,302 @@
+[
+  {
+    "session": {
+      "session_id": "eb9240839a644e8b874ec9a6a23382c9",
+      "title": "我会接着提供旅行需求，请简短回复收到，不查询资料。",
+      "created_at": "2026-11-08T15:20:50.147245+00:00",
+      "updated_at": "2026-11-08T15:21:34.716013+00:00"
+    },
+    "stream_id": "14654469288145b9b59bb3b1de88a653",
+    "turns": [
+      {
+        "turn_id": "248c205120c6465f82dbf6d1a34b1a87",
+        "ordinal": 1,
+        "status": "completed",
+        "reason": null,
+        "input": "我会接着提供旅行需求，请简短回复收到，不查询资料。",
+        "answer": "收到，请继续提供旅行需求。",
+        "answer_source": "model",
+        "created_at": "2026-11-08T15:20:50.147245+00:00",
+        "finished_at": "2026-11-08T15:20:51.959545+00:00",
+        "query_progress": []
+      },
+      {
+        "turn_id": "ac4fb56863914939abb9c4bf36b737b0",
+        "ordinal": 2,
+        "status": "completed",
+        "reason": null,
+        "input": "联合验收：只依据我给定的信息，用中文详细写一份居家旅行行前准备清单，不查询外部资料，不需要实时价格、天气或开放信息。请以标题‘联合验收旅行’开头，分成十个主题，每个主题至少写五条具体建议，最后附一张十行的检查表。全文约两千字，直接给出完整正文。",
+        "answer": "# 联合验收旅行\n\n说明：你尚未提供目的地、日期、天数、同行人和预算，以下按“从家出发的通用旅行”编写，重点覆盖离家前准备与返家收尾；不涉及实时价格、天气或开放信息。\n\n## 一、需求与信息\n\n1. 写清出发日期、返家日期、总天数和同行人，避免临时改口造成遗漏。\n2. 设定本次预算上限，并分成交通、住宿、餐饮、应急四类。\n3. 列出“必须完成”和“可以放弃”的事项，行程不要排满。\n4. 把目的地、住宿地址、联系人集中写在一页纸上，同时留电子备份。\n5. 与同行人约定每天的联系时间和走散后的集合方式。\n\n## 二、证件与凭证\n\n1. 把证件放在固定内袋，出发前确认数量并记住存放位置。\n2. 准备证件复印件或照片备份，与原件分开放置。\n3. 将车票、住宿确认信息、联系人等已有订单信息截图保存。\n4. 制作一张纸质紧急联系人卡，写清姓名、电话和必要说明。\n5. 同行人分工保管证件和凭证，避免所有人同时翻找行李。\n\n## 三、居家安全\n\n1. 出门前检查燃气灶、燃气阀门、水龙头和电源，拔掉不必要插头。\n2. 清空易腐垃圾，处理冰箱里容易变质的食物，垃圾出门带走。\n3. 检查门窗、阳台和防盗门，确认锁好后再离开。\n4. 告知邻居、物业或可信亲友出行时间，必要时请其留意房屋。\n5. 安排好宠物、植物、快递和报纸，避免无人照料或堆积。\n\n## 四、行李与衣物\n\n1. 按天数列行李清单，衣物以可叠穿、易搭配为主。\n2. 准备舒适鞋和备用袜子，减少长时间步行后的不适。\n3. 按你掌握的信息决定是否带雨具、防晒用品或保暖层。\n4. 洗漱用品分装并加密封袋，防止泄漏污染衣物。\n5. 行李牌写联系电话，贵重物品随身，不要全部托运或放底层。\n\n## 五、健康与药品\n\n1. 个人常用药按天数加少量缓冲量准备，保留原包装和用药清单。\n2. 用家中已有物品整理小急救包，如创可贴、纱布、消毒用品和体温计。\n3. 写下过敏信息、血型和紧急联系人，同行人应知道存放位置。\n4. 准备口罩、手消毒用品和纸巾，放在随手可取的位置。\n5. 行程中安排休息，避免空腹赶路或连续长时间奔波。\n\n## 六、电子设备与通信\n\n1. 手机、充电器、充电宝和线材集中收纳，出发前检查电量。\n2. 将住宿地址、订单信息、联系人截图保存，准备离线也能查看的版本。\n3. 把大致行程分享给家人或可信朋友，说明返家时间。\n4. 清理手机存储，保留必要资料，并做一次本地和云端备份。\n5. 如行程需要，提前准备转换插头或备用耳机，避免临时购买。\n\n## 七、财务与支付\n\n1. 按交通、住宿、餐饮、应急四类分配预算，留出机动金额。\n2. 现金、银行卡和电子支付分开存放，不要集中在一个包里。\n3. 只带满足行程需要的现金，避免携带过多而增加风险。\n4. 每天简单记账，发现超支时及时调整后续安排。\n5. 保留必要收据和订单记录，便于核对支出或处理售后。\n\n## 八、交通与住宿衔接\n\n1. 写下从家到首个交通点的路线、预留时间和备选方式。\n2. 核对已有订单中的日期、地址、入住和退房时间。\n3. 保存住宿前台、房东或同行人的联系方式。\n4. 若可能晚到，按已有联系方式提前沟通，说明预计到达情况。\n5. 返程留出缓冲时间，不把回家后的安排卡得过紧。\n\n## 九、饮食与日常\n\n1. 出发前保持正常饮食和作息，不因赶路长时间空腹。\n2. 带水杯和少量耐放零食，方便途中补充。\n3. 记录同行人的忌口、过敏和饮食限制，点餐前先确认。\n4. 提前安排家中宠物、植物和易坏食物，减少返家后的负担。\n5. 到达住宿地后先确认饮水、用餐和垃圾投放位置，再安排活动。\n\n## 十、应急与返家\n\n1. 准备紧急联系人卡，写清同行人电话和必要医疗信息。\n2. 约定走散后的集合点，尤其是人多或换乘频繁的环节。\n3. 证件、现金和手机分开放置，降低同时遗失的风险。\n4. 留一小笔应急金，不列入日常消费。\n5. 返家后检查水电、门窗和通风，清洗衣物并复盘遗漏事项。\n\n## 十行检查表\n\n| 行 | 检查项 | 完成 |\n|---|---|---|\n| 1 | 日期、天数、同行人、预算已写下 | □ |\n| 2 | 证件、订单、紧急联系人已备份 | □ |\n| 3 | 燃气、水电、门窗、垃圾已处理 | □ |\n| 4 | 行李清单、衣物、洗漱用品已核对 | □ |\n| 5 | 常用药、急救包、过敏信息已准备 | □ |\n| 6 | 手机、充电器、充电宝、资料备份已检查 | □ |\n| 7 | 现金、银行卡、支付方式已分开放置 | □ |\n| 8 | 家到首站路线、住宿地址、返程缓冲已确认 | □ |\n| 9 | 饮食限制、宠物植物、家中事务已安排 | □ |\n| 10 | 集合点、应急金、返家检查事项已交代 | □ |",
+        "answer_source": "model",
+        "created_at": "2026-11-08T15:20:56.129554+00:00",
+        "finished_at": "2026-11-08T15:21:34.716013+00:00",
+        "query_progress": []
+      }
+    ],
+    "requests": [
+      {
+        "request_id": "cb3e5abe0a534fce9301f6c5d091aea0",
+        "session_id": "eb9240839a644e8b874ec9a6a23382c9",
+        "turn_id": "248c205120c6465f82dbf6d1a34b1a87",
+        "ordinal": 1,
+        "status": "completed",
+        "started_at": "2026-11-08T15:20:50.189520+00:00",
+        "finished_at": "2026-11-08T15:20:51.271273+00:00",
+        "duration_ms": 1075.3857921808958,
+        "input_payload_id": "38bfbdb35461494a8114400c74affe92",
+        "response_payload_id": "149e7db3b2f84413b4a050e1a6b9c484",
+        "error_payload_id": null,
+        "usage": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 5120,
+          "input_tokens": 2600,
+          "output_tokens": 19,
+          "service_tier": "standard"
+        },
+        "usage_state": "returned",
+        "step": 1,
+        "attempt": 1,
+        "retry_id": "4c217dd587da4474b2f70459e710c53e",
+        "purpose": "travel",
+        "answer_phase": "query"
+      },
+      {
+        "request_id": "81b1a5bc952749bc9f3a9f18f1d9f3bf",
+        "session_id": "eb9240839a644e8b874ec9a6a23382c9",
+        "turn_id": "248c205120c6465f82dbf6d1a34b1a87",
+        "ordinal": 2,
+        "status": "completed",
+        "started_at": "2026-11-08T15:20:51.284654+00:00",
+        "finished_at": "2026-11-08T15:20:51.957255+00:00",
+        "duration_ms": 671.6177091002464,
+        "input_payload_id": "ef794136cf3148bfb8c33b6f051e69d8",
+        "response_payload_id": "01023c6eeb5f448ebfb7e82a7d18d716",
+        "error_payload_id": null,
+        "usage": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 5120,
+          "input_tokens": 335,
+          "output_tokens": 9,
+          "service_tier": "standard"
+        },
+        "usage_state": "returned",
+        "step": 2,
+        "attempt": 1,
+        "retry_id": "ac26ec969e05453bab71264064370e7e",
+        "purpose": "travel_answer",
+        "answer_phase": "answer",
+        "answer_delivery": "stream"
+      },
+      {
+        "request_id": "9084e3f9071b4a0cb999a525c31ba604",
+        "session_id": "eb9240839a644e8b874ec9a6a23382c9",
+        "turn_id": "ac4fb56863914939abb9c4bf36b737b0",
+        "ordinal": 1,
+        "status": "completed",
+        "started_at": "2026-11-08T15:20:56.139676+00:00",
+        "finished_at": "2026-11-08T15:21:05.090384+00:00",
+        "duration_ms": 8947.26579170674,
+        "input_payload_id": "f1f4171584c14a169939a0e165743676",
+        "response_payload_id": "4e007dffc41742528fc8ac4ac32bf668",
+        "error_payload_id": null,
+        "usage": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 5120,
+          "input_tokens": 2689,
+          "output_tokens": 1340,
+          "service_tier": "standard"
+        },
+        "usage_state": "returned",
+        "step": 1,
+        "attempt": 1,
+        "retry_id": "8889abb61903487eaf4d1cd44f606fad",
+        "purpose": "travel",
+        "answer_phase": "query"
+      },
+      {
+        "request_id": "25c0dcf38f49463aad15cc5559ca1d9c",
+        "session_id": "eb9240839a644e8b874ec9a6a23382c9",
+        "turn_id": "ac4fb56863914939abb9c4bf36b737b0",
+        "ordinal": 2,
+        "status": "completed",
+        "started_at": "2026-11-08T15:21:05.098722+00:00",
+        "finished_at": "2026-11-08T15:21:34.709196+00:00",
+        "duration_ms": 29609.264249913394,
+        "input_payload_id": "50ee70ed3a034dd89d580bea9d8871c6",
+        "response_payload_id": "6844a8ab4908496abd6047925250f390",
+        "error_payload_id": null,
+        "usage": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 5120,
+          "input_tokens": 423,
+          "output_tokens": 4125,
+          "service_tier": "standard"
+        },
+        "usage_state": "returned",
+        "step": 2,
+        "attempt": 1,
+        "retry_id": "3d4dab9002e64edfad33f1bd833b5a40",
+        "purpose": "travel_answer",
+        "answer_phase": "answer",
+        "answer_delivery": "stream"
+      }
+    ],
+    "tool_calls": [],
+    "events": [
+      {
+        "kind": "turn.accepted",
+        "cursor": 1,
+        "turn_id": "248c205120c6465f82dbf6d1a34b1a87",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "context.date",
+        "cursor": 2,
+        "turn_id": "248c205120c6465f82dbf6d1a34b1a87",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "context.checked",
+        "cursor": 3,
+        "turn_id": "248c205120c6465f82dbf6d1a34b1a87",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "request.started",
+        "cursor": 4,
+        "turn_id": "248c205120c6465f82dbf6d1a34b1a87",
+        "request_id": "cb3e5abe0a534fce9301f6c5d091aea0",
+        "created_at": null
+      },
+      {
+        "kind": "context.usage",
+        "cursor": 5,
+        "turn_id": "248c205120c6465f82dbf6d1a34b1a87",
+        "request_id": "cb3e5abe0a534fce9301f6c5d091aea0",
+        "created_at": null
+      },
+      {
+        "kind": "request.completed",
+        "cursor": 6,
+        "turn_id": "248c205120c6465f82dbf6d1a34b1a87",
+        "request_id": "cb3e5abe0a534fce9301f6c5d091aea0",
+        "created_at": null
+      },
+      {
+        "kind": "context.checked",
+        "cursor": 7,
+        "turn_id": "248c205120c6465f82dbf6d1a34b1a87",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "request.started",
+        "cursor": 8,
+        "turn_id": "248c205120c6465f82dbf6d1a34b1a87",
+        "request_id": "81b1a5bc952749bc9f3a9f18f1d9f3bf",
+        "created_at": null
+      },
+      {
+        "kind": "context.usage",
+        "cursor": 9,
+        "turn_id": "248c205120c6465f82dbf6d1a34b1a87",
+        "request_id": "81b1a5bc952749bc9f3a9f18f1d9f3bf",
+        "created_at": null
+      },
+      {
+        "kind": "request.completed",
+        "cursor": 10,
+        "turn_id": "248c205120c6465f82dbf6d1a34b1a87",
+        "request_id": "81b1a5bc952749bc9f3a9f18f1d9f3bf",
+        "created_at": null
+      },
+      {
+        "kind": "turn.finished",
+        "cursor": 11,
+        "turn_id": "248c205120c6465f82dbf6d1a34b1a87",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "turn.accepted",
+        "cursor": 12,
+        "turn_id": "ac4fb56863914939abb9c4bf36b737b0",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "context.date",
+        "cursor": 13,
+        "turn_id": "ac4fb56863914939abb9c4bf36b737b0",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "context.checked",
+        "cursor": 14,
+        "turn_id": "ac4fb56863914939abb9c4bf36b737b0",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "request.started",
+        "cursor": 15,
+        "turn_id": "ac4fb56863914939abb9c4bf36b737b0",
+        "request_id": "9084e3f9071b4a0cb999a525c31ba604",
+        "created_at": null
+      },
+      {
+        "kind": "context.usage",
+        "cursor": 16,
+        "turn_id": "ac4fb56863914939abb9c4bf36b737b0",
+        "request_id": "9084e3f9071b4a0cb999a525c31ba604",
+        "created_at": null
+      },
+      {
+        "kind": "request.completed",
+        "cursor": 17,
+        "turn_id": "ac4fb56863914939abb9c4bf36b737b0",
+        "request_id": "9084e3f9071b4a0cb999a525c31ba604",
+        "created_at": null
+      },
+      {
+        "kind": "context.checked",
+        "cursor": 18,
+        "turn_id": "ac4fb56863914939abb9c4bf36b737b0",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "request.started",
+        "cursor": 19,
+        "turn_id": "ac4fb56863914939abb9c4bf36b737b0",
+        "request_id": "25c0dcf38f49463aad15cc5559ca1d9c",
+        "created_at": null
+      },
+      {
+        "kind": "context.usage",
+        "cursor": 20,
+        "turn_id": "ac4fb56863914939abb9c4bf36b737b0",
+        "request_id": "25c0dcf38f49463aad15cc5559ca1d9c",
+        "created_at": null
+      },
+      {
+        "kind": "request.completed",
+        "cursor": 21,
+        "turn_id": "ac4fb56863914939abb9c4bf36b737b0",
+        "request_id": "25c0dcf38f49463aad15cc5559ca1d9c",
+        "created_at": null
+      },
+      {
+        "kind": "turn.finished",
+        "cursor": 22,
+        "turn_id": "ac4fb56863914939abb9c4bf36b737b0",
+        "request_id": null,
+        "created_at": null
+      }
+    ]
+  }
+]

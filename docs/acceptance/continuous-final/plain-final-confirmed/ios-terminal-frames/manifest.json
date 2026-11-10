@@ -1,0 +1,222 @@
+{
+  "duration_seconds" : 203.44666666666666,
+  "frames" : [
+    {
+      "actual_seconds" : 90.185000000000002,
+      "file" : "frame-0090.2.jpg",
+      "requested_seconds" : 90.200000000000003
+    },
+    {
+      "actual_seconds" : 90.273333333333326,
+      "file" : "frame-0090.3.jpg",
+      "requested_seconds" : 90.299999999999997
+    },
+    {
+      "actual_seconds" : 90.273333333333326,
+      "file" : "frame-0090.4.jpg",
+      "requested_seconds" : 90.400000000000006
+    },
+    {
+      "actual_seconds" : 90.484999999999999,
+      "file" : "frame-0090.5.jpg",
+      "requested_seconds" : 90.5
+    },
+    {
+      "actual_seconds" : 90.566666666666663,
+      "file" : "frame-0090.6.jpg",
+      "requested_seconds" : 90.600000000000009
+    },
+    {
+      "actual_seconds" : 90.655000000000001,
+      "file" : "frame-0090.7.jpg",
+      "requested_seconds" : 90.700000000000003
+    },
+    {
+      "actual_seconds" : 90.763333333333335,
+      "file" : "frame-0090.8.jpg",
+      "requested_seconds" : 90.799999999999997
+    },
+    {
+      "actual_seconds" : 90.763333333333335,
+      "file" : "frame-0090.9.jpg",
+      "requested_seconds" : 90.900000000000006
+    },
+    {
+      "actual_seconds" : 90.763333333333335,
+      "file" : "frame-0091.0.jpg",
+      "requested_seconds" : 91
+    },
+    {
+      "actual_seconds" : 91.013333333333335,
+      "file" : "frame-0091.1.jpg",
+      "requested_seconds" : 91.100000000000009
+    },
+    {
+      "actual_seconds" : 91.123333333333335,
+      "file" : "frame-0091.2.jpg",
+      "requested_seconds" : 91.200000000000003
+    },
+    {
+      "actual_seconds" : 91.123333333333335,
+      "file" : "frame-0091.3.jpg",
+      "requested_seconds" : 91.299999999999997
+    },
+    {
+      "actual_seconds" : 91.336666666666673,
+      "file" : "frame-0091.4.jpg",
+      "requested_seconds" : 91.400000000000006
+    },
+    {
+      "actual_seconds" : 91.456666666666663,
+      "file" : "frame-0091.5.jpg",
+      "requested_seconds" : 91.5
+    },
+    {
+      "actual_seconds" : 91.575000000000003,
+      "file" : "frame-0091.6.jpg",
+      "requested_seconds" : 91.600000000000009
+    },
+    {
+      "actual_seconds" : 91.686666666666667,
+      "file" : "frame-0091.7.jpg",
+      "requested_seconds" : 91.700000000000003
+    },
+    {
+      "actual_seconds" : 91.798333333333332,
+      "file" : "frame-0091.8.jpg",
+      "requested_seconds" : 91.799999999999997
+    },
+    {
+      "actual_seconds" : 91.798333333333332,
+      "file" : "frame-0091.9.jpg",
+      "requested_seconds" : 91.900000000000006
+    },
+    {
+      "actual_seconds" : 91.798333333333332,
+      "file" : "frame-0092.0.jpg",
+      "requested_seconds" : 92
+    },
+    {
+      "actual_seconds" : 92.033333333333331,
+      "file" : "frame-0092.1.jpg",
+      "requested_seconds" : 92.100000000000009
+    },
+    {
+      "actual_seconds" : 92.118333333333339,
+      "file" : "frame-0092.2.jpg",
+      "requested_seconds" : 92.200000000000003
+    },
+    {
+      "actual_seconds" : 92.263333333333335,
+      "file" : "frame-0092.3.jpg",
+      "requested_seconds" : 92.299999999999997
+    },
+    {
+      "actual_seconds" : 92.394999999999996,
+      "file" : "frame-0092.4.jpg",
+      "requested_seconds" : 92.400000000000006
+    },
+    {
+      "actual_seconds" : 92.49166666666666,
+      "file" : "frame-0092.5.jpg",
+      "requested_seconds" : 92.5
+    },
+    {
+      "actual_seconds" : 92.586666666666673,
+      "file" : "frame-0092.6.jpg",
+      "requested_seconds" : 92.600000000000009
+    },
+    {
+      "actual_seconds" : 92.696666666666673,
+      "file" : "frame-0092.7.jpg",
+      "requested_seconds" : 92.700000000000003
+    },
+    {
+      "actual_seconds" : 92.795000000000002,
+      "file" : "frame-0092.8.jpg",
+      "requested_seconds" : 92.799999999999997
+    },
+    {
+      "actual_seconds" : 92.900000000000006,
+      "file" : "frame-0092.9.jpg",
+      "requested_seconds" : 92.900000000000006
+    },
+    {
+      "actual_seconds" : 92.998333333333335,
+      "file" : "frame-0093.0.jpg",
+      "requested_seconds" : 93
+    },
+    {
+      "actual_seconds" : 93.088333333333338,
+      "file" : "frame-0093.1.jpg",
+      "requested_seconds" : 93.100000000000009
+    },
+    {
+      "actual_seconds" : 93.109999999999999,
+      "file" : "frame-0093.2.jpg",
+      "requested_seconds" : 93.200000000000003
+    },
+    {
+      "actual_seconds" : 93.281666666666666,
+      "file" : "frame-0093.3.jpg",
+      "requested_seconds" : 93.299999999999997
+    },
+    {
+      "actual_seconds" : 93.398333333333326,
+      "file" : "frame-0093.4.jpg",
+      "requested_seconds" : 93.400000000000006
+    },
+    {
+      "actual_seconds" : 93.481666666666669,
+      "file" : "frame-0093.5.jpg",
+      "requested_seconds" : 93.5
+    },
+    {
+      "actual_seconds" : 93.591666666666669,
+      "file" : "frame-0093.6.jpg",
+      "requested_seconds" : 93.600000000000009
+    },
+    {
+      "actual_seconds" : 93.689999999999998,
+      "file" : "frame-0093.7.jpg",
+      "requested_seconds" : 93.700000000000003
+    },
+    {
+      "actual_seconds" : 93.796666666666667,
+      "file" : "frame-0093.8.jpg",
+      "requested_seconds" : 93.799999999999997
+    },
+    {
+      "actual_seconds" : 93.868333333333339,
+      "file" : "frame-0093.9.jpg",
+      "requested_seconds" : 93.900000000000006
+    },
+    {
+      "actual_seconds" : 93.868333333333339,
+      "file" : "frame-0094.0.jpg",
+      "requested_seconds" : 94
+    },
+    {
+      "actual_seconds" : 94.015000000000001,
+      "file" : "frame-0094.1.jpg",
+      "requested_seconds" : 94.100000000000009
+    },
+    {
+      "actual_seconds" : 94.015000000000001,
+      "file" : "frame-0094.2.jpg",
+      "requested_seconds" : 94.200000000000003
+    },
+    {
+      "actual_seconds" : 94.015000000000001,
+      "file" : "frame-0094.3.jpg",
+      "requested_seconds" : 94.299999999999997
+    },
+    {
+      "actual_seconds" : 94.015000000000001,
+      "file" : "frame-0094.4.jpg",
+      "requested_seconds" : 94.400000000000006
+    }
+  ],
+  "interval_seconds" : 0.10000000000000001,
+  "original_video" : "\/tmp\/potato117-plain-final-current-ios.mp4"
+}

@@ -1,0 +1,15 @@
+{
+  "result": "终态正文保持，未出现修复前准备轮／输入占位回退或上跳",
+  "method": "从原视频精确解码每100ms帧，重点人工核对SDK完整返回与AX缺样前后",
+  "ax_zero_sample_after_first_readable": 1,
+  "ax_zero_offset_after_sdk_return_ms": 265.354736328125,
+  "checked_frames": [
+    "ios-answer-frames/frame-0148.8.jpg",
+    "ios-answer-frames/frame-0149.0.jpg",
+    "ios-answer-frames/frame-0149.2.jpg",
+    "ios-answer-frames/frame-0149.4.jpg"
+  ],
+  "old_regression_frame": "../query/ios-answer-frames/frame-0189.3.jpg",
+  "raw_video": "/tmp/potato117-query-handoff-ios.mp4",
+  "note": "AX空样不等于屏幕空白；全部原始时间序列保留，不从统计中删除该样本。视频起点记录到整秒，跨层时间比较采用各自UTC事件。"
+}

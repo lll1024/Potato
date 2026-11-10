@@ -1,0 +1,1557 @@
+[
+  {
+    "session": {
+      "session_id": "7c8c9a0ae8cf4c98bdc6c41847155144",
+      "title": "我会接着提供旅行需求，请简短回复收到，不查询资料。",
+      "created_at": "2026-11-09T02:14:26.037711+00:00",
+      "updated_at": "2026-11-09T02:16:25.883527+00:00"
+    },
+    "stream_id": "bf171e4261d2433694d41bcf01396074",
+    "turns": [
+      {
+        "turn_id": "0e7b3b241cd5481ba0dca31ee21b26fd",
+        "ordinal": 1,
+        "status": "completed",
+        "reason": null,
+        "input": "我会接着提供旅行需求，请简短回复收到，不查询资料。",
+        "answer": "收到，请继续提供旅行需求。",
+        "answer_source": "model",
+        "created_at": "2026-11-09T02:14:26.037711+00:00",
+        "finished_at": "2026-11-09T02:14:27.857036+00:00",
+        "query_progress": []
+      },
+      {
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 2,
+        "status": "completed",
+        "reason": null,
+        "input": "请安排公历2026年11月14日杭州一天旅行，两位成人从杭州东站出发，晚上回杭州东站。请实际查找西湖和中国茶叶博物馆的地点资料、两地公共交通及开放／预约信息，区分未核实内容，给出含交通和来源的详细中文旅行行程。请用简短中文说明正在查什么；不要把准备查询写成查询成功。",
+        "answer": "## 2026年11月14日（星期六）杭州一日行程\n**两人，杭州东站进出｜西湖 + 中国茶叶博物馆（双峰馆区）**\n\n> 先说明一个需要你确认的分支：中国茶叶博物馆有**双峰馆区（龙井路88号）**和**龙井馆区（翁家山268号）**两处。下面按距西湖较近、馆藏常设展较集中的**双峰馆区**排；若你想去龙井馆区（09:30–16:00，周二关闭），告诉我，我重排衔接路线。\n\n### 时间安排（游览时段与顺序为建议）\n\n| 时间 | 安排 |\n|---|---|\n| 08:20 | 杭州东站出发 |\n| 09:05–11:40 | 断桥残雪、白堤一带步行游览 |\n| 11:45–12:50 | 午餐：印湖饭店·传承经典杭帮菜（西湖断桥店） |\n| 12:50–13:40 | 前往中国茶叶博物馆（双峰馆区） |\n| 13:40–16:15 | 参观茶博双峰馆区（16:30 闭馆，建议留出余量） |\n| 16:20–17:30 | 返回杭州东站 |\n| 17:30 后 | 东站一带自由晚餐（本次未查询具体餐馆，不作推荐） |\n\n### 分段交通（均为实际查询结果）\n\n1. **杭州东站 → 杭州西湖风景名胜区-断桥残雪｜地铁＋步行，约9.5公里，约44分钟**（含步行约1.6公里）\n 乘地铁1号线（萧山国际机场--湘湖），**火车东站**上车，**凤起路**下车，再步行至断桥。\n 备选：地铁1号线至龙翔桥，转7路（城站火车站(地铁A1口)--灵隐公交总站）**胜利剧院→少年宫**，步行约558米，约45分钟、步行约0.9公里。\n\n2. **杭州西湖风景名胜区-断桥残雪 → 印湖饭店·传承经典杭帮菜(西湖断桥店)｜步行，约0.6公里，约8分钟**\n\n3. **印湖饭店·传承经典杭帮菜(西湖断桥店) → 中国茶叶博物馆(双峰馆区)｜公交＋步行，约6.3公里，约45分钟**\n 步行约456米至**少年宫**站，乘**27路（岳王路--茶博龙井馆区）**，**少年宫→双峰**，下车后步行约458米到馆。27B路（岳王路--龙井村）同站同区间亦可。\n\n4. **中国茶叶博物馆(双峰馆区) → 杭州东站｜公交＋地铁＋步行，约15.3公里，约67分钟**\n 步行约398米至**双峰**站，乘**27路（茶博龙井总站--岳王路）**，**双峰→小车桥**；步行约631米至**凤起路**站，乘地铁1号线（湘湖--萧山国际机场）至**火车东站**，步行约94米。\n\n> 公交耗时口径工具未说明是否包含候车时间；地铁票价、公交票价均未返回，未核实。\n\n### 开放与预约信息（区分来源与状态）\n\n- **断桥残雪**：地图资料显示“周一至周日 00:00–24:00”“24小时营业”。票价字段为空，**门票与预约要求未取得**。另有一份旅行资料称断桥·白堤“全天开放、不设门、不用买票也不用预约”（非官方来源，仅供参考）：https://www.haoliday.com/zh/explore/hangzhou/lens/west-lake-one-day\n- **中国茶叶博物馆双峰馆区**：地图资料为“周二全天不开放；周一、周三至周日 09:00–16:30开放”；官网参观指南写“9:00–16:30，每周二为闭馆日，节假日照常开放”：https://www.teamuseum.cn/mobile/basicIntroduction.htm\n 11月14日为周六，与“周二闭馆”不冲突，但**当日是否正常开放仍待核实**（原因见下）。\n- **预约**：2026年8月6日一篇转载博物馆公告的资料称，双峰、龙井两馆区对散客**免预约入馆**，入馆前配合安全检查（团队、研学另有材料要求）：http://hz.bendibao.com/tour/202686/172159.shtm 该文非官网原文，**11月14日是否仍按此执行请以现场或电话为准**。\n- ⚠️ **一处未解冲突**：2026年8月27日有一篇《关于中国茶叶博物馆（双峰馆区、龙井馆区）临时关闭的通告》，但正文只取到标题，**未取得关闭期限与范围**，无法判断是否影响11月14日：https://www.sohu.com/a/1068500205_121107011 建议出发前拨博物馆咨询电话 **0571-87969161** 确认。\n\n### 午餐候选（本次查询结果）\n\n**印湖饭店·传承经典杭帮菜(西湖断桥店)**｜地址：宝石山下二弄2-6号4幢（如家酒店斜对面）｜地图返回人均约75元、评分4.6、营业时间09:00–23:00。\n推荐理由：①地处断桥步行约0.6公里范围，衔接下午去茶博的少年宫站较顺；②店名含“杭帮菜”关键词，**实际菜品口味、是否清淡待核实**；③评分与人均为地图返回数据，非本次实地验证。\n\n### 出行提醒\n\n- **11月14日为周六，属9–11月秋季旅游旺季双休日**：西湖景区8:00–17:00对小客车实行“单双号”，灵隐区域与南山路（杨公堤至玉皇山路段）另需提前申领“西湖通”，相关区域还有出租车/网约车换乘措施；公交与地铁不受此限。来源：杭州政协网2026-09-08报道 https://www.hzzx.gov.cn/cshz/content/2026-09/08/content_9301630.htm 及通告原文PDF https://zfgb.hangzhou.gov.cn/upload/default/bigfile/2025/06/13/20250613_8d7a231d3e1ada34009dcffa25d04373.pdf 具体当日执行以交管现场为准。\n- **天气待核实**：本次查询的杭州预报只返回到11月12日，**11月14日无可用预报**，请出行前自行查看。\n- 西湖景区范围大、无单一“入口”，本行程以**断桥残雪**为到达与游览起点；湖岸与白堤方向步行距离属游览建议，未逐段核实。\n- 茶博双峰馆区官网列有“中国茶文化展”“西湖龙井茶专题展”“社会捐赠茶具文物精品展”等常设展，馆内参观路线与设施未查询。",
+        "answer_source": "model",
+        "created_at": "2026-11-09T02:14:31.808974+00:00",
+        "finished_at": "2026-11-09T02:16:25.883527+00:00",
+        "query_progress": [
+          {
+            "id": "12a9ab855a9f4476afa14cddcc73f5d3",
+            "attempt_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+            "kind": "model",
+            "text": "正在先定位杭州东站、西湖和中国茶叶博物馆，并查看11月14日杭州天气。",
+            "status": "generated",
+            "delivery": "stream"
+          },
+          {
+            "id": "e07f5eb961924e3184eda8f077cd2a55",
+            "attempt_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+            "kind": "tool",
+            "text": "查找地点资料",
+            "status": "completed"
+          },
+          {
+            "id": "5ea49033606349fb8fa878388ae22ef4",
+            "attempt_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+            "kind": "tool",
+            "text": "查找地点资料",
+            "status": "completed"
+          },
+          {
+            "id": "0227e39493194686982187bdc66ed5dc",
+            "attempt_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+            "kind": "tool",
+            "text": "查找地点资料",
+            "status": "completed"
+          },
+          {
+            "id": "a4fb5fb234524ab0aa96385f0255a69d",
+            "attempt_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+            "kind": "tool",
+            "text": "查询天气",
+            "status": "completed"
+          },
+          {
+            "id": "15ff6baf903042e2853fa7b27509668d",
+            "attempt_id": "15ff6baf903042e2853fa7b27509668d",
+            "kind": "model",
+            "text": "已定位西湖和中国茶叶博物馆的两个馆区，正核对这些地点的详情与开放、预约资料。",
+            "status": "generated",
+            "delivery": "stream"
+          },
+          {
+            "id": "d4fbc2799069491ca9d2fe30e16ea31e",
+            "attempt_id": "15ff6baf903042e2853fa7b27509668d",
+            "kind": "tool",
+            "text": "查找地点资料",
+            "status": "completed"
+          },
+          {
+            "id": "afc053d323b949f5a4d3009a9bf895a2",
+            "attempt_id": "15ff6baf903042e2853fa7b27509668d",
+            "kind": "tool",
+            "text": "查找地点资料",
+            "status": "completed"
+          },
+          {
+            "id": "8dc8bead65a54d2f9a2abc78cffd21ff",
+            "attempt_id": "15ff6baf903042e2853fa7b27509668d",
+            "kind": "tool",
+            "text": "查找地点资料",
+            "status": "completed"
+          },
+          {
+            "id": "d4cd838f2f8343818502eb5e075e8d81",
+            "attempt_id": "15ff6baf903042e2853fa7b27509668d",
+            "kind": "tool",
+            "text": "查找地点资料",
+            "status": "completed"
+          },
+          {
+            "id": "dc8ab5bde97c4b6bb2309387e93f55d4",
+            "attempt_id": "15ff6baf903042e2853fa7b27509668d",
+            "kind": "tool",
+            "text": "查找网页资料",
+            "status": "completed"
+          },
+          {
+            "id": "86ef97ed51b6491f88d1abe37b6f9934",
+            "attempt_id": "86ef97ed51b6491f88d1abe37b6f9934",
+            "kind": "model",
+            "text": "两馆开放时段与免预约公告已取得；接着查东站往返西湖、茶博的公交线路，并读临时关闭通告正文。",
+            "status": "generated",
+            "delivery": "stream"
+          },
+          {
+            "id": "7ada7f1ead394de7b152d267af8de9e1",
+            "attempt_id": "86ef97ed51b6491f88d1abe37b6f9934",
+            "kind": "tool",
+            "text": "查找网页资料",
+            "status": "completed"
+          },
+          {
+            "id": "4b1617b51d5c4008a904b81a8a5e16d0",
+            "attempt_id": "86ef97ed51b6491f88d1abe37b6f9934",
+            "kind": "tool",
+            "text": "比较交通路线",
+            "status": "completed"
+          },
+          {
+            "id": "d3f871c8d40f49e392d21416482adc02",
+            "attempt_id": "86ef97ed51b6491f88d1abe37b6f9934",
+            "kind": "tool",
+            "text": "比较交通路线",
+            "status": "completed"
+          },
+          {
+            "id": "57bed7f942c548dd8823a97cc8233999",
+            "attempt_id": "86ef97ed51b6491f88d1abe37b6f9934",
+            "kind": "tool",
+            "text": "比较交通路线",
+            "status": "completed"
+          },
+          {
+            "id": "a54c4444ad004a88a4597b900bf80d55",
+            "attempt_id": "a54c4444ad004a88a4597b900bf80d55",
+            "kind": "model",
+            "text": "三段公交路线已拿到；现在查找西湖周边午餐候选，并补充西湖景区开放与预约资料。",
+            "status": "generated",
+            "delivery": "stream"
+          },
+          {
+            "id": "9413b0fe700d4afaba244057a0ef4f41",
+            "attempt_id": "a54c4444ad004a88a4597b900bf80d55",
+            "kind": "tool",
+            "text": "查找地点资料",
+            "status": "completed"
+          },
+          {
+            "id": "00458dab57dd4ac4b391f3accd537df8",
+            "attempt_id": "a54c4444ad004a88a4597b900bf80d55",
+            "kind": "tool",
+            "text": "查找网页资料",
+            "status": "completed"
+          },
+          {
+            "id": "2c92ad9a700b4ebba6c096f641d4070d",
+            "attempt_id": "2c92ad9a700b4ebba6c096f641d4070d",
+            "kind": "model",
+            "text": "对比两家断桥附近杭帮菜馆的坐标，随后查证餐馆到茶博的衔接路线。",
+            "status": "generated",
+            "delivery": "stream"
+          },
+          {
+            "id": "f89756754e2a46e584b57f7fa801366a",
+            "attempt_id": "2c92ad9a700b4ebba6c096f641d4070d",
+            "kind": "tool",
+            "text": "查找地点资料",
+            "status": "completed"
+          },
+          {
+            "id": "3fd68b2c2d0a4d18b070e11e66d3c689",
+            "attempt_id": "2c92ad9a700b4ebba6c096f641d4070d",
+            "kind": "tool",
+            "text": "查找地点资料",
+            "status": "completed"
+          },
+          {
+            "id": "2c51722f8ebb4a6ab45b41905636736f",
+            "attempt_id": "2c51722f8ebb4a6ab45b41905636736f",
+            "kind": "model",
+            "text": "午餐地点已定在断桥旁；再查证从餐馆步行到断桥、以及从餐馆到茶博双峰馆区的公交路线。",
+            "status": "generated",
+            "delivery": "stream"
+          },
+          {
+            "id": "f34fa396291c4b3abf9f216721d838d5",
+            "attempt_id": "2c51722f8ebb4a6ab45b41905636736f",
+            "kind": "tool",
+            "text": "比较交通路线",
+            "status": "completed"
+          },
+          {
+            "id": "9306fff4f39143d9a819892a8fdaa830",
+            "attempt_id": "2c51722f8ebb4a6ab45b41905636736f",
+            "kind": "tool",
+            "text": "比较交通路线",
+            "status": "completed"
+          }
+        ]
+      }
+    ],
+    "requests": [
+      {
+        "request_id": "feafdfc5ecd2454f8e05f3a4a834c506",
+        "session_id": "7c8c9a0ae8cf4c98bdc6c41847155144",
+        "turn_id": "0e7b3b241cd5481ba0dca31ee21b26fd",
+        "ordinal": 1,
+        "status": "completed",
+        "started_at": "2026-11-09T02:14:26.073229+00:00",
+        "finished_at": "2026-11-09T02:14:27.012615+00:00",
+        "duration_ms": 933.8994165882468,
+        "input_payload_id": "2db23ba98bcd43f8a2d58ced43647e2a",
+        "response_payload_id": "30e9f9ab15904eecb5d0192cfd4621e1",
+        "error_payload_id": null,
+        "usage": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 5120,
+          "input_tokens": 2600,
+          "output_tokens": 9,
+          "service_tier": "standard"
+        },
+        "usage_state": "returned",
+        "step": 1,
+        "attempt": 1,
+        "retry_id": "748971f747654f98b810aa6a00a4bfbc",
+        "purpose": "travel",
+        "answer_phase": "query"
+      },
+      {
+        "request_id": "071db4126280448896a021ad570658f4",
+        "session_id": "7c8c9a0ae8cf4c98bdc6c41847155144",
+        "turn_id": "0e7b3b241cd5481ba0dca31ee21b26fd",
+        "ordinal": 2,
+        "status": "completed",
+        "started_at": "2026-11-09T02:14:27.018056+00:00",
+        "finished_at": "2026-11-09T02:14:27.854377+00:00",
+        "duration_ms": 835.2394998073578,
+        "input_payload_id": "c6f0def329134b73a899a4939df2ab61",
+        "response_payload_id": "26bf23c5bc634083a5307e633a0347c9",
+        "error_payload_id": null,
+        "usage": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 5120,
+          "input_tokens": 335,
+          "output_tokens": 9,
+          "service_tier": "standard"
+        },
+        "usage_state": "returned",
+        "step": 2,
+        "attempt": 1,
+        "retry_id": "497dc4dee3704c4692b397b7ae6fcd54",
+        "purpose": "travel_answer",
+        "answer_phase": "answer",
+        "answer_delivery": "stream"
+      },
+      {
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "session_id": "7c8c9a0ae8cf4c98bdc6c41847155144",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 1,
+        "status": "completed",
+        "started_at": "2026-11-09T02:14:31.830650+00:00",
+        "finished_at": "2026-11-09T02:14:35.199311+00:00",
+        "duration_ms": 3366.3668325170875,
+        "input_payload_id": "cade421ed0b345bf94605c20581b46b6",
+        "response_payload_id": "adf859c4965740019fd9bbce6d957a62",
+        "error_payload_id": null,
+        "usage": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 5120,
+          "input_tokens": 2776,
+          "output_tokens": 492,
+          "service_tier": "standard"
+        },
+        "usage_state": "returned",
+        "step": 1,
+        "attempt": 1,
+        "retry_id": "57816ef5110948efb2273e095e7937ae",
+        "purpose": "travel",
+        "answer_phase": "query"
+      },
+      {
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "session_id": "7c8c9a0ae8cf4c98bdc6c41847155144",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 2,
+        "status": "completed",
+        "started_at": "2026-11-09T02:14:36.722580+00:00",
+        "finished_at": "2026-11-09T02:14:49.011841+00:00",
+        "duration_ms": 12282.025915570557,
+        "input_payload_id": "f0a2a35be15245e7a5dfb4d32acce8dc",
+        "response_payload_id": "0ca9e279a8a241cc9e0c068115931d4e",
+        "error_payload_id": null,
+        "usage": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 8320,
+          "input_tokens": 5831,
+          "output_tokens": 1480,
+          "service_tier": "standard"
+        },
+        "usage_state": "returned",
+        "step": 2,
+        "attempt": 1,
+        "retry_id": "4202671c5ab64adfbe264f61b1cccb0d",
+        "purpose": "travel",
+        "answer_phase": "query"
+      },
+      {
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "session_id": "7c8c9a0ae8cf4c98bdc6c41847155144",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 3,
+        "status": "completed",
+        "started_at": "2026-11-09T02:14:50.907533+00:00",
+        "finished_at": "2026-11-09T02:15:00.395624+00:00",
+        "duration_ms": 9479.148457758129,
+        "input_payload_id": "1ce89dc0aa254114ad7092b19ab9f4c0",
+        "response_payload_id": "44d8168e55c140d5b75ec4c07a8518dc",
+        "error_payload_id": null,
+        "usage": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 14208,
+          "input_tokens": 20020,
+          "output_tokens": 1312,
+          "service_tier": "standard"
+        },
+        "usage_state": "returned",
+        "step": 3,
+        "attempt": 1,
+        "retry_id": "e259c7b40ccf445fbe8492ddad497667",
+        "purpose": "travel",
+        "answer_phase": "query"
+      },
+      {
+        "request_id": "a54c4444ad004a88a4597b900bf80d55",
+        "session_id": "7c8c9a0ae8cf4c98bdc6c41847155144",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 4,
+        "status": "completed",
+        "started_at": "2026-11-09T02:15:01.585544+00:00",
+        "finished_at": "2026-11-09T02:15:13.235310+00:00",
+        "duration_ms": 11631.882833316922,
+        "input_payload_id": "deb64aaa13434a6c86ea4403126c38e0",
+        "response_payload_id": "a288cd4ea54a4ab6af70dd2860fae934",
+        "error_payload_id": null,
+        "usage": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 35456,
+          "input_tokens": 14689,
+          "output_tokens": 1395,
+          "service_tier": "standard"
+        },
+        "usage_state": "returned",
+        "step": 4,
+        "attempt": 1,
+        "retry_id": "f5217a82cf6c44f4bd391bf053ef557c",
+        "purpose": "travel",
+        "answer_phase": "query"
+      },
+      {
+        "request_id": "2c92ad9a700b4ebba6c096f641d4070d",
+        "session_id": "7c8c9a0ae8cf4c98bdc6c41847155144",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 5,
+        "status": "completed",
+        "started_at": "2026-11-09T02:15:18.233175+00:00",
+        "finished_at": "2026-11-09T02:15:24.951051+00:00",
+        "duration_ms": 6696.463959291577,
+        "input_payload_id": "e6ffa492cec94e7f8cf87deb57b3cdff",
+        "response_payload_id": "d58772f49d144fb8a6013a954fd2760a",
+        "error_payload_id": null,
+        "usage": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 51456,
+          "input_tokens": 19357,
+          "output_tokens": 791,
+          "service_tier": "standard"
+        },
+        "usage_state": "returned",
+        "step": 5,
+        "attempt": 1,
+        "retry_id": "6a7e553c38d24de3a7bc7e445bda5e98",
+        "purpose": "travel",
+        "answer_phase": "query"
+      },
+      {
+        "request_id": "2c51722f8ebb4a6ab45b41905636736f",
+        "session_id": "7c8c9a0ae8cf4c98bdc6c41847155144",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 6,
+        "status": "completed",
+        "started_at": "2026-11-09T02:15:25.604330+00:00",
+        "finished_at": "2026-11-09T02:15:30.676865+00:00",
+        "duration_ms": 5049.724875018001,
+        "input_payload_id": "8e08d089a40848d087f6ecfa9fd6a3b1",
+        "response_payload_id": "7432592321e04892a4ab344d76675143",
+        "error_payload_id": null,
+        "usage": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 71552,
+          "input_tokens": 464,
+          "output_tokens": 642,
+          "service_tier": "standard"
+        },
+        "usage_state": "returned",
+        "step": 6,
+        "attempt": 1,
+        "retry_id": "8edf5b7542e448afaa16be05e3b9ff76",
+        "purpose": "travel",
+        "answer_phase": "query"
+      },
+      {
+        "request_id": "35be4aeb75cf4608954699872340b608",
+        "session_id": "7c8c9a0ae8cf4c98bdc6c41847155144",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 7,
+        "status": "completed",
+        "started_at": "2026-11-09T02:15:31.401239+00:00",
+        "finished_at": "2026-11-09T02:16:00.650026+00:00",
+        "duration_ms": 29224.520499818027,
+        "input_payload_id": "2d76b00022904a0dac388846e59bd86d",
+        "response_payload_id": "09e85669583e42909c02e04da70837fa",
+        "error_payload_id": null,
+        "usage": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 72576,
+          "input_tokens": 2585,
+          "output_tokens": 4138,
+          "service_tier": "standard"
+        },
+        "usage_state": "returned",
+        "step": 7,
+        "attempt": 1,
+        "retry_id": "38a3d1add5d8408186855640794e7400",
+        "purpose": "travel",
+        "answer_phase": "query"
+      },
+      {
+        "request_id": "ed022266d8eb47f2943a61376bd4eefc",
+        "session_id": "7c8c9a0ae8cf4c98bdc6c41847155144",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 8,
+        "status": "completed",
+        "started_at": "2026-11-09T02:16:00.701834+00:00",
+        "finished_at": "2026-11-09T02:16:25.833051+00:00",
+        "duration_ms": 25043.922166340053,
+        "input_payload_id": "f10a0b31008e4d5ab8abb8700fa6d019",
+        "response_payload_id": "c3ec3e2d92b64dd58cd5913d332a23f4",
+        "error_payload_id": null,
+        "usage": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 5248,
+          "input_tokens": 67647,
+          "output_tokens": 3627,
+          "service_tier": "standard"
+        },
+        "usage_state": "returned",
+        "step": 8,
+        "attempt": 1,
+        "retry_id": "78a6fa2997094b0880dd9c5f5cf7b046",
+        "purpose": "travel_answer",
+        "answer_phase": "answer",
+        "answer_delivery": "stream"
+      }
+    ],
+    "tool_calls": [
+      {
+        "tool_call_id": "e07f5eb961924e3184eda8f077cd2a55",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 1,
+        "name": "maps_text_search",
+        "status": "completed",
+        "started_at": "2026-11-09T02:14:35.208322+00:00",
+        "finished_at": "2026-11-09T02:14:35.551417+00:00",
+        "is_error": null
+      },
+      {
+        "tool_call_id": "5ea49033606349fb8fa878388ae22ef4",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 2,
+        "name": "maps_text_search",
+        "status": "completed",
+        "started_at": "2026-11-09T02:14:35.210904+00:00",
+        "finished_at": "2026-11-09T02:14:35.943412+00:00",
+        "is_error": null
+      },
+      {
+        "tool_call_id": "0227e39493194686982187bdc66ed5dc",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 3,
+        "name": "maps_text_search",
+        "status": "completed",
+        "started_at": "2026-11-09T02:14:35.211570+00:00",
+        "finished_at": "2026-11-09T02:14:36.255586+00:00",
+        "is_error": null
+      },
+      {
+        "tool_call_id": "a4fb5fb234524ab0aa96385f0255a69d",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 4,
+        "name": "maps_weather",
+        "status": "completed",
+        "started_at": "2026-11-09T02:14:35.212102+00:00",
+        "finished_at": "2026-11-09T02:14:36.705680+00:00",
+        "is_error": null
+      },
+      {
+        "tool_call_id": "d4fbc2799069491ca9d2fe30e16ea31e",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 1,
+        "name": "maps_search_detail",
+        "status": "completed",
+        "started_at": "2026-11-09T02:14:49.026257+00:00",
+        "finished_at": "2026-11-09T02:14:49.249689+00:00",
+        "is_error": null
+      },
+      {
+        "tool_call_id": "afc053d323b949f5a4d3009a9bf895a2",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 2,
+        "name": "maps_search_detail",
+        "status": "completed",
+        "started_at": "2026-11-09T02:14:49.027362+00:00",
+        "finished_at": "2026-11-09T02:14:49.615048+00:00",
+        "is_error": null
+      },
+      {
+        "tool_call_id": "8dc8bead65a54d2f9a2abc78cffd21ff",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 3,
+        "name": "maps_search_detail",
+        "status": "completed",
+        "started_at": "2026-11-09T02:14:49.028057+00:00",
+        "finished_at": "2026-11-09T02:14:50.035859+00:00",
+        "is_error": null
+      },
+      {
+        "tool_call_id": "d4cd838f2f8343818502eb5e075e8d81",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 4,
+        "name": "maps_search_detail",
+        "status": "completed",
+        "started_at": "2026-11-09T02:14:49.028586+00:00",
+        "finished_at": "2026-11-09T02:14:50.447869+00:00",
+        "is_error": null
+      },
+      {
+        "tool_call_id": "dc8ab5bde97c4b6bb2309387e93f55d4",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 5,
+        "name": "web_search_exa",
+        "status": "completed",
+        "started_at": "2026-11-09T02:14:49.029184+00:00",
+        "finished_at": "2026-11-09T02:14:50.878707+00:00",
+        "is_error": null
+      },
+      {
+        "tool_call_id": "7ada7f1ead394de7b152d267af8de9e1",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 1,
+        "name": "web_fetch_exa",
+        "status": "completed",
+        "started_at": "2026-11-09T02:15:00.403752+00:00",
+        "finished_at": "2026-11-09T02:15:01.478399+00:00",
+        "is_error": null
+      },
+      {
+        "tool_call_id": "4b1617b51d5c4008a904b81a8a5e16d0",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 2,
+        "name": "maps_direction_transit_integrated",
+        "status": "completed",
+        "started_at": "2026-11-09T02:15:00.405231+00:00",
+        "finished_at": "2026-11-09T02:15:00.772049+00:00",
+        "is_error": null
+      },
+      {
+        "tool_call_id": "d3f871c8d40f49e392d21416482adc02",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 3,
+        "name": "maps_direction_transit_integrated",
+        "status": "completed",
+        "started_at": "2026-11-09T02:15:00.405906+00:00",
+        "finished_at": "2026-11-09T02:15:01.026498+00:00",
+        "is_error": null
+      },
+      {
+        "tool_call_id": "57bed7f942c548dd8823a97cc8233999",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 4,
+        "name": "maps_direction_transit_integrated",
+        "status": "completed",
+        "started_at": "2026-11-09T02:15:00.406393+00:00",
+        "finished_at": "2026-11-09T02:15:01.525134+00:00",
+        "is_error": null
+      },
+      {
+        "tool_call_id": "9413b0fe700d4afaba244057a0ef4f41",
+        "request_id": "a54c4444ad004a88a4597b900bf80d55",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 1,
+        "name": "maps_around_search",
+        "status": "completed",
+        "started_at": "2026-11-09T02:15:13.241350+00:00",
+        "finished_at": "2026-11-09T02:15:13.556221+00:00",
+        "is_error": null
+      },
+      {
+        "tool_call_id": "00458dab57dd4ac4b391f3accd537df8",
+        "request_id": "a54c4444ad004a88a4597b900bf80d55",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 2,
+        "name": "web_search_exa",
+        "status": "completed",
+        "started_at": "2026-11-09T02:15:13.242454+00:00",
+        "finished_at": "2026-11-09T02:15:18.174601+00:00",
+        "is_error": null
+      },
+      {
+        "tool_call_id": "f89756754e2a46e584b57f7fa801366a",
+        "request_id": "2c92ad9a700b4ebba6c096f641d4070d",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 1,
+        "name": "maps_search_detail",
+        "status": "completed",
+        "started_at": "2026-11-09T02:15:24.958896+00:00",
+        "finished_at": "2026-11-09T02:15:25.189291+00:00",
+        "is_error": null
+      },
+      {
+        "tool_call_id": "3fd68b2c2d0a4d18b070e11e66d3c689",
+        "request_id": "2c92ad9a700b4ebba6c096f641d4070d",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 2,
+        "name": "maps_search_detail",
+        "status": "completed",
+        "started_at": "2026-11-09T02:15:24.960219+00:00",
+        "finished_at": "2026-11-09T02:15:25.549435+00:00",
+        "is_error": null
+      },
+      {
+        "tool_call_id": "f34fa396291c4b3abf9f216721d838d5",
+        "request_id": "2c51722f8ebb4a6ab45b41905636736f",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 1,
+        "name": "maps_direction_walking",
+        "status": "completed",
+        "started_at": "2026-11-09T02:15:30.683096+00:00",
+        "finished_at": "2026-11-09T02:15:30.873974+00:00",
+        "is_error": null
+      },
+      {
+        "tool_call_id": "9306fff4f39143d9a819892a8fdaa830",
+        "request_id": "2c51722f8ebb4a6ab45b41905636736f",
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "ordinal": 2,
+        "name": "maps_direction_transit_integrated",
+        "status": "completed",
+        "started_at": "2026-11-09T02:15:30.684666+00:00",
+        "finished_at": "2026-11-09T02:15:31.339152+00:00",
+        "is_error": null
+      }
+    ],
+    "events": [
+      {
+        "kind": "turn.accepted",
+        "cursor": 1,
+        "turn_id": "0e7b3b241cd5481ba0dca31ee21b26fd",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "context.date",
+        "cursor": 2,
+        "turn_id": "0e7b3b241cd5481ba0dca31ee21b26fd",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "context.checked",
+        "cursor": 3,
+        "turn_id": "0e7b3b241cd5481ba0dca31ee21b26fd",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "request.started",
+        "cursor": 4,
+        "turn_id": "0e7b3b241cd5481ba0dca31ee21b26fd",
+        "request_id": "feafdfc5ecd2454f8e05f3a4a834c506",
+        "created_at": null
+      },
+      {
+        "kind": "context.usage",
+        "cursor": 5,
+        "turn_id": "0e7b3b241cd5481ba0dca31ee21b26fd",
+        "request_id": "feafdfc5ecd2454f8e05f3a4a834c506",
+        "created_at": null
+      },
+      {
+        "kind": "request.completed",
+        "cursor": 6,
+        "turn_id": "0e7b3b241cd5481ba0dca31ee21b26fd",
+        "request_id": "feafdfc5ecd2454f8e05f3a4a834c506",
+        "created_at": null
+      },
+      {
+        "kind": "context.checked",
+        "cursor": 7,
+        "turn_id": "0e7b3b241cd5481ba0dca31ee21b26fd",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "request.started",
+        "cursor": 8,
+        "turn_id": "0e7b3b241cd5481ba0dca31ee21b26fd",
+        "request_id": "071db4126280448896a021ad570658f4",
+        "created_at": null
+      },
+      {
+        "kind": "context.usage",
+        "cursor": 9,
+        "turn_id": "0e7b3b241cd5481ba0dca31ee21b26fd",
+        "request_id": "071db4126280448896a021ad570658f4",
+        "created_at": null
+      },
+      {
+        "kind": "request.completed",
+        "cursor": 10,
+        "turn_id": "0e7b3b241cd5481ba0dca31ee21b26fd",
+        "request_id": "071db4126280448896a021ad570658f4",
+        "created_at": null
+      },
+      {
+        "kind": "turn.finished",
+        "cursor": 11,
+        "turn_id": "0e7b3b241cd5481ba0dca31ee21b26fd",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "turn.accepted",
+        "cursor": 12,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "context.date",
+        "cursor": 13,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "context.checked",
+        "cursor": 14,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "request.started",
+        "cursor": 15,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "context.usage",
+        "cursor": 16,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "request.completed",
+        "cursor": 17,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "tool.pending",
+        "cursor": 18,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "tool.pending",
+        "cursor": 19,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "tool.pending",
+        "cursor": 20,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "tool.pending",
+        "cursor": 21,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "tool.running",
+        "cursor": 22,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "tool.waiting",
+        "cursor": 23,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "tool.waiting",
+        "cursor": 24,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "tool.waiting",
+        "cursor": 25,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "tool.completed",
+        "cursor": 26,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "tool.waiting",
+        "cursor": 27,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "tool.running",
+        "cursor": 28,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "tool.completed",
+        "cursor": 29,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "tool.waiting",
+        "cursor": 30,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "tool.running",
+        "cursor": 31,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "tool.completed",
+        "cursor": 32,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "tool.waiting",
+        "cursor": 33,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "tool.running",
+        "cursor": 34,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "tool.completed",
+        "cursor": 35,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "12a9ab855a9f4476afa14cddcc73f5d3",
+        "created_at": null
+      },
+      {
+        "kind": "context.checked",
+        "cursor": 36,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "request.started",
+        "cursor": 37,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "context.usage",
+        "cursor": 38,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "request.completed",
+        "cursor": 39,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.pending",
+        "cursor": 40,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.pending",
+        "cursor": 41,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.pending",
+        "cursor": 42,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.pending",
+        "cursor": 43,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.pending",
+        "cursor": 44,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.running",
+        "cursor": 45,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.waiting",
+        "cursor": 46,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.waiting",
+        "cursor": 47,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.waiting",
+        "cursor": 48,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.running",
+        "cursor": 49,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.completed",
+        "cursor": 50,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.waiting",
+        "cursor": 51,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.running",
+        "cursor": 52,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.completed",
+        "cursor": 53,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.waiting",
+        "cursor": 54,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.running",
+        "cursor": 55,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.completed",
+        "cursor": 56,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.waiting",
+        "cursor": 57,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.running",
+        "cursor": 58,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.completed",
+        "cursor": 59,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.completed",
+        "cursor": 60,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "15ff6baf903042e2853fa7b27509668d",
+        "created_at": null
+      },
+      {
+        "kind": "context.checked",
+        "cursor": 61,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "request.started",
+        "cursor": 62,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "created_at": null
+      },
+      {
+        "kind": "context.usage",
+        "cursor": 63,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "created_at": null
+      },
+      {
+        "kind": "request.completed",
+        "cursor": 64,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "created_at": null
+      },
+      {
+        "kind": "tool.pending",
+        "cursor": 65,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "created_at": null
+      },
+      {
+        "kind": "tool.pending",
+        "cursor": 66,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "created_at": null
+      },
+      {
+        "kind": "tool.pending",
+        "cursor": 67,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "created_at": null
+      },
+      {
+        "kind": "tool.pending",
+        "cursor": 68,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "created_at": null
+      },
+      {
+        "kind": "tool.running",
+        "cursor": 69,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "created_at": null
+      },
+      {
+        "kind": "tool.running",
+        "cursor": 70,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "created_at": null
+      },
+      {
+        "kind": "tool.waiting",
+        "cursor": 71,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "created_at": null
+      },
+      {
+        "kind": "tool.waiting",
+        "cursor": 72,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "created_at": null
+      },
+      {
+        "kind": "tool.completed",
+        "cursor": 73,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "created_at": null
+      },
+      {
+        "kind": "tool.waiting",
+        "cursor": 74,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "created_at": null
+      },
+      {
+        "kind": "tool.running",
+        "cursor": 75,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "created_at": null
+      },
+      {
+        "kind": "tool.completed",
+        "cursor": 76,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "created_at": null
+      },
+      {
+        "kind": "tool.waiting",
+        "cursor": 77,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "created_at": null
+      },
+      {
+        "kind": "tool.running",
+        "cursor": 78,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "created_at": null
+      },
+      {
+        "kind": "tool.completed",
+        "cursor": 79,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "created_at": null
+      },
+      {
+        "kind": "tool.completed",
+        "cursor": 80,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "86ef97ed51b6491f88d1abe37b6f9934",
+        "created_at": null
+      },
+      {
+        "kind": "context.checked",
+        "cursor": 81,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "request.started",
+        "cursor": 82,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "a54c4444ad004a88a4597b900bf80d55",
+        "created_at": null
+      },
+      {
+        "kind": "context.usage",
+        "cursor": 83,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "a54c4444ad004a88a4597b900bf80d55",
+        "created_at": null
+      },
+      {
+        "kind": "request.completed",
+        "cursor": 84,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "a54c4444ad004a88a4597b900bf80d55",
+        "created_at": null
+      },
+      {
+        "kind": "tool.pending",
+        "cursor": 85,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "a54c4444ad004a88a4597b900bf80d55",
+        "created_at": null
+      },
+      {
+        "kind": "tool.pending",
+        "cursor": 86,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "a54c4444ad004a88a4597b900bf80d55",
+        "created_at": null
+      },
+      {
+        "kind": "tool.running",
+        "cursor": 87,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "a54c4444ad004a88a4597b900bf80d55",
+        "created_at": null
+      },
+      {
+        "kind": "tool.running",
+        "cursor": 88,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "a54c4444ad004a88a4597b900bf80d55",
+        "created_at": null
+      },
+      {
+        "kind": "tool.completed",
+        "cursor": 89,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "a54c4444ad004a88a4597b900bf80d55",
+        "created_at": null
+      },
+      {
+        "kind": "tool.completed",
+        "cursor": 90,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "a54c4444ad004a88a4597b900bf80d55",
+        "created_at": null
+      },
+      {
+        "kind": "context.checked",
+        "cursor": 91,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "request.started",
+        "cursor": 92,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c92ad9a700b4ebba6c096f641d4070d",
+        "created_at": null
+      },
+      {
+        "kind": "context.usage",
+        "cursor": 93,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c92ad9a700b4ebba6c096f641d4070d",
+        "created_at": null
+      },
+      {
+        "kind": "request.completed",
+        "cursor": 94,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c92ad9a700b4ebba6c096f641d4070d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.pending",
+        "cursor": 95,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c92ad9a700b4ebba6c096f641d4070d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.pending",
+        "cursor": 96,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c92ad9a700b4ebba6c096f641d4070d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.running",
+        "cursor": 97,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c92ad9a700b4ebba6c096f641d4070d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.waiting",
+        "cursor": 98,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c92ad9a700b4ebba6c096f641d4070d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.completed",
+        "cursor": 99,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c92ad9a700b4ebba6c096f641d4070d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.waiting",
+        "cursor": 100,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c92ad9a700b4ebba6c096f641d4070d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.running",
+        "cursor": 101,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c92ad9a700b4ebba6c096f641d4070d",
+        "created_at": null
+      },
+      {
+        "kind": "tool.completed",
+        "cursor": 102,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c92ad9a700b4ebba6c096f641d4070d",
+        "created_at": null
+      },
+      {
+        "kind": "context.checked",
+        "cursor": 103,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "request.started",
+        "cursor": 104,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c51722f8ebb4a6ab45b41905636736f",
+        "created_at": null
+      },
+      {
+        "kind": "context.usage",
+        "cursor": 105,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c51722f8ebb4a6ab45b41905636736f",
+        "created_at": null
+      },
+      {
+        "kind": "request.completed",
+        "cursor": 106,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c51722f8ebb4a6ab45b41905636736f",
+        "created_at": null
+      },
+      {
+        "kind": "tool.pending",
+        "cursor": 107,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c51722f8ebb4a6ab45b41905636736f",
+        "created_at": null
+      },
+      {
+        "kind": "tool.pending",
+        "cursor": 108,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c51722f8ebb4a6ab45b41905636736f",
+        "created_at": null
+      },
+      {
+        "kind": "tool.running",
+        "cursor": 109,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c51722f8ebb4a6ab45b41905636736f",
+        "created_at": null
+      },
+      {
+        "kind": "tool.waiting",
+        "cursor": 110,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c51722f8ebb4a6ab45b41905636736f",
+        "created_at": null
+      },
+      {
+        "kind": "tool.completed",
+        "cursor": 111,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c51722f8ebb4a6ab45b41905636736f",
+        "created_at": null
+      },
+      {
+        "kind": "tool.waiting",
+        "cursor": 112,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c51722f8ebb4a6ab45b41905636736f",
+        "created_at": null
+      },
+      {
+        "kind": "tool.running",
+        "cursor": 113,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c51722f8ebb4a6ab45b41905636736f",
+        "created_at": null
+      },
+      {
+        "kind": "tool.completed",
+        "cursor": 114,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "2c51722f8ebb4a6ab45b41905636736f",
+        "created_at": null
+      },
+      {
+        "kind": "context.checked",
+        "cursor": 115,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "request.started",
+        "cursor": 116,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "35be4aeb75cf4608954699872340b608",
+        "created_at": null
+      },
+      {
+        "kind": "context.usage",
+        "cursor": 117,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "35be4aeb75cf4608954699872340b608",
+        "created_at": null
+      },
+      {
+        "kind": "request.completed",
+        "cursor": 118,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "35be4aeb75cf4608954699872340b608",
+        "created_at": null
+      },
+      {
+        "kind": "context.checked",
+        "cursor": 119,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": null,
+        "created_at": null
+      },
+      {
+        "kind": "request.started",
+        "cursor": 120,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "ed022266d8eb47f2943a61376bd4eefc",
+        "created_at": null
+      },
+      {
+        "kind": "context.usage",
+        "cursor": 121,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "ed022266d8eb47f2943a61376bd4eefc",
+        "created_at": null
+      },
+      {
+        "kind": "request.completed",
+        "cursor": 122,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": "ed022266d8eb47f2943a61376bd4eefc",
+        "created_at": null
+      },
+      {
+        "kind": "turn.finished",
+        "cursor": 123,
+        "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+        "request_id": null,
+        "created_at": null
+      }
+    ]
+  }
+]

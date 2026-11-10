@@ -1,0 +1,12 @@
+{
+  "kind": "configured-model-answer-acceptance",
+  "run_id": "dd0554f4e8544fbc95cd8c2fb8069a29",
+  "scenario": "plain",
+  "prompt": "联合验收：只依据我给定的信息，用中文详细写一份居家旅行行前准备清单，不查询外部资料，不需要实时价格、天气或开放信息。请以标题‘联合验收旅行’开头，分成十个主题，每个主题至少写五条具体建议，最后附一张十行的检查表。全文约一千五百字，直接给出完整正文。",
+  "preparation_prompt": "我会接着提供旅行需求，请简短回复收到，不查询资料。",
+  "model": "deepseek-v4-flash",
+  "python": "3.14.7",
+  "anthropic_sdk": "1.11.0",
+  "commit": "024b24bad05ca09cc7cb9b77377431d18cd4d753",
+  "provider": "api.deepseek.com"
+}

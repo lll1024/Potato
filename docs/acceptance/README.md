@@ -4,6 +4,7 @@
 
 | 行为范围 | 结论入口 | 证据与适用范围 |
 | --- | --- | --- |
+| 连续正文／查询进展与终态一致交接 | [#109／#117联合验收](continuous-final.md)、[60条故事映射](continuous-final-mapping.md) | 024后端408／Web116+2skip／原生87+10；真实query87有限结果与024实际plain、受控paced物理红绿分层；相关UI首10过1红+原样复验，限制不隐藏 |
 | 查询进展／正文重试与降级、预算交叉 | [#115 验收](query-retries.md) | 公开HTTP／SSE、真实SQLite、SessionAccess与两端显示过渡；当前模型联合验收另见#117 |
 | 查询进展与正文停止收束 | [#116 验收](query-progress-stop.md) | 双客户端、真实 SQLite 保存故障、两类队列冻结与原 Markdown 复制；原生最终证据见正文 |
 | 查询进展折叠与持久回看 | [#112 验收](query-progress-history.md) | 可靠事实／回滚与同库重启、SessionAccess、模拟器重开及同轮Web第二客户端；固定兼容投影待关联修复复验 |

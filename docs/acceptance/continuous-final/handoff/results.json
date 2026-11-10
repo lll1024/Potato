@@ -1,0 +1,32 @@
+{
+  "phase": "原生终态阅读交接红绿",
+  "capability_red": {
+    "tests": 1,
+    "issues": 2,
+    "seconds": 0.044
+  },
+  "ui_red": {
+    "tests": 1,
+    "assertion_failures": 9,
+    "seconds": 17.038
+  },
+  "first_green": {
+    "capability_tests": 1,
+    "ui_tests": 1,
+    "ui_seconds": 17.448
+  },
+  "new_attempt_red": {
+    "tests": 1,
+    "issues": 2
+  },
+  "capability_suite_green": {
+    "tests": 19,
+    "seconds": 0.232
+  },
+  "setup_limits": [
+    "无括号Swift Testing过滤初次0项，不算通过",
+    "最初能力用例未等待null处理而误绿，已加同订阅后续状态屏障",
+    "一次处理屏障误用未公开mapPaused字段导致编译失败，改用公开accepting",
+    "一次Swift可抛解码与||写法导致编译失败，修正后才进入绿灯测试"
+  ]
+}

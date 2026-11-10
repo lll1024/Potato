@@ -1,0 +1,24 @@
+from pathlib import Path
+import json,gzip,hashlib,re,sys
+root=Path('docs/acceptance/continuous-final')
+values=[]
+env_path=Path(sys.argv[1]) if len(sys.argv)>1 else Path('.env')
+for line in env_path.read_text().splitlines():
+ if '=' not in line or line.lstrip().startswith('#'): continue
+ key,value=line.split('=',1)
+ if re.search(r'(api_?key|secret|password|token)',key,re.I):
+  value=value.strip().strip('\"').strip("'")
+  if len(value)>=8: values.append(value.encode())
+paths=sorted(p for p in root.rglob('*') if p.is_file() and p.name!='evidence-audit.json')
+paths += [Path(p) for p in ['docs/acceptance/continuous-final.md','docs/acceptance/continuous-final-mapping.md','tests/live_answer_eval.py','tests/live_answer_observation.py','tests/test_live_answer_observation.py','frontend/tests/ui/answer-model-live.spec.ts','ios/PotatoUITests/ReadingNavigationTests.swift','docs/modules/sessions.md']]
+hits=[];forbidden=[];hashes=[]
+for p in paths:
+ data=p.read_bytes()
+ readable=gzip.decompress(data) if p.suffix=='.gz' else data
+ if any(value in readable for value in values): hits.append(str(p))
+ if p.suffix in {'.pem','.key','.sqlite','.sqlite3','.p12'} or p.name=='.env': forbidden.append(str(p))
+ hashes.append({'file':str(p.relative_to(root)) if p.is_relative_to(root) else str(p),'sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data)})
+result={'scope':'本次安全证据、最终报告／60映射、harness源码；gzip先解压后比对。图片保留视觉复核，不把二进制比对当OCR审计。','secret_values_checked':len(values),'checked_files':len(paths),'secret_value_hits':hits,'forbidden_files':forbidden,'no_raw_payload_policy':'只归档公开安全摘要、面向旅行者正文／进展与长度／时间，不导出内部推理、模型协议、工具原参或脱敏指纹密钥。','files':hashes}
+(root/'evidence-audit.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+print(json.dumps({k:result[k] for k in ['secret_values_checked','checked_files','secret_value_hits','forbidden_files']},ensure_ascii=False))
+assert not hits and not forbidden

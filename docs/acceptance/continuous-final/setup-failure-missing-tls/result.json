@@ -1,0 +1,9 @@
+{
+  "result": "服务未启动，无模型调用",
+  "cause": "恢复后旧临时目录仍在，但cert.pem/key.pem不存在；未推测删除原因",
+  "web": "1 failed，环境GET连接被拒绝",
+  "ios": "1 skipped，未执行模型场景；不算通过",
+  "recovery": "新建仅本机localhost测试证书并安装专用模拟器根信任，改为服务ready后才启动两端",
+  "certificate_public_fingerprint_sha256": "0C:C9:F3:27:D5:9E:D6:33:C9:00:A3:2C:7E:26:ED:AC:A2:28:F8:32:F2:CB:D5:E5:1F:40:65:6F:E9:50:AD:71",
+  "private_key_committed": false
+}

@@ -1,0 +1,8 @@
+{
+  "phase": "终态交接修复前实连",
+  "automated_web_passed": 1,
+  "automated_ios_passed": 1,
+  "generation_and_final_copy_proved": true,
+  "final_acceptance": false,
+  "reason": "query连续原帧发现已生成正文在历史交接时撤空并上跳；待修后当前配置模型两场景复验"
+}

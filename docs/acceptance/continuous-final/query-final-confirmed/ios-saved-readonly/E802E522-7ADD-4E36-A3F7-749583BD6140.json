@@ -1,0 +1,28 @@
+{
+  "copy_markdown_equal" : true,
+  "copy_sentinel_used" : true,
+  "model_and_tool_counts_unchanged" : true,
+  "observations" : [
+    {
+      "duration_ms" : 729.96997833251953,
+      "epoch_ms" : 1794206169062.2781,
+      "expanded_entries" : 24,
+      "status_entries" : 24
+    },
+    {
+      "duration_ms" : 715.55900573730469,
+      "epoch_ms" : 1794206170187.562,
+      "expanded_entries" : 24,
+      "status_entries" : 24
+    },
+    {
+      "duration_ms" : 713.43302726745605,
+      "epoch_ms" : 1794206171315.4841,
+      "expanded_entries" : 24,
+      "status_entries" : 24
+    }
+  ],
+  "saved_copy_label" : "复制不完整回答",
+  "session_id" : "24911f4905054492a1a7cbef4ed5bca6",
+  "turn_id" : "ef54609b13ce46e391f87bf3b14f59d5"
+}

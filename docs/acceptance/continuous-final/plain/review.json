@@ -1,0 +1,8 @@
+{
+  "phase": "终态交接修复前实连",
+  "automated_web_passed": 1,
+  "automated_ios_passed": 1,
+  "generation_and_final_copy_proved": true,
+  "final_acceptance": false,
+  "reason": "无查询对照保留；最终结论仍待客户端交接修复后同轮复验"
+}

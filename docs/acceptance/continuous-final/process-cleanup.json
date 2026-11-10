@@ -1,0 +1,59 @@
+{
+  "checked_at_utc": "2026-11-10T04:13:37.073755+00:00",
+  "code_checkpoint": "024b24bad05ca09cc7cb9b77377431d18cd4d753",
+  "stopped_owned_fixture_pid": 43737,
+  "shutdown_note": "SIGINT后首次即时检查尚有监听（未作为成功），等待原进程exit0后重新核验以下均无监听",
+  "actual18499": "formal plain + restart stopped before regular iOS; query87 old database never relaunched",
+  "ports_connect_ex": {
+    "18489": {
+      "127.0.0.1": 61,
+      "::1": 61
+    },
+    "18490": {
+      "127.0.0.1": 61,
+      "::1": 61
+    },
+    "18491": {
+      "127.0.0.1": 61,
+      "::1": 61
+    },
+    "18492": {
+      "127.0.0.1": 61,
+      "::1": 61
+    },
+    "18493": {
+      "127.0.0.1": 61,
+      "::1": 61
+    },
+    "18494": {
+      "127.0.0.1": 61,
+      "::1": 61
+    },
+    "18495": {
+      "127.0.0.1": 61,
+      "::1": 61
+    },
+    "18496": {
+      "127.0.0.1": 61,
+      "::1": 61
+    },
+    "18497": {
+      "127.0.0.1": 61,
+      "::1": 61
+    },
+    "18498": {
+      "127.0.0.1": 61,
+      "::1": 61
+    },
+    "18499": {
+      "127.0.0.1": 61,
+      "::1": 61
+    },
+    "5174": {
+      "127.0.0.1": 61,
+      "::1": 61
+    }
+  },
+  "process_inventory": "No owned real service, fixture, xcodebuild, Vite, recorder or logstream left. User8000 and original database not operated.",
+  "raw_video_and_xcresult": "kept at report artifact-paths in /tmp; not deleted"
+}
