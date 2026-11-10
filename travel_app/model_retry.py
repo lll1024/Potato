@@ -10,7 +10,7 @@ import httpx2
 from anthropic import APIConnectionError, APIStatusError, APITimeoutError
 
 MAX_RETRIES = 5
-RETRYABLE_CODES = {"TRANSPORT", "TIMEOUT", "RATE_LIMIT", "SERVER", "EMPTY_RESPONSE"}
+RETRYABLE_CODES = {"TRANSPORT", "TIMEOUT", "RATE_LIMIT", "SERVER", "EMPTY_RESPONSE", "INVALID_RESPONSE"}
 
 
 class EmptyModelResponse(RuntimeError):
@@ -21,7 +21,13 @@ class IncompleteModelResponse(RuntimeError):
     """流已断开，但没有收到模型的结束原因。"""
 
 
+class InvalidModelResponse(RuntimeError):
+    """模型将工具协议作为普通正文返回，不能提交为回答。"""
+
+
 def failure_code(error: Exception, stage: str, *, streaming: bool = False) -> str:
+    if isinstance(error, InvalidModelResponse):
+        return "INVALID_RESPONSE"
     if isinstance(error, EmptyModelResponse):
         return "EMPTY_RESPONSE"
     if isinstance(error, IncompleteModelResponse):
@@ -119,4 +125,4 @@ def retry_delay(failure: dict[str, Any], retry: int) -> float | None:
     return min(min(0.5 * 2 ** (retry - 1), 10) * (0.9 + 0.2 * random.random()), 10)
 
 
-__all__ = ["MAX_RETRIES", "EmptyModelResponse", "IncompleteModelResponse", "model_failure", "retry_delay"]
+__all__ = ["MAX_RETRIES", "EmptyModelResponse", "IncompleteModelResponse", "InvalidModelResponse", "model_failure", "retry_delay"]

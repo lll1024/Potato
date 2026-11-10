@@ -137,6 +137,109 @@ class StreamingModel:
 
 
 class AnswerStreamingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_dsml_text_is_retried_without_saving_or_executing_protocol(self):
+        protocol = ('<｜｜DSML｜｜ calls>\n<｜｜DSML｜｜ invoke name="maps_direction_walking">'
+                    '\n<｜｜DSML｜｜ parameter name="origin" string="true">113.093704,29.373443'
+                    '</｜｜DSML｜｜ parameter>\n</｜｜DSML｜｜ invoke>\n</｜｜DSML｜｜ calls>')
+        thinking = {"type": "thinking", "thinking": "内部推理", "signature": "signed"}
+        for delivery in ("stream", "complete"):
+            with self.subTest(delivery=delivery):
+                chunk_previews = []
+                class Model(ModelService):
+                    @asynccontextmanager
+                    async def stream(self, **parameters):
+                        if delivery == "complete":
+                            raise status_error(400, {"error": {"message": "stream is not supported"}})
+                        reply = await self.create(**parameters)
+                        class Stream:
+                            async def __aiter__(self):
+                                yield SimpleNamespace(type="content_block_start", content_block=SimpleNamespace(type="text", text=""))
+                                for block in reply.content:
+                                    if block.type == "text":
+                                        for char in block.text:
+                                            yield SimpleNamespace(type="content_block_delta", delta=SimpleNamespace(type="text_delta", text=char))
+                                            # 每个分片处理后从公开快照核对，避免 SSE 合并掩盖瞬时泄露。
+                                            state = (await client.get("/api/snapshot")).json()
+                                            if state["answer_preview"]:
+                                                chunk_previews.append(state["answer_preview"]["text"])
+                                            if state["progress_preview"]:
+                                                chunk_previews.extend(entry["text"] for entry in state["progress_preview"]["entries"])
+                            async def get_final_message(self):
+                                return reply
+                        yield Stream()
+                model = Model([
+                    response([{"type": "text", "text": "进展：" + protocol}]),
+                    response([thinking]),
+                    response([{"type": "text", "text": protocol}]),
+                    response([{"type": "text", "text": "岳阳一日游的完整安排。"}]),
+                ])
+                with tempfile.TemporaryDirectory() as directory:
+                    async with serving(directory, model) as client:
+                        accepted = (await client.post("/api/turns", json={"input": "规划明天岳阳一日游"})).json()
+                        previews = []
+                        async with asyncio.timeout(10):
+                            async with client.stream("GET", "/api/events?after=0") as stream:
+                                async for line in stream.aiter_lines():
+                                    if not line.startswith("data:"):
+                                        continue
+                                    event = json.loads(line[5:])
+                                    if event["kind"] in {"answer.preview", "progress.preview"} and event.get("preview"):
+                                        if event["kind"] == "answer.preview":
+                                            previews.append(event["preview"]["text"])
+                                        else:
+                                            previews.extend(entry["text"] for entry in event["preview"]["entries"])
+                                    if event["kind"] == "turn.finished":
+                                        break
+                        history = (await client.get("/api/sessions/" + accepted["session_id"])).json()
+                        self.assertTrue(previews)
+                        if delivery == "stream":
+                            self.assertTrue(chunk_previews)
+                        self.assertTrue(all("<" not in text for text in previews + chunk_previews))
+                        self.assertEqual(history["turns"][0]["answer"], "岳阳一日游的完整安排。")
+                        self.assertEqual(history["turns"][0]["status"], "completed")
+                        self.assertEqual(history["tool_calls"], [])
+                        failed = [r for r in history["requests"] if r["status"] == "failed"]
+                        error = (await client.get("/api/payloads/" + failed[-1]["error_payload_id"])).json()["content"]
+                        self.assertEqual(error["code"], "INVALID_RESPONSE")
+                        self.assertEqual(len(failed), 2 if delivery == "stream" else 3)
+                        self.assertEqual(model.requests[-1], model.requests[-2])
+                        self.assertNotIn("DSML", json.dumps(history["turns"][0]["messages"]))
+
+    async def test_dsml_exhaustion_fails_and_releases_slot(self):
+        protocol = response([{"type": "text", "text": "<||DSML|| calls>"}])
+        model = ModelService([response([{"type": "thinking", "thinking": "资料齐全", "signature": "signed"}]), protocol])
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory, model) as client:
+                client.timeout = 20
+                accepted = (await client.post("/api/turns", json={"input": "岳阳一日游"})).json()
+                saved = await asyncio.wait_for(wait_finished(client, accepted["session_id"]), 20)
+                self.assertEqual(saved["turns"][0]["status"], "failed")
+                self.assertEqual(saved["turns"][0]["model_error_code"], "INVALID_RESPONSE")
+                self.assertNotIn("DSML", saved["turns"][0]["answer"])
+                self.assertEqual(len(saved["requests"]), 7)
+                self.assertEqual(saved["tool_calls"], [])
+                self.assertTrue(all(request == model.requests[1] for request in model.requests[1:]))
+                state = (await client.get("/api/snapshot")).json()
+                self.assertIsNone(state["active_turn_id"])
+                self.assertTrue(state["accepting"])
+
+    async def test_dsml_budget_final_is_rejected_without_retry(self):
+        model = StreamingModel(query_rounds=63)
+        model.parts = ["<｜｜DS", "ML｜｜ calls>"]
+        for _ in range(3):
+            model.release.put_nowait(None)
+        with tempfile.TemporaryDirectory() as directory:
+            async with serving(directory, model) as client:
+                accepted = (await client.post("/api/turns", json={"input": "岳阳一日游"})).json()
+                saved = await asyncio.wait_for(wait_finished(client, accepted["session_id"]), 10)
+                turn = saved["turns"][0]
+                self.assertEqual((turn["status"], turn["reason"]), ("terminated", "budget"))
+                self.assertNotIn("DSML", turn["answer"])
+                self.assertEqual(len(model.requests), 64)
+                self.assertEqual(saved["requests"][-1]["status"], "failed")
+                error = (await client.get("/api/payloads/" + saved["requests"][-1]["error_payload_id"])).json()["content"]
+                self.assertEqual(error["code"], "INVALID_RESPONSE")
+
     async def test_backpressured_notifications_publish_completion_before_ending_state_and_empty_body(self):
         for gate_kind in ("turn.accepted", "service.state"):
             with self.subTest(gate_kind=gate_kind), tempfile.TemporaryDirectory() as directory:

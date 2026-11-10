@@ -55,6 +55,8 @@ async def answer(text):
 
 模型事实的 `error.code` 与轮次 `reason` 各有用途：网络、超时、429、5xx、空响应分别为 `TRANSPORT`、`TIMEOUT`、`RATE_LIMIT`、`SERVER`、`EMPTY_RESPONSE`，普通步骤最多追加 5 次尝试，仍受整轮预算约束；401/403 为 `AUTH`、额度不足为 `QUOTA`、非法请求为 `INVALID_REQUEST`，不普通重试。明确超限为 `CONTEXT_WINDOW_EXCEEDED`，走一次上下文恢复。其他 HTTP 状态为 `HTTP_<状态码>`，非模型调用阶段或未知错误为 `UNKNOWN`。普通退避从 0.5 秒指数增长、±10% 抖动且最多 10 秒；服务给出有效正数 `Retry-After` 时优先使用，超过 10 秒不继续等待。最终收尾没有普通重试。上层通常只需消费结构化轮次结果，界面诊断可另展示真实请求事实。
 
+文本块中出现 DSML 工具协议标记（全角或 ASCII 竖线）时，规划以 `INVALID_RESPONSE` 记录真实响应和用量；不执行文本中的工具，也不将失败响应追加至模型上下文或作为查询阶段结束信号。普通步骤沿用上述有限重试，持续异常以 `failed / model_error` 结束；预算收尾仍不重试。正文预览暂缓可能跨分片的标记前缀，并在识别标记后隐藏协议内容；失败尝试按原规则清除预览。此修复不重写已有会话历史，回归见 `tests/test_answer_streaming.py`（#119）。
+
 `max_rounds`、`max_tool_calls` 可收紧原有运行限额，分别受 80 和 128 硬上限限制；`context_policy` 可注入公开 `ContextPolicy`，省略时仍读取原环境配置。既有受限运行测试通过此入口执行，不再需要生产 `agent_loop` 适配。资料获取实例的可用状态保留到连接生命周期结束，整轮工具和实际模型预算在每次 `plan` 重建。
 
 模型步骤在 [runtime.py](../../travel_app/planning/runtime.py)；[batch.py](../../travel_app/planning/batch.py)统一登记调用身份、按提出顺序预留工具额度、切分连续外部段、等待历史屏障并按原序收齐一次完整结果；模型步骤不持有分段拼接或供应商状态。历史回读将前段真实结果与后段占位一并交给上下文，按完整请求余量分页。外部段未启动沿用原预留计数，历史局部上限拒绝不消耗总账；实际失败照常计数。
