@@ -1,0 +1,9 @@
+{
+  "original_web_test": "1 failed: strict completed expectation; actual terminated/output_limit",
+  "original_dom_and_eventsource_arrays": "lost when assertion terminated the original browser context; not reconstructed from server send",
+  "original_web_video": "/tmp/potato117-query-confirmed-87-web/answer-model-live-当前配置模型在-Web-与-iOS-联合验收中真实分批显示/video.webm",
+  "readonly_supplement": "web-saved-readonly/evidence.json",
+  "readonly_no_model_input": true,
+  "ui_native_test": "1 failed with 2 strict completed/full-label assertions; immutable AX timeline and copy/reopen actually exported",
+  "code_commit": "87a41417655ab4941341bc11c8fb32911f06bece"
+}

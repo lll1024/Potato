@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "instance_id": "4b79731fa6d94e88b95058af4fa3370f",
+  "active_turn_id": null,
+  "active_session_id": null,
+  "accepting": true,
+  "stopping": false,
+  "map_paused": false,
+  "map_pause_reason": null,
+  "service_status": "available",
+  "storage_error": null,
+  "unsaved_fact": null,
+  "answer_preview": null,
+  "answer_revision": 0,
+  "progress_revision": 0,
+  "progress_preview": null,
+  "cursor": 123,
+  "stream_id": "bf171e4261d2433694d41bcf01396074"
+}

@@ -1,0 +1,48 @@
+{
+  "duration_seconds": 90.49666666666667,
+  "frames": [
+    {
+      "actual_seconds": 53.053333333333335,
+      "file": "frame-000077.jpg",
+      "requested_seconds": 53.066666641
+    },
+    {
+      "actual_seconds": 53.086666666666666,
+      "file": "frame-000078.jpg",
+      "requested_seconds": 53.099999974
+    },
+    {
+      "actual_seconds": 53.12833333333333,
+      "file": "frame-000079.jpg",
+      "requested_seconds": 53.133333307
+    },
+    {
+      "actual_seconds": 53.16,
+      "file": "frame-000080.jpg",
+      "requested_seconds": 53.16666664
+    },
+    {
+      "actual_seconds": 53.19166666666667,
+      "file": "frame-000081.jpg",
+      "requested_seconds": 53.199999973
+    },
+    {
+      "actual_seconds": 53.22666666666667,
+      "file": "frame-000082.jpg",
+      "requested_seconds": 53.233333306
+    },
+    {
+      "actual_seconds": 53.263333333333335,
+      "file": "frame-000083.jpg",
+      "requested_seconds": 53.266666639
+    },
+    {
+      "actual_seconds": 53.29666666666667,
+      "file": "frame-000084.jpg",
+      "requested_seconds": 53.299999972
+    }
+  ],
+  "interval_seconds": 0.033333333,
+  "original_video": "/tmp/potato117-long-handoff-paced.mp4",
+  "scope": "仅实际四红帧及前后邻帧；完整原始视频/frames仍在tmp"
+}

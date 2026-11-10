@@ -276,6 +276,390 @@ struct StopTests {
 
 @MainActor
 struct AnswerStreamingTests {
+    @Test(arguments: ["saved", "unavailable", "deleted", "still-running"], [false, true])
+    func endingSnapshotWaitsForReliableHistoryBeforeClearingReadableContent(outcome: String, lateTrace: Bool) async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        defer { sessions.setForeground(false) }
+        await fixture.next().reply(body: snapshot(revision: 1, text: "结束快照之前已读到的正文"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let stream = await fixture.next(); stream.beginStream()
+        await clock.advance()
+        let ending = await fixture.next()
+        #expect(ending.protocolRequest.request.url?.path == "/api/snapshot")
+        ending.reply(body: snapshot(revision: 3, active: false)
+            .replacingOccurrences(of: "\"schema_version\":1,", with: "\"schema_version\":1,\"cursor\":13,"))
+        let pending = await fixture.next()
+        // 完成SSE尚未抵达，正在核对的一致读取不能先公布null、撤空已读正文。
+        #expect(sessions.answerPreview?.text == "结束快照之前已读到的正文")
+        #expect(sessions.conversation?.turns.first?.status == "running")
+        #expect(sessions.conversation?.turns.first?.answer == nil)
+        let historyFirst = pending.protocolRequest.request.url?.path == "/api/sessions/existing"
+        let reading: ControlledRequest
+        if historyFirst { reading = pending }
+        else {
+            #expect(pending.protocolRequest.request.url?.path == "/api/sessions")
+            pending.reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+            reading = await fixture.next()
+        }
+        if lateTrace {
+            stream.send(Data("""
+                id: 13
+                event: trace
+                data: {"schema_version":1,"kind":"turn.finished","session_id":"existing","turn_id":"turn","cursor":13,"data":{"status":"completed","reason":null,"answer_source":"model"}}
+
+
+                """.utf8))
+        }
+        switch outcome {
+        case "unavailable": reading.reply(status: 500, body: "{}")
+        case "deleted": reading.reply(status: 404, body: "{}")
+        case "still-running": reading.reply(body: page())
+        default: reading.reply(body: page(answer: "最终可靠历史的完整正文").replacingOccurrences(of: "\"cursor\":12", with: "\"cursor\":13"))
+        }
+        if historyFirst && outcome == "saved" { await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}") }
+        _ = await clock.nextInterval()
+        if outcome == "saved" {
+            #expect(sessions.conversation?.turns.first?.answer == "最终可靠历史的完整正文")
+            #expect(sessions.answerPreview == nil)
+            #expect(sessions.service?.activeTurnID == nil)
+            #expect(await fixture.receivedCount == 7, "沿现有一次历史读取完成交接，不追加重复轮询")
+        } else if outcome == "deleted" {
+            #expect(sessions.conversation == nil)
+            #expect(sessions.answerPreview == nil)
+            #expect(sessions.conversationFailure == .http(404))
+            #expect(sessions.connection == .connected, "会话404不伪装成服务连接失败")
+        } else {
+            #expect(sessions.answerPreview?.text == "结束快照之前已读到的正文")
+            #expect(sessions.conversation?.turns.first?.status == "running")
+            #expect(sessions.service?.activeTurnID == "turn", "无法核对终态时保留上一份一致状态，不从null宣布完成")
+            #expect(!sessions.canSubmit)
+            if outcome == "unavailable" {
+                #expect(sessions.conversationFailure == .http(500))
+                if case .unavailable = sessions.connection { } else { Issue.record("历史核对失败应显示原连接错误") }
+            }
+        }
+    }
+
+    @Test(arguments: ["answer-failed", "answer-replaced", "query-failed", "summary-started", "answer-current", "snapshot-newer"], [false, true])
+    func persistentRequestFactsPreventFailedAttemptHandoff(change: String, httpSnapshot: Bool) async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        defer { sessions.setForeground(false) }
+        let currentB = change == "snapshot-newer"
+        let initial = snapshot(revision: 1, text: currentB ? "尝试B已读正文" : "尝试A已读正文")
+            .replacingOccurrences(of: "\"schema_version\":1,", with: "\"schema_version\":1,\"cursor\":\(currentB ? 15 : 12),")
+            .replacingOccurrences(of: "\"attempt_id\":\"attempt\"", with: "\"attempt_id\":\"\(currentB ? "replacement" : "attempt")\"")
+        await fixture.next().reply(body: initial)
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let stream = await fixture.next()
+        stream.beginStream()
+        // 持久事实先成批补齐，瞬时B的预览已被后端收束为null。
+        let request = change == "answer-failed" || currentB ? "attempt" : "replacement"
+        let started = change != "answer-failed" && change != "query-failed"
+        let phase = ["answer-replaced", "answer-current", "snapshot-newer"].contains(change) ? "answer" : change == "summary-started" ? "" : "query"
+        let data = started ? "{\"answer_phase\":\"\(phase)\",\"purpose\":\"\(change == "summary-started" ? "context_summary" : "travel")\"}" : "{\"status\":\"failed\"}"
+        stream.send(Data("""
+            id: 13
+            event: trace
+            data: {"schema_version":1,"kind":"request.\(started ? "started" : "failed")","session_id":"existing","turn_id":"turn","request_id":"\(request)","cursor":13,"data":\(data)}
+
+
+            id: 14
+            event: trace
+            data: {"schema_version":1,"kind":"request.completed","session_id":"existing","turn_id":"turn","request_id":"replacement","cursor":14,"data":{"status":"completed"}}
+
+
+            """.utf8))
+        // 公开状态作事件处理屏障，不能只在trace进入接收队列后就断言。
+        stream.send(Data("""
+            event: service.state
+            data: {"schema_version":1,"kind":"service.state","state":{"schema_version":1,"instance_id":"process","answer_revision":1,"progress_revision":0,"active_session_id":"existing","active_turn_id":"turn","accepting":false,"stopping":false}}
+
+
+            """.utf8))
+        try await observed { sessions.service?.accepting == false }
+        if currentB {
+            #expect(sessions.answerPreview?.text == "尝试B已读正文", "快照游标之前的请求不能撤销快照当前尝试")
+            stream.send(Data("""
+                id: 15
+                event: trace
+                data: {"schema_version":1,"kind":"request.started","session_id":"existing","turn_id":"turn","request_id":"replacement","cursor":15,"data":{"answer_phase":"answer"}}
+
+
+                """.utf8))
+        }
+        let matchingB = change == "answer-current" || currentB
+        let arrivingText = matchingB ? "尝试B迟到全文" : "尝试A迟到全文"
+        // 两个传输来源都可能较迟送来更高raw revision的A，已知尝试归属不能复活。
+        if httpSnapshot {
+            let checking = Task { try await sessions.refresh() }
+            await fixture.next().reply(body: snapshot(revision: 2, text: arrivingText)
+                .replacingOccurrences(of: "\"attempt_id\":\"attempt\"", with: "\"attempt_id\":\"\(matchingB ? "replacement" : "attempt")\""))
+            await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+            _ = try await checking.value
+        } else { stream.send(event(text: arrivingText, revision: 2, attempt: matchingB ? "replacement" : "attempt")) }
+        stream.send(Data("""
+            id: 16
+            event: trace
+            data: {"schema_version":1,"kind":"turn.finished","session_id":"existing","turn_id":"turn","cursor":16,"data":{"status":"completed","reason":null,"answer_source":"model"}}
+
+
+            event: service.state
+            data: {"schema_version":1,"kind":"service.state","state":{"schema_version":1,"instance_id":"process","answer_revision":3,"progress_revision":0,"active_session_id":null,"active_turn_id":null,"accepting":true,"stopping":false}}
+
+
+            """.utf8))
+        let delayedHistory = await fixture.next()
+        #expect(delayedHistory.protocolRequest.request.url?.path == "/api/sessions/existing")
+        stream.send(Data("""
+            event: answer.preview
+            data: {"schema_version":1,"kind":"answer.preview","instance_id":"process","revision":3,"preview":null}
+
+
+            event: service.state
+            data: {"schema_version":1,"kind":"service.state","state":{"schema_version":1,"instance_id":"process","answer_revision":3,"progress_revision":0,"active_session_id":null,"active_turn_id":null,"accepting":false,"stopping":false}}
+
+
+            """.utf8))
+        try await observed { sessions.service?.accepting == false }
+        let permitted = change == "query-failed" || change == "summary-started" || matchingB
+        #expect(sessions.answerPreview?.text == (permitted ? arrivingText : nil))
+        #expect(sessions.conversation?.turns.first?.status == "running")
+        delayedHistory.reply(body: page(answer: "真正完成并保存的正文").replacingOccurrences(of: "\"cursor\":12", with: "\"cursor\":16"))
+        try await observed { sessions.conversation?.turns.first?.answer == "真正完成并保存的正文" }
+        #expect(sessions.answerPreview == nil)
+        await clock.advance()
+    }
+
+    @Test(arguments: [false, true])
+    func finishedStateKeepsReadableContentUntilReliableHistoryArrives(newerEarlierPage: Bool) async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        defer { sessions.setForeground(false) }
+        await fixture.next().reply(body: snapshot(revision: 1, text: "等待核对保存结果的正文"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: newerEarlierPage ? page().replacingOccurrences(of: "\"cursor\":12", with: "\"cursor\":12,\"next_before\":2").replacingOccurrences(of: "\"ordinal\":1", with: "\"ordinal\":2") : page())
+        _ = await clock.nextInterval()
+        let stream = await fixture.next()
+        stream.beginStream()
+        stream.send(progressEvent(revision: 1, text: "准备查找地点资料。"))
+        try await observed { sessions.progressPreview?.revision == 1 }
+        if newerEarlierPage {
+            let earlier = Task { try await sessions.loadEarlierTurns(sessionID: "existing") }
+            await fixture.next().reply(body: page(answer: "更早轮次的回答")
+                .replacingOccurrences(of: "\"cursor\":12", with: "\"cursor\":30")
+                .replacingOccurrences(of: "\"turn_id\":\"turn\"", with: "\"turn_id\":\"old-turn\""))
+            _ = try await earlier.value
+            #expect(sessions.conversation?.cursor == 30)
+            #expect(sessions.conversation?.turns.last?.status == "running")
+        }
+        stream.send(Data("""
+            id: 13
+            event: trace
+            data: {"schema_version":1,"kind":"turn.finished","session_id":"existing","turn_id":"turn","cursor":13,"data":{"status":"completed","reason":null,"answer_source":"model"}}
+
+
+            """.utf8))
+        stream.send(Data("""
+            event: service.state
+            data: {"schema_version":1,"kind":"service.state","state":{"schema_version":1,"instance_id":"process","answer_revision":2,"progress_revision":2,"active_session_id":null,"active_turn_id":null,"accepting":true,"stopping":false}}
+
+
+            """.utf8))
+        let delayedHistory = await fixture.next()
+        #expect(delayedHistory.protocolRequest.request.url?.path == "/api/sessions/existing")
+        #expect(sessions.answerPreview?.text == "等待核对保存结果的正文")
+        #expect(sessions.progressPreview?.entries.first?.text == "准备查找地点资料。")
+        stream.send(Data("event: answer.preview\ndata: {\"schema_version\":1,\"kind\":\"answer.preview\",\"instance_id\":\"process\",\"revision\":2,\"preview\":null}\n\n".utf8))
+        stream.send(progressEvent(revision: 2, text: nil))
+        // 同一订阅的后续公开状态作处理屏障，防止null尚在队列里而误报通过。
+        stream.send(Data("""
+            event: service.state
+            data: {"schema_version":1,"kind":"service.state","state":{"schema_version":1,"instance_id":"process","answer_revision":2,"progress_revision":2,"active_session_id":null,"active_turn_id":null,"accepting":false,"stopping":false}}
+
+
+            """.utf8))
+        try await observed { sessions.service?.accepting == false }
+        // 只保留已读内容供交接；可靠历史仍为running，不宣称保存已完成。
+        #expect(sessions.answerPreview?.text == "等待核对保存结果的正文")
+        #expect(sessions.progressPreview?.entries.first?.text == "准备查找地点资料。")
+        #expect(sessions.conversation?.turns.last?.status == "running")
+        #expect(sessions.conversation?.turns.last?.answer == nil)
+        let saved = page(answer: "最终完整的已保存正文").replacingOccurrences(of: "\"cursor\":12", with: "\"cursor\":13")
+        delayedHistory.reply(body: saved)
+        try await observed { sessions.conversation?.turns.last?.answer == "最终完整的已保存正文" }
+        #expect(sessions.answerPreview == nil)
+        #expect(sessions.progressPreview == nil)
+        stream.send(event(text: "旧预览不能在保存后复活", revision: 1))
+        stream.fail()
+        try await observed { sessions.answerFailure != nil }
+        #expect(sessions.answerPreview == nil)
+        #expect(sessions.conversation?.turns.last?.answer == "最终完整的已保存正文")
+        #expect(await fixture.receivedCount == (newerEarlierPage ? 6 : 5))
+        await clock.advance()
+    }
+
+    @Test(arguments: [false, true])
+    func lateSnapshotForSameAttemptKeepsCompletionReadingHandoff(historicalFailure: Bool) async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        defer { sessions.setForeground(false) }
+        await fixture.next().reply(body: snapshot(revision: 1, text: "等待核对保存结果的正文"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let stream = await fixture.next()
+        stream.beginStream()
+        stream.send(progressEvent(revision: 1, text: "准备查找地点资料。", historicalFailure: historicalFailure))
+        try await observed { sessions.progressPreview?.revision == 1 }
+        let checking = Task { try await sessions.refresh() }
+        let delayedSnapshot = await fixture.next()
+        #expect(delayedSnapshot.protocolRequest.request.url?.path == "/api/snapshot")
+        stream.send(Data("""
+            id: 13
+            event: trace
+            data: {"schema_version":1,"kind":"turn.finished","session_id":"existing","turn_id":"turn","cursor":13,"data":{"status":"completed","reason":null,"answer_source":"model"}}
+
+
+            """.utf8))
+        stream.send(Data("""
+            event: service.state
+            data: {"schema_version":1,"kind":"service.state","state":{"schema_version":1,"instance_id":"process","answer_revision":4,"progress_revision":4,"active_session_id":null,"active_turn_id":null,"accepting":true,"stopping":false}}
+
+
+            """.utf8))
+        let delayedHistory = await fixture.next()
+        #expect(delayedHistory.protocolRequest.request.url?.path == "/api/sessions/existing")
+        var old = try JSONSerialization.jsonObject(with: Data(snapshot(revision: 3, text: "等待核对保存结果的正文，迟到的同尝试尾部").utf8)) as! [String: Any]
+        let progress = try JSONSerialization.jsonObject(with: Data(progressSnapshot(revision: 3, text: "准备查找地点资料。迟到的同尝试进展", historicalFailure: historicalFailure).utf8)) as! [String: Any]
+        old["progress_revision"] = 3
+        old["progress_preview"] = progress["progress_preview"]
+        delayedSnapshot.reply(body: String(decoding: try JSONSerialization.data(withJSONObject: old), as: UTF8.self))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        _ = try await checking.value
+        #expect(sessions.service?.activeTurnID == nil, "较旧快照不能撤回已收到的结束状态")
+        #expect(sessions.answerPreview?.text == "等待核对保存结果的正文，迟到的同尝试尾部")
+        #expect(sessions.progressPreview?.entries.last?.text == "准备查找地点资料。迟到的同尝试进展")
+        // HTTP累计3先采用，订阅队列中较早的累计2后抵达，不能让交接回退。
+        stream.send(event(text: "等待核对保存结果的正文，较早片段", revision: 2))
+        stream.send(progressEvent(revision: 2, text: "准备查找地点资料。较早片段", historicalFailure: historicalFailure))
+        stream.send(Data("event: answer.preview\ndata: {\"schema_version\":1,\"kind\":\"answer.preview\",\"instance_id\":\"process\",\"revision\":4,\"preview\":null}\n\n".utf8))
+        stream.send(progressEvent(revision: 4, text: nil))
+        // 同一订阅的后续公开状态作处理屏障，防止null尚在队列里而误报通过。
+        stream.send(Data("""
+            event: service.state
+            data: {"schema_version":1,"kind":"service.state","state":{"schema_version":1,"instance_id":"process","answer_revision":4,"progress_revision":4,"active_session_id":null,"active_turn_id":null,"accepting":false,"stopping":false}}
+
+
+            """.utf8))
+        try await observed { sessions.service?.accepting == false }
+        // 只保留已读内容供交接；可靠历史仍为running，不宣称保存已完成。
+        #expect(sessions.answerPreview?.text == "等待核对保存结果的正文，迟到的同尝试尾部")
+        #expect(sessions.progressPreview?.entries.last?.text == "准备查找地点资料。迟到的同尝试进展")
+        #expect(sessions.conversation?.turns.first?.status == "running")
+        #expect(sessions.conversation?.turns.first?.answer == nil)
+        let saved = page(answer: "等待核对保存结果的正文，最终完整尾部").replacingOccurrences(of: "\"cursor\":12", with: "\"cursor\":13")
+        delayedHistory.reply(body: saved)
+        try await observed { sessions.conversation?.turns.first?.answer == "等待核对保存结果的正文，最终完整尾部" }
+        #expect(sessions.answerPreview == nil)
+        #expect(sessions.progressPreview == nil)
+        stream.send(event(text: "旧预览不能在保存后复活", revision: 1))
+        stream.fail()
+        try await observed { sessions.answerFailure != nil }
+        #expect(sessions.answerPreview == nil)
+        #expect(sessions.conversation?.turns.first?.answer == "等待核对保存结果的正文，最终完整尾部")
+        #expect(await fixture.receivedCount == 7)
+        await clock.advance()
+    }
+
+    @Test func newAnswerAttemptCancelsCompletionReadingHandoff() async throws {
+        let clock = PollClock()
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
+        let (sessions, fixture, _) = try await HTTPFixture.client(databaseURL: file, wait: { try await clock.wait($0) })
+        sessions.watchConversation(sessionID: "existing")
+        sessions.setForeground(true)
+        defer { sessions.setForeground(false) }
+        await fixture.next().reply(body: snapshot(revision: 1, text: "等待核对保存结果的正文"))
+        await fixture.next().reply(body: "{\"schema_version\":1,\"sessions\":[]}")
+        await fixture.next().reply(body: page())
+        _ = await clock.nextInterval()
+        let stream = await fixture.next()
+        stream.beginStream()
+        stream.send(progressEvent(revision: 1, text: "准备查找地点资料。"))
+        try await observed { sessions.progressPreview?.revision == 1 }
+        stream.send(Data("""
+            id: 13
+            event: trace
+            data: {"schema_version":1,"kind":"turn.finished","session_id":"existing","turn_id":"turn","cursor":13,"data":{"status":"completed","reason":null,"answer_source":"model"}}
+
+
+            """.utf8))
+        stream.send(Data("""
+            event: service.state
+            data: {"schema_version":1,"kind":"service.state","state":{"schema_version":1,"instance_id":"process","answer_revision":2,"progress_revision":2,"active_session_id":null,"active_turn_id":null,"accepting":true,"stopping":false}}
+
+
+            """.utf8))
+        let delayedHistory = await fixture.next()
+        #expect(delayedHistory.protocolRequest.request.url?.path == "/api/sessions/existing")
+        #expect(sessions.answerPreview?.text == "等待核对保存结果的正文")
+        #expect(sessions.progressPreview?.entries.first?.text == "准备查找地点资料。")
+        stream.send(Data("event: answer.preview\ndata: {\"schema_version\":1,\"kind\":\"answer.preview\",\"instance_id\":\"process\",\"revision\":2,\"preview\":null}\n\n".utf8))
+        stream.send(progressEvent(revision: 2, text: nil))
+        // 同一订阅的后续公开状态作处理屏障，防止null尚在队列里而误报通过。
+        stream.send(Data("""
+            event: service.state
+            data: {"schema_version":1,"kind":"service.state","state":{"schema_version":1,"instance_id":"process","answer_revision":2,"progress_revision":2,"active_session_id":null,"active_turn_id":null,"accepting":false,"stopping":false}}
+
+
+            """.utf8))
+        try await observed { sessions.service?.accepting == false }
+        // 只保留已读内容供交接；可靠历史仍为running，不宣称保存已完成。
+        #expect(sessions.answerPreview?.text == "等待核对保存结果的正文")
+        #expect(sessions.progressPreview?.entries.first?.text == "准备查找地点资料。")
+        #expect(sessions.conversation?.turns.first?.status == "running")
+        #expect(sessions.conversation?.turns.first?.answer == nil)
+        stream.send(event(text: "", revision: 3, attempt: "replacement", status: "retrying"))
+        stream.send(Data("""
+            event: service.state
+            data: {"schema_version":1,"kind":"service.state","state":{"schema_version":1,"instance_id":"process","answer_revision":3,"progress_revision":2,"active_session_id":null,"active_turn_id":null,"accepting":true,"stopping":false}}
+
+
+            """.utf8))
+        try await observed { sessions.service?.accepting == true }
+        #expect(sessions.answerPreview == nil)
+        #expect(sessions.progressPreview == nil)
+        let saved = page(answer: "最终完整的已保存正文").replacingOccurrences(of: "\"cursor\":12", with: "\"cursor\":13")
+        delayedHistory.reply(body: saved)
+        try await observed { sessions.conversation?.turns.first?.answer == "最终完整的已保存正文" }
+        #expect(sessions.answerPreview == nil)
+        #expect(sessions.progressPreview == nil)
+        stream.send(event(text: "旧预览不能在保存后复活", revision: 1))
+        stream.fail()
+        try await observed { sessions.answerFailure != nil }
+        #expect(sessions.answerPreview == nil)
+        #expect(sessions.conversation?.turns.first?.answer == "最终完整的已保存正文")
+        #expect(await fixture.receivedCount == 5)
+        await clock.advance()
+    }
+
     @Test func savedProgressIsReadAgainAfterReopeningClientWithoutLocalHistoryCopy() async throws {
         let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "/client.sqlite")
         let (sessions, fixture, address) = try await HTTPFixture.client(databaseURL: file)
@@ -908,7 +1292,14 @@ struct AnswerStreamingTests {
         let response = await fixture.next()
         stream.send(event(text: "停止后的全文", revision: 2, status: "generated"))
         stream.send(try progress("停止后实际返回的进展说明。", revision: 2))
-        // 等同一订阅处理完后续状态，避免用固定睡眠推测冻结。
+        // 合法后续状态作同一字节流的处理屏障；失败回调本身不能证明最后data已采用。
+        stream.send(Data("""
+            event: service.state
+            data: {"schema_version":1,"kind":"service.state","state":{"schema_version":1,"instance_id":"process","answer_revision":2,"progress_revision":2,"active_session_id":"existing","active_turn_id":"turn","accepting":false,"stopping":true}}
+
+
+            """.utf8))
+        try await observed { sessions.service?.accepting == false }
         stream.fail()
         try await observed { sessions.answerFailure != nil }
         #expect(sessions.answerPreview?.text == "停止前正文")
@@ -940,19 +1331,21 @@ struct AnswerStreamingTests {
         await clock.advance()
     }
 
-    private func progressEvent(revision: Int, text: String?, turn: String = "turn") -> Data {
+    private func progressEvent(revision: Int, text: String?, turn: String = "turn", attempt: String = "request", status: String = "generating", historicalFailure: Bool = false) -> Data {
+        let prior: [[String: Any]] = historicalFailure ? [["id":"old-query", "attempt_id":"old-request", "kind":"model", "status":"invalidated", "text":""]] : []
         let preview: Any = text.map { ["instance_id":"process", "stream_id":"dataset", "session_id":"existing",
-            "turn_id":turn, "revision":revision, "entries":[["id":"query", "attempt_id":"request", "kind":"model", "status":"generating", "text":$0]]] as [String: Any] } ?? NSNull()
+            "turn_id":turn, "revision":revision, "entries":prior + [["id":"query", "attempt_id":attempt, "kind":"model", "status":status, "text":$0]]] as [String: Any] } ?? NSNull()
         let body = try! JSONSerialization.data(withJSONObject: ["schema_version":1,"kind":"progress.preview",
             "instance_id":"process","revision":revision,"preview":preview])
         return Data("event: progress.preview\ndata: ".utf8) + body + Data("\n\n".utf8)
     }
 
-    private func progressSnapshot(revision: Int, text: String?, active: Bool = true) -> String {
+    private func progressSnapshot(revision: Int, text: String?, active: Bool = true, historicalFailure: Bool = false) -> String {
+        let prior: [[String: Any]] = historicalFailure ? [["id":"old-query", "attempt_id":"old-request", "kind":"model", "status":"invalidated", "text":""]] : []
         let preview: Any
         if let text {
             preview = ["instance_id":"process","stream_id":"dataset","session_id":"existing","turn_id":"turn","revision":revision,
-                       "entries":[["id":"query","attempt_id":"request","kind":"model","status":"generating","text":text]]] as [String: Any]
+                       "entries":prior + [["id":"query","attempt_id":"request","kind":"model","status":"generating","text":text]]] as [String: Any]
         } else { preview = NSNull() }
         let data = try! JSONSerialization.data(withJSONObject: ["schema_version":1,"stream_id":"dataset","instance_id":"process",
             "answer_revision":0,"answer_preview":NSNull(),"progress_revision":revision,"progress_preview":preview,

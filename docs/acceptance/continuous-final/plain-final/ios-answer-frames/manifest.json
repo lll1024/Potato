@@ -1,0 +1,912 @@
+{
+  "duration_seconds" : 163.38166666666666,
+  "frames" : [
+    {
+      "actual_seconds" : 64.599999999999994,
+      "file" : "frame-0064.6.jpg",
+      "requested_seconds" : 64.612297119140621
+    },
+    {
+      "actual_seconds" : 64.709999999999994,
+      "file" : "frame-0064.7.jpg",
+      "requested_seconds" : 64.712297119140615
+    },
+    {
+      "actual_seconds" : 64.808333333333337,
+      "file" : "frame-0064.8.jpg",
+      "requested_seconds" : 64.812297119140624
+    },
+    {
+      "actual_seconds" : 64.896666666666661,
+      "file" : "frame-0064.9.jpg",
+      "requested_seconds" : 64.912297119140618
+    },
+    {
+      "actual_seconds" : 65.00833333333334,
+      "file" : "frame-0065.0.jpg",
+      "requested_seconds" : 65.012297119140626
+    },
+    {
+      "actual_seconds" : 65.090000000000003,
+      "file" : "frame-0065.1.jpg",
+      "requested_seconds" : 65.112297119140621
+    },
+    {
+      "actual_seconds" : 65.171666666666667,
+      "file" : "frame-0065.2.jpg",
+      "requested_seconds" : 65.212297119140615
+    },
+    {
+      "actual_seconds" : 65.301666666666662,
+      "file" : "frame-0065.3.jpg",
+      "requested_seconds" : 65.312297119140624
+    },
+    {
+      "actual_seconds" : 65.398333333333326,
+      "file" : "frame-0065.4.jpg",
+      "requested_seconds" : 65.412297119140618
+    },
+    {
+      "actual_seconds" : 65.510000000000005,
+      "file" : "frame-0065.5.jpg",
+      "requested_seconds" : 65.512297119140626
+    },
+    {
+      "actual_seconds" : 65.603333333333339,
+      "file" : "frame-0065.6.jpg",
+      "requested_seconds" : 65.612297119140621
+    },
+    {
+      "actual_seconds" : 65.703333333333333,
+      "file" : "frame-0065.7.jpg",
+      "requested_seconds" : 65.712297119140615
+    },
+    {
+      "actual_seconds" : 65.801666666666662,
+      "file" : "frame-0065.8.jpg",
+      "requested_seconds" : 65.812297119140624
+    },
+    {
+      "actual_seconds" : 65.909999999999997,
+      "file" : "frame-0065.9.jpg",
+      "requested_seconds" : 65.912297119140618
+    },
+    {
+      "actual_seconds" : 66.006666666666661,
+      "file" : "frame-0066.0.jpg",
+      "requested_seconds" : 66.012297119140626
+    },
+    {
+      "actual_seconds" : 66.109999999999999,
+      "file" : "frame-0066.1.jpg",
+      "requested_seconds" : 66.112297119140621
+    },
+    {
+      "actual_seconds" : 66.211666666666673,
+      "file" : "frame-0066.2.jpg",
+      "requested_seconds" : 66.212297119140615
+    },
+    {
+      "actual_seconds" : 66.310000000000002,
+      "file" : "frame-0066.3.jpg",
+      "requested_seconds" : 66.312297119140624
+    },
+    {
+      "actual_seconds" : 66.405000000000001,
+      "file" : "frame-0066.4.jpg",
+      "requested_seconds" : 66.412297119140618
+    },
+    {
+      "actual_seconds" : 66.506666666666661,
+      "file" : "frame-0066.5.jpg",
+      "requested_seconds" : 66.512297119140626
+    },
+    {
+      "actual_seconds" : 66.608333333333334,
+      "file" : "frame-0066.6.jpg",
+      "requested_seconds" : 66.612297119140621
+    },
+    {
+      "actual_seconds" : 66.708333333333329,
+      "file" : "frame-0066.7.jpg",
+      "requested_seconds" : 66.712297119140615
+    },
+    {
+      "actual_seconds" : 66.795000000000002,
+      "file" : "frame-0066.8.jpg",
+      "requested_seconds" : 66.812297119140624
+    },
+    {
+      "actual_seconds" : 66.905000000000001,
+      "file" : "frame-0066.9.jpg",
+      "requested_seconds" : 66.912297119140618
+    },
+    {
+      "actual_seconds" : 67.010000000000005,
+      "file" : "frame-0067.0.jpg",
+      "requested_seconds" : 67.012297119140626
+    },
+    {
+      "actual_seconds" : 67.109999999999999,
+      "file" : "frame-0067.1.jpg",
+      "requested_seconds" : 67.112297119140621
+    },
+    {
+      "actual_seconds" : 67.206666666666663,
+      "file" : "frame-0067.2.jpg",
+      "requested_seconds" : 67.212297119140615
+    },
+    {
+      "actual_seconds" : 67.299999999999997,
+      "file" : "frame-0067.3.jpg",
+      "requested_seconds" : 67.312297119140624
+    },
+    {
+      "actual_seconds" : 67.401666666666671,
+      "file" : "frame-0067.4.jpg",
+      "requested_seconds" : 67.412297119140618
+    },
+    {
+      "actual_seconds" : 67.504999999999995,
+      "file" : "frame-0067.5.jpg",
+      "requested_seconds" : 67.512297119140626
+    },
+    {
+      "actual_seconds" : 67.609999999999999,
+      "file" : "frame-0067.6.jpg",
+      "requested_seconds" : 67.612297119140621
+    },
+    {
+      "actual_seconds" : 67.701666666666668,
+      "file" : "frame-0067.7.jpg",
+      "requested_seconds" : 67.712297119140615
+    },
+    {
+      "actual_seconds" : 67.796666666666667,
+      "file" : "frame-0067.8.jpg",
+      "requested_seconds" : 67.812297119140624
+    },
+    {
+      "actual_seconds" : 67.906666666666666,
+      "file" : "frame-0067.9.jpg",
+      "requested_seconds" : 67.912297119140618
+    },
+    {
+      "actual_seconds" : 67.98833333333333,
+      "file" : "frame-0068.0.jpg",
+      "requested_seconds" : 68.012297119140626
+    },
+    {
+      "actual_seconds" : 68.101666666666674,
+      "file" : "frame-0068.1.jpg",
+      "requested_seconds" : 68.112297119140621
+    },
+    {
+      "actual_seconds" : 68.176666666666662,
+      "file" : "frame-0068.2.jpg",
+      "requested_seconds" : 68.212297119140615
+    },
+    {
+      "actual_seconds" : 68.306666666666672,
+      "file" : "frame-0068.3.jpg",
+      "requested_seconds" : 68.312297119140624
+    },
+    {
+      "actual_seconds" : 68.400000000000006,
+      "file" : "frame-0068.4.jpg",
+      "requested_seconds" : 68.412297119140618
+    },
+    {
+      "actual_seconds" : 68.50833333333334,
+      "file" : "frame-0068.5.jpg",
+      "requested_seconds" : 68.512297119140626
+    },
+    {
+      "actual_seconds" : 68.611666666666665,
+      "file" : "frame-0068.6.jpg",
+      "requested_seconds" : 68.612297119140621
+    },
+    {
+      "actual_seconds" : 68.711666666666673,
+      "file" : "frame-0068.7.jpg",
+      "requested_seconds" : 68.712297119140615
+    },
+    {
+      "actual_seconds" : 68.806666666666672,
+      "file" : "frame-0068.8.jpg",
+      "requested_seconds" : 68.812297119140624
+    },
+    {
+      "actual_seconds" : 68.906666666666666,
+      "file" : "frame-0068.9.jpg",
+      "requested_seconds" : 68.912297119140618
+    },
+    {
+      "actual_seconds" : 69.001666666666665,
+      "file" : "frame-0069.0.jpg",
+      "requested_seconds" : 69.012297119140626
+    },
+    {
+      "actual_seconds" : 69.101666666666674,
+      "file" : "frame-0069.1.jpg",
+      "requested_seconds" : 69.112297119140621
+    },
+    {
+      "actual_seconds" : 69.208333333333329,
+      "file" : "frame-0069.2.jpg",
+      "requested_seconds" : 69.212297119140615
+    },
+    {
+      "actual_seconds" : 69.293333333333337,
+      "file" : "frame-0069.3.jpg",
+      "requested_seconds" : 69.312297119140624
+    },
+    {
+      "actual_seconds" : 69.400000000000006,
+      "file" : "frame-0069.4.jpg",
+      "requested_seconds" : 69.412297119140618
+    },
+    {
+      "actual_seconds" : 69.506666666666661,
+      "file" : "frame-0069.5.jpg",
+      "requested_seconds" : 69.512297119140626
+    },
+    {
+      "actual_seconds" : 69.601666666666674,
+      "file" : "frame-0069.6.jpg",
+      "requested_seconds" : 69.612297119140621
+    },
+    {
+      "actual_seconds" : 69.708333333333329,
+      "file" : "frame-0069.7.jpg",
+      "requested_seconds" : 69.712297119140615
+    },
+    {
+      "actual_seconds" : 69.803333333333327,
+      "file" : "frame-0069.8.jpg",
+      "requested_seconds" : 69.812297119140624
+    },
+    {
+      "actual_seconds" : 69.906666666666666,
+      "file" : "frame-0069.9.jpg",
+      "requested_seconds" : 69.912297119140618
+    },
+    {
+      "actual_seconds" : 69.998333333333335,
+      "file" : "frame-0070.0.jpg",
+      "requested_seconds" : 70.012297119140626
+    },
+    {
+      "actual_seconds" : 70.101666666666674,
+      "file" : "frame-0070.1.jpg",
+      "requested_seconds" : 70.112297119140621
+    },
+    {
+      "actual_seconds" : 70.201666666666668,
+      "file" : "frame-0070.2.jpg",
+      "requested_seconds" : 70.212297119140615
+    },
+    {
+      "actual_seconds" : 70.301666666666662,
+      "file" : "frame-0070.3.jpg",
+      "requested_seconds" : 70.312297119140624
+    },
+    {
+      "actual_seconds" : 70.411666666666662,
+      "file" : "frame-0070.4.jpg",
+      "requested_seconds" : 70.412297119140618
+    },
+    {
+      "actual_seconds" : 70.495000000000005,
+      "file" : "frame-0070.5.jpg",
+      "requested_seconds" : 70.512297119140626
+    },
+    {
+      "actual_seconds" : 70.606666666666669,
+      "file" : "frame-0070.6.jpg",
+      "requested_seconds" : 70.612297119140621
+    },
+    {
+      "actual_seconds" : 70.700000000000003,
+      "file" : "frame-0070.7.jpg",
+      "requested_seconds" : 70.712297119140615
+    },
+    {
+      "actual_seconds" : 70.795000000000002,
+      "file" : "frame-0070.8.jpg",
+      "requested_seconds" : 70.812297119140624
+    },
+    {
+      "actual_seconds" : 70.896666666666661,
+      "file" : "frame-0070.9.jpg",
+      "requested_seconds" : 70.912297119140618
+    },
+    {
+      "actual_seconds" : 71.006666666666661,
+      "file" : "frame-0071.0.jpg",
+      "requested_seconds" : 71.012297119140626
+    },
+    {
+      "actual_seconds" : 71.106666666666669,
+      "file" : "frame-0071.1.jpg",
+      "requested_seconds" : 71.112297119140621
+    },
+    {
+      "actual_seconds" : 71.211666666666673,
+      "file" : "frame-0071.2.jpg",
+      "requested_seconds" : 71.212297119140615
+    },
+    {
+      "actual_seconds" : 71.310000000000002,
+      "file" : "frame-0071.3.jpg",
+      "requested_seconds" : 71.312297119140624
+    },
+    {
+      "actual_seconds" : 71.406666666666666,
+      "file" : "frame-0071.4.jpg",
+      "requested_seconds" : 71.412297119140618
+    },
+    {
+      "actual_seconds" : 71.504999999999995,
+      "file" : "frame-0071.5.jpg",
+      "requested_seconds" : 71.512297119140626
+    },
+    {
+      "actual_seconds" : 71.596666666666664,
+      "file" : "frame-0071.6.jpg",
+      "requested_seconds" : 71.612297119140621
+    },
+    {
+      "actual_seconds" : 71.706666666666663,
+      "file" : "frame-0071.7.jpg",
+      "requested_seconds" : 71.712297119140615
+    },
+    {
+      "actual_seconds" : 71.810000000000002,
+      "file" : "frame-0071.8.jpg",
+      "requested_seconds" : 71.812297119140624
+    },
+    {
+      "actual_seconds" : 71.903333333333336,
+      "file" : "frame-0071.9.jpg",
+      "requested_seconds" : 71.912297119140618
+    },
+    {
+      "actual_seconds" : 71.995000000000005,
+      "file" : "frame-0072.0.jpg",
+      "requested_seconds" : 72.012297119140626
+    },
+    {
+      "actual_seconds" : 72.063333333333333,
+      "file" : "frame-0072.1.jpg",
+      "requested_seconds" : 72.112297119140621
+    },
+    {
+      "actual_seconds" : 72.148333333333326,
+      "file" : "frame-0072.2.jpg",
+      "requested_seconds" : 72.212297119140615
+    },
+    {
+      "actual_seconds" : 72.305000000000007,
+      "file" : "frame-0072.3.jpg",
+      "requested_seconds" : 72.312297119140624
+    },
+    {
+      "actual_seconds" : 72.401666666666671,
+      "file" : "frame-0072.4.jpg",
+      "requested_seconds" : 72.412297119140618
+    },
+    {
+      "actual_seconds" : 72.498333333333335,
+      "file" : "frame-0072.5.jpg",
+      "requested_seconds" : 72.512297119140626
+    },
+    {
+      "actual_seconds" : 72.609999999999999,
+      "file" : "frame-0072.6.jpg",
+      "requested_seconds" : 72.612297119140621
+    },
+    {
+      "actual_seconds" : 72.706666666666663,
+      "file" : "frame-0072.7.jpg",
+      "requested_seconds" : 72.712297119140615
+    },
+    {
+      "actual_seconds" : 72.803333333333327,
+      "file" : "frame-0072.8.jpg",
+      "requested_seconds" : 72.812297119140624
+    },
+    {
+      "actual_seconds" : 72.901666666666671,
+      "file" : "frame-0072.9.jpg",
+      "requested_seconds" : 72.912297119140618
+    },
+    {
+      "actual_seconds" : 73.004999999999995,
+      "file" : "frame-0073.0.jpg",
+      "requested_seconds" : 73.012297119140626
+    },
+    {
+      "actual_seconds" : 73.101666666666674,
+      "file" : "frame-0073.1.jpg",
+      "requested_seconds" : 73.112297119140621
+    },
+    {
+      "actual_seconds" : 73.208333333333329,
+      "file" : "frame-0073.2.jpg",
+      "requested_seconds" : 73.212297119140615
+    },
+    {
+      "actual_seconds" : 73.310000000000002,
+      "file" : "frame-0073.3.jpg",
+      "requested_seconds" : 73.312297119140624
+    },
+    {
+      "actual_seconds" : 73.408333333333331,
+      "file" : "frame-0073.4.jpg",
+      "requested_seconds" : 73.412297119140618
+    },
+    {
+      "actual_seconds" : 73.506666666666661,
+      "file" : "frame-0073.5.jpg",
+      "requested_seconds" : 73.512297119140626
+    },
+    {
+      "actual_seconds" : 73.611666666666665,
+      "file" : "frame-0073.6.jpg",
+      "requested_seconds" : 73.612297119140621
+    },
+    {
+      "actual_seconds" : 73.709999999999994,
+      "file" : "frame-0073.7.jpg",
+      "requested_seconds" : 73.712297119140615
+    },
+    {
+      "actual_seconds" : 73.805000000000007,
+      "file" : "frame-0073.8.jpg",
+      "requested_seconds" : 73.812297119140624
+    },
+    {
+      "actual_seconds" : 73.900000000000006,
+      "file" : "frame-0073.9.jpg",
+      "requested_seconds" : 73.912297119140618
+    },
+    {
+      "actual_seconds" : 73.986666666666665,
+      "file" : "frame-0074.0.jpg",
+      "requested_seconds" : 74.012297119140626
+    },
+    {
+      "actual_seconds" : 74.084999999999994,
+      "file" : "frame-0074.1.jpg",
+      "requested_seconds" : 74.112297119140621
+    },
+    {
+      "actual_seconds" : 74.161666666666662,
+      "file" : "frame-0074.2.jpg",
+      "requested_seconds" : 74.212297119140615
+    },
+    {
+      "actual_seconds" : 74.25333333333333,
+      "file" : "frame-0074.3.jpg",
+      "requested_seconds" : 74.312297119140624
+    },
+    {
+      "actual_seconds" : 74.388333333333335,
+      "file" : "frame-0074.4.jpg",
+      "requested_seconds" : 74.412297119140618
+    },
+    {
+      "actual_seconds" : 74.489999999999995,
+      "file" : "frame-0074.5.jpg",
+      "requested_seconds" : 74.512297119140626
+    },
+    {
+      "actual_seconds" : 74.579999999999998,
+      "file" : "frame-0074.6.jpg",
+      "requested_seconds" : 74.612297119140621
+    },
+    {
+      "actual_seconds" : 74.658333333333331,
+      "file" : "frame-0074.7.jpg",
+      "requested_seconds" : 74.712297119140615
+    },
+    {
+      "actual_seconds" : 74.810000000000002,
+      "file" : "frame-0074.8.jpg",
+      "requested_seconds" : 74.812297119140624
+    },
+    {
+      "actual_seconds" : 74.893333333333331,
+      "file" : "frame-0074.9.jpg",
+      "requested_seconds" : 74.912297119140618
+    },
+    {
+      "actual_seconds" : 74.974999999999994,
+      "file" : "frame-0075.0.jpg",
+      "requested_seconds" : 75.012297119140626
+    },
+    {
+      "actual_seconds" : 75.106666666666669,
+      "file" : "frame-0075.1.jpg",
+      "requested_seconds" : 75.112297119140621
+    },
+    {
+      "actual_seconds" : 75.209999999999994,
+      "file" : "frame-0075.2.jpg",
+      "requested_seconds" : 75.212297119140615
+    },
+    {
+      "actual_seconds" : 75.303333333333327,
+      "file" : "frame-0075.3.jpg",
+      "requested_seconds" : 75.312297119140624
+    },
+    {
+      "actual_seconds" : 75.406666666666666,
+      "file" : "frame-0075.4.jpg",
+      "requested_seconds" : 75.412297119140618
+    },
+    {
+      "actual_seconds" : 75.49666666666667,
+      "file" : "frame-0075.5.jpg",
+      "requested_seconds" : 75.512297119140626
+    },
+    {
+      "actual_seconds" : 75.601666666666674,
+      "file" : "frame-0075.6.jpg",
+      "requested_seconds" : 75.612297119140621
+    },
+    {
+      "actual_seconds" : 75.706666666666663,
+      "file" : "frame-0075.7.jpg",
+      "requested_seconds" : 75.712297119140615
+    },
+    {
+      "actual_seconds" : 75.808333333333337,
+      "file" : "frame-0075.8.jpg",
+      "requested_seconds" : 75.812297119140624
+    },
+    {
+      "actual_seconds" : 75.906666666666666,
+      "file" : "frame-0075.9.jpg",
+      "requested_seconds" : 75.912297119140618
+    },
+    {
+      "actual_seconds" : 76.00333333333333,
+      "file" : "frame-0076.0.jpg",
+      "requested_seconds" : 76.012297119140626
+    },
+    {
+      "actual_seconds" : 76.098333333333329,
+      "file" : "frame-0076.1.jpg",
+      "requested_seconds" : 76.112297119140621
+    },
+    {
+      "actual_seconds" : 76.198333333333338,
+      "file" : "frame-0076.2.jpg",
+      "requested_seconds" : 76.212297119140615
+    },
+    {
+      "actual_seconds" : 76.308333333333337,
+      "file" : "frame-0076.3.jpg",
+      "requested_seconds" : 76.312297119140624
+    },
+    {
+      "actual_seconds" : 76.409999999999997,
+      "file" : "frame-0076.4.jpg",
+      "requested_seconds" : 76.412297119140618
+    },
+    {
+      "actual_seconds" : 76.506666666666661,
+      "file" : "frame-0076.5.jpg",
+      "requested_seconds" : 76.512297119140626
+    },
+    {
+      "actual_seconds" : 76.599999999999994,
+      "file" : "frame-0076.6.jpg",
+      "requested_seconds" : 76.612297119140621
+    },
+    {
+      "actual_seconds" : 76.704999999999998,
+      "file" : "frame-0076.7.jpg",
+      "requested_seconds" : 76.712297119140615
+    },
+    {
+      "actual_seconds" : 76.808333333333337,
+      "file" : "frame-0076.8.jpg",
+      "requested_seconds" : 76.812297119140624
+    },
+    {
+      "actual_seconds" : 76.900000000000006,
+      "file" : "frame-0076.9.jpg",
+      "requested_seconds" : 76.912297119140618
+    },
+    {
+      "actual_seconds" : 77,
+      "file" : "frame-0077.0.jpg",
+      "requested_seconds" : 77.012297119140626
+    },
+    {
+      "actual_seconds" : 77.084999999999994,
+      "file" : "frame-0077.1.jpg",
+      "requested_seconds" : 77.112297119140621
+    },
+    {
+      "actual_seconds" : 77.201666666666668,
+      "file" : "frame-0077.2.jpg",
+      "requested_seconds" : 77.212297119140615
+    },
+    {
+      "actual_seconds" : 77.308333333333337,
+      "file" : "frame-0077.3.jpg",
+      "requested_seconds" : 77.312297119140624
+    },
+    {
+      "actual_seconds" : 77.403333333333336,
+      "file" : "frame-0077.4.jpg",
+      "requested_seconds" : 77.412297119140618
+    },
+    {
+      "actual_seconds" : 77.483333333333334,
+      "file" : "frame-0077.5.jpg",
+      "requested_seconds" : 77.512297119140626
+    },
+    {
+      "actual_seconds" : 77.564999999999998,
+      "file" : "frame-0077.6.jpg",
+      "requested_seconds" : 77.612297119140621
+    },
+    {
+      "actual_seconds" : 77.658333333333331,
+      "file" : "frame-0077.7.jpg",
+      "requested_seconds" : 77.712297119140615
+    },
+    {
+      "actual_seconds" : 77.721666666666664,
+      "file" : "frame-0077.8.jpg",
+      "requested_seconds" : 77.812297119140624
+    },
+    {
+      "actual_seconds" : 77.841666666666669,
+      "file" : "frame-0077.9.jpg",
+      "requested_seconds" : 77.912297119140618
+    },
+    {
+      "actual_seconds" : 77.995000000000005,
+      "file" : "frame-0078.0.jpg",
+      "requested_seconds" : 78.012297119140626
+    },
+    {
+      "actual_seconds" : 78.109999999999999,
+      "file" : "frame-0078.1.jpg",
+      "requested_seconds" : 78.112297119140621
+    },
+    {
+      "actual_seconds" : 78.206666666666663,
+      "file" : "frame-0078.2.jpg",
+      "requested_seconds" : 78.212297119140615
+    },
+    {
+      "actual_seconds" : 78.306666666666672,
+      "file" : "frame-0078.3.jpg",
+      "requested_seconds" : 78.312297119140624
+    },
+    {
+      "actual_seconds" : 78.406666666666666,
+      "file" : "frame-0078.4.jpg",
+      "requested_seconds" : 78.412297119140618
+    },
+    {
+      "actual_seconds" : 78.51166666666667,
+      "file" : "frame-0078.5.jpg",
+      "requested_seconds" : 78.512297119140626
+    },
+    {
+      "actual_seconds" : 78.591666666666669,
+      "file" : "frame-0078.6.jpg",
+      "requested_seconds" : 78.612297119140621
+    },
+    {
+      "actual_seconds" : 78.706666666666663,
+      "file" : "frame-0078.7.jpg",
+      "requested_seconds" : 78.712297119140615
+    },
+    {
+      "actual_seconds" : 78.773333333333326,
+      "file" : "frame-0078.8.jpg",
+      "requested_seconds" : 78.812297119140624
+    },
+    {
+      "actual_seconds" : 78.773333333333326,
+      "file" : "frame-0078.9.jpg",
+      "requested_seconds" : 78.912297119140618
+    },
+    {
+      "actual_seconds" : 78.978333333333339,
+      "file" : "frame-0079.0.jpg",
+      "requested_seconds" : 79.012297119140626
+    },
+    {
+      "actual_seconds" : 79.111666666666665,
+      "file" : "frame-0079.1.jpg",
+      "requested_seconds" : 79.112297119140621
+    },
+    {
+      "actual_seconds" : 79.194999999999993,
+      "file" : "frame-0079.2.jpg",
+      "requested_seconds" : 79.212297119140615
+    },
+    {
+      "actual_seconds" : 79.260000000000005,
+      "file" : "frame-0079.3.jpg",
+      "requested_seconds" : 79.312297119140624
+    },
+    {
+      "actual_seconds" : 79.403333333333336,
+      "file" : "frame-0079.4.jpg",
+      "requested_seconds" : 79.412297119140618
+    },
+    {
+      "actual_seconds" : 79.510000000000005,
+      "file" : "frame-0079.5.jpg",
+      "requested_seconds" : 79.512297119140626
+    },
+    {
+      "actual_seconds" : 79.611666666666665,
+      "file" : "frame-0079.6.jpg",
+      "requested_seconds" : 79.612297119140621
+    },
+    {
+      "actual_seconds" : 79.703333333333333,
+      "file" : "frame-0079.7.jpg",
+      "requested_seconds" : 79.712297119140615
+    },
+    {
+      "actual_seconds" : 79.805000000000007,
+      "file" : "frame-0079.8.jpg",
+      "requested_seconds" : 79.812297119140624
+    },
+    {
+      "actual_seconds" : 79.896666666666661,
+      "file" : "frame-0079.9.jpg",
+      "requested_seconds" : 79.912297119140618
+    },
+    {
+      "actual_seconds" : 80.001666666666665,
+      "file" : "frame-0080.0.jpg",
+      "requested_seconds" : 80.012297119140626
+    },
+    {
+      "actual_seconds" : 80.109999999999999,
+      "file" : "frame-0080.1.jpg",
+      "requested_seconds" : 80.112297119140621
+    },
+    {
+      "actual_seconds" : 80.209999999999994,
+      "file" : "frame-0080.2.jpg",
+      "requested_seconds" : 80.212297119140615
+    },
+    {
+      "actual_seconds" : 80.303333333333327,
+      "file" : "frame-0080.3.jpg",
+      "requested_seconds" : 80.312297119140624
+    },
+    {
+      "actual_seconds" : 80.385000000000005,
+      "file" : "frame-0080.4.jpg",
+      "requested_seconds" : 80.412297119140618
+    },
+    {
+      "actual_seconds" : 80.480000000000004,
+      "file" : "frame-0080.5.jpg",
+      "requested_seconds" : 80.512297119140626
+    },
+    {
+      "actual_seconds" : 80.480000000000004,
+      "file" : "frame-0080.6.jpg",
+      "requested_seconds" : 80.612297119140621
+    },
+    {
+      "actual_seconds" : 80.480000000000004,
+      "file" : "frame-0080.7.jpg",
+      "requested_seconds" : 80.712297119140615
+    },
+    {
+      "actual_seconds" : 80.480000000000004,
+      "file" : "frame-0080.8.jpg",
+      "requested_seconds" : 80.812297119140624
+    },
+    {
+      "actual_seconds" : 80.480000000000004,
+      "file" : "frame-0080.9.jpg",
+      "requested_seconds" : 80.912297119140618
+    },
+    {
+      "actual_seconds" : 80.480000000000004,
+      "file" : "frame-0081.0.jpg",
+      "requested_seconds" : 81.012297119140626
+    },
+    {
+      "actual_seconds" : 80.480000000000004,
+      "file" : "frame-0081.1.jpg",
+      "requested_seconds" : 81.112297119140621
+    },
+    {
+      "actual_seconds" : 80.480000000000004,
+      "file" : "frame-0081.2.jpg",
+      "requested_seconds" : 81.212297119140615
+    },
+    {
+      "actual_seconds" : 80.480000000000004,
+      "file" : "frame-0081.3.jpg",
+      "requested_seconds" : 81.312297119140624
+    },
+    {
+      "actual_seconds" : 80.480000000000004,
+      "file" : "frame-0081.4.jpg",
+      "requested_seconds" : 81.412297119140618
+    },
+    {
+      "actual_seconds" : 80.480000000000004,
+      "file" : "frame-0081.5.jpg",
+      "requested_seconds" : 81.512297119140626
+    },
+    {
+      "actual_seconds" : 80.480000000000004,
+      "file" : "frame-0081.6.jpg",
+      "requested_seconds" : 81.612297119140621
+    },
+    {
+      "actual_seconds" : 80.480000000000004,
+      "file" : "frame-0081.7.jpg",
+      "requested_seconds" : 81.712297119140615
+    },
+    {
+      "actual_seconds" : 80.480000000000004,
+      "file" : "frame-0081.8.jpg",
+      "requested_seconds" : 81.812297119140624
+    },
+    {
+      "actual_seconds" : 80.480000000000004,
+      "file" : "frame-0081.9.jpg",
+      "requested_seconds" : 81.912297119140618
+    },
+    {
+      "actual_seconds" : 82.010000000000005,
+      "file" : "frame-0082.0.jpg",
+      "requested_seconds" : 82.012297119140626
+    },
+    {
+      "actual_seconds" : 82.088333333333338,
+      "file" : "frame-0082.1.jpg",
+      "requested_seconds" : 82.112297119140621
+    },
+    {
+      "actual_seconds" : 82.204999999999998,
+      "file" : "frame-0082.2.jpg",
+      "requested_seconds" : 82.212297119140615
+    },
+    {
+      "actual_seconds" : 82.288333333333327,
+      "file" : "frame-0082.3.jpg",
+      "requested_seconds" : 82.312297119140624
+    },
+    {
+      "actual_seconds" : 82.411666666666662,
+      "file" : "frame-0082.4.jpg",
+      "requested_seconds" : 82.412297119140618
+    },
+    {
+      "actual_seconds" : 82.493333333333339,
+      "file" : "frame-0082.5.jpg",
+      "requested_seconds" : 82.512297119140626
+    },
+    {
+      "actual_seconds" : 82.571666666666673,
+      "file" : "frame-0082.6.jpg",
+      "requested_seconds" : 82.612297119140621
+    }
+  ],
+  "interval_seconds" : 0.10000000000000001,
+  "original_video" : "\/tmp\/potato117-plain-handoff-ios.mp4"
+}

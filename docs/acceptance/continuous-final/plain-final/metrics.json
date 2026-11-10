@@ -1,0 +1,101 @@
+{
+  "session_id": "41ba3469148c4799ae36f9d4f6b92397",
+  "turn_id": "adab07a3e23149b9ac94849981029b82",
+  "model": "deepseek-v4-flash",
+  "commit": "9e07ad2650d819c2baf268efcaff40198de86790",
+  "all_sdk_calls": 4,
+  "preparation_sdk_calls": 2,
+  "target_sdk_calls": 2,
+  "target_tools": 0,
+  "reliable_progress_entries": 0,
+  "answer_markdown_code_points": 2597,
+  "raw_answer_text_events": 1696,
+  "raw_answer_delta_chars_p50": 1.0,
+  "raw_answer_delta_chars_p95": 2,
+  "raw_answer_delta_chars_max": 8,
+  "sdk_first_text_epoch_ms": 1794191061612.297,
+  "sdk_last_text_epoch_ms": 1794191075628.63,
+  "sdk_returned_epoch_ms": 1794191075638.4902,
+  "backend_first_answer_send_epoch_ms": {
+    "web": 1794191061612.918,
+    "ios": 1794191061613.448
+  },
+  "web_first_eventsource_receipt_epoch_ms": 1794191061613,
+  "persistent_finished_first_sse_send_epoch_ms": 1794191075644.885,
+  "web": {
+    "samples": 1281,
+    "growth_updates": 670,
+    "first_epoch_ms": 1794191061619,
+    "last_growth_epoch_ms": 1794191075635,
+    "last_sample_chars": 2299,
+    "max_increase_chars": 19,
+    "growth_gap_ms_p50": 17,
+    "growth_gap_ms_p95": 34,
+    "growth_gap_ms_max": 135
+  },
+  "ios": {
+    "samples": 166,
+    "growth_updates": 40,
+    "first_epoch_ms": 1794191061849.901,
+    "last_growth_epoch_ms": 1794191077467.3418,
+    "last_sample_chars": 2463,
+    "max_increase_chars": 242,
+    "growth_gap_ms_p50": 382.31787109375,
+    "growth_gap_ms_p95": 559.98388671875,
+    "growth_gap_ms_max": 603.8671875
+  },
+  "ios_observation_duration_ms_p50": 78.98199558258057,
+  "ios_observation_duration_ms_p95": 280.4800271987915,
+  "ios_generating": {
+    "samples": 160,
+    "growth_updates": 36,
+    "first_epoch_ms": 1794191061849.901,
+    "last_growth_epoch_ms": 1794191075600.425,
+    "last_sample_chars": 2285,
+    "max_increase_chars": 242,
+    "growth_gap_ms_p50": 379.7587890625,
+    "growth_gap_ms_p95": 538.48583984375,
+    "growth_gap_ms_max": 603.8671875
+  },
+  "web_generating": {
+    "samples": 1274,
+    "growth_updates": 670,
+    "first_epoch_ms": 1794191061619,
+    "last_growth_epoch_ms": 1794191075635,
+    "last_sample_chars": 2299,
+    "max_increase_chars": 19,
+    "growth_gap_ms_p50": 17,
+    "growth_gap_ms_p95": 34,
+    "growth_gap_ms_max": 135
+  },
+  "terminal_zero_observations": {
+    "web": [],
+    "ios": []
+  },
+  "ios_progress": {
+    "samples": 166,
+    "growth_updates": 0,
+    "first_epoch_ms": null,
+    "last_growth_epoch_ms": null,
+    "last_sample_chars": 0,
+    "max_increase_chars": 0,
+    "growth_gap_ms_p50": null,
+    "growth_gap_ms_p95": null,
+    "growth_gap_ms_max": null
+  },
+  "web_progress": {
+    "samples": 1281,
+    "growth_updates": 0,
+    "first_epoch_ms": null,
+    "last_growth_epoch_ms": null,
+    "last_sample_chars": 0,
+    "max_increase_chars": 0,
+    "growth_gap_ms_p50": null,
+    "growth_gap_ms_p95": null,
+    "growth_gap_ms_max": null
+  },
+  "readiness_before_target": true,
+  "visible_before_sdk_complete": true,
+  "copy_and_reopen_equal": true,
+  "units": "SDK=Unicode code points; Web=DOM innerText UTF-16; iOS=AX static text Swift graphemes; no physical viewport character count"
+}

@@ -1,0 +1,8 @@
+{
+  "histories_equal": true,
+  "stream_id_unchanged": true,
+  "instance_id_changed": true,
+  "new_sdk_calls": 0,
+  "requests": 9,
+  "tools": 16
+}

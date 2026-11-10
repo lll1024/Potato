@@ -1,0 +1,13 @@
+{
+  "code_checkpoint": "024b24bad05ca09cc7cb9b77377431d18cd4d753",
+  "video": "/tmp/potato117-plain-final-current-ios.mp4",
+  "window_requested_seconds": [
+    90.2,
+    94.5
+  ],
+  "sdk_first_body_video_seconds": 81.89381,
+  "persistent_finished_video_seconds": 92.316278,
+  "observed": "亲看完整终态contactsheet：健康/娱乐段落→十行检查表逐行增长→真实历史完整回答/完整复制；未见准备轮、输入重入或正文撤空。",
+  "limits": "实际AX与视频有限采样；不声称亚帧绝对连续或每帧完美跟底。表格末批布局在正常增长，不能将章节变化误判回退。",
+  "copy_and_restart": "真实UI复制与持久Markdown相等；同库立即重启历史相等、stream不变、instance变、新SDK0"
+}

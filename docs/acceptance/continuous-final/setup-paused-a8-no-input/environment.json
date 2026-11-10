@@ -1,0 +1,12 @@
+{
+  "kind": "configured-model-answer-acceptance",
+  "run_id": "a2d696dc88554aff81a3ac1e2920103f",
+  "scenario": "query",
+  "prompt": "请安排公历2026年11月14日杭州一天旅行，两位成人从杭州东站出发，晚上回杭州东站。请实际查找西湖和中国茶叶博物馆的地点资料、两地公共交通及开放／预约信息，区分未核实内容，给出含交通和来源的详细中文旅行行程。请用简短中文说明正在查什么；不要把准备查询写成查询成功。",
+  "preparation_prompt": "我会接着提供旅行需求，请简短回复收到，不查询资料。",
+  "model": "deepseek-v4-flash",
+  "python": "3.14.7",
+  "anthropic_sdk": "1.11.0",
+  "commit": "a8ab90695b9f80628f12db8dca9589d132f77667",
+  "provider": "api.deepseek.com"
+}

@@ -1,0 +1,9 @@
+{
+  "checked_documents": [
+    "docs/acceptance/continuous-final.md",
+    "docs/acceptance/continuous-final-mapping.md",
+    "docs/acceptance/continuous-final/position-diagnosis/README.md"
+  ],
+  "stories": 60,
+  "missing_links": []
+}

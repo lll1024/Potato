@@ -1,0 +1,32 @@
+import json,math,statistics,sys
+from pathlib import Path
+from collections import Counter
+root=Path(sys.argv[1])
+server=json.loads((root/'server-timeline.json').read_text());ios=json.loads((root/'ios-timeline.json').read_text());history=json.loads((root/'histories.json').read_text())[0]
+associations=json.loads((root/'request-associations.json').read_text());target=ios['turn_id'];session=ios['session_id']
+assert history['session']['session_id']==session and history['turns'][1]['turn_id']==target
+requests=[r for r in associations['associations'] if r['turn_id']==target]
+answers=[r for r in requests if r['answer_phase']=='answer'];last=next(r for r in reversed(answers) if r['status']=='completed');seq=last['call_sequence']
+raw=[e for e in server if e['layer']=='sdk' and e['kind']=='text' and e['call_sequence']==seq];returned=next(e for e in server if e['layer']=='sdk' and e['kind']=='returned' and e['call_sequence']==seq)
+finished=next(e for e in server if e['kind']=='trace' and e['content'].get('kind')=='turn.finished' and e['content'].get('turn_id')==target)
+def p95(v):
+ v=sorted(v);return v[max(0,math.ceil(len(v)*.95)-1)] if v else None
+def growth(rows,field):
+ previous=0;updates=[]
+ for r in rows:
+  value=r.get(field,0)
+  if value>previous:updates.append((r['epoch_ms'],value-previous))
+  previous=value
+ gaps=[b[0]-a[0] for a,b in zip(updates,updates[1:])]
+ return {'samples':len(rows),'growth_updates':len(updates),'first_epoch_ms':updates[0][0] if updates else None,'last_growth_epoch_ms':updates[-1][0] if updates else None,'max_increase_chars':max((u[1] for u in updates),default=0),'growth_gap_ms_p50':statistics.median(gaps) if gaps else None,'growth_gap_ms_p95':p95(gaps),'growth_gap_ms_max':max(gaps,default=None)}
+rows=ios['observations'];gen=[r for r in rows if r['epoch_ms']<returned['epoch_ms']];native=growth(rows,'rendered_document_chars');generating=growth(gen,'rendered_document_chars')
+assert native['first_epoch_ms']<returned['epoch_ms']<finished['epoch_ms']
+assert not associations['unmatched_sdk_calls'] and all(r['call_sequence'] is not None for r in associations['associations'])
+assert ios['copy_markdown_equal'] and ios['reopened_progress_equal']
+read=json.loads((root/'web-saved-readonly/evidence.json').read_text());assert read['copy_markdown_equal'] and read['reloaded_answer_and_progress_equal'] and read['requests_unchanged'] and read['tools_unchanged']
+assert read['turn_id']==target and read['session_id']==session
+turn=history['turns'][1];assert turn['status']=='terminated' and turn['reason']=='output_limit' and turn['answer_source']=='model'
+tools=[t for t in history['tool_calls'] if t['turn_id']==target]
+result={'commit':ios['environment']['commit'],'session_id':session,'turn_id':target,'outcome_status':turn['status'],'outcome_reason':turn['reason'],'all_sdk_calls':sum(e['layer']=='sdk' and e['kind']=='request' for e in server),'preparation_sdk_calls':sum(r['turn_id']!=target for r in associations['associations']),'target_sdk_calls':len(requests),'target_tools':len(tools),'tool_status_counts':dict(Counter(t['status'] for t in tools)),'tool_is_error_counts':dict(Counter(str(t.get('is_error')) for t in tools)),'reliable_progress_entries':len(turn['query_progress']),'answer_markdown_code_points':len(turn['answer']),'target_answer_attempts':[{**{k:r.get(k) for k in ('request_id','call_sequence','ordinal','attempt','status')},'sdk_text_events':sum(e['layer']=='sdk' and e['kind']=='text' and e.get('call_sequence')==r['call_sequence'] for e in server)} for r in answers],'raw_answer_scope':'successful final answer attempt; prior EMPTY_RESPONSE attempts each had zero text events','raw_answer_text_events':len(raw),'raw_answer_delta_chars_p50':statistics.median(e['delta_chars'] for e in raw),'raw_answer_delta_chars_p95':p95([e['delta_chars'] for e in raw]),'raw_answer_delta_chars_max':max(e['delta_chars'] for e in raw),'sdk_first_text_epoch_ms':raw[0]['epoch_ms'],'sdk_returned_epoch_ms':returned['epoch_ms'],'persistent_finished_first_sse_send_epoch_ms':finished['epoch_ms'],'ios':native,'ios_generating':generating,'ios_progress':growth(rows,'rendered_progress_chars'),'ios_terminal_zero_observations':[r['epoch_ms'] for r in rows if r['epoch_ms']>=returned['epoch_ms'] and r.get('rendered_document_chars',0)==0],'ios_observation_duration_ms_p50':statistics.median(r['observation_duration_ms'] for r in rows if 'observation_duration_ms' in r),'ios_observation_duration_ms_p95':p95([r['observation_duration_ms'] for r in rows if 'observation_duration_ms' in r]),'web_dom_and_eventsource_available':False,'web_first_eventsource_receipt_epoch_ms':None,'web_generating':None,'web_visual_evidence':'web-video/manifest.json','web_visual_result':'qualitative prefix/table/transport/source/meal-tail growth; output_limit terminal at relative video301.92s; no observed native-style clear in full148 frames','copy_and_reopen_equal':True,'units':'SDK code points; iOS AX Swift graphemes; Web DOM/EventSource original arrays lost, not inferred from server send; no physical viewport character count','position_acceptance':'87 actual query still red in physical terminal frames; final fix separately validated by controlled paced replay, not charged query replay'}
+(root/'metrics.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+print(json.dumps({k:result[k] for k in ['all_sdk_calls','target_sdk_calls','target_tools','tool_status_counts','raw_answer_text_events','ios_generating','ios_terminal_zero_observations']},ensure_ascii=False))

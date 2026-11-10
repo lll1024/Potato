@@ -1,0 +1,14 @@
+{
+  "code_checkpoint": "87a41417655ab4941341bc11c8fb32911f06bece",
+  "status": "修复前实际查询，故事52物理红；不是024实际重跑",
+  "native_red_video_seconds": [
+    305.545,
+    305.7,
+    305.751667
+  ],
+  "native_true_terminal_tail_seconds": 305.89,
+  "explanation": "三红帧准备轮/input/标题重入，随后餐饮尾就是4203字真实保存尾部（以评分和截断），不是另一次中段回退。AX终态零样本仍漏过这些物理红。",
+  "web": "完整148终态帧及生成期代表帧见web-video；301.92输出上限/不完整copy接管，未见同类撤空。原DOM/EventSource数组丢失，不能追回或用后端发送代替。",
+  "current_fix_evidence": "../position-diagnosis/final-paced-frames/manifest.json",
+  "restart": "该87查询库未及时执行sameDB restart，已过偏好闲置阈值，未重启以免新增后台SDK；旧9e query-final/restart只作旧范围基线；当前plain及时0SDK另证。"
+}

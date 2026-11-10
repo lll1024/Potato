@@ -1,0 +1,362 @@
+{
+  "duration_seconds" : 250.78999999999999,
+  "frames" : [
+    {
+      "actual_seconds" : 153.315,
+      "file" : "frame-0177.3.jpg",
+      "requested_seconds" : 177.32166821289061
+    },
+    {
+      "actual_seconds" : 153.315,
+      "file" : "frame-0177.5.jpg",
+      "requested_seconds" : 177.5216682128906
+    },
+    {
+      "actual_seconds" : 153.315,
+      "file" : "frame-0177.7.jpg",
+      "requested_seconds" : 177.72166821289062
+    },
+    {
+      "actual_seconds" : 177.91,
+      "file" : "frame-0177.9.jpg",
+      "requested_seconds" : 177.92166821289061
+    },
+    {
+      "actual_seconds" : 178.03999999999999,
+      "file" : "frame-0178.1.jpg",
+      "requested_seconds" : 178.12166821289063
+    },
+    {
+      "actual_seconds" : 178.31666666666666,
+      "file" : "frame-0178.3.jpg",
+      "requested_seconds" : 178.32166821289061
+    },
+    {
+      "actual_seconds" : 178.51833333333335,
+      "file" : "frame-0178.5.jpg",
+      "requested_seconds" : 178.5216682128906
+    },
+    {
+      "actual_seconds" : 178.71166666666667,
+      "file" : "frame-0178.7.jpg",
+      "requested_seconds" : 178.72166821289062
+    },
+    {
+      "actual_seconds" : 178.91499999999999,
+      "file" : "frame-0178.9.jpg",
+      "requested_seconds" : 178.92166821289061
+    },
+    {
+      "actual_seconds" : 179.11333333333334,
+      "file" : "frame-0179.1.jpg",
+      "requested_seconds" : 179.12166821289063
+    },
+    {
+      "actual_seconds" : 179.315,
+      "file" : "frame-0179.3.jpg",
+      "requested_seconds" : 179.32166821289061
+    },
+    {
+      "actual_seconds" : 179.52000000000001,
+      "file" : "frame-0179.5.jpg",
+      "requested_seconds" : 179.5216682128906
+    },
+    {
+      "actual_seconds" : 179.715,
+      "file" : "frame-0179.7.jpg",
+      "requested_seconds" : 179.72166821289062
+    },
+    {
+      "actual_seconds" : 179.91166666666666,
+      "file" : "frame-0179.9.jpg",
+      "requested_seconds" : 179.92166821289061
+    },
+    {
+      "actual_seconds" : 180.11666666666667,
+      "file" : "frame-0180.1.jpg",
+      "requested_seconds" : 180.12166821289063
+    },
+    {
+      "actual_seconds" : 180.32166666666666,
+      "file" : "frame-0180.3.jpg",
+      "requested_seconds" : 180.32166821289061
+    },
+    {
+      "actual_seconds" : 180.52000000000001,
+      "file" : "frame-0180.5.jpg",
+      "requested_seconds" : 180.5216682128906
+    },
+    {
+      "actual_seconds" : 180.72166666666666,
+      "file" : "frame-0180.7.jpg",
+      "requested_seconds" : 180.72166821289062
+    },
+    {
+      "actual_seconds" : 180.91833333333332,
+      "file" : "frame-0180.9.jpg",
+      "requested_seconds" : 180.92166821289061
+    },
+    {
+      "actual_seconds" : 181.09666666666666,
+      "file" : "frame-0181.1.jpg",
+      "requested_seconds" : 181.12166821289063
+    },
+    {
+      "actual_seconds" : 181.31333333333333,
+      "file" : "frame-0181.3.jpg",
+      "requested_seconds" : 181.32166821289061
+    },
+    {
+      "actual_seconds" : 181.51499999999999,
+      "file" : "frame-0181.5.jpg",
+      "requested_seconds" : 181.5216682128906
+    },
+    {
+      "actual_seconds" : 181.72166666666666,
+      "file" : "frame-0181.7.jpg",
+      "requested_seconds" : 181.72166821289062
+    },
+    {
+      "actual_seconds" : 181.91,
+      "file" : "frame-0181.9.jpg",
+      "requested_seconds" : 181.92166821289061
+    },
+    {
+      "actual_seconds" : 182.12166666666667,
+      "file" : "frame-0182.1.jpg",
+      "requested_seconds" : 182.12166821289063
+    },
+    {
+      "actual_seconds" : 182.31333333333333,
+      "file" : "frame-0182.3.jpg",
+      "requested_seconds" : 182.32166821289061
+    },
+    {
+      "actual_seconds" : 182.51333333333332,
+      "file" : "frame-0182.5.jpg",
+      "requested_seconds" : 182.5216682128906
+    },
+    {
+      "actual_seconds" : 182.72,
+      "file" : "frame-0182.7.jpg",
+      "requested_seconds" : 182.72166821289062
+    },
+    {
+      "actual_seconds" : 182.91166666666666,
+      "file" : "frame-0182.9.jpg",
+      "requested_seconds" : 182.92166821289061
+    },
+    {
+      "actual_seconds" : 183.10833333333332,
+      "file" : "frame-0183.1.jpg",
+      "requested_seconds" : 183.12166821289063
+    },
+    {
+      "actual_seconds" : 183.315,
+      "file" : "frame-0183.3.jpg",
+      "requested_seconds" : 183.32166821289061
+    },
+    {
+      "actual_seconds" : 183.52166666666668,
+      "file" : "frame-0183.5.jpg",
+      "requested_seconds" : 183.5216682128906
+    },
+    {
+      "actual_seconds" : 183.72166666666666,
+      "file" : "frame-0183.7.jpg",
+      "requested_seconds" : 183.72166821289062
+    },
+    {
+      "actual_seconds" : 183.91499999999999,
+      "file" : "frame-0183.9.jpg",
+      "requested_seconds" : 183.92166821289061
+    },
+    {
+      "actual_seconds" : 184.11666666666667,
+      "file" : "frame-0184.1.jpg",
+      "requested_seconds" : 184.12166821289063
+    },
+    {
+      "actual_seconds" : 184.32166666666666,
+      "file" : "frame-0184.3.jpg",
+      "requested_seconds" : 184.32166821289061
+    },
+    {
+      "actual_seconds" : 184.50999999999999,
+      "file" : "frame-0184.5.jpg",
+      "requested_seconds" : 184.5216682128906
+    },
+    {
+      "actual_seconds" : 184.71000000000001,
+      "file" : "frame-0184.7.jpg",
+      "requested_seconds" : 184.72166821289062
+    },
+    {
+      "actual_seconds" : 184.90666666666667,
+      "file" : "frame-0184.9.jpg",
+      "requested_seconds" : 184.92166821289061
+    },
+    {
+      "actual_seconds" : 185.10833333333332,
+      "file" : "frame-0185.1.jpg",
+      "requested_seconds" : 185.12166821289063
+    },
+    {
+      "actual_seconds" : 185.315,
+      "file" : "frame-0185.3.jpg",
+      "requested_seconds" : 185.32166821289061
+    },
+    {
+      "actual_seconds" : 185.52166666666668,
+      "file" : "frame-0185.5.jpg",
+      "requested_seconds" : 185.5216682128906
+    },
+    {
+      "actual_seconds" : 185.71666666666667,
+      "file" : "frame-0185.7.jpg",
+      "requested_seconds" : 185.72166821289062
+    },
+    {
+      "actual_seconds" : 185.92166666666665,
+      "file" : "frame-0185.9.jpg",
+      "requested_seconds" : 185.92166821289061
+    },
+    {
+      "actual_seconds" : 186.11833333333334,
+      "file" : "frame-0186.1.jpg",
+      "requested_seconds" : 186.12166821289063
+    },
+    {
+      "actual_seconds" : 186.31833333333333,
+      "file" : "frame-0186.3.jpg",
+      "requested_seconds" : 186.32166821289061
+    },
+    {
+      "actual_seconds" : 186.51499999999999,
+      "file" : "frame-0186.5.jpg",
+      "requested_seconds" : 186.5216682128906
+    },
+    {
+      "actual_seconds" : 186.72,
+      "file" : "frame-0186.7.jpg",
+      "requested_seconds" : 186.72166821289062
+    },
+    {
+      "actual_seconds" : 186.92166666666665,
+      "file" : "frame-0186.9.jpg",
+      "requested_seconds" : 186.92166821289061
+    },
+    {
+      "actual_seconds" : 187.08666666666667,
+      "file" : "frame-0187.1.jpg",
+      "requested_seconds" : 187.12166821289063
+    },
+    {
+      "actual_seconds" : 187.30166666666668,
+      "file" : "frame-0187.3.jpg",
+      "requested_seconds" : 187.32166821289061
+    },
+    {
+      "actual_seconds" : 187.47999999999999,
+      "file" : "frame-0187.5.jpg",
+      "requested_seconds" : 187.5216682128906
+    },
+    {
+      "actual_seconds" : 187.71166666666667,
+      "file" : "frame-0187.7.jpg",
+      "requested_seconds" : 187.72166821289062
+    },
+    {
+      "actual_seconds" : 187.91666666666666,
+      "file" : "frame-0187.9.jpg",
+      "requested_seconds" : 187.92166821289061
+    },
+    {
+      "actual_seconds" : 188.11166666666668,
+      "file" : "frame-0188.1.jpg",
+      "requested_seconds" : 188.12166821289063
+    },
+    {
+      "actual_seconds" : 188.31333333333333,
+      "file" : "frame-0188.3.jpg",
+      "requested_seconds" : 188.32166821289061
+    },
+    {
+      "actual_seconds" : 188.51333333333332,
+      "file" : "frame-0188.5.jpg",
+      "requested_seconds" : 188.5216682128906
+    },
+    {
+      "actual_seconds" : 188.71333333333334,
+      "file" : "frame-0188.7.jpg",
+      "requested_seconds" : 188.72166821289062
+    },
+    {
+      "actual_seconds" : 188.91166666666666,
+      "file" : "frame-0188.9.jpg",
+      "requested_seconds" : 188.92166821289061
+    },
+    {
+      "actual_seconds" : 189.11666666666667,
+      "file" : "frame-0189.1.jpg",
+      "requested_seconds" : 189.12166821289063
+    },
+    {
+      "actual_seconds" : 189.31,
+      "file" : "frame-0189.3.jpg",
+      "requested_seconds" : 189.32166821289061
+    },
+    {
+      "actual_seconds" : 189.52166666666668,
+      "file" : "frame-0189.5.jpg",
+      "requested_seconds" : 189.5216682128906
+    },
+    {
+      "actual_seconds" : 189.72166666666666,
+      "file" : "frame-0189.7.jpg",
+      "requested_seconds" : 189.72166821289062
+    },
+    {
+      "actual_seconds" : 189.905,
+      "file" : "frame-0189.9.jpg",
+      "requested_seconds" : 189.92166821289061
+    },
+    {
+      "actual_seconds" : 190.10833333333332,
+      "file" : "frame-0190.1.jpg",
+      "requested_seconds" : 190.12166821289063
+    },
+    {
+      "actual_seconds" : 190.30833333333334,
+      "file" : "frame-0190.3.jpg",
+      "requested_seconds" : 190.32166821289061
+    },
+    {
+      "actual_seconds" : 190.465,
+      "file" : "frame-0190.5.jpg",
+      "requested_seconds" : 190.5216682128906
+    },
+    {
+      "actual_seconds" : 190.465,
+      "file" : "frame-0190.7.jpg",
+      "requested_seconds" : 190.72166821289062
+    },
+    {
+      "actual_seconds" : 190.465,
+      "file" : "frame-0190.9.jpg",
+      "requested_seconds" : 190.92166821289061
+    },
+    {
+      "actual_seconds" : 191.10333333333332,
+      "file" : "frame-0191.1.jpg",
+      "requested_seconds" : 191.12166821289063
+    },
+    {
+      "actual_seconds" : 191.29333333333332,
+      "file" : "frame-0191.3.jpg",
+      "requested_seconds" : 191.32166821289061
+    }
+  ],
+  "interval_seconds" : 0.20000000000000001,
+  "original_video" : "\/tmp\/potato117-query-verified-ios.mp4"
+}

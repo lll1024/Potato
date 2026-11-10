@@ -14,7 +14,7 @@ from travel_app.sessions import Runtime, create_app
 
 
 @asynccontextmanager
-async def serving(directory, model, *, maps=None, sources=None, api_key="known-secret"):
+async def serving(directory, model, *, maps=None, sources=None, api_key="known-secret", transport=None):
     @asynccontextmanager
     async def resources():
         tools = Retrieval(cast(Client, maps if maps is not None else MapService()), api_key=api_key)
@@ -26,6 +26,7 @@ async def serving(directory, model, *, maps=None, sources=None, api_key="known-s
         else:
             yield Runtime(cast(AsyncAnthropic, model), tools, "test-model")
     app = create_app(directory, resources=resources)
+    if transport is not None: app = transport(app)
     sock = socket.socket()
     sock.bind(("127.0.0.1", 0))
     port = sock.getsockname()[1]

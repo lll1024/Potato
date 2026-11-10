@@ -1,0 +1,12 @@
+BEFORE_SSE {"cursor": 4, "active": true, "answer_text": "## 杭州旅行\n\n", "answer_revision": 3}
+WHILE_SEND_BLOCKED {"history_status": "completed", "history_answer_chars": 27, "cursor": 6, "model_requests": 2}
+SSE {"index": 0, "kind": "turn.accepted", "cursor": 1}
+SSE {"index": 1, "kind": "request.started", "cursor": 2}
+SSE {"index": 2, "kind": "request.completed", "cursor": 3}
+SSE {"index": 3, "kind": "request.started", "cursor": 4}
+SSE {"index": 4, "kind": "service.state", "active_turn_id": null, "answer_revision": 7}
+SSE {"index": 5, "kind": "answer.preview", "preview": null, "revision": 7}
+SSE {"index": 6, "kind": "progress.preview", "preview": null, "revision": 4}
+SSE {"index": 7, "kind": "request.completed", "cursor": 5}
+SSE {"index": 8, "kind": "turn.finished", "cursor": 6}
+RESULT REACHABLE inactive_index=4 answer_null_index=5 turn_finished_index=8

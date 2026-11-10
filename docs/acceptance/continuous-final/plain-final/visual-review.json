@@ -1,0 +1,13 @@
+{
+  "result": "未通过最终连续阅读验收",
+  "code_commit": "9e07ad2650d819c2baf268efcaff40198de86790",
+  "automated_web_passed": 1,
+  "automated_ios_passed": 1,
+  "finding": "扩大到终态前后4秒所有100ms原帧后，仍发现准备轮／输入占位回退；局部AX时间映射±0.3秒检查因整秒录屏起点偏差而漏看",
+  "frames": [
+    "ios-answer-frames/frame-0080.1.jpg",
+    "terminal-contact-sheet.jpg"
+  ],
+  "revision": "保留首次局部判断；本修订以完整原帧为准。不把自动断言通过或局部帧通过等同故事52通过。",
+  "next": "公开同尝试迟到快照与state宣布版本屏障红绿后，再做实际场景复验"
+}

@@ -1,0 +1,44 @@
+{
+  "code_checkpoint": "024b24bad05ca09cc7cb9b77377431d18cd4d753",
+  "backend": {
+    "passed": 408,
+    "seconds": 364.919
+  },
+  "web": {
+    "passed": 116,
+    "skipped": 2,
+    "failed": 0,
+    "minutes": 2.2,
+    "raw_results": "/tmp/potato-109-024-final-web-results"
+  },
+  "types": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "native_capabilities": {
+    "tests": 87,
+    "suites": 11,
+    "passed": 87,
+    "seconds": 1.922
+  },
+  "native_snapshots": {
+    "passed": 10,
+    "seconds": 16.686
+  },
+  "native_reading_first": {
+    "passed": 10,
+    "failed": 1,
+    "seconds": 421.476,
+    "failure": "folding: latest tap did not move viewport; complete copy label existed below screen",
+    "fixture": "IPv4 listener stayed alive; IPv6 candidate refusals also occur in passing tests",
+    "result": "/tmp/potato117-024-final-reading.xcresult"
+  },
+  "native_folding_unchanged_recheck": {
+    "passed": 1,
+    "failed": 0,
+    "seconds": 24.391,
+    "code_or_assertion_changes": false,
+    "result": "/tmp/potato117-024-folding-recheck.xcresult"
+  },
+  "interpretation": "11 affected methods each have a current passing execution, but the initial complete batch is not all green. One intermittent UI failure remains disclosed; no causal fix claimed."
+}

@@ -1,0 +1,26 @@
+{
+  "python": "Python 3.14.7",
+  "node": "v24.19.0",
+  "xcode": "Xcode 27.2\nBuild version 27B52",
+  "swift_compiler": "Apple Swift version 6.4.2 (swiftlang-6.4.2.1.9 clang-2100.4.1.1)\nTarget: arm64-apple-macosx27.0.0",
+  "configured_model": "deepseek-v4-flash",
+  "configured_provider": "api.deepseek.com",
+  "anthropic_sdk": "1.11.0",
+  "connection": "HTTPS localhost:18499，独立临时SQLite；未访问日常8000服务或用户数据库",
+  "real_device": false,
+  "ios17_runtime": false,
+  "testflight": false,
+  "private_network_or_cellular": false,
+  "simulator": {
+    "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-26-5",
+    "name": "iPhone 17 Pro",
+    "udid": "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+    "state": "Booted"
+  },
+  "chrome_version": "156.0.8078.81",
+  "initial_live_code_commit": "88395d963f7b5eaa03cd050564f0913c12711389",
+  "live_code_commit": "9e07ad2650d819c2baf268efcaff40198de86790",
+  "native_full_baseline_code_commit": "41a35b0170d7a3cefd50009a4a2f0071bfdc260c",
+  "native_final_code_commit": "9e07ad2650d819c2baf268efcaff40198de86790",
+  "tls_public_fingerprint_sha256": "0C:C9:F3:27:D5:9E:D6:33:C9:00:A3:2C:7E:26:ED:AC:A2:28:F8:32:F2:CB:D5:E5:1F:40:65:6F:E9:50:AD:71"
+}

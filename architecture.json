@@ -45,6 +45,8 @@
   },
   "legacy": {},
   "files": {
+    "tests/live_answer_observation.py": {"owner": "integration", "role": "test-support"},
+    "tests/test_live_answer_observation.py": {"owner": "integration", "role": "caller-test"},
     "tests/live_answer_eval.py": {
       "owner": "integration",
       "role": "caller-test"

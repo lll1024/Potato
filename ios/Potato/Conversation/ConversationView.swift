@@ -85,6 +85,8 @@ struct ConversationView: View {
                                     .font(.subheadline).foregroundStyle(.secondary)
                             }
                         }
+                        .accessibilityElement(children: .contain)
+                        .accessibilityIdentifier("conversation-turn-\(turn.id)")
                         .id(turn.id)
                     }
                 }
@@ -245,8 +247,10 @@ private struct QueryProgressView: View {
                         ReadingTransition(text: entry.text, identity: "\(identity):\(entry.id):\(entry.attemptID)",
                                           live: isCurrent && entry.status == "generating" && entry.delivery != "complete", stopped: stopped, recovery: recovery) {
                             Text($0).textSelection(.enabled)
+                                .accessibilityIdentifier("query-progress-text")
                         }
                         Text(entry.statusText).font(.caption).foregroundStyle(.secondary)
+                            .accessibilityIdentifier("query-progress-status")
                     }
                 }
             }
@@ -254,6 +258,7 @@ private struct QueryProgressView: View {
         } label: {
             Text("查询进展").font(.subheadline.weight(.semibold))
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("query-progress")
         .onChange(of: hasAnswerStarted) { _, started in
             if started && !answerSeen { isExpanded = false; answerSeen = true }

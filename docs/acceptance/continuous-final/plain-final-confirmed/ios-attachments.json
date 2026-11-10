@@ -1,0 +1,56 @@
+[
+  {
+    "attachments": [
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName": "iPhone 17 Pro",
+        "exportedFileName": "0D43B4CA-5FA2-4454-8F5A-633122582FC0.json",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "真实模型原始观察全程（含失败）_0_EAC8D626-46B4-46FE-9776-014287FCE564.json",
+        "timestamp": 1794282890.677
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName": "iPhone 17 Pro",
+        "exportedFileName": "49BD7A14-F271-468B-BD6E-6C475BDAFD4C.json",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "真实模型与iOS全程证据_0_07CC266E-5FC7-415F-9EB6-90D226F64D94.json",
+        "timestamp": 1794282890.675
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName": "iPhone 17 Pro",
+        "exportedFileName": "A6659625-9F8D-4585-873D-3E84F8E2311E.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "真实最终Markdown复制全文一致_0_A1164533-F87E-4E94-A399-058FB2C2566B.png",
+        "timestamp": 1794282875.997,
+        "archived_file": "ios-copy.png"
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName": "iPhone 17 Pro",
+        "exportedFileName": "BE084C98-A832-4539-9DFA-C9C5EFDA68D2.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "真实模型回答已保存_0_8D8BF8D3-B5CF-4FB9-9CB8-437DCA68B2BB.png",
+        "timestamp": 1794282868.311,
+        "archived_file": "ios-saved.png"
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName": "iPhone 17 Pro",
+        "exportedFileName": "194B3A5A-57C9-47F9-8F9E-6784E746D579.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "真实正文初现且查询自动折叠_0_8ECAD25C-5779-4AAA-BCDB-24B29CD93A20.png",
+        "timestamp": 1794282855.536,
+        "archived_file": "ios-answer-start.png"
+      }
+    ],
+    "testIdentifier": "ReadingNavigationTests/testCurrentConfiguredModelShowsBatchesBeforeSavedHistory()",
+    "testIdentifierURL": "test://com.apple.xcode/Potato/PotatoUITests/ReadingNavigationTests/testCurrentConfiguredModelShowsBatchesBeforeSavedHistory"
+  }
+]

@@ -1,0 +1,25 @@
+{
+  "observation": "公开HTTP18496历史，在重启旧fixture前读取",
+  "observed_cases": [
+    {
+      "input": "电脑开始本地旅行讨论",
+      "status": "failed",
+      "reason": "model_error"
+    },
+    {
+      "input": "模拟器续聊第二天",
+      "status": "failed",
+      "reason": "model_error"
+    },
+    {
+      "input": "模拟器新建旅行讨论",
+      "status": "failed",
+      "reason": "model_error"
+    }
+  ],
+  "observed_requests": "三个失败轮次各一个query phase请求failed；更早轮次completed且正文以回答全文结尾结束",
+  "fixture_contract": "ios/Integration/backend.py resources()为每实例ModelService预置8个response，跨多次完整组未重启",
+  "diagnosis": "有限预置响应已耗尽；使用同入口重启受控服务后同构建全组复验",
+  "original_log": "ios-attempt-final-capabilities.log.gz",
+  "fresh_log": "ios-attempt-final-capabilities-fresh.log.gz"
+}
