@@ -1,0 +1,461 @@
+[
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3358,
+    "copy_label" : "复制当前正文",
+    "copy_visible" : true,
+    "copy_y" : 646.99999999999955,
+    "epoch_ms" : 1794283249684.6152,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3397,
+    "copy_label" : "复制当前正文",
+    "copy_visible" : true,
+    "copy_y" : 629.99999999999955,
+    "epoch_ms" : 1794283250968.446,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333258,
+    "epoch_ms" : 1794283251575.001,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333258,
+    "epoch_ms" : 1794283252518.2349,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283252817.198,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283253081.6169,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283253344.3042,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283253639.2351,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283253896.6741,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283254161.3279,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283254410.2329,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283254671.5698,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283254965.79,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283255242.207,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283255527.3718,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283255908.949,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283256232.332,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283256533.293,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283256865.332,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283257310.605,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283257737.3938,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283258085.73,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283258397.543,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283258709.769,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283259028.7051,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283259429.6941,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283259780.4331,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283260242.585,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283260547.0837,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283260863.575,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283261260.2839,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283261767.6082,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283262251.127,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283262675.272,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283262945.24,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283263208.9893,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283263463.2859,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283263687.3521,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283263926.9419,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283264175.127,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283264444.4819,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283264810.9651,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283265193.645,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283265581.5439,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283265876.667,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283266225.3142,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283266486.9141,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283266794.991,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283267246.9229,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "before_y" : 609.66666666666652,
+    "body_chars" : 3536,
+    "copy_label" : "已复制不完整回答",
+    "copy_visible" : true,
+    "copy_y" : 635.33333333333303,
+    "epoch_ms" : 1794283267741.0149,
+    "phase" : "automatic-paced-completion"
+  },
+  {
+    "copy_action_epoch_ms" : 1794283251576.5737,
+    "copy_markdown_equal" : true,
+    "copy_sentinel_used" : true,
+    "epoch_ms" : 1794283276296.3491,
+    "expected_chars" : 4203,
+    "first_saved_snapshot_body_chars" : 3536,
+    "phase" : "terminal-copy-check"
+  }
+]

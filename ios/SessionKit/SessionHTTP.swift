@@ -129,6 +129,7 @@ struct WireList: Decodable, Sendable {
 }
 
 struct WireSnapshot: Decodable, Sendable {
+    let cursor: Int?
     let schemaVersion: Int
     let streamId: String
     let activeSessionId: String?
@@ -141,6 +142,8 @@ struct WireSnapshot: Decodable, Sendable {
     let instanceId: String?
     let answerRevision: Int?
     let answerPreview: AnswerPreview?
+    let progressRevision: Int?
+    let progressPreview: ProgressPreview?
 
     var entity: ServiceState {
         ServiceState(streamID: streamId, activeSessionID: activeSessionId, activeTurnID: activeTurnId,
@@ -157,6 +160,7 @@ struct WirePage: Decodable, Sendable {
         let status: String
         let reason: String?
         let answerDelivery: String?
+        let queryProgress: [ProgressEntry]?
     }
     let schemaVersion: Int
     let streamId: String
@@ -168,7 +172,7 @@ struct WirePage: Decodable, Sendable {
     var entity: ConversationPage {
         ConversationPage(session: session.entity, turns: turns.map {
             ConversationTurn(id: $0.turnId, ordinal: $0.ordinal, input: $0.input, answer: $0.answer,
-                             status: $0.status, reason: $0.reason, answerDelivery: $0.answerDelivery, observedAt: cursor)
+                             status: $0.status, reason: $0.reason, answerDelivery: $0.answerDelivery, queryProgress: $0.queryProgress, observedAt: cursor)
         }, nextBefore: nextBefore, streamID: streamId, cursor: cursor,
             windows: HistoryWindow.page(ordinals: turns.compactMap(\.ordinal), before: nextBefore))
     }
@@ -215,10 +219,14 @@ struct SessionEventParser {
             guard let line = String(data: bytes, encoding: .utf8) else { throw SessionFailure.invalidResponse }
             pending.removeSubrange(...end)
             if line.isEmpty {
-                if kind == "answer.preview", !lines.isEmpty {
+                if ["answer.preview", "progress.preview", "service.state", "trace"].contains(kind), !lines.isEmpty {
                     let decoder = JSONDecoder()
                     decoder.keyDecodingStrategy = .convertFromSnakeCase
-                    events.append(try decoder.decode(WireAnswerEvent.self, from: Data(lines.joined(separator: "\n").utf8)))
+                    let data = Data(lines.joined(separator: "\n").utf8)
+                    let relevant: Bool
+                    if kind == "trace" { relevant = ["turn.finished", "request.started", "request.failed"].contains(try decoder.decode(WireTraceKind.self, from: data).kind) }
+                    else { relevant = true }
+                    if relevant { events.append(try decoder.decode(WireAnswerEvent.self, from: data)) }
                 }
                 kind = ""
                 lines = []
@@ -238,4 +246,91 @@ struct WireAnswerEvent: Decodable, Sendable {
     let instanceId: String
     let revision: Int
     let preview: AnswerPreview?
+    let progress: ProgressPreview?
+    let state: WireLiveState?
+    let completion: WireTurnFinished?
+    let requestFact: WireAnswerRequestFact?
+    let kind: String
+    enum CodingKeys: String, CodingKey { case schemaVersion, instanceId, revision, preview, kind, state }
+    init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try values.decode(Int.self, forKey: .schemaVersion)
+        kind = try values.decodeIfPresent(String.self, forKey: .kind) ?? "answer.preview"
+        if ["request.started", "request.failed"].contains(kind) {
+            requestFact = try WireAnswerRequestFact(from: decoder)
+            completion = nil; instanceId = ""; revision = 0; preview = nil; progress = nil; state = nil
+            return
+        }
+        requestFact = nil
+        if kind == "turn.finished" {
+            completion = try WireTurnFinished(from: decoder)
+            instanceId = ""; revision = 0; preview = nil; progress = nil; state = nil
+            return
+        }
+        completion = nil
+        if kind == "service.state" {
+            let live = try values.decode(WireLiveState.self, forKey: .state)
+            state = live
+            instanceId = live.instanceId
+            revision = 0
+            preview = nil
+            progress = nil
+            return
+        }
+        state = nil
+        instanceId = try values.decode(String.self, forKey: .instanceId)
+        revision = try values.decode(Int.self, forKey: .revision)
+        if kind == "progress.preview" {
+            progress = try values.decodeIfPresent(ProgressPreview.self, forKey: .preview)
+            preview = nil
+        } else {
+            preview = try values.decodeIfPresent(AnswerPreview.self, forKey: .preview)
+            progress = nil
+        }
+    }
+}
+
+private struct WireTraceKind: Decodable { let kind: String }
+
+/// 请求摘要用于排除合批期间已失败或已被下一次作答取代的旧正文。
+struct WireAnswerRequestFact: Decodable, Sendable {
+    let cursor: Int
+    struct Details: Decodable, Sendable { let answerPhase: String? }
+    let kind: String
+    let sessionId: String
+    let turnId: String
+    let requestId: String
+    let data: Details
+}
+
+/// 完成事实只授权同一订阅中已有内容的短暂阅读交接，不携带或伪造历史正文。
+struct WireTurnFinished: Decodable, Sendable {
+    struct Outcome: Decodable, Sendable {
+        let status: String
+        let reason: String?
+        let answerSource: String?
+    }
+    let sessionId: String
+    let turnId: String
+    let cursor: Int
+    let data: Outcome
+}
+
+/// 服务状态与内容共享同一订阅；不把状态通知计为持久事件游标。
+struct WireLiveState: Decodable, Sendable {
+    let schemaVersion: Int
+    let instanceId: String
+    let activeSessionId: String?
+    let activeTurnId: String?
+    let accepting: Bool
+    let stopping: Bool
+    let storageError: String?
+    let unsavedFact: [String: String]?
+    let answerRevision: Int?
+    let progressRevision: Int?
+
+    func entity(streamID: String) -> ServiceState {
+        ServiceState(streamID: streamID, activeSessionID: activeSessionId, activeTurnID: activeTurnId,
+                     accepting: accepting, stopping: stopping, storageError: storageError, unsavedFact: unsavedFact)
+    }
 }

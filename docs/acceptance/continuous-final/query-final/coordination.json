@@ -1,0 +1,23 @@
+{
+  "ios_session": {
+    "session_id": "7c8c9a0ae8cf4c98bdc6c41847155144"
+  },
+  "web_ready": {
+    "session_id": "7c8c9a0ae8cf4c98bdc6c41847155144",
+    "at": "2026-11-09T02:14:28.428Z"
+  },
+  "ios_saved": {
+    "turn_id": "814c259af30e4d19ba14f30832c5f7d1"
+  },
+  "web_copied": {
+    "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+    "markdown_equal": true
+  },
+  "web_finished": {
+    "turn_id": "814c259af30e4d19ba14f30832c5f7d1",
+    "at": "2026-11-09T02:16:27.655Z"
+  },
+  "ios_finished": {
+    "turn_id": "814c259af30e4d19ba14f30832c5f7d1"
+  }
+}

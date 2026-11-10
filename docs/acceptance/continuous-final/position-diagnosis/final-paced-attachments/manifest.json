@@ -1,0 +1,35 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "7273D3EF-E7C6-44A8-ABE4-9D3F22F26172.json",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "长Markdown终态真实视口位置采样_0_5456264D-E193-41F1-91C0-8967DCB42F2E.json",
+        "timestamp" : 1794226722.071
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "C72583C1-8CF2-4FFB-A2FA-36BC61EE0550.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "首次终态复制与可靠全文一致_0_98F55CC7-F220-4748-88C8-873111AD65CC.png",
+        "timestamp" : 1794226716.729
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "B1B8F618-2801-486F-92A2-F684069537AA.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "长Markdown已存不完整结果仍跟随底部_0_78289717-BB20-4880-94EC-37FB8313106F.png",
+        "timestamp" : 1794226711.505
+      }
+    ],
+    "testIdentifier" : "ReadingNavigationTests/testLongMarkdownTerminalHandoffKeepsFollowingViewport()",
+    "testIdentifierURL" : "test://com.apple.xcode/Potato/PotatoUITests/ReadingNavigationTests/testLongMarkdownTerminalHandoffKeepsFollowingViewport"
+  }
+]

@@ -7,6 +7,7 @@ struct ConversationInteractor {
     let sessions: any SessionAccess
     var page: ConversationPage? { sessions.conversation }
     var answerPreview: AnswerPreview? { sessions.answerPreview }
+    var progressPreview: ProgressPreview? { sessions.progressPreview }
     var answerFailure: SessionFailure? { sessions.answerFailure }
     var canSubmit: Bool { sessions.canSubmit }
     var execution: ExecutionState { ExecutionState(sessions) }
@@ -57,6 +58,14 @@ struct ConversationPresentation {
         let isPreview: Bool
         let isUnsaved: Bool
         let isIncomplete: Bool
+        let progress: [ProgressEntry]
+        let hasAnswerStarted: Bool
+        let isCurrentProgress: Bool
+        var answerIdentity: String? = nil
+        var progressIdentity = ""
+        var isGenerating = false
+        var isStopped = false
+        var contentRecoveryRevision = 0
     }
     let title: String
     let turns: [Turn]
@@ -138,6 +147,7 @@ final class ConversationPresenter {
         return .loaded(ConversationPresentation(title: page.session.title, turns: page.turns.map { turn in
             let preview = interactor.answerPreview.flatMap { $0.turnID == turn.id && turn.status == "running" ? $0 : nil }
             let execution = interactor.execution
+            let progress = interactor.progressPreview.flatMap { $0.turnID == turn.id && turn.status == "running" ? $0 : nil }
             let isUnsaved = preview != nil && execution.service?.activeTurnID != turn.id
                 && execution.service?.unsavedFact?["turn_id"] == turn.id && execution.service?.storageError != nil
             let requestedStop: Bool
@@ -151,17 +161,32 @@ final class ConversationPresenter {
                     message = "未保存 · 请复制保留，刷新后可能丢失"
                 } else if (execution.service?.stopping == true && execution.service?.activeTurnID == turn.id) || requestedStop {
                     message = "正在停止 · 正文已暂停追加"
+                } else if execution.service?.activeTurnID != turn.id {
+                    message = "正在核对本轮结果 · 当前正文尚未确认保存"
                 } else if interactor.answerFailure != nil { message = "实时正文连接中断，正在重新连接。当前正文尚未保存。" }
                 else if preview.status == "invalidated" { message = "本次正文已失效，等待后端处理。" }
                 else if preview.status == "retrying" { message = "正在重试，新尝试将从头作答。" }
                 else { message = preview.status == "generated" ? "正在保存回答。" : "正在生成 · 尚未保存" }
             } else { message = statusText(turn) }
-            if preview?.delivery == "complete" || turn.answerDelivery == "complete" {
+            if preview == nil && !requestedStop && execution.service?.stopping != true && execution.service?.storageError == nil,
+               progress?.entries.contains(where: { $0.kind == "model" && $0.status == "retrying" }) == true {
+                message = "查询进展正在重试，新尝试将重新生成。"
+            }
+            if preview?.delivery == "complete" || turn.answerDelivery == "complete"
+                || progress?.entries.contains(where: { $0.kind == "model" && $0.delivery == "complete" }) == true {
                 message = [message, "模型服务不支持流式，改为生成完整回答。"].compactMap { $0 }.joined(separator: "\n")
             }
             return ConversationPresentation.Turn(id: turn.id, input: turn.input,
                 answer: preview?.text ?? turn.answer, statusMessage: message, isPreview: preview != nil,
-                isUnsaved: isUnsaved, isIncomplete: turn.status != "running" && turn.status != "completed")
+                isUnsaved: isUnsaved, isIncomplete: turn.status != "running" && turn.status != "completed",
+                progress: interactor.progressPreview.flatMap { $0.turnID == turn.id ? $0.entries : nil } ?? turn.queryProgress ?? [],
+                hasAnswerStarted: !(preview?.text ?? turn.answer ?? "").isEmpty,
+                isCurrentProgress: interactor.progressPreview?.turnID == turn.id,
+                answerIdentity: preview.map { "\($0.instanceID):\($0.streamID):\($0.sessionID):\($0.turnID):\($0.attemptID)" },
+                progressIdentity: interactor.progressPreview.map { "\($0.instanceID):\($0.streamID):\($0.sessionID):\($0.turnID)" } ?? "saved:\(turn.id)",
+                isGenerating: preview?.status == "generating" && preview?.delivery != "complete" && !isUnsaved && execution.service?.activeTurnID == turn.id,
+                isStopped: (execution.service?.stopping == true && execution.service?.activeTurnID == turn.id) || requestedStop,
+                contentRecoveryRevision: interactor.sessions.contentRecoveryRevision)
         }, hasEarlierTurns: page.nextBefore != nil))
     }
 

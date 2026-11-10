@@ -1,0 +1,26 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "E802E522-7ADD-4E36-A3F7-749583BD6140.json",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "公开UI不可变快照与折叠展开核验_0_EB7E65C6-E852-4767-AC7F-6B24D4AC76D1.json",
+        "timestamp" : 1794206203.03
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "3502E064-4DB2-4752-8F70-E28A1112B74C.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "只读已存不完整回答独立哨兵复制核对_0_15C57594-D4BA-4DC5-9B66-1A6C8A9A24EB.png",
+        "timestamp" : 1794206197.612
+      }
+    ],
+    "testIdentifier" : "ReadingNavigationTests/testConfiguredModelSavedHistorySamplingAcrossDisclosureChanges()",
+    "testIdentifierURL" : "test://com.apple.xcode/Potato/PotatoUITests/ReadingNavigationTests/testConfiguredModelSavedHistorySamplingAcrossDisclosureChanges"
+  }
+]

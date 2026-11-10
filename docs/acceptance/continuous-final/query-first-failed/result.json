@@ -1,0 +1,11 @@
+{
+  "result": "failed",
+  "ios_tests": 1,
+  "ios_assertion_failures": 2,
+  "web_initial": "missing playwright ffmpeg before page creation",
+  "web_retry": "1 passed",
+  "reason": "query text used staticTexts identifier but visible text selection is another accessibility element type; no iOS progress samples",
+  "original_ios_video": "/tmp/potato117-query-ios.mp4",
+  "original_xcresult": "/tmp/potato117-query.xcresult",
+  "note": "ios-timeline has unconditional historical flags; actual failed assertions and rendered_progress_chars=0 take precedence"
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "at": 1794041421191,
+    "stage": "query-1",
+    "visible": "查询进展\n\n过程说明 · 尚未保存，取得资料不代表已完成核实\n\n准备查找西湖 正在说明",
+    "progress": {
+      "instance_id": "0313a60a3b364494bdaef3ce035c6a3b",
+      "stream_id": "5d72fdbdc1d74b00992720a0e05f7649",
+      "session_id": "93d7410a096e49bb990edcee4ac587d8",
+      "turn_id": "57a27f85698a41eb9344a1a9d50534e0",
+      "revision": 14,
+      "entries": [
+        {
+          "id": "3431242cbf2340de8d0bb4fc2a742eb5",
+          "attempt_id": "3431242cbf2340de8d0bb4fc2a742eb5",
+          "kind": "model",
+          "text": "准备查找西湖",
+          "status": "generating"
+        }
+      ]
+    }
+  },
+  {
+    "at": 1794041421197,
+    "stage": "query-2",
+    "visible": "查询进展\n\n过程说明 · 尚未保存，取得资料不代表已完成核实\n\n准备查找西湖的地点资料。 正在说明",
+    "progress": {
+      "instance_id": "0313a60a3b364494bdaef3ce035c6a3b",
+      "stream_id": "5d72fdbdc1d74b00992720a0e05f7649",
+      "session_id": "93d7410a096e49bb990edcee4ac587d8",
+      "turn_id": "57a27f85698a41eb9344a1a9d50534e0",
+      "revision": 15,
+      "entries": [
+        {
+          "id": "3431242cbf2340de8d0bb4fc2a742eb5",
+          "attempt_id": "3431242cbf2340de8d0bb4fc2a742eb5",
+          "kind": "model",
+          "text": "准备查找西湖的地点资料。",
+          "status": "generating"
+        }
+      ]
+    }
+  },
+  {
+    "at": 1794041421397,
+    "stage": "answer-before-save",
+    "visible": "查询进展\n\n过程说明 · 尚未保存，取得资料不代表已完成核实\n\n准备查找西湖的地点资料。 行动说明\n查找地点资料 已取得资料",
+    "historyStatus": "running"
+  }
+]

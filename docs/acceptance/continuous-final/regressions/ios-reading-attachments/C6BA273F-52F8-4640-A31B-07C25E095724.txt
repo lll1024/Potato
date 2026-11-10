@@ -1,0 +1,39 @@
+Attributes: Button, 0x11482e1c0, {{20.0, 2152.3}, {116.3, 20.7}}, identifier: 'copy-answer', label: '复制完整回答'
+Element subtree:
+ →Button, 0x11482e1c0, {{20.0, 2152.3}, {116.3, 20.7}}, identifier: 'copy-answer', label: '复制完整回答'
+Path to element:
+ →Application, 0x11482d040, pid: 7366, label: 'Potato'
+  ↳Window (Main), 0x11482d180, {{0.0, 0.0}, {402.0, 874.0}}
+   ↳Other, 0x11482d2c0, {{0.0, 0.0}, {402.0, 874.0}}
+    ↳Other, 0x11482d400, {{0.0, 0.0}, {402.0, 874.0}}
+     ↳Other, 0x11482d540, {{0.0, 0.0}, {402.0, 874.0}}
+      ↳Other, 0x11482d680, {{0.0, 0.0}, {402.0, 874.0}}
+       ↳Other, 0x11482d7c0, {{0.0, 0.0}, {402.0, 874.0}}
+        ↳Other, 0x11482d900, {{0.0, 0.0}, {402.0, 874.0}}
+         ↳Other, 0x11482da40, {{0.0, 0.0}, {402.0, 874.0}}
+          ↳Other, 0x11482db80, {{0.0, 0.0}, {402.0, 874.0}}
+           ↳Other, 0x11482dcc0, {{0.0, 0.0}, {402.0, 874.0}}
+            ↳ScrollView, 0x11482de00, {{0.0, 0.0}, {402.0, 874.0}}
+             ↳Other, 0x11482df40, {{0.0, 96.0}, {402.0, 2137.7}}
+              ↳Other, 0x11482e080, {{20.0, 188.0}, {362.0, 1996.7}}, identifier: 'conversation-turn-f5fdd2d73ba0447eab26c8c2498dcc35'
+               ↳Button, 0x11482e1c0, {{20.0, 2152.3}, {116.3, 20.7}}, identifier: 'copy-answer', label: '复制完整回答'
+Query chain:
+ →Find: Target Application 'com.potato.travel'
+  Output: {
+    Application, 0x1085f5040, pid: 7366, label: 'Potato'
+  }
+  ↪︎Find: Descendants matching type Button
+    Output: {
+      Button, 0x108601a40, {{16.0, 62.0}, {44.0, 44.0}}, identifier: 'BackButton', label: '助手会话'
+      Button, 0x108601cc0, {{284.7, 66.0}, {41.3, 36.0}}, identifier: 'connection-settings', label: '连接配置'
+      Button, 0x108601e00, {{342.0, 66.0}, {40.0, 36.0}}, identifier: 'earlier-history', label: '查看更早对话'
+      Button, 0x1085eb700, {{273.7, 673.3}, {116.3, 34.3}}, identifier: 'latest-answer', label: '回到最新'
+      Button, 0x1085f48c0, {{319.0, 770.0}, {58.0, 58.0}}, identifier: 'send-input', label: '发送', Disabled
+      Button, 0x108603700, {{20.0, 128.0}, {84.3, 20.3}}, identifier: 'open-recovered-submission', label: '打开原会话'
+      Button, 0x1085ead00, {{20.0, 2152.3}, {116.3, 20.7}}, identifier: 'copy-answer', label: '复制完整回答'
+      Button, 0x108603c00, {{20.0, 260.3}, {362.0, 26.0}}, label: '查询进展'
+    }
+    ↪︎Find: Elements matching predicate '"copy-answer" IN identifiers'
+      Output: {
+        Button, 0x10838bd40, {{20.0, 2152.3}, {116.3, 20.7}}, identifier: 'copy-answer', label: '复制完整回答'
+      }

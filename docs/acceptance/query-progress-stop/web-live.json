@@ -1,0 +1,43 @@
+{
+  "started": "2026-11-08T09:47:37.513Z",
+  "finished": "2026-11-08T09:47:38.912Z",
+  "environment": "controlled-external-model",
+  "failSave": true,
+  "partialVisibleLength": 53,
+  "frozenVisibleLength": 53,
+  "copiedPrefixLength": 55,
+  "actualMarkdownLength": 556,
+  "stoppingTurn": "a8d62da3e18b49558ea1d1c849b499bc",
+  "stoppingHeldSlot": true,
+  "blockedSubmission": 409,
+  "unsavedFact": {
+    "kind": "turn.finished",
+    "turn_id": "a8d62da3e18b49558ea1d1c849b499bc",
+    "message": "轮次结果未保存；仅保留最后成功提交的事实。"
+  },
+  "finalAccepting": false,
+  "historyAnswer": null,
+  "historyStatus": "running",
+  "reliableProgress": [
+    {
+      "kind": "model",
+      "status": "generated"
+    },
+    {
+      "kind": "tool",
+      "status": "completed"
+    }
+  ],
+  "copies": [
+    {
+      "client": "first",
+      "length": 556,
+      "exactMarkdown": true
+    },
+    {
+      "client": "peer",
+      "length": 556,
+      "exactMarkdown": true
+    }
+  ]
+}

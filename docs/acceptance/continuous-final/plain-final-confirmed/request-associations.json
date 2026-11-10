@@ -1,0 +1,57 @@
+{
+  "associations": [
+    {
+      "session_id": "2df87944093a4796b60e59b7fd067e5e",
+      "turn_id": "1cebaab2ab2d48ba880b7a0be42f78d8",
+      "request_id": "de526394c7f34962aa1a571b70a3d69e",
+      "ordinal": 1,
+      "purpose": "travel",
+      "answer_phase": "query",
+      "attempt": 1,
+      "status": "completed",
+      "started_at": "2026-11-10T03:53:50.896367+00:00",
+      "finished_at": "2026-11-10T03:53:52.511644+00:00",
+      "call_sequence": 1
+    },
+    {
+      "session_id": "2df87944093a4796b60e59b7fd067e5e",
+      "turn_id": "1cebaab2ab2d48ba880b7a0be42f78d8",
+      "request_id": "cabc27636f2d4a1fb3389793269c3452",
+      "ordinal": 2,
+      "purpose": "travel_answer",
+      "answer_phase": "answer",
+      "attempt": 1,
+      "status": "completed",
+      "started_at": "2026-11-10T03:53:52.524867+00:00",
+      "finished_at": "2026-11-10T03:53:53.509136+00:00",
+      "call_sequence": 2
+    },
+    {
+      "session_id": "2df87944093a4796b60e59b7fd067e5e",
+      "turn_id": "8b4ec187c12e43ec91abf9dc5e5a5cb7",
+      "request_id": "fa1912669f634fe9afff86be89327af8",
+      "ordinal": 1,
+      "purpose": "travel",
+      "answer_phase": "query",
+      "attempt": 1,
+      "status": "completed",
+      "started_at": "2026-11-10T03:53:58.218393+00:00",
+      "finished_at": "2026-11-10T03:54:10.813097+00:00",
+      "call_sequence": 3
+    },
+    {
+      "session_id": "2df87944093a4796b60e59b7fd067e5e",
+      "turn_id": "8b4ec187c12e43ec91abf9dc5e5a5cb7",
+      "request_id": "276d5dc8c3d8480fa10a447205a85f4a",
+      "ordinal": 2,
+      "purpose": "travel_answer",
+      "answer_phase": "answer",
+      "attempt": 1,
+      "status": "completed",
+      "started_at": "2026-11-10T03:54:10.822864+00:00",
+      "finished_at": "2026-11-10T03:54:25.146066+00:00",
+      "call_sequence": 4
+    }
+  ],
+  "unmatched_sdk_calls": []
+}

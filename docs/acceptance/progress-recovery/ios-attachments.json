@@ -1,0 +1,35 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "C0D119B1-D1A3-4E6F-8A8F-56E7DEF6D2DF.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "后台完成后直接采用真实保存回答_0_FA38FFA9-74A4-41D5-9681-7D59D241EAB3.png",
+        "timestamp" : 1794119750.477
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "E507A473-0B0E-421F-8EC2-31074C7A3F0B.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "恢复正文并展开同轮可靠查询状态_0_73DB9533-EB99-4228-94A5-E5B5965B0140.png",
+        "timestamp" : 1794119747.082
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "E76C325A-FEA7-46CD-8B96-BB627C14049B.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "前台恢复查询阶段完整累计进展_0_DDE5FE84-ED65-4FBB-98F6-2B060376F02B.png",
+        "timestamp" : 1794119743.342
+      }
+    ],
+    "testIdentifier" : "ReadingNavigationTests/testForegroundRestoresQueryProgressThenSavedAnswerWithoutReplay()",
+    "testIdentifierURL" : "test://com.apple.xcode/Potato/PotatoUITests/ReadingNavigationTests/testForegroundRestoresQueryProgressThenSavedAnswerWithoutReplay"
+  }
+]

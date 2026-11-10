@@ -1,0 +1,240 @@
+[
+  {
+    "at": "2026-11-07T08:11:24.706Z",
+    "displayed_chars": 0,
+    "backend_chars": 0,
+    "preview_status": null,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:25.001Z",
+    "displayed_chars": 8,
+    "backend_chars": 0,
+    "preview_status": "generating",
+    "revision": 2,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:25.185Z",
+    "displayed_chars": 96,
+    "backend_chars": 97,
+    "preview_status": "generating",
+    "revision": 61,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:25.292Z",
+    "displayed_chars": 122,
+    "backend_chars": 125,
+    "preview_status": "generating",
+    "revision": 79,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:25.402Z",
+    "displayed_chars": 189,
+    "backend_chars": 201,
+    "preview_status": "generating",
+    "revision": 131,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:25.513Z",
+    "displayed_chars": 239,
+    "backend_chars": 256,
+    "preview_status": "generating",
+    "revision": 166,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:25.620Z",
+    "displayed_chars": 277,
+    "backend_chars": 297,
+    "preview_status": "generating",
+    "revision": 194,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:25.733Z",
+    "displayed_chars": 334,
+    "backend_chars": 363,
+    "preview_status": "generating",
+    "revision": 237,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:25.838Z",
+    "displayed_chars": 391,
+    "backend_chars": 425,
+    "preview_status": "generating",
+    "revision": 277,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:25.990Z",
+    "displayed_chars": 451,
+    "backend_chars": 485,
+    "preview_status": "generating",
+    "revision": 318,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:26.136Z",
+    "displayed_chars": 509,
+    "backend_chars": 550,
+    "preview_status": "generating",
+    "revision": 364,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:26.281Z",
+    "displayed_chars": 572,
+    "backend_chars": 629,
+    "preview_status": "generating",
+    "revision": 420,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:26.395Z",
+    "displayed_chars": 616,
+    "backend_chars": 678,
+    "preview_status": "generating",
+    "revision": 453,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:26.508Z",
+    "displayed_chars": 673,
+    "backend_chars": 744,
+    "preview_status": "generating",
+    "revision": 497,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:26.617Z",
+    "displayed_chars": 721,
+    "backend_chars": 794,
+    "preview_status": "generating",
+    "revision": 531,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:26.729Z",
+    "displayed_chars": 766,
+    "backend_chars": 845,
+    "preview_status": "generating",
+    "revision": 569,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:26.839Z",
+    "displayed_chars": 820,
+    "backend_chars": 905,
+    "preview_status": "generating",
+    "revision": 608,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:26.970Z",
+    "displayed_chars": 874,
+    "backend_chars": 967,
+    "preview_status": "generating",
+    "revision": 652,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:27.082Z",
+    "displayed_chars": 922,
+    "backend_chars": 1021,
+    "preview_status": "generating",
+    "revision": 688,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:27.190Z",
+    "displayed_chars": 981,
+    "backend_chars": 1088,
+    "preview_status": "generating",
+    "revision": 732,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:27.300Z",
+    "displayed_chars": 1033,
+    "backend_chars": 1146,
+    "preview_status": "generating",
+    "revision": 768,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:27.410Z",
+    "displayed_chars": 1085,
+    "backend_chars": 1203,
+    "preview_status": "generating",
+    "revision": 804,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:27.521Z",
+    "displayed_chars": 1151,
+    "backend_chars": 1278,
+    "preview_status": "generating",
+    "revision": 855,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:27.632Z",
+    "displayed_chars": 1203,
+    "backend_chars": 1335,
+    "preview_status": "generating",
+    "revision": 893,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:27.763Z",
+    "displayed_chars": 1261,
+    "backend_chars": 1402,
+    "preview_status": "generating",
+    "revision": 935,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:27.879Z",
+    "displayed_chars": 1304,
+    "backend_chars": 1446,
+    "preview_status": "generating",
+    "revision": 961,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:27.987Z",
+    "displayed_chars": 1351,
+    "backend_chars": 1496,
+    "preview_status": "generating",
+    "revision": 992,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:28.098Z",
+    "displayed_chars": 1409,
+    "backend_chars": 1560,
+    "preview_status": "generating",
+    "revision": 1037,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:28.227Z",
+    "displayed_chars": 1480,
+    "backend_chars": 1633,
+    "preview_status": "generating",
+    "revision": 1083,
+    "turn_id": "082f3c448ddc4056926b67920f2df1e9"
+  },
+  {
+    "at": "2026-11-07T08:11:28.335Z",
+    "displayed_chars": 1512,
+    "backend_chars": 0,
+    "preview_status": null,
+    "turn_id": null
+  }
+]

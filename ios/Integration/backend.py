@@ -1,6 +1,7 @@
 """iOS 验收服务：真实 HTTP/SQLite，只替换外部模型与查询资源。"""
 import argparse
 import asyncio
+import json
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 import sys
@@ -15,6 +16,7 @@ import httpx
 import uvicorn
 from fastapi.responses import JSONResponse
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from anthropic import AsyncAnthropic
 from mcp import Client
 from travel_app.retrieval import Retrieval
@@ -99,7 +101,11 @@ class StreamingModel:
         self.returned = False
         self.mode = mode
         self.parts = type(self).parts
-        if mode == "reading":
+        if mode == "smooth":
+            self.parts = ["## 短暂平滑\n\n第一小片段。", "\n\n" + "湖畔观察🙂" * 30 + "大块末尾。", "后续小片段。"]
+        if mode == "continuous":
+            self.parts = ["连续阅读：\"先沿西湖步行"] + [f"第{index}站观察湖畔风景🙂" for index in range(1, 9)]
+        if mode in {"reading", "query-reading"}:
             self.parts = [
                 "## 流式中文阅读\n\n" + "沿湖慢行，按体力安排休息。\n\n" * 16 + "```swift\nlet city = \"杭州\"",
                 "\n```\n\n| 日期 | 上午 | 下午 | 晚间 | 提醒 |\n",
@@ -107,11 +113,26 @@ class StreamingModel:
                 ")\n\n" + "继续阅读中文旅行安排，保留已经读到的位置。\n\n" * 12 + "第四批阅读标记。\n\n",
                 "- 步行路线按体力调整。\n- 午后留出休息时间。\n\n" + "最新一批旅行建议。\n\n" * 12,
             ]
+        if mode == "query-handoff-reading":
+            full = Path(__file__).with_name("handoff-answer.md").read_text()
+            self.parts = [full[:1600], full[1600:3300], full[3300:-180], full[-180:]]
+        if mode == "query-handoff-paced":
+            full = Path(__file__).with_name("handoff-answer.md").read_text().removesuffix("\n")
+            self.timing = json.loads(Path(__file__).with_name("handoff-answer-timing.json").read_text())["updates"]
+            positions = [0] + [item["chars"] for item in self.timing]
+            self.parts = [full[start:end] for start, end in zip(positions, positions[1:])]
         self.attempts = 0
+        self.query_attempts = 0
         self.query_done = False
 
     async def create(self, **parameters):
-        if self.query_done and self.mode == "fallback":
+        if self.mode == "query-fallback" and "tools" in parameters and not self.query_done:
+            await self.release.get()
+            self.query_done = True
+            self.delivered.put_nowait("query-complete")
+            return response([{"type": "text", "text": "进展：改用完整响应查找地点资料。"},
+                {"type": "tool_use", "id": "lake", "name": "maps_text_search", "input": {"keywords": "西湖", "city": "杭州"}}], "tool_use")
+        if self.query_done and self.mode in {"fallback", "query-fallback"} and "tools" not in parameters:
             await self.release.get()
             self.returned = True
             self.delivered.put_nowait("returned")
@@ -122,6 +143,42 @@ class StreamingModel:
     @asynccontextmanager
     async def stream(self, **parameters):
         model = self
+        if "tools" in parameters:
+            if self.mode in {"query-progress", "query-reading", "query-retry", "query-fallback", "query-handoff-reading", "query-handoff-paced"} and not self.query_done:
+                self.query_attempts += 1
+                query_fails = self.mode in {"query-retry", "query-fallback"} and self.query_attempts == 1
+                query_parts = (("进展：失败旧说明", "暂时还未完成的查询。" * 30) if query_fails else
+                               ("进展：重新查找西湖", "的地点资料。") if self.mode == "query-retry" else
+                               ("进展：准备查找西湖", "的地点资料。"))
+                class QueryStream:
+                    async def __aiter__(self):
+                        model.entered.set()
+                        yield SimpleNamespace(type="content_block_start", content_block=SimpleNamespace(type="text", text=""))
+                        for part in query_parts:
+                            await model.release.get()
+                            yield SimpleNamespace(type="content_block_delta", delta=SimpleNamespace(type="text_delta", text=part))
+                            model.delivered.put_nowait(part)
+                        await model.release.get()
+                        if query_fails:
+                            model.delivered.put_nowait("query-failed")
+                            if model.mode == "query-fallback":
+                                raise status_error(400, {"error": {"code": "streaming_not_supported"}})
+                            raise status_error(429, headers={"Retry-After": "3"})
+                    async def get_final_message(self):
+                        model.query_done = True
+                        model.delivered.put_nowait("query-returned")
+                        return response([{"type": "text", "text": "".join(query_parts)},
+                            {"type": "tool_use", "id": "lake", "name": "maps_text_search", "input": {"keywords": "西湖", "city": "杭州"}}], "tool_use")
+                yield QueryStream()
+            else:
+                reply = await self.create(**parameters)
+                class CompleteQueryStream:
+                    async def __aiter__(self):
+                        for block in reply.content:
+                            yield SimpleNamespace(type="content_block_start", content_block=block)
+                    async def get_final_message(self): return reply
+                yield CompleteQueryStream()
+            return
         self.attempts += 1
         fail = self.mode in {"retry", "fallback"} and self.attempts == 1
 
@@ -138,16 +195,19 @@ class StreamingModel:
                     if model.mode == "fallback":
                         raise status_error(400, {"error": {"code": "streaming_not_supported"}})
                     raise status_error(429, headers={"Retry-After": "3"})
-                for part in model.parts:
-                    await model.release.get()
+                for index, part in enumerate(model.parts):
+                    if model.mode == "query-handoff-paced":
+                        await asyncio.sleep(model.timing[index]["delay_ms"] / 1000)
+                    else:
+                        await model.release.get()
                     yield SimpleNamespace(type="content_block_delta", delta=SimpleNamespace(type="text_delta", text=part))
                     model.delivered.put_nowait(part)
-                await model.release.get()
+                if model.mode != "query-handoff-paced": await model.release.get()
 
             async def get_final_message(self):
                 model.returned = True
                 model.delivered.put_nowait("returned")
-                return response([{"type": "text", "text": "".join(model.parts)}])
+                return response([{"type": "text", "text": "".join(model.parts)}], "max_tokens" if model.mode in {"query-handoff-reading", "query-handoff-paced"} else "end_turn")
 
         yield Stream()
 
@@ -261,13 +321,51 @@ async def main():
                         await streaming_model.delivered.get()
                     return {"returned": streaming_model.returned}
 
+                history_gate = asyncio.Event()
+                history_gate.set()
+                history_entered = asyncio.Event()
+
+                @app.post("/__test__/delay-history")
+                async def hold_stream_history():
+                    history_entered.clear()
+                    history_gate.clear()
+                    return {"delaying": True}
+
+                @app.get("/__test__/history-entered")
+                async def held_stream_history():
+                    async with asyncio.timeout(10):
+                        await history_entered.wait()
+                    return {"entered": True}
+
+                @app.post("/__test__/release-history")
+                async def release_stream_history():
+                    history_gate.set()
+                    return {"released": True}
+
+                @app.middleware("http")
+                async def delayed_stream_history(request, call_next):
+                    if not history_gate.is_set() and request.method == "GET" and request.url.path.startswith("/api/sessions/"):
+                        history_entered.set()
+                        # 仅延迟公开历史HTTP，不暂停SSE、模型、事务或后端事实。
+                        try:
+                            async with asyncio.timeout(20):
+                                await history_gate.wait()
+                        except TimeoutError:
+                            history_gate.set()
+                    return await call_next(request)
+
+                # 控制路由先注册，Web 与 iOS 可读取同一隔离会话。
+                dist = ROOT / "frontend" / "dist"
+                if dist.is_dir():
+                    app.mount("/", StaticFiles(directory=dist, html=True), name="page")
+
             if name == "unsaved":
                 app = create_app(Path(directory) / "unsaved", resources=unsaved_resources,
                                  static_dir=Path(directory) / "no-static")
 
                 @app.post("/__test__/arm")
-                async def arm_unsaved():
-                    unsaved_model.reset()
+                async def arm_unsaved(mode: str = "normal"):
+                    unsaved_model.reset(mode)
                     return {"armed": True}
 
                 @app.get("/__test__/entered")

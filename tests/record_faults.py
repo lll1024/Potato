@@ -9,4 +9,9 @@ def fail_event(directory, kind):
         database.execute("CREATE TRIGGER fail_event BEFORE INSERT ON events WHEN NEW.kind='" + kind + "' BEGIN SELECT RAISE(ABORT,'password=storage-secret'); END")
 
 
-__all__ = ['fail_event']
+def clear_event_fault(directory):
+    with closing(sqlite3.connect(Path(directory) / "travel.sqlite3")) as database, database:
+        database.execute("DROP TRIGGER IF EXISTS fail_event")
+
+
+__all__ = ['fail_event', 'clear_event_fault']

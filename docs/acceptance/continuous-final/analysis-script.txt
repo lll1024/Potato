@@ -1,0 +1,117 @@
+import json,math,statistics,sys
+from pathlib import Path
+from datetime import datetime
+BASE=Path(sys.argv[1])
+
+def percentile(values,p):
+    values=sorted(values)
+    return values[max(0,math.ceil(len(values)*p)-1)] if values else None
+
+def changes(rows,field):
+    result=[];prior=0
+    for row in rows:
+        value=row.get(field,0)
+        if value>prior: result.append({'epoch_ms':row['epoch_ms'],'chars':value,'delta_chars':value-prior})
+        prior=value
+    return result
+
+def growth(rows,field):
+    events=changes(rows,field)
+    intervals=[(b['epoch_ms']-a['epoch_ms']) for a,b in zip(events,events[1:])]
+    return {'samples':len(rows),'growth_updates':len(events),'first_epoch_ms':events[0]['epoch_ms'] if events else None,
+            'last_growth_epoch_ms':events[-1]['epoch_ms'] if events else None,
+            'last_sample_chars':rows[-1].get(field,0),'max_increase_chars':max((x['delta_chars'] for x in events),default=0),
+            'growth_gap_ms_p50':statistics.median(intervals) if intervals else None,
+            'growth_gap_ms_p95':percentile(intervals,.95),'growth_gap_ms_max':max(intervals,default=None)}
+
+def svg(path,series,start,end,maximum,title,unit):
+    colors=['#315cce','#448064','#b17a22','#75549d']
+    width=1000;height=360;left=65;right=25;top=50;bottom=70
+    parts=[f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
+           '<rect width="100%" height="100%" fill="white"/>',f'<g font-family="-apple-system,PingFang SC,sans-serif" font-size="12" fill="#242732"><text x="65" y="26" font-size="18">{title}</text>']
+    for i in range(6):
+        y=top+(height-top-bottom)*i/5
+        value=maximum*(1-i/5)
+        parts.append(f'<path d="M{left},{y}H{width-right}" stroke="#e8e9ee"/><text x="{left-10}" y="{y+4}" text-anchor="end">{value:.0f}</text>')
+    for i in range(7):
+        x=left+(width-left-right)*i/6
+        value=(end-start)/1000*i/6
+        parts.append(f'<text x="{x}" y="{height-bottom+22}" text-anchor="middle">{value:.1f}s</text>')
+    for index,(name,rows,normalizer) in enumerate(series):
+        points=[]
+        for at,value in rows:
+            if start<=at<=end:
+                x=left+(at-start)/(end-start)*(width-left-right)
+                y=height-bottom-value/normalizer/maximum*(height-top-bottom)
+                points.append(f'{x:.2f},{y:.2f}')
+        parts.append(f'<polyline points="{" ".join(points)}" fill="none" stroke="{colors[index]}" stroke-width="1.7"/>')
+        parts.append(f'<rect x="{left+index*225}" y="{height-27}" width="15" height="3" fill="{colors[index]}"/><text x="{left+20+index*225}" y="{height-22}">{name}</text>')
+    parts.append(f'<text x="{width-right}" y="{top-8}" text-anchor="end">{unit}</text></g></svg>')
+    path.write_text('\n'.join(parts)+'\n')
+
+for scenario in ('query','plain'):
+    folder=BASE/scenario
+    server=json.load(open(folder/'server-timeline.json'))
+    ios=json.load(open(folder/'ios-timeline.json'))
+    web=json.load(open(folder/'web-live-evidence.json'))
+    associations=json.load(open(folder/'request-associations.json'))
+    target=ios['turn_id'];session=ios['session_id']
+    assert target==web['turn_id'] and session==web['session_id']
+    requests=[r for r in associations['associations'] if r['turn_id']==target]
+    answer=next(r for r in requests if r['answer_phase']=='answer')
+    sequence=answer['call_sequence']
+    raw=[r for r in server if r['layer']=='sdk' and r['kind']=='text' and r['call_sequence']==sequence]
+    returned=next(r for r in server if r['layer']=='sdk' and r['kind']=='returned' and r['call_sequence']==sequence)
+    saved=next(r for r in server if r['kind']=='trace' and r['content'].get('kind')=='turn.finished' and r['content'].get('turn_id')==target)
+    native=growth(ios['observations'],'rendered_document_chars')
+    browser=growth(web['timeline']['rendered'],'rendered_document_chars')
+    assert native['first_epoch_ms']<returned['epoch_ms']<saved['epoch_ms']
+    assert browser['first_epoch_ms']<returned['epoch_ms']
+    assert ios['copy_markdown_equal'] and ios['reopened_progress_equal'] and web['copy_markdown_equal'] and web['reloaded_progress_equal']
+    assert not associations['unmatched_sdk_calls'] and all(r['call_sequence'] is not None for r in associations['associations'])
+    assert web['outcome']['status']=='completed'
+    coordination=json.load(open(folder/'coordination.json'))
+    target_start=min(r['epoch_ms'] for r in server if r['layer']=='sdk' and r['kind']=='request' and r['call_sequence'] in [x['call_sequence'] for x in requests])
+    web_ready=datetime.fromisoformat(coordination['web_ready']['at'].replace('Z','+00:00')).timestamp()*1000
+    assert web_ready<target_start and ios['observations'][0]['epoch_ms']<target_start
+    if scenario=='plain':
+        assert not web['outcome']['query_progress'] and not web['tools']
+        assert not any(r.get('rendered_progress_chars') for r in ios['observations'])
+        assert not any(r.get('rendered_progress_chars') for r in web['timeline']['rendered'])
+    else:
+        assert ios['query_text_observed_during_target'] and ios['reopened_expanded_text_observed']
+        assert web['tools'] and web['outcome']['query_progress']
+    receipt=next(r for r in web['timeline']['receipts'] if r['kind']=='answer.preview' and r['content'] and r['content'].get('turn_id')==target and r['content'].get('text_chars',0)>0)
+    backend={client:next(r for r in server if r['layer']=='backend_sse_send' and r['client']==client and r['kind']=='answer.preview' and r['content'] and r['content'].get('turn_id')==target and r['content'].get('text_chars',0)>0)['epoch_ms'] for client in ('web','ios')}
+    metrics={'session_id':session,'turn_id':target,'model':web['environment']['model'],'commit':web['environment']['commit'],
+        'all_sdk_calls':sum(r['layer']=='sdk' and r['kind']=='request' for r in server),'preparation_sdk_calls':sum(r['turn_id']!=target for r in associations['associations']),
+        'target_sdk_calls':len(requests),'target_tools':len([t for t in web['tools'] if t['turn_id']==target]),
+        'reliable_progress_entries':len(web['outcome']['query_progress']),'answer_markdown_code_points':len(web['outcome']['answer']),
+        'raw_answer_text_events':len(raw),'raw_answer_delta_chars_p50':statistics.median(r['delta_chars'] for r in raw),
+        'raw_answer_delta_chars_p95':percentile([r['delta_chars'] for r in raw],.95),'raw_answer_delta_chars_max':max(r['delta_chars'] for r in raw),
+        'sdk_first_text_epoch_ms':raw[0]['epoch_ms'],'sdk_last_text_epoch_ms':raw[-1]['epoch_ms'],'sdk_returned_epoch_ms':returned['epoch_ms'],
+        'backend_first_answer_send_epoch_ms':backend,'web_first_eventsource_receipt_epoch_ms':receipt['epoch_ms'],
+        'persistent_finished_first_sse_send_epoch_ms':saved['epoch_ms'],'web':browser,'ios':native,
+        'ios_observation_duration_ms_p50':statistics.median(r['observation_duration_ms'] for r in ios['observations'] if 'observation_duration_ms' in r),
+        'ios_observation_duration_ms_p95':percentile([r['observation_duration_ms'] for r in ios['observations'] if 'observation_duration_ms' in r],.95),
+        'ios_generating':growth([r for r in ios['observations'] if r['epoch_ms']<returned['epoch_ms']],'rendered_document_chars'),
+        'web_generating':growth([r for r in web['timeline']['rendered'] if r['epoch_ms']<returned['epoch_ms']],'rendered_document_chars'),
+        'terminal_zero_observations':{name:[r['epoch_ms'] for r in rows if r['epoch_ms']>=returned['epoch_ms'] and r.get('rendered_document_chars',0)==0] for name,rows in [('web',web['timeline']['rendered']),('ios',ios['observations'])]},
+        'ios_progress':growth(ios['observations'],'rendered_progress_chars'),'web_progress':growth(web['timeline']['rendered'],'rendered_progress_chars'),
+        'readiness_before_target':True,'visible_before_sdk_complete':True,'copy_and_reopen_equal':True,
+        'units':'SDK=Unicode code points; Web=DOM innerText UTF-16; iOS=AX static text Swift graphemes; no physical viewport character count'}
+    (folder/'metrics.json').write_text(json.dumps(metrics,ensure_ascii=False,indent=2)+'\n')
+    end=max(saved['epoch_ms'],native['last_growth_epoch_ms'],browser['last_growth_epoch_ms'])+500
+    start=raw[0]['epoch_ms']-500
+    raw_rows=[(start,0)]+[(r['epoch_ms'],r['text_chars']) for r in raw]+[(end,raw[-1]['text_chars'])]
+    native_rows=[(start,0)]+[(r['epoch_ms'],r.get('rendered_document_chars',0)) for r in ios['observations'] if r['epoch_ms']>=start]+[(end,native['last_sample_chars'])]
+    web_rows=[(start,0)]+[(r['epoch_ms'],r.get('rendered_document_chars',0)) for r in web['timeline']['rendered'] if r['epoch_ms']>=start]+[(end,browser['last_sample_chars'])]
+    svg(folder/'answer-growth.svg',[('SDK 文本到达',raw_rows,raw[-1]['text_chars']/100),('Web DOM 排版',web_rows,browser['last_sample_chars']/100),('iOS AX 排版',native_rows,native['last_sample_chars']/100)],start,end,100,'正文增长：各层自身末值归一','自身末值 %')
+    if scenario=='query':
+        pstart=target_start
+        series=[]
+        for name,rows in [('Web 展开文字',web['timeline']['rendered']),('iOS 展开文字',ios['observations'])]:
+            series.append((name,[(r['epoch_ms'],r.get('rendered_progress_chars',0)) for r in rows if r['epoch_ms']>=pstart],1))
+        maximum=max(value for _,rows,_ in series for _,value in rows)
+        svg(folder/'progress-growth.svg',series,pstart,saved['epoch_ms']+500,maximum,'查询进展：正文出现后自动折叠为零','各端排版文字长度')
+    print(scenario,json.dumps({k:metrics[k] for k in ('all_sdk_calls','target_tools','raw_answer_text_events','raw_answer_delta_chars_max','web','ios')},ensure_ascii=False))

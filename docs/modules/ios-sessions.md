@@ -118,3 +118,49 @@ App 的 scene phase 在活跃时启用唯一共享轮询、离开活跃态时取
 原轮次真实收束释放名额后，若服务返回 `storageError` 及关联轮次的 `unsavedFact`，仍接受该轮最新内存正文供当前页面阅读；界面显示“未保存 · 请复制保留，刷新后可能丢失”及“复制未保存正文”。它保持预览身份，不进入已保存历史，`canSubmit` 继续为假。没有正文则只展示真实故障。普通截断与预算终态沿用原原因，正文复制文案使用“不完整回答”，不称完整回答。
 
 验证：公开 `SessionAccess` 的停止／真实保存和未保存结果、旧目标、配置失效见 [PollingTests](../../ios/PotatoTests/PollingTests.swift)；模拟器通过真实 HTTPS／SQLite 检查冻结、保存后全文及未保存复制，见 [ReadingNavigationTests](../../ios/PotatoUITests/ReadingNavigationTests.swift)。
+
+## 当前查询进展（#111）
+
+`SessionAccess.progressPreview` 是当前观察会话的可选 `ProgressPreview`，含进程、数据集、会话、轮次、独立 `revision` 及 `[ProgressEntry]`；条目的模型行动说明与工具真实状态见[规划契约](planning.md#查询进展111)。旧服务没有新增字段时继续原有阅读路径。
+
+共享 `SharedSessions` 使用现有唯一前台 SSE 连接解析 `progress.preview` 和 `answer.preview`，不增加轮询或模型执行。快照恢复后采用更新的累计对象；重复、较旧次序、错误轮次、旧进程或旧订阅不改变当前进展。切换观察对象、配置或数据集后使旧投影失效。停止立即同时冻结进展与正文，后台断开只取消客户端读取。页面通过原 Interactor／Presenter 读取进展，分别呈现简短行动、准备／执行／取得资料／失败状态与最终 Markdown 正文；正文复制不包含进展。成功保存后以真实历史为准；已保存进展从下述历史字段读取。
+
+验证：[SessionAccess 同订阅、错序及归属测试](../../ios/PotatoTests/PollingTests.swift)、[真实 HTTPS／SQLite 查询进展页面](../../ios/PotatoUITests/ReadingNavigationTests.swift)。
+
+## 已保存进展与原生折叠（#112）
+
+`ConversationTurn.queryProgress` 为可选 `[ProgressEntry]`，由同一会话历史 HTTP 读取，不另存手机历史副本；旧服务缺少字段时为 `nil`。重新创建本地客户端、重开 App 或换设备后重新读取后端可靠事实，失败临时说明不从手机缓存补回。历史分页仍以真实轮次身份与后端游标合并整条记录。
+
+对话页面在当前归属匹配的进展和已保存数组之间选择其一，以 `DisclosureGroup` 呈现；首次正文非空即收起，用户可主动展开，随后增长不再次收起。新打开的已回答历史默认收起，展开显示真实动作顺序与成功、失败或中断结果未知。当前与已保存进展的提示分开，取得资料不称为完成核实；复制回答不包含进展。`hasAnswerStarted` 使用原始正文是否已出现，折叠状态不控制后端生成、保存或最终状态。验证见[查询进展历史与两端折叠验收](../acceptance/query-progress-history.md)。
+
+## 短暂展开与原生阅读保位（#113）
+
+`SessionAccess.contentRecoveryRevision` 是共享会话的本地只读恢复次序，在采用快照和订阅的首次累计更新时推进，静态装配默认 0；它不改变后端协议、不持久化，也不安排额外读取。显示部件据此直接恢复已有内容。
+
+正在生成的后续大块追加超过 64 个 `Character` 时，回答与查询进展可在同一个 200ms 绝对逻辑窗口内短暂展开；后续文字不续期，小片段直接呈现，截止后的可用界面帧直接赶上。初次显示、恢复、文本／尝试替换、模型生成完成、真实终态及 Reduce Motion 都直接采用内容；不是全文生成后的播放。停止立即取消相关展示任务并冻结可见前缀，退出页面取消任务；复制取当前显示的 Markdown，真实终态沿原契约采用全文。
+
+进展折叠仍根据原始非空回答触发。iOS 17 阅读页面在现有 SwiftUI 结构内通过原生滚动容器保留可见锚点，布局重排不模拟用户滚动；真实滚动到底部或“回到最新”恢复跟随。实现与调度／设备范围见 [#113 验收](../acceptance/stream-smoothing.md)。
+
+## 查询尝试与完整等待（#115）
+
+`ProgressEntry.delivery` 是可选真实交付方式，旧服务缺少时为 `nil`。SessionAccess仍通过同一快照／订阅读取累计条目；Presenter在没有正文的查询阶段也解释空 `retrying` 和 `generating / complete`。可靠工具条目不随失败模型尝试清空，页面按条目和尝试身份取消旧平滑任务；完整交付不进入流式平滑。停止和保存故障保持其原优先级，手机不自行重试模型或重发输入。公开SessionAccess及真实HTTPS界面验证见[查询重试验收](../acceptance/query-retries.md)。
+
+## 两类内容与即时服务状态交接（#114）
+
+共享会话在现有唯一 SSE 连接中同时读取 `service.state`、`answer.preview` 和 `progress.preview`，不新建独立轮询。即时状态按两类内容已采用次序拒绝过期值；停止状态在采用后续内容前调用既有冻结入口。状态确认活动轮次改变时，通过原有历史入口立即核对当前观察会话，使新轮或已保存终态无需等待下一次普通前台轮询。
+
+内容若先于确认其归属的状态抵达，只保留同一观察会话的累计候选；待有效状态或快照核对目标后采用，不覆盖原轮已展示内容。两类次序独立，明确空对象阻止旧内容复活。切换服务、数据集、进程、观察会话、404 或离开页面会清理未采用候选；旧订阅回调继续按操作身份失效。较旧快照不能清除较新状态，但仍可交接另一类较新的累计内容。前后台与可靠历史行为见 [#114 恢复验收](../acceptance/progress-recovery.md)。
+
+## 查询阶段停止收束（#116）
+
+共享能力在采用远端停止快照前，同时检查已有正文或已有进展；即使尚未开始回答，也先冻结此前可见进展，阻止同一快照的迟到内容扩展阅读区域。停止时展示任务立即清空，实际接收与持久收束继续；原轮次释放后采用真实完整／未完成／失败结果。保存失败的全文仅作为当前未保存正文复制，可靠已提交进展仍可独立回看。验证见 [#116 停止收束](../acceptance/query-progress-stop.md)。
+
+## 完成通知与历史响应的阅读交接（#117）
+
+同一前台 SSE 连接还读取可靠 `turn.finished` 的会话、轮次、游标和结果分类，以及 `request.started`／`request.failed` 的安全请求摘要。只有当前已经读到的非空模型正文，以及同轮已有进展，才可在 `answer_source=model` 且结果为 `completed` 或 `budget`／`output_limit` 时暂存为内存阅读交接；事实游标必须晚于目标轮实际读取的版本；更早分页推进的会话全局游标不代表目标轮也已更新。它不从完成事件重建正文，不新增订阅、轮询、模型执行或手机历史副本。 通知可能先补齐多条持久事实、再只发送最后瞬时预览，因此显示和完成交接都排除已失败请求或已被同轮下一次 `answer_phase=answer` 请求取代的正文；查询及上下文摘要不替换正文尝试身份，后来的完成事实也不复活失败尝试。快照公开游标是请求事实的读取水位，较旧补发的 `request.started` 不能撤销快照当前已确认尝试；它与两类预览版本及目标轮历史版本分别核对。真实停止的已读冻结仍沿原契约，完成交接资格另外检查。
+
+前台轮询的 HTTP 结束快照也可能先于完成通知抵达。当同一进程／数据集／会话的原活动轮仍有合格正文，而新快照释放该轮、清空预览且事件游标晚于该轮已读版本时，先沿现有 `history` 入口核对并采用该轮真实终态，再公布这一快照。等待的是尚未公布的复合读取，保留上一份一致状态，不由 `null` 授权保存或建立阅读缓存；未知／失败的核对不伪造终态，404、取消及归属变化沿原失效契约处理。成功的这次历史读取替代本轮原有读取，不增加轮询、定时器或模型执行；后续版本和操作身份仍再次核对，旧快照不能撤销期间更新的 SSE 状态。停止、保存故障、新尝试或失效候选不被此窄路径改写。
+
+后续 `null` 仍清除当前原始预览并推进两类独立次序；公开可读投影在同进程、数据集、会话、轮次的可靠历史响应返回前，暂留已读前缀与进展，避免正文区撤空、折叠控件消失及阅读位置跳动。界面显示“正在核对本轮结果 · 当前正文尚未确认保存”，复制仍为“当前正文”；交接内容不是完整或已保存历史。可靠历史采用后立即以其真实终态、全文和进展接管，不延迟终态，也不播放历史文字。
+
+同尝试较新累计正文与同轮进展推进交接，迟到的较旧累计不能使其回退；状态通知宣布的两类版本门槛与实际采用的原始预览版本分开记录，旧 HTTP 快照不能重开已结束服务，随后同版本空预览仍可采用。正文自身的新尝试、失效或重试候选撤销正文交接；查询数组包含历史失效说明与可靠工具，独立累计更新不撤销最终正文。停止时捕获的已读前缀仍冻结至真实历史接管；切换轮次、会话、配置、数据集或进程、历史 404、离开观察及前后台重建同样撤销。没有可靠完成事实的空预览继续立即失效。模型失败、应用说明及保存失败不因界面交接冒充成功；未保存正文仍沿原 `storageError`／`unsavedFact` 契约处理。公开 SessionAccess 的历史 HTTP 屏障红绿与真实界面保位回归见 `PollingTests.finishedStateKeepsReadableContentUntilReliableHistoryArrives`、`newAnswerAttemptCancelsCompletionReadingHandoff`、`lateSnapshotForSameAttemptKeepsCompletionReadingHandoff` 、`persistentRequestFactsPreventFailedAttemptHandoff`、`endingSnapshotWaitsForReliableHistoryBeforeClearingReadableContent` 和 `ReadingNavigationTests.testSavedHistoryHandoffKeepsBodyAndPositionWhileHistoryIsDelayed`。

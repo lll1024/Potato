@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import type { AnswerPreview } from './useServiceEvents';
+import type { AnswerPreview, ProgressPreview, ProgressEntry } from './useServiceEvents';
 import { AnswerBody } from './AnswerBody';
+import { StreamingText } from './StreamingText';
 import { RoundProgress, type RoundActivity } from './RoundProgress';
 import { ExceptionOutcome, isExceptional, type QueryMaterial } from './ExceptionOutcome';
 
@@ -8,6 +9,7 @@ export type Turn = {
   turn_id: string; ordinal: number; input: string; status: 'running' | 'completed' | 'failed' | 'terminated';
   reason: string | null; answer: string | null; answer_source: 'model' | 'application' | null;
   model_error_code?: string | null;
+  query_progress?: ProgressEntry[];
   answer_delivery?: 'stream' | 'complete' | null;
   tool_error_count: number; context_excluded?: boolean; created_at?: string; finished_at?: string | null; duration_ms?: number | null;
   query_materials?: QueryMaterial[]; unreadable_query_count?: number;
@@ -23,7 +25,36 @@ function AnswerCopy({text, label}: {text: string; label: string}) {
   return <><button type="button" onClick={() => void copy()}>{label}</button><span role="status">{notice}</span></>;
 }
 
-export function ConversationRounds({turns, statusText, onTrace, activity, stoppingTurnId, disconnected, onRetry, retryTurnId, retryBlocked, storageTurnId, onStop, preview}: {
+function QueryProgress({entries, turnID, hasAnswerStarted, isCurrent, identity, stopped, recovery}: {
+  entries: ProgressEntry[]; turnID: string; hasAnswerStarted: boolean; isCurrent: boolean;
+  identity: string; stopped: boolean; recovery?: number;
+}) {
+  const [open, setOpen] = useState(!hasAnswerStarted);
+  const [answerSeen, setAnswerSeen] = useState(hasAnswerStarted);
+  useEffect(() => {
+    if (hasAnswerStarted && !answerSeen) { setOpen(false); setAnswerSeen(true); }
+  }, [hasAnswerStarted, answerSeen]);
+  const visible = entries.filter(entry => entry.text);
+  if (!visible.length) return null;
+  return <details className="query-progress" open={open} onToggle={event => setOpen(event.currentTarget.open)}
+    role="region" aria-label="查询进展" data-reading-anchor={`query:${turnID}`}>
+    <summary>查询进展 <span>（{visible.length} 项）</span></summary>
+    <p className="hint">{isCurrent ? '当前进展 · 尚未全部保存' : '已保存的查询进展'}，取得资料不代表已完成核实</p>
+    <ol>{visible.map(entry => <li key={entry.id}>
+      <StreamingText text={entry.text} identity={`${identity}:${entry.id}:${entry.attempt_id}`}
+        live={isCurrent && entry.status === 'generating' && entry.delivery !== 'complete'} stopped={stopped} recovery={recovery}>
+        {text => <span>{text}</span>}
+      </StreamingText> <small>{entry.kind === 'model'
+        ? ({generating: '正在说明', generated: '行动说明', invalidated: '说明已失效', retrying: '正在重试'}[entry.status] ?? '行动说明')
+        : ({pending: '准备中', running: '执行中', completed: '已取得资料', failed: '查询失败', not_executed: '未执行', interrupted: '已中断 · 结果未知'}[entry.status] ?? '状态未知')}</small>
+    </li>)}</ol>
+  </details>;
+}
+
+export function ConversationRounds({turns, statusText, onTrace, activity, stoppingTurnId, disconnected, onRetry, retryTurnId, retryBlocked, storageTurnId, onStop, preview, progress, rawPreview, contentRecoveryRevision}: {
+  rawPreview?: AnswerPreview | null;
+  contentRecoveryRevision?: number;
+  progress?: ProgressPreview | null;
   preview?: AnswerPreview | null;
   turns: Turn[]; statusText: (turn: Turn) => string; onTrace?: (turn: Turn) => void; activity?: RoundActivity;
   stoppingTurnId?: string | null; disconnected?: boolean;
@@ -33,16 +64,23 @@ export function ConversationRounds({turns, statusText, onTrace, activity, stoppi
 }) {
   return <>{turns.map(turn => {
     const current = turn.status === 'running' && preview?.turn_id === turn.turn_id ? preview : null;
+    const currentProgress = turn.status === 'running' && progress?.turn_id === turn.turn_id ? progress : null;
     return <section key={turn.turn_id} aria-label={`第 ${turn.ordinal} 轮对话`}>
     <div className="round-heading"><p className="round-status">第 {turn.ordinal} 轮 · {turn.turn_id === storageTurnId ? '存储故障，结果未完整保存' : statusText(turn)}</p>{onTrace && <button type="button" onClick={() => onTrace(turn)}>查看本轮轨迹</button>}</div>
     <article className="message user" data-reading-anchor={`input:${turn.turn_id}`}><h3>你的输入</h3><p>{turn.input}</p></article>
     {(isExceptional(turn) || turn.turn_id === storageTurnId) && <ExceptionOutcome turn={turn} storageFault={turn.turn_id === storageTurnId}
       onRetry={turn.turn_id === retryTurnId ? onRetry : undefined} retryBlocked={retryBlocked} />}
     {!isExceptional(turn) && turn.turn_id !== storageTurnId && <RoundProgress turn={turn} activity={activity} stopping={stoppingTurnId === turn.turn_id} disconnected={disconnected} statusText={statusText(turn)} onStop={onStop ? () => onStop(turn) : undefined} />}
-    {current && current.status !== 'retrying' && turn.turn_id !== storageTurnId && onStop && <button type="button"
+    <QueryProgress entries={turn.status === 'running' && progress?.turn_id === turn.turn_id ? progress.entries : turn.query_progress ?? []}
+      turnID={turn.turn_id} hasAnswerStarted={Boolean((rawPreview?.turn_id === turn.turn_id ? rawPreview.text : current?.text)?.trim() || turn.answer?.trim())}
+      identity={`${progress?.instance_id}:${progress?.stream_id}:${turn.turn_id}`}
+      stopped={stoppingTurnId === turn.turn_id} recovery={contentRecoveryRevision}
+      isCurrent={turn.status === 'running' && progress?.turn_id === turn.turn_id} />
+    {(current || progress?.turn_id === turn.turn_id) && current?.status !== 'retrying' && turn.turn_id !== storageTurnId && onStop && <button type="button"
       disabled={stoppingTurnId === turn.turn_id || disconnected} onClick={() => onStop(turn)}>停止生成</button>}
+    {stoppingTurnId !== turn.turn_id && storageTurnId !== turn.turn_id && currentProgress?.entries.some(entry => entry.kind === 'model' && entry.status === 'retrying') && <p className="hint" role="status">查询进展正在重试，新尝试将重新生成。</p>}
     {current?.status === 'retrying' && <p className="hint" role="status">正在重试，新尝试将从头作答。</p>}
-    {(current?.delivery === 'complete' || turn.answer_delivery === 'complete') && <p className="hint">模型服务不支持流式，改为生成完整回答。</p>}
+    {(current?.delivery === 'complete' || turn.answer_delivery === 'complete' || currentProgress?.entries.some(entry => entry.kind === 'model' && entry.delivery === 'complete')) && <p className="hint">模型服务不支持流式，改为生成完整回答。</p>}
     {current?.text.trim() && <article className="message answer" data-reading-anchor={`answer:${turn.turn_id}`}>
       <div className="answer-heading"><h3>旅行助手</h3><span>{turn.turn_id === storageTurnId ? '未保存 · 请复制保留，刷新后可能丢失'
         : stoppingTurnId === turn.turn_id ? '正在停止 · 正文已暂停追加' : current.status === 'generated' ? '正在保存 · 尚未保存' : '正在生成 · 尚未保存'}</span></div>

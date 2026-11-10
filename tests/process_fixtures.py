@@ -59,14 +59,14 @@ class ExternalServices:
                 start = {**result, "content": [], "stop_reason": None, "stop_sequence": None}
                 yield "event: message_start\ndata: " + json.dumps({"type": "message_start", "message": start}) + "\n\n"
                 for index, block in enumerate(result["content"]):
-                    if stream_wait:
+                    if stream_wait and "tools" not in data:
                         await stream_wait()
                     yield "event: content_block_start\ndata: " + json.dumps({"type": "content_block_start", "index": index,
-                        "content_block": {"type": "text", "text": ""}}) + "\n\n"
+                        "content_block": {"type": "text", "text": ""} if block["type"] == "text" else {**block, "input": {}}}) + "\n\n"
                     yield "event: content_block_delta\ndata: " + json.dumps({"type": "content_block_delta", "index": index,
-                        "delta": {"type": "text_delta", "text": block["text"]}}) + "\n\n"
+                        "delta": {"type": "text_delta", "text": block["text"]} if block["type"] == "text" else {"type": "input_json_delta", "partial_json": json.dumps(block["input"])}}) + "\n\n"
                     yield "event: content_block_stop\ndata: " + json.dumps({"type": "content_block_stop", "index": index}) + "\n\n"
-                if stream_wait:
+                if stream_wait and "tools" not in data:
                     await stream_wait()
                 yield "event: message_delta\ndata: " + json.dumps({"type": "message_delta",
                     "delta": {"stop_reason": result["stop_reason"], "stop_sequence": None},
@@ -82,7 +82,7 @@ class ExternalServices:
                                     headers={"Retry-After": "10"})
             if preference_handler and data['system'].startswith('旅行者偏好提取'):
                 return await preference_handler(data)
-            if self.block == 'model' or (self.block == 'answer' and data.get('stream')):
+            if self.block == 'model' or (self.block == 'answer' and data.get('stream') and 'tools' not in data):
                 self.entered.set()
                 await self.release.wait()
             last = data['messages'][-1]['content']

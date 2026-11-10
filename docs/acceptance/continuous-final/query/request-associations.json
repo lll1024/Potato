@@ -1,0 +1,122 @@
+{
+  "associations": [
+    {
+      "session_id": "c6705ee8331c436bb95a9914b8ad682c",
+      "turn_id": "805f349342db4b568b643ee4ab2a012e",
+      "request_id": "201b90051272456eb1880c78e8add54a",
+      "ordinal": 1,
+      "purpose": "travel",
+      "answer_phase": "query",
+      "attempt": 1,
+      "status": "completed",
+      "started_at": "2026-11-08T15:15:33.827653+00:00",
+      "finished_at": "2026-11-08T15:15:34.668735+00:00",
+      "call_sequence": 1
+    },
+    {
+      "session_id": "c6705ee8331c436bb95a9914b8ad682c",
+      "turn_id": "805f349342db4b568b643ee4ab2a012e",
+      "request_id": "ef6a97faee884206af9336e0141543fa",
+      "ordinal": 2,
+      "purpose": "travel_answer",
+      "answer_phase": "answer",
+      "attempt": 1,
+      "status": "completed",
+      "started_at": "2026-11-08T15:15:34.688268+00:00",
+      "finished_at": "2026-11-08T15:15:35.523148+00:00",
+      "call_sequence": 2
+    },
+    {
+      "session_id": "c6705ee8331c436bb95a9914b8ad682c",
+      "turn_id": "8f308230fdc74586a8b2728a4de0abe0",
+      "request_id": "ae3558dc20494c4aa8f3033872216901",
+      "ordinal": 1,
+      "purpose": "travel",
+      "answer_phase": "query",
+      "attempt": 1,
+      "status": "completed",
+      "started_at": "2026-11-08T15:16:16.560461+00:00",
+      "finished_at": "2026-11-08T15:16:22.332979+00:00",
+      "call_sequence": 3
+    },
+    {
+      "session_id": "c6705ee8331c436bb95a9914b8ad682c",
+      "turn_id": "8f308230fdc74586a8b2728a4de0abe0",
+      "request_id": "acf0d75ec7b545bfbaa297db7fc60141",
+      "ordinal": 2,
+      "purpose": "travel",
+      "answer_phase": "query",
+      "attempt": 1,
+      "status": "completed",
+      "started_at": "2026-11-08T15:16:30.696622+00:00",
+      "finished_at": "2026-11-08T15:16:34.011416+00:00",
+      "call_sequence": 4
+    },
+    {
+      "session_id": "c6705ee8331c436bb95a9914b8ad682c",
+      "turn_id": "8f308230fdc74586a8b2728a4de0abe0",
+      "request_id": "cd525e2f9ee5455d9c42a802150ff2b6",
+      "ordinal": 3,
+      "purpose": "travel",
+      "answer_phase": "query",
+      "attempt": 1,
+      "status": "completed",
+      "started_at": "2026-11-08T15:16:35.467570+00:00",
+      "finished_at": "2026-11-08T15:16:40.252954+00:00",
+      "call_sequence": 5
+    },
+    {
+      "session_id": "c6705ee8331c436bb95a9914b8ad682c",
+      "turn_id": "8f308230fdc74586a8b2728a4de0abe0",
+      "request_id": "08420dcba1e3412f894fd366c6ff2bad",
+      "ordinal": 4,
+      "purpose": "travel",
+      "answer_phase": "query",
+      "attempt": 1,
+      "status": "completed",
+      "started_at": "2026-11-08T15:16:41.382023+00:00",
+      "finished_at": "2026-11-08T15:16:46.723323+00:00",
+      "call_sequence": 6
+    },
+    {
+      "session_id": "c6705ee8331c436bb95a9914b8ad682c",
+      "turn_id": "8f308230fdc74586a8b2728a4de0abe0",
+      "request_id": "62bc10ff38d64e9fa027148af31edc99",
+      "ordinal": 5,
+      "purpose": "travel",
+      "answer_phase": "query",
+      "attempt": 1,
+      "status": "completed",
+      "started_at": "2026-11-08T15:16:47.389455+00:00",
+      "finished_at": "2026-11-08T15:16:48.930910+00:00",
+      "call_sequence": 7
+    },
+    {
+      "session_id": "c6705ee8331c436bb95a9914b8ad682c",
+      "turn_id": "8f308230fdc74586a8b2728a4de0abe0",
+      "request_id": "61c81cdc57c4445a87b696a94e2e0c68",
+      "ordinal": 6,
+      "purpose": "travel",
+      "answer_phase": "query",
+      "attempt": 1,
+      "status": "completed",
+      "started_at": "2026-11-08T15:16:49.161684+00:00",
+      "finished_at": "2026-11-08T15:17:38.225052+00:00",
+      "call_sequence": 8
+    },
+    {
+      "session_id": "c6705ee8331c436bb95a9914b8ad682c",
+      "turn_id": "8f308230fdc74586a8b2728a4de0abe0",
+      "request_id": "13b5090205754a55a4f5f8ac48165b42",
+      "ordinal": 7,
+      "purpose": "travel_answer",
+      "answer_phase": "answer",
+      "attempt": 1,
+      "status": "completed",
+      "started_at": "2026-11-08T15:17:38.266214+00:00",
+      "finished_at": "2026-11-08T15:18:14.460004+00:00",
+      "call_sequence": 9
+    }
+  ],
+  "unmatched_sdk_calls": []
+}

@@ -1,0 +1,62 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "A0360FB3-5ACB-42BC-A5C0-2DCDABE784E7.json",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "真实模型与iOS全程证据_0_6FBA1E40-7595-4E71-8058-2C023FAEA6C2.json",
+        "timestamp" : 1794190617.365
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "BA9DF2E5-E076-4E44-B318-150E8C778FE9.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "重开App展开已保存查询进展_0_0ADD27EA-809C-499C-AE6C-ACEB9649FE83.png",
+        "timestamp" : 1794190617.297
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "8206999C-C93F-480B-92D8-571AE5BFFC96.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "真实最终Markdown复制全文一致_0_24CEA716-1C1C-4E41-8292-6A7B241E258A.png",
+        "timestamp" : 1794190593.588
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "10D43063-43BF-4AE9-8E01-46751FAF7700.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "真实模型回答已保存_0_6B63A47B-F2FD-4367-9313-1F61EDAAF129.png",
+        "timestamp" : 1794190587.014
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "0250D533-4FB5-4816-BD6D-75D910DB9ADC.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "真实正文初现且查询自动折叠_0_BFD64D70-CE70-40BB-9797-433A237D229E.png",
+        "timestamp" : 1794190576.62
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "AB9010DF-6F36-4079-8492-3CE8B5393EF7",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "4C9C5606-BE8E-42C5-8D11-46A3603899AA.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "真实查询进展初现_0_5F69E041-243B-4F5E-AF15-FC171542362B.png",
+        "timestamp" : 1794190474.736
+      }
+    ],
+    "testIdentifier" : "ReadingNavigationTests/testCurrentConfiguredModelShowsBatchesBeforeSavedHistory()",
+    "testIdentifierURL" : "test://com.apple.xcode/Potato/PotatoUITests/ReadingNavigationTests/testCurrentConfiguredModelShowsBatchesBeforeSavedHistory"
+  }
+]

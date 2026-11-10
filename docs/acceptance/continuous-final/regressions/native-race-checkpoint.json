@@ -1,0 +1,14 @@
+{
+  "native_commit": "2796083",
+  "joint_commit": "a8ab90695b9f80628f12db8dca9589d132f77667",
+  "green": "85 Swift Testing tests/11 suites;10 XCTest snapshots",
+  "result": "/tmp/potato117-race-final-capabilities.xcresult",
+  "red_cases": {
+    "late_snapshot_original": "6 issues including state re-open and discarded read handoff",
+    "progress_fixture_initial": "test helper ignored supplied attempt/status, corrected before counting green",
+    "progress_historical_failure": "4 issues; array historical invalidation incorrectly revoked answer",
+    "newer_earlier_page": "2 issues; conversation cursor30 incorrectly superseded target observedAt12",
+    "handoff_order": "4 issues; HTTP cumulative3 followed by queued SSE2 rolled back both held contents"
+  },
+  "scope": "Public SessionAccess/HTTP/SSE boundaries; no real model used"
+}

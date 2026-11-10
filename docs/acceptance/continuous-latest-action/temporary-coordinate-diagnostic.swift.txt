@@ -1,0 +1,32 @@
+    func testRecordedLatestCoordinateDuringSaveReproducesMissedTap() async throws {
+        let app = connectedApp(address: "https://localhost:18497")
+        defer { app.terminate() }
+        try await streamControl("arm?mode=query-reading")
+        app.buttons["new-conversation"].tap()
+        let input = app.descendants(matching: .any).matching(identifier: "travel-input").firstMatch
+        input.tap(); input.typeText("回到最新坐标诊断")
+        app.buttons["send-input"].tap()
+        try await streamControl("entered", method: "GET")
+        for _ in 0..<8 { try await streamControl("step") }
+        let copy = app.buttons["copy-answer"]
+        XCTAssertTrue(copy.waitForExistence(timeout: 10))
+        app.buttons["earlier-history"].tap()
+        let latest = app.buttons["latest-answer"]
+        XCTAssertTrue(latest.waitForExistence(timeout: 5))
+        let frame = latest.frame
+        let oldCenter = CGPoint(x: frame.midX, y: frame.midY)
+        try await streamControl("step")
+        await fulfillment(of: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "复制完整回答"), object: copy)], timeout: 10)
+        let current = latest.frame
+        XCTAssertGreaterThan(current.minY, oldCenter.y)
+        let oldCoordinate = app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: oldCenter.x, dy: oldCenter.y))
+        oldCoordinate.tap()
+        let details = XCTAttachment(string: "[DEBUG-109-LATEST] before=\(frame) saved=\(current) staleTap=\(oldCenter) afterStale=\(latest.frame) copyHittable=\(copy.isHittable)")
+        details.name = "旧坐标与保存后按钮位置"; details.lifetime = .keepAlways; add(details)
+        attach(app, "旧坐标点击后仍然停在上方")
+        XCTAssertTrue(copy.isHittable, "复现原失败：旧坐标点击应无法回到最新")
+        latest.tap()
+        await fulfillment(of: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: copy)], timeout: 5)
+        XCTAssertFalse(latest.exists)
+        attach(app, "重新读取按钮位置后回到最新")
+    }

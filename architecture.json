@@ -45,7 +45,13 @@
   },
   "legacy": {},
   "files": {
+    "tests/live_answer_observation.py": {"owner": "integration", "role": "test-support"},
+    "tests/test_live_answer_observation.py": {"owner": "integration", "role": "caller-test"},
     "tests/live_answer_eval.py": {
+      "owner": "integration",
+      "role": "caller-test"
+    },
+    "frontend/tests/ui/progress-recovery-live.spec.ts": {
       "owner": "integration",
       "role": "caller-test"
     },
@@ -479,6 +485,7 @@
       "owner": "tooling",
       "role": "tooling"
     },
+    "tests/test_query_progress.py": {"owner": "integration", "role": "caller-test"},
     "tests/test_answer_streaming.py": {
       "owner": "integration",
       "role": "caller-test"

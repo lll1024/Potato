@@ -1,0 +1,43 @@
+{
+  "date": "2026-11-08",
+  "base": "ffbc5876cddd6d6a8522e77d6386d73ba30ab98d",
+  "backend": {
+    "passed": 38,
+    "seconds": 35.873
+  },
+  "process_restart": {
+    "passed": 1,
+    "seconds": 2.88
+  },
+  "web_conversation": {
+    "passed": 37,
+    "seconds": 40.5,
+    "first_run": {
+      "passed": 36,
+      "failed": 1
+    }
+  },
+  "web_https": {
+    "passed": 1,
+    "seconds": 2.2,
+    "persistent_timeline": false
+  },
+  "ios_capability": {
+    "passed": 15,
+    "includes_progress_recovery_cases": [
+      "running",
+      "completed",
+      "restarted"
+    ]
+  },
+  "ios_ui": {
+    "passed": 1,
+    "seconds": 25.293,
+    "device": "iPhone 17 Pro / iOS 26.5 Simulator"
+  },
+  "limits": [
+    "真实供应商模型未在本票运行",
+    "真机/TestFlight/iOS17/私网蜂窝未运行",
+    "Web真实运行截图/JSON被后续共享输出清理，保留实际执行日志与断言"
+  ]
+}

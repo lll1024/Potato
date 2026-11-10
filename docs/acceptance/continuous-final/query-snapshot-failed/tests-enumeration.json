@@ -1,0 +1,585 @@
+{
+  "errors" : [
+
+  ],
+  "values" : [
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "children" : [
+                {
+                  "kind" : "test",
+                  "name" : "attemptReplacementWrongOwnershipAndStreamFailureRemainObservable()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "backgroundAndPageExitCancelReceivingAndForegroundRestoresSnapshot()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "changedOwnershipInvalidatesOldConnection(kind:)"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "delayedSnapshotDuplicateEventsAndMissingPreviewCannotResurrectOldAttempt()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "disconnectedStreamReconcilesSnapshotAndHistoryBeforeResubscribing(result:)"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "failedAnswerClearsBeforeRetryAndCompleteDeliveryRemainsInHistory()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "firstSnapshotAlreadyStoppingRestoresAndFreezesItsCurrentBody()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "incompleteSavedOutcomeReplacesPreviewWithoutChangingItsReason(reason:)"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "liveStateReconcilesAheadProgressWithoutWaitingForPolling()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "processChangeBetweenSnapshotAndSubscriptionImmediatelyInvalidatesPreview()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "queryOnlyRemoteStopFreezesBeforeAdoptingLateSnapshotProgress()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "queryProgressRecoveryUsesSnapshotAndReliableHistory(result:)"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "queryProgressUsesExistingSubscriptionAndKeepsAnswerSeparate()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "queryRetryAndCompleteDeliveryReplaceOnlyTransientModelEntry()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "receivesBatchesBeforeSavedHistoryThroughOneForegroundSubscription()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "savedProgressIsReadAgainAfterReopeningClientWithoutLocalHistoryCopy()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "stopFreezesUntilSavedOrUnsavedResultIsConfirmed(unsaved:)"
+                }
+              ],
+              "kind" : "class",
+              "name" : "AnswerStreamingTests"
+            },
+            {
+              "children" : [
+                {
+                  "kind" : "test",
+                  "name" : "changedServiceIgnoresLateDecodingFailure()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "changedServiceRejectsLateSuccessfulSnapshot()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "historyDetectsNewDatasetAndRejectsAnOlderRefresh()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "invalidResponseNeverBecomesEmptyHistory(status:)"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "lateHistoryFailureCannotReplaceNewerGlobalConnection()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "lateListFailureCannotReplaceNewerHistoryConnection()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "latestRefreshWinsOverOlderFailure()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "sameAddressDatasetChangeInvalidatesPendingHistory()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "unavailableLocalServiceExplainsHowToRecoverAndCanRetry()"
+                }
+              ],
+              "kind" : "class",
+              "name" : "ConnectionFailureTests"
+            },
+            {
+              "children" : [
+                {
+                  "kind" : "test",
+                  "name" : "acceptanceOnlyClearsTheSubmittedDraftRevision(edit:)"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "draftWrittenBeforeFirstConnectionRemainsAvailableAfterVerification()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "draftsRemainSeparateAcrossSessionsAndReopenOffline()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "failedAcceptanceCleanupRollsBackDraftAndPendingTogether()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "failedDraftSaveIsVisibleAndKeepsTheLastSavedText()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "initialOfflineScopeNeverRetargetsToAReplacementDataset()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "laterNewConversationDraftCanFollowItsAcceptedConversation()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "movingDraftNeverOverwritesOtherSavedContentOrPartiallyCommits(mode:)"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "offlineEditingDoesNotQueueInputAndUnknownSubmissionKeepsItsOriginal()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "offlineRestoredDraftCannotBeSubmittedToAReplacementDataset()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "reconnectingInForegroundDoesNotSendAnOfflineDraft()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "serviceAndDatasetChangesIsolateDraftsAndLateAcceptance()"
+                }
+              ],
+              "kind" : "class",
+              "name" : "DraftTests"
+            },
+            {
+              "children" : [
+                {
+                  "kind" : "test",
+                  "name" : "deletedEarlierPageClearsHistoryAndRejectsAnOlderSuccessfulRefresh()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "earlierTurnsUseServerBoundaryAndKeepCompleteReadHistory()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "lateEarlierPagePreservesNewFactsAndLeavesNewGapReachable()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "lateListPageCannotUndoARefreshAndCursorIsPassedUnmodified()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "obsoleteEarlierPageCannotRestoreAnInvalidTarget(change:)"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "paginationFailureRetainsContentAndAllowsExplicitRetry()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "refreshingHistoryPreservesAlreadyReadTurnsAndUpdatesCompletedAnswer()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "sessionListLoadsOpaqueCursorAndRefreshReflectsDesktopRenameAndDeletion()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "staleHistoryCannotReplaceNewCompletion()"
+                }
+              ],
+              "kind" : "class",
+              "name" : "PaginationTests"
+            },
+            {
+              "children" : [
+                {
+                  "kind" : "test",
+                  "name" : "backgroundCancelsSlowReadAndForegroundImmediatelyRefreshesOnce()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "foregroundPollingReadsPersistedOutcomeAndReleasesInput(status:)"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "polledMissingConversationPublishes404AndCanRecover()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "storageFailureAndOfflinePollingPreserveLastSavedRunningFact()"
+                }
+              ],
+              "kind" : "class",
+              "name" : "PollingTests"
+            },
+            {
+              "children" : [
+                {
+                  "kind" : "test",
+                  "name" : "realHTTPSProvidesAllSessionsFullHistoryAndDesktopChanges()"
+                }
+              ],
+              "kind" : "class",
+              "name" : "ReadingIntegrationTests"
+            },
+            {
+              "children" : [
+                {
+                  "kind" : "test",
+                  "name" : "acceptedDisplayIsInvalidatedWhenDatasetChanges()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "changedServiceAndDatasetIgnoreLateCheckAndRecoverOnlyAtOriginalIdentity()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "explicitRetryRejectionsRemainDistinctAndKeepTheOriginal(code:)"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "failedChecksKeepOriginalAndNeverPermitRetry(mode:)"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "interruptedLocalCleanupCanRecoverOriginalAcceptanceAfterReopen()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "missingAcceptanceNeverAutoSendsAndExplicitRetryKeepsOriginalRequest()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "queryDeletedAcceptanceCannotBecomeARetry()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "reopeningChecksOriginalAcceptanceAndKeepsLaterDraft()"
+                }
+              ],
+              "kind" : "class",
+              "name" : "RecoveryTests"
+            },
+            {
+              "children" : [
+                {
+                  "kind" : "test",
+                  "name" : "configurationSurvivesReopeningTheLocalDatabase()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "invalidAddressDoesNotReplaceSavedConfiguration(address:)"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "localHTTPIsLimitedToSimulatorDebugBuilds()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "missingConversationDoesNotMarkReachableServiceOffline()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "readsFullExistingConversationThroughRealHTTPS()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "trueEmptyListIsDifferentFromUnavailableService()"
+                }
+              ],
+              "kind" : "class",
+              "name" : "SessionAccessTests"
+            },
+            {
+              "children" : [
+                {
+                  "kind" : "test",
+                  "name" : "testChineseAnswer()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testChineseTableDarkLargeText()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testConversationDeleted()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testConversationLoading()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testDesktopRunning()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testEmptySessions()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testStoppingDarkLargeText()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testStorageFailureStaysVisibleBesideUnknownSubmission()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testUnconfiguredDarkLargeText()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testUnconfirmedConversationDarkLargeText()"
+                }
+              ],
+              "kind" : "class",
+              "name" : "SnapshotTests"
+            },
+            {
+              "children" : [
+                {
+                  "kind" : "test",
+                  "name" : "capturedOldTargetNeverStopsLaterTurnOrChangesWithNavigation()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "staleIdleSnapshotCannotReleaseStopAndChangedServiceRejectsLateStop()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "stopsDesktopTurnAndWaitsForRealReleaseBeforeSending()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "unknownStopDoesNotInventTerminalState(kind:)"
+                }
+              ],
+              "kind" : "class",
+              "name" : "StopTests"
+            },
+            {
+              "children" : [
+                {
+                  "kind" : "test",
+                  "name" : "desktopTurnStopsOnlyAfterExternalReturnAndForegroundRestoresSavedResults()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "localHTTPReadsExistingConversationContinuesAndCreatesWithSharedHistory()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "missingLookupAndOriginalInFlightRaceAcceptsOnlyOneRealExecution()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "phoneAndDesktopShareSingleAcceptanceFullAnswersAndPreferences()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "realLostAcceptanceRecoversOrReportsDeletedWithoutAnotherExecution(deleted:)"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "realStreamingAcrossClientsSurvivesBackgroundAndMatchesSavedHistory()"
+                }
+              ],
+              "kind" : "class",
+              "name" : "SubmissionIntegrationTests"
+            },
+            {
+              "children" : [
+                {
+                  "kind" : "test",
+                  "name" : "definiteRejectionDoesNotCreateAQueuedInput(status:)"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "idleSnapshotStartedBeforeAcceptanceCannotPermitAnotherSubmission()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "lateAcceptanceCannotApplyToAnotherConfiguredServer()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "localSaveFailureNeverSendsTheInput()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "newSubmissionPreservesOriginalInputAndNullableTargetBeforeHTTP()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "unknownAcceptanceKeepsOriginalRecordAcrossReopen(mode:)"
+                }
+              ],
+              "kind" : "class",
+              "name" : "SubmissionTests"
+            }
+          ],
+          "kind" : "target",
+          "name" : "PotatoTests"
+        },
+        {
+          "children" : [
+            {
+              "children" : [
+                {
+                  "kind" : "test",
+                  "name" : "testConnectReadReturnEmptyAndUnavailable()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testCreateSendContinueAndReadSavedAnswer()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testCrossDeviceStopSurvivesNavigationAndBackgroundCompletion()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testDraftsSurviveNavigationReleaseAndAppRestart()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testLateAcceptanceClearsOnlyOldDraftOnReopenedNewPage()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testLaterInputFollowsNewAcceptedConversationAndSurvivesReopen()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testLocalHTTPConnectionFailureRetryAndSavedAnswer()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testLongRetainedInputKeepsRecoveryActionsAndComposerReachable()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testOfflineDraftCanBeEditedAndRestoredWithoutSending()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testRestartRecoversOriginalSubmissionAndOpensSavedConversation()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testSimulatorStartsWithLocalConnectionWithoutAddressEntry()"
+                }
+              ],
+              "kind" : "class",
+              "name" : "NavigationTests"
+            },
+            {
+              "children" : [
+                {
+                  "kind" : "test",
+                  "name" : "testAnswerReallyGrowsBeforeCompletionAndThenBecomesSavedHistory()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testChineseTableScrollsToLastColumn()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testConfiguredModelSavedHistorySamplingAcrossDisclosureChanges()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testContinuousChineseWithUnclosedQuoteIsReadableBeforeModelReturns()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testCurrentConfiguredModelShowsBatchesBeforeSavedHistory()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testFailedAnswerRetriesFromBeginningAndFallbackExplainsCompleteAnswer()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testForegroundRestoresQueryProgressThenSavedAnswerWithoutReplay()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testLargeBurstThenSmallAppendKeepsRealCompletionAndCopy()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testPaginationExternalLinkAndFullCopy()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testProgressFoldingPreservesPausedReadingAndLatestAction()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testQueryProgressFoldsAndRemainsReadableAfterRelaunch()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testQueryProgressGrowsBeforeToolReturnAndStaysSeparateFromAnswer()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testQueryRetryAndCompleteFallbackReplaceFailedExplanationBeforeAnswer()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testRemoteStopDuringQueryFreezesProgressBeforeRealResult()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testStoppedStreamFreezesThenShowsSavedOrUnsavedCopy()"
+                },
+                {
+                  "kind" : "test",
+                  "name" : "testStreamingMarkdownFollowsGrowthAndPreservesReadingPosition()"
+                }
+              ],
+              "kind" : "class",
+              "name" : "ReadingNavigationTests"
+            }
+          ],
+          "kind" : "target",
+          "name" : "PotatoUITests"
+        }
+      ],
+      "kind" : "plan",
+      "name" : "Potato"
+    }
+  ]
+}

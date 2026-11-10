@@ -271,14 +271,15 @@ class AmapTools:
         for index, char in enumerate(text[:limit]):
             if escaped:
                 escaped = False
-            elif char == "\\":
+            elif char == "\\" and depth:
                 escaped = True
             elif quote_char:
                 if char == quote_char:
                     quote_char = None
-            elif char == '"' or (char == "'" and (index == 0 or not text[index - 1].isalnum())):
+            elif depth and char == '"':
                 quote_char = char
-            elif char in "{[":
+            elif char in "{[" and (depth or re.match(r'[\[{]\s*(?:["{\[\]}\d-]|true|false|null)', text[index:limit])):
+                # 只暂缓实际 JSON 结构，普通引号与未闭合 Markdown 标签可直接显示。
                 depth += 1
             elif char in "}]":
                 depth = max(0, depth - 1)
@@ -292,6 +293,13 @@ class AmapTools:
                            text, flags=re.IGNORECASE | re.MULTILINE)
         if header and not text.endswith(("\n", "\r")):
             boundary = min(boundary, header.start())
+        # 配置中的未闭合带引号凭据尚不能交给完整文本规则，暂缓其值。
+        credential = re.search(
+            r"\b(?:key|api[_-]?key|access_token|token|auth|authorization|password|secret|auth_token|cookie|set[_-]cookie|client_secret|refresh_token|x[_-]api[_-]key|anthropic_api_key|anthropic_auth_token|tavily[_-]api[_-]key|tavily[_-]api[_-]token|exa[_-]api[_-]key)\"?\s*[=:]\s*(?:(?:Bearer|Basic|Digest|Negotiate|Token)[ \t]+)?(?P<quote>[\"'])(?:(?!(?P=quote))[^\\]|\\.)*\Z",
+            text, flags=re.IGNORECASE,
+        )
+        if credential:
+            boundary = min(boundary, credential.start())
         matches = []
         for value in variants:
             start = text.find(value)

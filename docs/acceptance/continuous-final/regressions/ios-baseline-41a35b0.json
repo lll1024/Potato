@@ -1,0 +1,7 @@
+{
+  "commit": "41a35b0170d7a3cefd50009a4a2f0071bfdc260c",
+  "xcresult": "/tmp/potato117-ios-full.xcresult",
+  "real_model_service_stopped_ipv4_status": 61,
+  "real_model_service_stopped_ipv6_status": 61,
+  "note": "修复终态交接前的原生全量基线；最终修复将另做相关回归"
+}

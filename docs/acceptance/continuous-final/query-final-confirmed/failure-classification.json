@@ -1,0 +1,19 @@
+{
+  "target_status": "terminated",
+  "reason": "output_limit",
+  "answer_source": "model",
+  "answer_chars": 4203,
+  "answer_failures": [
+    {
+      "request_id": "50940ef3eefd4fcbaa0cc9265d222179",
+      "ordinal": 7,
+      "code": "EMPTY_RESPONSE"
+    },
+    {
+      "request_id": "5e1a10fdbd124b378bc4e756359fc01e",
+      "ordinal": 8,
+      "code": "EMPTY_RESPONSE"
+    }
+  ],
+  "tools": 20
+}

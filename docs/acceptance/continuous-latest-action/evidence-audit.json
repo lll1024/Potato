@@ -1,0 +1,131 @@
+{
+  "scope": "仅本P2新增证据；固定fixture正文/坐标/系统状态，无密钥或模型协议",
+  "secret_pattern_findings": [],
+  "files": [
+    {
+      "file": "controlled-action-runtime.log.gz",
+      "bytes": 418,
+      "sha256": "775f01ba234ee125c20d6df72e1631d9023ee164ba45d324d13d4b94b8bacf7e"
+    },
+    {
+      "file": "controlled-coordinate-observation.txt",
+      "bytes": 347,
+      "sha256": "b5d8274b5b0b83b8fb90474452808043975c274cb9c7e0575b0c176bfbc1c1cf"
+    },
+    {
+      "file": "controlled-coordinate-red.log.gz",
+      "bytes": 2651,
+      "sha256": "8de377bf56ee59bed31f0762d047fdd2d31f73a3d904bb5c72a2cae4edecdbc2"
+    },
+    {
+      "file": "controlled-current-center.png",
+      "bytes": 475377,
+      "sha256": "eaa72bb1b9bed23e05a9c6d77d44bf81056ac398bb5e1d1d0f433106748334df"
+    },
+    {
+      "file": "controlled-stale-tap.png",
+      "bytes": 461524,
+      "sha256": "ee6ad2945183c598ae95a6a41e77e825a901fa22dc2bf8afd99dd6d764efa442"
+    },
+    {
+      "file": "environment-ax-init-timeout.log.gz",
+      "bytes": 678,
+      "sha256": "c3f84c15fece0e81f9b4f3877bd3cff6488ee9a9fd70a62677a97f3225426111"
+    },
+    {
+      "file": "environment-device-boot.log.gz",
+      "bytes": 293,
+      "sha256": "d2104a17ca6a168a926ab5c7fc2eb5bb6b948a812d8266325ca2fc9de7a5a61e"
+    },
+    {
+      "file": "environment-host-recovery.log.gz",
+      "bytes": 666,
+      "sha256": "b97cc54e1838f97eedcdc4d3ea7ea5238973dc42e1fdb917a67c2f822f9292fe"
+    },
+    {
+      "file": "environment-startup-wait.sample.gz",
+      "bytes": 56742,
+      "sha256": "bab6a36c07fefc3467e2f4165335685ea9f47ee26ac4592c1c072dc3d6bfce89"
+    },
+    {
+      "file": "final-build.log.gz",
+      "bytes": 5399,
+      "sha256": "52b2f636b0314c5b8f9b3695f5f76f38de9c8e8799e5017b607deb818a9d5592"
+    },
+    {
+      "file": "final-docs-check.log.gz",
+      "bytes": 111,
+      "sha256": "cfc658d0031208739ae47f74e241e71d61ccb690601ae78c14cad2a1197a0712"
+    },
+    {
+      "file": "final-generating-follow.png",
+      "bytes": 477556,
+      "sha256": "760453c6fee3b77508518998f14eaa4b97fe4304cbc5bb9fcb5bb6794d39672a"
+    },
+    {
+      "file": "final-module-check.log.gz",
+      "bytes": 125,
+      "sha256": "08ccab08bc3b23f5b156871a2844c0d216dd34348976d98f86c0a8dd5a7cfb0e"
+    },
+    {
+      "file": "final-related-ui.log.gz",
+      "bytes": 3634,
+      "sha256": "bc846bf1c6989141825ec0ac602d0875bed3c23a7b6fdb4be814c582b62e73f9"
+    },
+    {
+      "file": "final-saved-latest.png",
+      "bytes": 474938,
+      "sha256": "81d9994b47454b6d9b3d64baa0d7974dd4ff578d90e511903b08608361bd9c3b"
+    },
+    {
+      "file": "original-activities.json.gz",
+      "bytes": 8502,
+      "sha256": "93799a96d682c927e2b14390e628bd4dc498d823caf357f0ed4d5bd07da765ea"
+    },
+    {
+      "file": "original-after-48.595.jpg",
+      "bytes": 184214,
+      "sha256": "c0cd0c05b55318bd4dae0a648750832191d639ab5d0a33c8c72c0d1894314191"
+    },
+    {
+      "file": "original-before-48.532.jpg",
+      "bytes": 189505,
+      "sha256": "eae268a7f02af107338293201e0f3c8d5d2457c5d732e336ff8b917c3c761dba"
+    },
+    {
+      "file": "original-click-47-51.mp4",
+      "bytes": 2988404,
+      "sha256": "0ad4a5ab437abc676186561addd33c9aca13e39db83dbd2ff05c9c15d93e4bed"
+    },
+    {
+      "file": "original-event-timeline.json",
+      "bytes": 1040,
+      "sha256": "29b554e8eb1209a6f59a859cc5dafaa0cf5eeb38a5809e4e58160cee73a9eaae"
+    },
+    {
+      "file": "original-synthesized-tap.plist",
+      "bytes": 1903,
+      "sha256": "2810757bd8dfe462aded5dcfde428b15b86543653cb610ace88813c6d1a915ba"
+    },
+    {
+      "file": "pre-marker-related-ui.log.gz",
+      "bytes": 3593,
+      "sha256": "57a2bb1c10d129fc4ea27a5a3222d10d4e6a1975b65892d937b863ee8bed8e05"
+    },
+    {
+      "file": "results.json",
+      "bytes": 1186,
+      "sha256": "3a719d211780ee19a25d71d671629b48ee8ff263f26383850f2966c68c42a54e"
+    },
+    {
+      "file": "temporary-coordinate-diagnostic.swift.txt",
+      "bytes": 2111,
+      "sha256": "fd92cae2906edc0ceb78492033c5200bd7db4be3ed14aac8eb1b433534b0d667"
+    },
+    {
+      "file": "unchanged-baseline-five.log.gz",
+      "bytes": 6366,
+      "sha256": "3ecbac7d061e302aa82445cb182af8307be9923a3fec305d1a2974650e3b8b6d"
+    }
+  ]
+}

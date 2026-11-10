@@ -43,6 +43,16 @@ class FailingAnswerModel:
 
     @asynccontextmanager
     async def stream(self, **parameters):
+        if "tools" in parameters:
+            reply = await self.create(**parameters)
+            class QueryStream:
+                async def __aiter__(self):
+                    for block in reply.content:
+                        yield SimpleNamespace(type="content_block_start", content_block=block)
+                async def get_final_message(self):
+                    return reply
+            yield QueryStream()
+            return
         self.requests.append(copy.deepcopy(parameters))
         failure = next(self.failures)
         model = self
@@ -77,6 +87,8 @@ class StreamingModel:
 
     async def create(self, **parameters):
         self.requests.append(parameters)
+        if self.query_rounds == 0:
+            return response([{"type": "text", "text": "已有信息足够，直接作答。"}])
         if len(self.requests) == 1:
             return tool_reply(1)
         if len(self.requests) < self.query_rounds:
@@ -86,6 +98,16 @@ class StreamingModel:
 
     @asynccontextmanager
     async def stream(self, **parameters):
+        if "tools" in parameters:
+            reply = await self.create(**parameters)
+            class QueryStream:
+                async def __aiter__(self):
+                    for block in reply.content:
+                        yield SimpleNamespace(type="content_block_start", content_block=block)
+                async def get_final_message(self):
+                    return reply
+            yield QueryStream()
+            return
         self.requests.append(parameters)
         model = self
         class Stream:
@@ -115,6 +137,81 @@ class StreamingModel:
 
 
 class AnswerStreamingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_backpressured_notifications_publish_completion_before_ending_state_and_empty_body(self):
+        for gate_kind in ("turn.accepted", "service.state"):
+            with self.subTest(gate_kind=gate_kind), tempfile.TemporaryDirectory() as directory:
+                model = StreamingModel(query_rounds=0)
+                blocked, release_send = asyncio.Event(), asyncio.Event()
+
+                def transport(app):
+                    async def wrapped(scope, receive, send):
+                        async def gated_send(message):
+                            if scope.get("path") == "/api/events" and message["type"] == "http.response.body":
+                                for line in message.get("body", b"").decode().splitlines():
+                                    if line.startswith("data:"):
+                                        event = json.loads(line[5:])
+                                        if not blocked.is_set() and event["kind"] == gate_kind:
+                                            blocked.set()
+                                            await release_send.wait()
+                            await send(message)
+                        await app(scope, receive, gated_send)
+                    return wrapped
+
+                async with serving(directory, model, transport=transport) as client:
+                    initial = (await client.get("/api/snapshot")).json()
+                    accepted = (await client.post("/api/turns", json={"input": "杭州简短安排"})).json()
+                    await asyncio.wait_for(model.entered.wait(), 3)
+                    model.release.put_nowait(None)
+                    await asyncio.wait_for(model.delivered.get(), 3)
+                    readable = (await client.get("/api/snapshot")).json()
+                    self.assertEqual(readable["answer_preview"]["text"], model.parts[0])
+                    self.assertEqual(readable["active_turn_id"], accepted["turn_id"])
+                    received = []
+
+                    async def consume():
+                        path = f'/api/events?after={initial["cursor"]}&stream_id={initial["stream_id"]}'
+                        async with client.stream("GET", path) as stream:
+                            async for line in stream.aiter_lines():
+                                if not line.startswith("data:"): continue
+                                event = json.loads(line[5:])
+                                received.append(event)
+                                finished = any(e["kind"] == "turn.finished" for e in received)
+                                inactive = any(e["kind"] == "service.state" and e["state"]["active_turn_id"] is None for e in received)
+                                empty = any(e["kind"] == "answer.preview" and e["preview"] is None for e in received)
+                                empty_progress = readable["progress_preview"] is None or any(e["kind"] == "progress.preview" and e["preview"] is None for e in received)
+                                if finished and inactive and empty and empty_progress: return
+
+                    reader = asyncio.create_task(consume())
+                    try:
+                        await asyncio.wait_for(blocked.wait(), 3)
+                        for _ in model.parts: model.release.put_nowait(None)
+                        async with asyncio.timeout(3):
+                            while True:
+                                history = (await client.get("/api/sessions/" + accepted["session_id"])).json()
+                                if history["turns"][0]["status"] != "running": break
+                                await asyncio.sleep(0)
+                        self.assertEqual(history["turns"][0]["status"], "completed")
+                        self.assertEqual(history["turns"][0]["answer"], "".join(model.parts))
+                        final = (await client.get("/api/snapshot")).json()
+                        self.assertIsNone(final["active_turn_id"])
+                        self.assertIsNone(final["answer_preview"])
+                        release_send.set()
+                        await asyncio.wait_for(reader, 3)
+                        finish = next(i for i, e in enumerate(received) if e["kind"] == "turn.finished")
+                        inactive = next(i for i, e in enumerate(received) if e["kind"] == "service.state" and e["state"]["active_turn_id"] is None)
+                        empty = next(i for i, e in enumerate(received) if e["kind"] == "answer.preview" and e["preview"] is None)
+                        self.assertLess(finish, inactive, "新的结束状态必须先补齐已经保存的完成事实")
+                        self.assertLess(finish, empty, "发送状态时继续完成也不能让较新的空正文抢在完成事实之前")
+                        if readable["progress_preview"] is not None:
+                            empty_progress = next(i for i, e in enumerate(received) if e["kind"] == "progress.preview" and e["preview"] is None)
+                            self.assertLess(finish, empty_progress)
+                        self.assertEqual(len(model.requests), 2)
+                    finally:
+                        release_send.set()
+                        for _ in range(8): model.release.put_nowait(None)
+                        reader.cancel()
+                        await asyncio.gather(reader, return_exceptions=True)
+
     async def test_reasoning_without_answer_text_retries_instead_of_saving_empty_completion(self):
         thinking = {"type": "thinking", "thinking": "不可作为正文。", "signature": "signed-thinking"}
         model = ModelService([
@@ -303,13 +400,13 @@ class AnswerStreamingTests(unittest.IsolatedAsyncioTestCase):
             message = response([{"type": "text", "text": "重新作答。"}]).model_dump(mode="json")
             if not parameters.get("stream"):
                 return httpx2.Response(200, json=message)
-            attempt = len([call for call in calls if call.get("stream")])
+            attempt = len([call for call in calls if call.get("stream") and "tools" not in call])
             frames = [
                 {"type": "message_start", "message": {**message, "content": [], "stop_reason": None}},
                 {"type": "content_block_start", "index": 0, "content_block": {"type": "text", "text": ""}},
                 {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "失败旧正文" if attempt == 1 else "重新作答。"}},
             ]
-            if attempt > 1:
+            if attempt != 1:
                 frames.extend([{"type": "content_block_stop", "index": 0},
                     {"type": "message_delta", "delta": {"stop_reason": "end_turn", "stop_sequence": None}, "usage": {"output_tokens": 3}},
                     {"type": "message_stop"}])
@@ -363,7 +460,7 @@ class AnswerStreamingTests(unittest.IsolatedAsyncioTestCase):
                             async for line in stream.aiter_lines():
                                 if line.startswith("data:"):
                                     event = json.loads(line[5:])
-                                    preview = event.get("preview")
+                                    preview = event.get("preview") if event.get("kind") == "answer.preview" else None
                                     if preview and preview["status"] == "retrying":
                                         self.assertEqual(preview["text"], "")
                                         self.assertEqual(preview["attempt_id"], before["attempt_id"])
@@ -650,7 +747,8 @@ class AnswerStreamingTests(unittest.IsolatedAsyncioTestCase):
         model = StreamingModel()
         model.parts = ["杭州旅行\n\n", "known-", "secret\n\n", "Authorization: Bea",
                        "rer header-secret, extra=hidden\n\n", "[预约](https://example.test/?api_",
-                       "key=url-secret)\n\n", '{"password":\n', '"json-secret", "city":"杭州"}\n\n', "结束\n"]
+                       "key=url-secret)\n\n", '{"password":\n', '"json-secret", "city":"杭州"}\n\n',
+                       'password="quoted-', 'secret"\n', "api_key='single-", "secret'\n", '"token":\n"field-', 'secret"\n', 'auth=Digest "digest-', 'secret"\n', "结束\n"]
         with tempfile.TemporaryDirectory() as directory:
             async with serving(directory, model) as client:
                 identity = (await client.post("/api/turns", json={"input": "安排杭州一天"})).json()
@@ -661,7 +759,7 @@ class AnswerStreamingTests(unittest.IsolatedAsyncioTestCase):
                         await asyncio.wait_for(model.delivered.get(), 3)
                         state = (await client.get("/api/snapshot")).json()
                         visible = json.dumps(state, ensure_ascii=False)
-                        for secret in ("known-", "header-secret", "extra=hidden", "url-secret", "json-secret"):
+                        for secret in ("known-", "header-secret", "extra=hidden", "url-secret", "json-secret", "quoted-", "single-", "field-", "digest-"):
                             self.assertNotIn(secret, visible)
                     self.assertFalse(model.returned)
                     model.release.put_nowait(None)
@@ -670,7 +768,7 @@ class AnswerStreamingTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIn("杭州", answer)
                     self.assertIn("[REDACTED]", answer)
                     self.assertIn("[REDACTED_URL]", answer)
-                    for secret in ("known-secret", "header-secret", "url-secret", "json-secret"):
+                    for secret in ("known-secret", "header-secret", "url-secret", "json-secret", "quoted-secret", "single-secret", "field-secret", "digest-secret"):
                         self.assertNotIn(secret, answer)
                 finally:
                     for _ in range(len(model.parts) + 1):
@@ -678,7 +776,7 @@ class AnswerStreamingTests(unittest.IsolatedAsyncioTestCase):
 
 
     async def test_plain_chinese_batches_are_visible_without_line_breaks(self):
-        model = StreamingModel()
+        model = StreamingModel(query_rounds=0)
         model.parts = ["上午游览西湖。", "下午品尝杭帮菜。", "傍晚沿湖散步。"]
         with tempfile.TemporaryDirectory() as directory:
             async with serving(directory, model) as client:
@@ -694,10 +792,41 @@ class AnswerStreamingTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(state["answer_preview"]["text"], text)
                         self.assertFalse(model.returned)
                     model.release.put_nowait(None)
-                    await wait_finished(client, identity["session_id"])
+                    history = await wait_finished(client, identity["session_id"])
+                    self.assertEqual(history["tool_calls"], [])
+                    self.assertEqual(history["turns"][0]["answer"], text)
                 finally:
                     for _ in range(4):
                         model.release.put_nowait(None)
+
+
+    async def test_unclosed_reading_punctuation_does_not_buffer_safe_chinese(self):
+        # 普通引号与 Markdown 标签不是凭据；模型仍被屏障阻止完整返回。
+        for opening in ('建议先读"', '推荐[西湖', '行程备注{西湖'):
+            with self.subTest(opening=opening):
+                model = StreamingModel()
+                model.parts = [opening, "上午沿湖慢行", "下午品尝杭帮菜🙂", "最后回酒店休息"]
+                with tempfile.TemporaryDirectory() as directory:
+                    async with serving(directory, model) as client:
+                        identity = (await client.post("/api/turns", json={"input": "杭州一天"})).json()
+                        try:
+                            await asyncio.wait_for(model.entered.wait(), 3)
+                            text = ""
+                            for part in model.parts:
+                                model.release.put_nowait(None)
+                                await asyncio.wait_for(model.delivered.get(), 3)
+                                text += part
+                                state = (await client.get("/api/snapshot")).json()
+                                self.assertEqual(state["answer_preview"]["text"], text)
+                                self.assertFalse(model.returned)
+                                history = (await client.get("/api/sessions/" + identity["session_id"])).json()
+                                self.assertIsNone(history["turns"][0]["answer"])
+                            model.release.put_nowait(None)
+                            history = await wait_finished(client, identity["session_id"])
+                            self.assertEqual(history["turns"][0]["answer"], text)
+                        finally:
+                            for _ in range(len(model.parts) + 1):
+                                model.release.put_nowait(None)
 
 
     async def test_query_commentary_is_not_recalled_as_an_assistant_answer(self):

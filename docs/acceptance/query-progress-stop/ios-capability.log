@@ -1,0 +1,124 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild test -project ios/Potato.xcodeproj -scheme Potato -destination "platform=iOS Simulator,id=AB9010DF-6F36-4079-8492-3CE8B5393EF7" -derivedDataPath /tmp/potato116-derived -resultBundlePath /tmp/potato116-capability-green.xcresult "-only-testing:PotatoTests/AnswerStreamingTests" -skipMacroValidation CODE_SIGNING_ALLOWED=NO
+
+◇ Test run started.
+↳ Testing Library Version: 2403
+↳ Target Platform: arm64-apple-ios17.0-simulator
+◇ Suite AnswerStreamingTests started.
+◇ Test savedProgressIsReadAgainAfterReopeningClientWithoutLocalHistoryCopy() started.
+✔ Test savedProgressIsReadAgainAfterReopeningClientWithoutLocalHistoryCopy() passed after 0.015 seconds.
+◇ Test queryProgressUsesExistingSubscriptionAndKeepsAnswerSeparate() started.
+✔ Test queryProgressUsesExistingSubscriptionAndKeepsAnswerSeparate() passed after 0.011 seconds.
+◇ Test liveStateReconcilesAheadProgressWithoutWaitingForPolling() started.
+2026-11-08 17:58:18.197825+0800 Potato[92580:57906954] [Default] Task <705BF15F-C713-4587-B7E0-CBC73C2ACAB5>.<4> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <705BF15F-C713-4587-B7E0-CBC73C2ACAB5>.<4>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <705BF15F-C713-4587-B7E0-CBC73C2ACAB5>.<4>}
+✔ Test liveStateReconcilesAheadProgressWithoutWaitingForPolling() passed after 0.009 seconds.
+◇ Test queryProgressRecoveryUsesSnapshotAndReliableHistory(result:) started.
+◇ Test case passing 1 argument result → "running" to queryProgressRecoveryUsesSnapshotAndReliableHistory(result:) started.
+2026-11-08 17:58:18.205921+0800 Potato[92580:57906952] [Default] Task <9FAF8BA4-363E-40E1-98B3-5441F420BD27>.<4> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <9FAF8BA4-363E-40E1-98B3-5441F420BD27>.<4>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <9FAF8BA4-363E-40E1-98B3-5441F420BD27>.<4>}
+2026-11-08 17:58:18.207496+0800 Potato[92580:57906953] [Default] Task <02576CF1-A7E6-46DC-8F84-8E3270C49E4F>.<8> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <02576CF1-A7E6-46DC-8F84-8E3270C49E4F>.<8>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <02576CF1-A7E6-46DC-8F84-8E3270C49E4F>.<8>}
+​◇ Test case passing 1 argument result → "completed" to queryProgressRecoveryUsesSnapshotAndReliableHistory(result:) started.
+2026-11-08 17:58:18.212917+0800 Potato[92580:57906953] [Default] Task <26B4FAD6-EA46-4295-96A8-03F2B89D5E89>.<4> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <26B4FAD6-EA46-4295-96A8-03F2B89D5E89>.<4>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <26B4FAD6-EA46-4295-96A8-03F2B89D5E89>.<4>}
+​2026-11-08 17:58:18.214186+0800 Potato[92580:57906989] [Default] Task <E257B7E6-C691-43C6-9995-9E43BAC96175>.<8> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <E257B7E6-C691-43C6-9995-9E43BAC96175>.<8>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <E257B7E6-C691-43C6-9995-9E43BAC96175>.<8>}
+◇ Test case passing 1 argument result → "restarted" to queryProgressRecoveryUsesSnapshotAndReliableHistory(result:) started.
+2026-11-08 17:58:18.219496+0800 Potato[92580:57906952] [Default] Task <981D64F6-4BEE-4116-BCF6-95FE1469FE89>.<4> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <981D64F6-4BEE-4116-BCF6-95FE1469FE89>.<4>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <981D64F6-4BEE-4116-BCF6-95FE1469FE89>.<4>}
+2026-11-08 17:58:18.220929+0800 Potato[92580:57906954] [Default] Task <A4808763-36D8-4B1D-B6F4-2A8D57C00787>.<8> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <A4808763-36D8-4B1D-B6F4-2A8D57C00787>.<8>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <A4808763-36D8-4B1D-B6F4-2A8D57C00787>.<8>}
+​✔ Test queryProgressRecoveryUsesSnapshotAndReliableHistory(result:) with 3 test cases passed after 0.021 seconds.
+◇ Test queryOnlyRemoteStopFreezesBeforeAdoptingLateSnapshotProgress() started.
+✔ Test queryOnlyRemoteStopFreezesBeforeAdoptingLateSnapshotProgress() passed after 0.007 seconds.
+◇ Test receivesBatchesBeforeSavedHistoryThroughOneForegroundSubscription() started.
+✔ Test receivesBatchesBeforeSavedHistoryThroughOneForegroundSubscription() passed after 0.006 seconds.
+◇ Test backgroundAndPageExitCancelReceivingAndForegroundRestoresSnapshot() started.
+✔ Test backgroundAndPageExitCancelReceivingAndForegroundRestoresSnapshot() passed after 0.006 seconds.
+◇ Test attemptReplacementWrongOwnershipAndStreamFailureRemainObservable() started.
+2026-11-08 17:58:18.248028+0800 Potato[92580:57906989] [Default] Task <DCCFEA66-13D5-4A80-90C4-800DB4CC6FC0>.<4> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <DCCFEA66-13D5-4A80-90C4-800DB4CC6FC0>.<4>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <DCCFEA66-13D5-4A80-90C4-800DB4CC6FC0>.<4>}
+✔ Test attemptReplacementWrongOwnershipAndStreamFailureRemainObservable() passed after 0.006 seconds.
+◇ Test changedOwnershipInvalidatesOldConnection(kind:) started.
+◇ Test case passing 1 argument kind → "configuration" to changedOwnershipInvalidatesOldConnection(kind:) started.
+​◇ Test case passing 1 argument kind → "conversation" to changedOwnershipInvalidatesOldConnection(kind:) started.
+​◇ Test case passing 1 argument kind → "dataset" to changedOwnershipInvalidatesOldConnection(kind:) started.
+​◇ Test case passing 1 argument kind → "process" to changedOwnershipInvalidatesOldConnection(kind:) started.
+​✔ Test changedOwnershipInvalidatesOldConnection(kind:) with 4 test cases passed after 0.023 seconds.
+◇ Test delayedSnapshotDuplicateEventsAndMissingPreviewCannotResurrectOldAttempt() started.
+2026-11-08 17:58:18.279901+0800 Potato[92580:57906959] [Default] Task <066EC253-E8F9-4C61-952A-0857798862D9>.<4> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <066EC253-E8F9-4C61-952A-0857798862D9>.<4>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <066EC253-E8F9-4C61-952A-0857798862D9>.<4>}
+✔ Test delayedSnapshotDuplicateEventsAndMissingPreviewCannotResurrectOldAttempt() passed after 0.007 seconds.
+◇ Test disconnectedStreamReconcilesSnapshotAndHistoryBeforeResubscribing(result:) started.
+◇ Test case passing 1 argument result → "running" to disconnectedStreamReconcilesSnapshotAndHistoryBeforeResubscribing(result:) started.
+2026-11-08 17:58:18.285207+0800 Potato[92580:57906951] [Default] Task <8F7A593B-7578-40D3-BF5B-3755C84BFCC3>.<4> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <8F7A593B-7578-40D3-BF5B-3755C84BFCC3>.<4>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <8F7A593B-7578-40D3-BF5B-3755C84BFCC3>.<4>}
+​◇ Test case passing 1 argument result → "retrying" to disconnectedStreamReconcilesSnapshotAndHistoryBeforeResubscribing(result:) started.
+2026-11-08 17:58:18.292458+0800 Potato[92580:57906951] [Default] Task <35FE542F-1A01-406C-8D91-B93FD99ED719>.<4> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <35FE542F-1A01-406C-8D91-B93FD99ED719>.<4>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <35FE542F-1A01-406C-8D91-B93FD99ED719>.<4>}
+​◇ Test case passing 1 argument result → "completed" to disconnectedStreamReconcilesSnapshotAndHistoryBeforeResubscribing(result:) started.
+2026-11-08 17:58:18.299467+0800 Potato[92580:57906954] [Default] Task <D37ED935-C794-4A2A-8FEB-E6DA625B711A>.<4> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <D37ED935-C794-4A2A-8FEB-E6DA625B711A>.<4>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <D37ED935-C794-4A2A-8FEB-E6DA625B711A>.<4>}
+​◇ Test case passing 1 argument result → "restarted" to disconnectedStreamReconcilesSnapshotAndHistoryBeforeResubscribing(result:) started.
+2026-11-08 17:58:18.305624+0800 Potato[92580:57906959] [Default] Task <42601124-1C97-4171-95A9-1BB8556BEEED>.<4> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <42601124-1C97-4171-95A9-1BB8556BEEED>.<4>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <42601124-1C97-4171-95A9-1BB8556BEEED>.<4>}
+​✔ Test disconnectedStreamReconcilesSnapshotAndHistoryBeforeResubscribing(result:) with 4 test cases passed after 0.026 seconds.
+◇ Test processChangeBetweenSnapshotAndSubscriptionImmediatelyInvalidatesPreview() started.
+✔ Test processChangeBetweenSnapshotAndSubscriptionImmediatelyInvalidatesPreview() passed after 0.005 seconds.
+◇ Test failedAnswerClearsBeforeRetryAndCompleteDeliveryRemainsInHistory() started.
+✔ Test failedAnswerClearsBeforeRetryAndCompleteDeliveryRemainsInHistory() passed after 0.006 seconds.
+◇ Test incompleteSavedOutcomeReplacesPreviewWithoutChangingItsReason(reason:) started.
+◇ Test case passing 1 argument reason → "output_limit" to incompleteSavedOutcomeReplacesPreviewWithoutChangingItsReason(reason:) started.
+2026-11-08 17:58:18.326002+0800 Potato[92580:57906951] [Default] Task <D02CFB41-AB35-4B77-B2B2-D97E3E7CD87C>.<4> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <D02CFB41-AB35-4B77-B2B2-D97E3E7CD87C>.<4>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <D02CFB41-AB35-4B77-B2B2-D97E3E7CD87C>.<4>}
+​◇ Test case passing 1 argument reason → "budget" to incompleteSavedOutcomeReplacesPreviewWithoutChangingItsReason(reason:) started.
+2026-11-08 17:58:18.332250+0800 Potato[92580:57906954] [Default] Task <6329CFC9-9ECF-4951-83B7-C60E493AE16A>.<4> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <6329CFC9-9ECF-4951-83B7-C60E493AE16A>.<4>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <6329CFC9-9ECF-4951-83B7-C60E493AE16A>.<4>}
+​◇ Test case passing 1 argument reason → "user_stop" to incompleteSavedOutcomeReplacesPreviewWithoutChangingItsReason(reason:) started.
+2026-11-08 17:58:18.338161+0800 Potato[92580:57906951] [Default] Task <E8BD121B-D2BC-4EA8-89E0-9DB6E8AFB7CC>.<4> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <E8BD121B-D2BC-4EA8-89E0-9DB6E8AFB7CC>.<4>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <E8BD121B-D2BC-4EA8-89E0-9DB6E8AFB7CC>.<4>}
+​✔ Test incompleteSavedOutcomeReplacesPreviewWithoutChangingItsReason(reason:) with 3 test cases passed after 0.018 seconds.
+◇ Test firstSnapshotAlreadyStoppingRestoresAndFreezesItsCurrentBody() started.
+2026-11-08 17:58:18.343989+0800 Potato[92580:57906951] [Default] Task <416F303A-C27F-4C1B-9C4F-5D5DB523CA46>.<4> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <416F303A-C27F-4C1B-9C4F-5D5DB523CA46>.<4>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <416F303A-C27F-4C1B-9C4F-5D5DB523CA46>.<4>}
+✔ Test firstSnapshotAlreadyStoppingRestoresAndFreezesItsCurrentBody() passed after 0.005 seconds.
+◇ Test stopFreezesUntilSavedOrUnsavedResultIsConfirmed(unsaved:) started.
+◇ Test case passing 1 argument unsaved → false to stopFreezesUntilSavedOrUnsavedResultIsConfirmed(unsaved:) started.
+2026-11-08 17:58:18.349598+0800 Potato[92580:57906954] [Default] Task <194C32CA-E336-4D41-9889-5EC0E0DE7CEC>.<4> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <194C32CA-E336-4D41-9889-5EC0E0DE7CEC>.<4>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <194C32CA-E336-4D41-9889-5EC0E0DE7CEC>.<4>}
+​◇ Test case passing 1 argument unsaved → true to stopFreezesUntilSavedOrUnsavedResultIsConfirmed(unsaved:) started.
+2026-11-08 17:58:18.358466+0800 Potato[92580:57906953] [Default] Task <9431FFEC-EB52-432F-9087-486FD593601D>.<4> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "(null)" UserInfo={_NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <9431FFEC-EB52-432F-9087-486FD593601D>.<4>"
+), _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <9431FFEC-EB52-432F-9087-486FD593601D>.<4>}
+​✔ Test stopFreezesUntilSavedOrUnsavedResultIsConfirmed(unsaved:) with 2 test cases passed after 0.016 seconds.
+✔ Suite AnswerStreamingTests passed after 0.198 seconds.
+✔ Test run with 16 tests in 1 suite passed after 0.200 seconds.
+2026-11-08 17:58:18.650 xcodebuild[92369:57905444] [MT] IDETestOperationsObserverDebug: 4.371 elapsed -- Testing started completed.
+2026-11-08 17:58:18.650 xcodebuild[92369:57905444] [MT] IDETestOperationsObserverDebug: 0.000 sec, +0.000 sec -- start
+2026-11-08 17:58:18.650 xcodebuild[92369:57905444] [MT] IDETestOperationsObserverDebug: 4.371 sec, +4.371 sec -- end
+
+Test session results, code coverage, and logs:
+	/tmp/potato116-capability-green.xcresult
+
+** TEST SUCCEEDED **
+
+Testing started
